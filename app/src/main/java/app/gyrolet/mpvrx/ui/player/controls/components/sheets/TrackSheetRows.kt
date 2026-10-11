@@ -10,6 +10,9 @@
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
 import android.net.Uri
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -26,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +42,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 
 /**
  * Shared Material 3 Expressive state colors for player selection sheets.
@@ -56,6 +61,22 @@ internal fun playerSheetSelectionColor(
     frosted -> colors.surfaceContainerLow.copy(alpha = 0.35f)
     else -> colors.surfaceContainerLow
   }
+}
+
+/** Every player option gets its own animated Material 3 state surface. */
+@Composable
+internal fun animatedPlayerSheetSelectionColor(
+  selected: Boolean,
+  frosted: Boolean = false,
+  label: String = "playerOptionSelection",
+): Color {
+  val reduceMotion = AppMotion.playerReducedMotion()
+  val value by animateColorAsState(
+    targetValue = playerSheetSelectionColor(selected, frosted),
+    animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+    label = label,
+  )
+  return value
 }
 
 data class TrackBadge(
@@ -118,6 +139,7 @@ fun AddTrackRow(
         .fillMaxWidth()
         .tvFocusHighlight(MaterialTheme.shapes.medium, focusedScale = 1.01f)
         .clip(MaterialTheme.shapes.medium)
+        .background(animatedPlayerSheetSelectionColor(false))
         .clickable(role = Role.Button, onClick = onClick)
         .heightIn(min = 56.dp)
         .padding(horizontal = 20.dp, vertical = 8.dp),

@@ -530,7 +530,7 @@ fun SubtitlesSheet(
                     },
                 shape = shape,
                 color =
-                  playerSheetSelectionColor(subtitlesOff, frosted = isFrostedOff),
+                  animatedPlayerSheetSelectionColor(subtitlesOff, frosted = isFrostedOff, label = "subtitlesOffSelection"),
               ) {
                 Row(
                   modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -598,7 +598,7 @@ fun SubtitleTrackRow(
   val isFrosted = LocalKyantPlayerBackdrop.current != null
   val containerColor by animateColorAsState(
     targetValue =
-      playerSheetSelectionColor(isSelected, frosted = isFrosted),
+      animatedPlayerSheetSelectionColor(isSelected, frosted = isFrosted, label = "subtitleTrackSelection"),
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "subtitleTrackSelection",
   )

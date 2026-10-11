@@ -26,8 +26,9 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
  * Stable, visible empty space between neighboring media surfaces. Kept in the layout (not
  * conditional on selection) so toggling selection never jumps rows or reloads thumbnails.
  */
-internal val MediaSelectionListGap = 6.dp
 internal val MediaSelectionGridGap = 4.dp
+// Keep the list and grid breathing room identical; gaps never depend on selection.
+internal val MediaSelectionListGap = MediaSelectionGridGap
 
 /**
  * Neighbors are from the visible, filtered/sorted media order. Logical start and end work for

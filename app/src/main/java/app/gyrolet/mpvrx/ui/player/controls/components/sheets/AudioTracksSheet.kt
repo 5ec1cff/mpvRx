@@ -13,7 +13,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -39,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -187,6 +186,7 @@ fun AudioTracksSheet(
             PlayerSheetSectionHeader(stringResource(R.string.pref_audio_effects))
             Row(
               modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                .background(animatedPlayerSheetSelectionColor(volumeNormalization), MaterialTheme.shapes.medium)
                 .toggleable(value = volumeNormalization, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.volumeNormalization::set)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -199,6 +199,7 @@ fun AudioTracksSheet(
             }
             Row(
               modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                .background(animatedPlayerSheetSelectionColor(drcEnabled), MaterialTheme.shapes.medium)
                 .toggleable(value = drcEnabled, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.drcEnabled::set)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -237,23 +238,10 @@ fun AudioTrackCard(
     } else {
       MaterialTheme.shapes.medium
     }
-  val containerColor by animateColorAsState(
-    targetValue =
-      if (isSelected) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-      } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-      },
-    animationSpec = if (reducedMotion) snap() else AppMotion.Effect.Color,
-    label = "audioTrackSelection",
+  val containerColor = animatedPlayerSheetSelectionColor(
+    isSelected, frosted = LocalKyantPlayerBackdrop.current != null,
+    label = "audioCardSelection",
   )
-  val selectionBorder =
-    BorderStroke(
-      2.dp,
-      Brush.linearGradient(
-        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-      ),
-    )
   val badges = audioTrackBadges(track)
   Surface(
     modifier =
@@ -267,7 +255,6 @@ fun AudioTrackCard(
         },
     shape = shape,
     color = containerColor,
-    border = if (isSelected) selectionBorder else null,
   ) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
@@ -319,23 +306,9 @@ fun AudioTrackRow(
       MaterialTheme.shapes.medium
     }
   val isFrosted = LocalKyantPlayerBackdrop.current != null
-  val containerColor by animateColorAsState(
-    targetValue =
-      if (isSelected) {
-        if (isFrosted) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f) else MaterialTheme.colorScheme.secondaryContainer
-      } else {
-        if (isFrosted) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceContainerHigh
-      },
-    animationSpec = if (reducedMotion) snap() else AppMotion.Effect.Color,
-    label = "genericTrackSelection",
+  val containerColor = animatedPlayerSheetSelectionColor(
+    isSelected, frosted = isFrosted, label = "audioTrackRowSelection",
   )
-  val selectionBorder =
-    BorderStroke(
-      2.dp,
-      Brush.linearGradient(
-        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-      ),
-    )
   Surface(
     modifier =
       modifier
@@ -349,7 +322,6 @@ fun AudioTrackRow(
         },
     shape = shape,
     color = containerColor,
-    border = if (isSelected) selectionBorder else null,
   ) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),

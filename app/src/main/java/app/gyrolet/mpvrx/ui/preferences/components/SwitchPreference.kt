@@ -9,6 +9,8 @@
 
 package app.gyrolet.mpvrx.ui.preferences.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
@@ -79,8 +83,12 @@ fun SwitchPreference(
   }
   // Each preference owns its subtle tonal surface; there is no background panel
   // spanning the whole group. Active preferences are noticeably, but gently, emphasized.
-  val containerColor = if (value) MaterialTheme.colorScheme.secondaryContainer
-    else MaterialTheme.colorScheme.surfaceContainerLow
+  val containerColor by animateColorAsState(
+    targetValue = if (value) MaterialTheme.colorScheme.secondaryContainer
+      else MaterialTheme.colorScheme.surfaceContainerLow,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "settingsOptionSelectionColor",
+  )
   Surface(
     modifier =
       modifier

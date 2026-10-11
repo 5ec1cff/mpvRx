@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
@@ -261,8 +262,9 @@ private fun ZoomOverlaySwitch(
 ) {
   Row(
     modifier = Modifier.fillMaxWidth()
+      .background(animatedPlayerSheetSelectionColor(checked), MaterialTheme.shapes.medium)
       .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-      .padding(vertical = 8.dp),
+      .padding(horizontal = 12.dp, vertical = 10.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {

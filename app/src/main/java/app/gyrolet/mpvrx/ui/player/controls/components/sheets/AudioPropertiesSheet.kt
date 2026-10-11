@@ -65,7 +65,7 @@ fun AudioPropertiesSheet(
         Surface(
           modifier = Modifier.fillMaxWidth(),
           shape = shape,
-          color = MaterialTheme.colorScheme.surfaceContainerLow,
+          color = animatedPlayerSheetSelectionColor(false),
         ) {
           Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),

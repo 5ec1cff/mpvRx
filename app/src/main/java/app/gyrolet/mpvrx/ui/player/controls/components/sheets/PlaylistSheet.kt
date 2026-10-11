@@ -597,7 +597,7 @@ fun PlaylistTrackListItem(
           vertical = MaterialTheme.spacing.extraSmall,
         ).clip(RoundedCornerShape(12.dp))
         .clickable(onClick = onClick),
-    color = playerSheetSelectionColor(effectiveItem.isPlaying),
+    color = animatedPlayerSheetSelectionColor(effectiveItem.isPlaying, label = "playlistItemSelection"),
     shape = RoundedCornerShape(12.dp),
   ) {
     Row(
@@ -808,7 +808,7 @@ fun PlaylistTrackGridItem(
         .width(200.dp)
         .clip(RoundedCornerShape(12.dp))
         .clickable(onClick = onClick),
-    color = playerSheetSelectionColor(effectiveItem.isPlaying),
+    color = animatedPlayerSheetSelectionColor(effectiveItem.isPlaying, label = "playlistItemSelection"),
     shape = RoundedCornerShape(12.dp),
   ) {
     Column(

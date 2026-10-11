@@ -11,6 +11,8 @@ package app.gyrolet.mpvrx.ui.preferences
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -97,8 +100,15 @@ fun ExpressivePreferenceTile(
   index: Int,
   itemCount: Int,
   modifier: Modifier = Modifier,
+  selected: Boolean = false,
   content: @Composable () -> Unit,
 ) {
+  val colors = MaterialTheme.colorScheme
+  val containerColor by animateColorAsState(
+    targetValue = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "expressivePreferenceTileColor",
+  )
   val shape =
     rememberConnectedShape(
       index = index,
@@ -108,7 +118,7 @@ fun ExpressivePreferenceTile(
   Surface(
     modifier = modifier.fillMaxWidth(),
     shape = shape,
-    color = MaterialTheme.colorScheme.surfaceContainerLow,
+    color = containerColor,
   ) {
     content()
   }
