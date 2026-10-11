@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,25 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
+
+/**
+ * Shared Material 3 Expressive state colors for player selection sheets.
+ * No background panel behind whole option groups; each selectable row owns its surface.
+ * A frosted sheet keeps its existing transparency without stacking another blur layer.
+ */
+@Composable
+internal fun playerSheetSelectionColor(
+  selected: Boolean,
+  frosted: Boolean = false,
+): Color {
+  val colors = MaterialTheme.colorScheme
+  return when {
+    selected && frosted -> colors.secondaryContainer.copy(alpha = 0.65f)
+    selected -> colors.secondaryContainer
+    frosted -> colors.surfaceContainerLow.copy(alpha = 0.35f)
+    else -> colors.surfaceContainerLow
+  }
+}
 
 data class TrackBadge(
   val text: String,

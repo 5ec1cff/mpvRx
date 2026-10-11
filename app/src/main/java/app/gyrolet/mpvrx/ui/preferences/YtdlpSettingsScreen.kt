@@ -247,24 +247,24 @@ object YtdlpSettingsScreen : Screen {
             modifier = Modifier.settingsSearchTarget(R.string.ytdlp_playlist_behavior),
           )
 
-          PreferenceCard {
-            FlowRow(
-              modifier = Modifier.fillMaxWidth().padding(16.dp),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-              verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-              YtdlPlaylistMode.entries.forEach { mode ->
-                FilterChip(
-                  selected = playlistMode == mode,
-                  enabled = playbackOptionsEnabled,
-                  onClick = { ytdlPreferences.playlistMode.set(mode) },
-                  label = { Text(mode.title) },
-                  leadingIcon =
-                    if (playlistMode == mode) {
-                      { Icon(Icons.RoundedFilled.Check, null, modifier = Modifier.size(16.dp)) }
-                    } else {
-                      null
-                    },
+          SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+          ) {
+            YtdlPlaylistMode.entries.forEachIndexed { index, mode ->
+              SegmentedButton(
+                selected = playlistMode == mode,
+                enabled = playbackOptionsEnabled,
+                onClick = { ytdlPreferences.playlistMode.set(mode) },
+                shape = SegmentedButtonDefaults.itemShape(
+                  index = index,
+                  count = YtdlPlaylistMode.entries.size,
+                ),
+                icon = { SegmentedButtonDefaults.Icon(active = playlistMode == mode) },
+              ) {
+                Text(
+                  text = mode.title,
+                  style = MaterialTheme.typography.labelMedium,
+                  maxLines = 2,
                 )
               }
             }

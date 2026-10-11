@@ -169,15 +169,14 @@ fun PlaybackSpeedSheet(
               leadingIcon = null,
               enabled = speedControlEnabled,
               colors =
-                if (!isDefault) {
-                  androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                  )
-                } else {
-                  androidx.compose.material3.FilterChipDefaults
-                    .filterChipColors()
-                },
+                androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = if (isDefault) playerSheetSelectionColor(false)
+                    else MaterialTheme.colorScheme.tertiaryContainer,
+                  labelColor = if (isDefault) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onTertiaryContainer,
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
             )
           }
         }

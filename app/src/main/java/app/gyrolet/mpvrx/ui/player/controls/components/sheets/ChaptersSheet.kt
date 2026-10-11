@@ -134,11 +134,7 @@ fun ChapterTrack(
   val containerColor by
     animateColorAsState(
       targetValue =
-        if (selected) {
-          MaterialTheme.colorScheme.secondaryContainer
-        } else {
-          MaterialTheme.colorScheme.surfaceContainerLow
-        },
+        playerSheetSelectionColor(selected),
       animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
       label = "chapterSelection",
     )

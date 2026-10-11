@@ -11,7 +11,6 @@ package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -532,22 +530,7 @@ fun SubtitlesSheet(
                     },
                 shape = shape,
                 color =
-                  if (subtitlesOff) {
-                    if (isFrostedOff) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f) else MaterialTheme.colorScheme.secondaryContainer
-                  } else {
-                    if (isFrostedOff) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceContainerHigh
-                  },
-                border =
-                  if (subtitlesOff) {
-                    BorderStroke(
-                      2.dp,
-                      Brush.linearGradient(
-                        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-                      ),
-                    )
-                  } else {
-                    null
-                  },
+                  playerSheetSelectionColor(subtitlesOff, frosted = isFrostedOff),
               ) {
                 Row(
                   modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -615,21 +598,10 @@ fun SubtitleTrackRow(
   val isFrosted = LocalKyantPlayerBackdrop.current != null
   val containerColor by animateColorAsState(
     targetValue =
-      if (isSelected) {
-        if (isFrosted) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f) else MaterialTheme.colorScheme.secondaryContainer
-      } else {
-        if (isFrosted) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceContainerHigh
-      },
+      playerSheetSelectionColor(isSelected, frosted = isFrosted),
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "subtitleTrackSelection",
   )
-  val selectionBorder =
-    BorderStroke(
-      2.dp,
-      Brush.linearGradient(
-        listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-      ),
-    )
   val badges = subtitleTrackBadges(track, selectionIndicator, isExternal)
   Surface(
     modifier =
@@ -644,7 +616,6 @@ fun SubtitleTrackRow(
         },
     shape = shape,
     color = containerColor,
-    border = if (isSelected) selectionBorder else null,
   ) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),

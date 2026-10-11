@@ -588,17 +588,6 @@ fun PlaylistTrackListItem(
       if (item.isAudio != isAudioItem) item.copy(isAudio = isAudioItem) else item
     }
 
-  val borderModifier =
-    if (effectiveItem.isPlaying) {
-      Modifier.border(
-        width = 1.5.dp,
-        color = accentColor.copy(alpha = 0.6f),
-        shape = RoundedCornerShape(12.dp),
-      )
-    } else {
-      Modifier
-    }
-
   Surface(
     modifier =
       modifier
@@ -607,14 +596,8 @@ fun PlaylistTrackListItem(
           horizontal = MaterialTheme.spacing.medium,
           vertical = MaterialTheme.spacing.extraSmall,
         ).clip(RoundedCornerShape(12.dp))
-        .then(borderModifier)
         .clickable(onClick = onClick),
-    color =
-      if (effectiveItem.isPlaying) {
-        accentColor.copy(alpha = 0.12f)
-      } else {
-        Color.Transparent
-      },
+    color = playerSheetSelectionColor(effectiveItem.isPlaying),
     shape = RoundedCornerShape(12.dp),
   ) {
     Row(
@@ -818,31 +801,14 @@ fun PlaylistTrackGridItem(
 
   val accentColor = MaterialTheme.colorScheme.primary
 
-  val borderModifier =
-    if (effectiveItem.isPlaying) {
-      Modifier.border(
-        width = 1.5.dp,
-        color = accentColor.copy(alpha = 0.6f),
-        shape = RoundedCornerShape(12.dp),
-      )
-    } else {
-      Modifier
-    }
-
   // YouTube-style vertical card
   Surface(
     modifier =
       modifier
         .width(200.dp)
         .clip(RoundedCornerShape(12.dp))
-        .then(borderModifier)
         .clickable(onClick = onClick),
-    color =
-      if (effectiveItem.isPlaying) {
-        accentColor.copy(alpha = 0.14f)
-      } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
-      },
+    color = playerSheetSelectionColor(effectiveItem.isPlaying),
     shape = RoundedCornerShape(12.dp),
   ) {
     Column(

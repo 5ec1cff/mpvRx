@@ -148,6 +148,11 @@ fun AspectRatioSheet(
             onClick = { onSelectRatio(ratio.ratio) },
             label = { Text(ratio.label) },
             leadingIcon = null,
+            colors = androidx.compose.material3.InputChipDefaults.inputChipColors(
+              containerColor = playerSheetSelectionColor(false),
+              selectedContainerColor = playerSheetSelectionColor(true),
+              selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
           )
         }
       }
@@ -166,6 +171,11 @@ fun AspectRatioSheet(
               onClick = { onSelectRatio(ratio.ratio) },
               label = { Text(ratio.label) },
               leadingIcon = null,
+            colors = androidx.compose.material3.InputChipDefaults.inputChipColors(
+              containerColor = playerSheetSelectionColor(false),
+              selectedContainerColor = playerSheetSelectionColor(true),
+              selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
               trailingIcon = {
                 Icon(
                   Icons.RoundedFilled.Close,

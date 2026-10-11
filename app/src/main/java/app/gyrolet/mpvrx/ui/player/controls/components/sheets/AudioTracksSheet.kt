@@ -172,6 +172,11 @@ fun AudioTracksSheet(
                   },
                   label = { Text(text = stringResource(id = it.title)) },
                   leadingIcon = null,
+                  colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
                 )
               }
             }

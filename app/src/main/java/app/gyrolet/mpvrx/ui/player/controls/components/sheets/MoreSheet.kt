@@ -268,6 +268,11 @@ fun MoreSheet(
             },
             selected = statisticsPage == page,
             leadingIcon = null,
+            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
           )
         }
       }
@@ -301,6 +306,11 @@ fun MoreSheet(
               selected = anime4KUiState.selectedMode == mode.name,
               enabled = anime4KEnabled && (anime4KUiState.allowHighRes || mode == Anime4KManager.Mode.OFF),
               leadingIcon = null,
+              colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
               onClick = { onAnime4KModeSelected(mode) },
             )
           }
@@ -393,6 +403,11 @@ fun TimePickerDialog(
                 },
                 label = { Text(stringResource(R.string.generic_minutes_short, minutes)) },
                 leadingIcon = null,
+                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
               )
             }
           }

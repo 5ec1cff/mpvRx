@@ -55,11 +55,7 @@ fun VideoQualitySheet(
         itemsIndexed(tracks, key = { _, track -> track.id }) { index, track ->
           val containerColor by animateColorAsState(
             targetValue =
-              if (track.isSelected) {
-                MaterialTheme.colorScheme.secondaryContainer
-              } else {
-                MaterialTheme.colorScheme.surfaceContainerLow
-              },
+              playerSheetSelectionColor(track.isSelected),
             animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
             label = "videoQualitySelection",
           )

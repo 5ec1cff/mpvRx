@@ -9,8 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.preferences.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,7 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
-import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
@@ -81,20 +77,10 @@ fun SwitchPreference(
     insideConnectedCard -> MaterialTheme.shapes.small
     else -> MaterialTheme.shapes.large
   }
-  val containerColor by
-    animateColorAsState(
-      targetValue =
-        if (value) {
-          MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
-        } else if (insideConnectedCard) {
-          // The enclosing PreferenceCard paints connected rows; do not cover its exterior corners.
-          Color.Transparent
-        } else {
-          MaterialTheme.colorScheme.surfaceContainerLow
-        },
-      animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
-      label = "settings switch container",
-    )
+  // Each preference owns its subtle tonal surface; there is no background panel
+  // spanning the whole group. Active preferences are noticeably, but gently, emphasized.
+  val containerColor = if (value) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.surfaceContainerLow
   Surface(
     modifier =
       modifier
@@ -102,7 +88,6 @@ fun SwitchPreference(
         .tvFocusHighlight(shape, enabled = enabled, focusedScale = 1.01f),
     shape = shape,
     color = containerColor,
-    tonalElevation = if (value) 1.dp else 0.dp,
   ) {
     Row(
       modifier =

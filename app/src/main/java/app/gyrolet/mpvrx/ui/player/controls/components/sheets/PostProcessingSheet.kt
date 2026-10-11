@@ -88,7 +88,11 @@ fun PostProcessingSheet(
             selected = preset == entry,
             onClick = { viewModel.setPostProcessingPreset(entry) },
             label = { Text(stringResource(entry.displayNameRes)) },
-            colors = FilterChipDefaults.filterChipColors(),
+            colors = FilterChipDefaults.filterChipColors(
+              containerColor = playerSheetSelectionColor(false),
+              selectedContainerColor = playerSheetSelectionColor(true),
+              selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
           )
         }
       }
