@@ -26,6 +26,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,17 +38,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -64,8 +70,16 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.roundedfilled.Replay
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.Capsule
 import `is`.xyz.mpv.Utils
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
@@ -144,53 +158,75 @@ fun PlayerUpdate(
   content: @Composable () -> Unit = {},
 ) {
   val controlsOffset = rememberPlayerUpdateOffset()
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
   val backdrop = LocalKyantPlayerBackdrop.current
-  val containerModifier =
-    modifier
-      .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
-      .animateContentSize()
+  val glassSettings = rememberLiquidGlassSettings()
+  val preferences = koinInject<AppearancePreferences>()
+  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val reducedMotion = AppMotion.shouldReduceMotion()
+  val renderGlass = glassEnabled && backdrop != null
+  // Capture composable-context colors before entering DrawScope lambdas
+  val pillColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  val contentColor = MaterialTheme.colorScheme.onSurface
 
-  val indicatorContent: @Composable () -> Unit = {
-    Box(
-      modifier = Modifier.stableNumericWidth(stableWidthText),
-      contentAlignment = Alignment.Center,
-    ) {
-      content()
+  val glassModifier =
+    if (renderGlass) {
+      Modifier
+        .graphicsLayer { clip = false }
+        .drawBackdrop(
+          backdrop = checkNotNull(backdrop),
+          shape = { Capsule() },
+          effects = {
+            liquidGlassEffects(
+              glassSettings,
+              blurRadius = 8.dp.toPx(),
+              refractionHeight = 14.dp.toPx(),
+              refractionAmount = 22.dp.toPx(),
+              vibrant = true,
+              refractionEnabled = !reducedMotion,
+            )
+          },
+          highlight = {
+            glassSettings.highlight(
+              Highlight.Ambient.copy(alpha = if (reducedMotion) 0.28f else 0.52f),
+            )
+          },
+          shadow = {
+            glassSettings.shadow(
+              Shadow(radius = 8.dp, color = Color.Black.copy(alpha = 0.16f)),
+            )
+          },
+          innerShadow = {
+            glassSettings.innerShadow(
+              InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.14f)),
+            )
+          },
+          onDrawSurface = {
+            drawRect(glassSettings.surfaceColor(pillColor))
+          },
+        )
+    } else {
+      Modifier
+        .shadow(8.dp, Capsule())
+        .clip(Capsule())
+        .background(pillColor)
     }
-  }
 
-  if (liquidGlassEnabled) {
-    LiquidButton(
-      onClick = {},
-      enabled = false,
-      backdrop = backdrop,
-      modifier = containerModifier,
-      height = 32.dp,
-      horizontalPadding = 10.dp,
-      surfaceColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.42f),
-      content = { indicatorContent() },
-    )
-  } else {
-    Surface(
-      shape = RoundedCornerShape(100.dp),
-      color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-      contentColor = MaterialTheme.colorScheme.onSurface,
-      tonalElevation = 0.dp,
-      shadowElevation = 0.dp,
-      border =
-        BorderStroke(
-          1.dp,
-          MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-        ),
-      modifier = containerModifier,
+  CompositionLocalProvider(LocalContentColor provides contentColor) {
+    Box(
+      modifier =
+        modifier
+          .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
+          .animateContentSize()
+          .then(glassModifier),
     ) {
       Box(
-        modifier = Modifier.padding(vertical = 4.dp, horizontal = 10.dp),
+        modifier =
+          Modifier
+            .stableNumericWidth(stableWidthText)
+            .padding(vertical = 4.dp, horizontal = 10.dp),
         contentAlignment = Alignment.Center,
       ) {
-        indicatorContent()
+        content()
       }
     }
   }
