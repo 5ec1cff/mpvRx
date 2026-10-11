@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.browser.cards
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -277,15 +278,15 @@ fun VideoCard(
       app.gyrolet.mpvrx.utils.storage.FileTypeUtils.stripExtension(video.displayName)
     }
 
-  val selectionInset = 2.dp
   val selectionContainerColor = animatedSelectionColor(isSelected)
+  val selectionBorderColor = animatedSelectionBorderColor(isSelected)
   val showSelectionBadge = isSelected || selectionContainerColor.alpha > 0.001f
 
   // Hold the last displayed thumbnail for this file across grid/list size changes.
   // Repository memory remains the source of truth for new requests.
   var retainedThumbnail by remember(video.path, video.dateModified, video.size) { mutableStateOf<Bitmap?>(null) }
 
-  val cardShape = AppShapeScale.large
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
 
   VideoSwipeSurface(
     identity = video.path,
@@ -300,6 +301,7 @@ fun VideoCard(
           if (isGridMode) Modifier.fillMaxWidth() else Modifier.fillMaxWidth(),
         ).tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
+        .border(2.dp, selectionBorderColor, cardShape)
         .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
@@ -314,7 +316,6 @@ fun VideoCard(
         modifier =
           Modifier
             .matchParentSize()
-            .padding(selectionInset)
             .clip(cardShape)
             .background(selectionContainerColor),
       )

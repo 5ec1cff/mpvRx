@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -68,13 +69,17 @@ fun NetworkFolderCard(
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val interactionSource = remember { MutableInteractionSource() }
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
+  val selectionColor = animatedSelectionColor(isSelected)
+  val selectionBorder = animatedSelectionBorderColor(isSelected)
 
   Card(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-        .clip(AppShapeScale.large)
+        .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+        .clip(cardShape)
+        .border(2.dp, selectionBorder, cardShape)
         .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
@@ -83,20 +88,13 @@ fun NetworkFolderCard(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-    shape = AppShapeScale.large,
+    shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
-      if (isSelected) {
-        Box(
-          modifier =
-            Modifier
-              .matchParentSize()
-              .padding(2.dp)
-              .clip(AppShapeScale.large)
-              .background(mediaSelectionColor),
-        )
-      }
+      Box(
+        modifier = Modifier.matchParentSize().clip(cardShape).background(selectionColor),
+      )
 
       if (isGridMode) {
         Column(
@@ -170,6 +168,7 @@ fun NetworkFolderCard(
           }
         }
       }
+      SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
     }
   }
 }

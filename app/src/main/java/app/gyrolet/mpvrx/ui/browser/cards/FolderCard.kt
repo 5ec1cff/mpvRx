@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -205,8 +206,8 @@ fun FolderCard(
   }
 
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
-  val selectionInset = 2.dp
   val selectionContainerColor = animatedSelectionColor(isSelected)
+  val selectionBorderColor = animatedSelectionBorderColor(isSelected)
   val showSelectionBadge = isSelected || selectionContainerColor.alpha > 0.001f
 
   // Remove the redundant folder name from the path
@@ -234,7 +235,7 @@ fun FolderCard(
     }
   }
 
-  val cardShape = AppShapeScale.large
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
 
   VideoSwipeSurface(
     identity = folder.path,
@@ -248,6 +249,7 @@ fun FolderCard(
         .fillMaxWidth()
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
+        .border(2.dp, selectionBorderColor, cardShape)
         .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
@@ -262,7 +264,6 @@ fun FolderCard(
         modifier =
           Modifier
             .matchParentSize()
-            .padding(selectionInset)
             .clip(cardShape)
             .background(selectionContainerColor),
       )
