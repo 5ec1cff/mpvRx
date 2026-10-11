@@ -3,7 +3,6 @@ package app.gyrolet.mpvrx.ui.preferences
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -53,10 +52,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
@@ -254,7 +250,7 @@ object HallOfFameScreen : Screen {
               sectionKey = "active",
               titleRes = R.string.hall_of_fame_active_title,
               subtitleRes = R.string.hall_of_fame_active_period,
-              icon = { BoltGlyph(colors.primary, Modifier.size(22.dp)) },
+              icon = { Icon(Icons.RoundedFilled.Bolt, null, Modifier.size(22.dp), tint = colors.primary) },
               state = remainingActive,
               itemKey = { it.profileUrl ?: it.displayName },
               onRetry = { refreshRequest++ },
@@ -885,7 +881,7 @@ private fun HallOfFameLeadCard(
           maxLines = 2,
           overflow = TextOverflow.Ellipsis,
         )
-        VerifiedBadge(Modifier.size(18.dp))
+        Icon(Icons.RoundedFilled.Verified, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
       }
       Text(
         text = "@$handle",
@@ -1088,43 +1084,5 @@ private fun HallOfFameAvatar(avatarUrl: String?, accent: Color, modifier: Modifi
         cacheTtlMs = AVATAR_CACHE_TTL_MS,
       )
     }
-  }
-}
-
-// ── Small drawn glyphs ───────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun BoltGlyph(tint: Color, modifier: Modifier = Modifier) {
-  Canvas(modifier) {
-    val w = size.width
-    val h = size.height
-    val bolt = Path().apply {
-      moveTo(w * 0.58f, 0f)
-      lineTo(w * 0.18f, h * 0.56f)
-      lineTo(w * 0.46f, h * 0.56f)
-      lineTo(w * 0.38f, h)
-      lineTo(w * 0.82f, h * 0.40f)
-      lineTo(w * 0.52f, h * 0.40f)
-      close()
-    }
-    drawPath(bolt, tint)
-  }
-}
-
-@Composable
-private fun VerifiedBadge(modifier: Modifier = Modifier) {
-  val colors = MaterialTheme.colorScheme
-  val fill = colors.primary
-  val check = colors.onPrimary
-  Canvas(modifier) {
-    val w = size.width
-    val h = size.height
-    drawCircle(fill)
-    val tick = Path().apply {
-      moveTo(w * 0.28f, h * 0.52f)
-      lineTo(w * 0.44f, h * 0.67f)
-      lineTo(w * 0.74f, h * 0.35f)
-    }
-    drawPath(tick, check, style = Stroke(width = w * 0.11f, cap = StrokeCap.Round))
   }
 }
