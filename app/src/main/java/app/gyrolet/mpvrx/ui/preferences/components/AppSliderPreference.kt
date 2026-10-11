@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,7 +73,10 @@ fun AppSliderPreference(
       Column {
         summary?.invoke()
         Row(verticalAlignment = Alignment.CenterVertically) {
-          var latestSliderValue = sliderValue
+          // Completion may arrive after recomposition; retain the last pointer value.
+          var latestSliderValue by remember { mutableFloatStateOf(sliderValue) }
+          var isUserInteracting by remember { mutableStateOf(false) }
+          SideEffect { if (!isUserInteracting) latestSliderValue = sliderValue }
           AppSlider(
             value = sliderValue,
             onValueChange = { changedValue ->
@@ -84,6 +88,7 @@ fun AppSliderPreference(
             valueRange = valueRange,
             steps = valueSteps,
             onValueChangeFinished = { onValueChange(latestSliderValue) },
+            onInteractionChange = { isUserInteracting = it },
           )
           if (valueText != null) {
             Box(Modifier.padding(start = LocalPreferenceTheme.current.horizontalSpacing)) {

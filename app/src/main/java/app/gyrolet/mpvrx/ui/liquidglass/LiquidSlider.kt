@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -38,6 +37,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.DragInteraction
+import kotlin.math.abs
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -66,6 +69,8 @@ fun LiquidSlider(
   steps: Int = 0,
   enabled: Boolean = true,
   onValueChangeFinished: (() -> Unit)? = null,
+  interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+  onInteractionChange: (Boolean) -> Unit = {},
 ) {
   val trackBackdrop = rememberLayerBackdrop()
   val settings = rememberLiquidGlassSettings()
@@ -73,12 +78,11 @@ fun LiquidSlider(
   val currentValue = rememberUpdatedState(value)
   val currentOnValueChange = rememberUpdatedState(onValueChange)
   val currentOnFinished = rememberUpdatedState(onValueChangeFinished)
+  val currentOnInteractionChange = rememberUpdatedState(onInteractionChange)
   val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
   val animationScope = rememberCoroutineScope()
-  // Reserve room for the expanded (pressed) glass thumb and its shadow at both ends.
+  // Like the player seekbar, draw the complete track and clamp only the thumb center.
   val thumbWidth = 40.dp
-  val thumbEdgePadding = 16.dp
-  val trackEndInset = thumbWidth / 2 + thumbEdgePadding
   val density = LocalDensity.current
 
   BoxWithConstraints(
@@ -86,9 +90,9 @@ fun LiquidSlider(
     contentAlignment = Alignment.CenterStart,
   ) {
     val sliderWidthPx = constraints.maxWidth.toFloat()
-    val trackInsetPx = with(density) { trackEndInset.toPx() }
-    val thumbEdgePaddingPx = with(density) { thumbEdgePadding.toPx() }
-    val usableTrackWidthPx = (sliderWidthPx - 2f * trackInsetPx).coerceAtLeast(0f)
+    val thumbWidthPx = with(density) { thumbWidth.toPx() }.coerceAtMost(sliderWidthPx)
+    val span = valueRange.endInclusive - valueRange.start
+    fun progress(): Float = ((currentValue.value() - valueRange.start) / span).coerceIn(0f, 1f)
     val animation = remember(animationScope, valueRange, visibilityThreshold, reduceMotion) {
       DampedDragAnimation(
         animationScope = animationScope,
@@ -105,7 +109,8 @@ fun LiquidSlider(
     LaunchedEffect(animation, reduceMotion) {
       snapshotFlow { currentValue.value() }.collectLatest { changedValue ->
         if (animation.targetValue != changedValue) {
-          if (reduceMotion) animation.snapToValue(changedValue) else animation.updateValue(changedValue)
+          // The spring animates glass deformation, never the position under the finger.
+          animation.snapToValue(changedValue)
         }
       }
     }
@@ -113,43 +118,72 @@ fun LiquidSlider(
     if (enabled) {
       Box(
         Modifier.matchParentSize()
-          .pointerInput(animation, usableTrackWidthPx, trackInsetPx, isLtr, enabled) {
+          .pointerInput(animation, sliderWidthPx, thumbWidthPx, isLtr, enabled, interactionSource) {
             fun seekTo(horizontalPosition: Float) {
-              if (usableTrackWidthPx <= 0f) return
-              val fraction = ((horizontalPosition - trackInsetPx) / usableTrackWidthPx).coerceIn(0f, 1f)
+              if (sliderWidthPx <= 0f) return
+              val fraction = (horizontalPosition / sliderWidthPx).coerceIn(0f, 1f)
               val delta = (valueRange.endInclusive - valueRange.start) * fraction
               val target = (if (isLtr) valueRange.start + delta else valueRange.endInclusive - delta)
                 .coerceIn(valueRange)
               currentOnValueChange.value(target)
             }
+            if (sliderWidthPx <= 0f) return@pointerInput
             awaitEachGesture {
               val down = awaitFirstDown(requireUnconsumed = true)
+              val logicalValueX = sliderWidthPx * progress()
+              val halfThumb = (thumbWidthPx / 2f).coerceAtMost(sliderWidthPx / 2f)
+              val logicalCenterX = logicalValueX.coerceIn(halfThumb, sliderWidthPx - halfThumb)
+              val centerX = if (isLtr) logicalCenterX else sliderWidthPx - logicalCenterX
+              val valueX = if (isLtr) logicalValueX else sliderWidthPx - logicalValueX
+              // Preserve the grab offset when picking up the thumb, including at either endpoint.
+              // Tapping elsewhere on the track still seeks directly to the tapped value.
+              val grabOffset = if (abs(down.position.x - centerX) <= thumbWidthPx / 2f) {
+                down.position.x - valueX
+              } else 0f
+              val press = PressInteraction.Press(down.position)
+              var drag: DragInteraction.Start? = null
+              var completed = false
+              currentOnInteractionChange.value(true)
+              interactionSource.tryEmit(press)
               if (!reduceMotion) animation.press()
               down.consume()
-              seekTo(down.position.x)
-              var completed = false
               try {
+                seekTo(down.position.x - grabOffset)
                 while (true) {
-                  val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                  val event = awaitPointerEvent()
+                  val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                  if (change.isConsumed || event.changes.count { it.pressed } > 1) break
                   if (!change.pressed) {
+                    seekTo(change.position.x - grabOffset)
                     completed = true
                     break
                   }
                   if (change.positionChanged()) {
+                    if (drag == null) {
+                      drag = DragInteraction.Start().also { interactionSource.tryEmit(it) }
+                    }
                     change.consume()
-                    seekTo(change.position.x)
+                    seekTo(change.position.x - grabOffset)
                   }
                 }
               } finally {
-                if (!reduceMotion) animation.release()
-                if (completed) currentOnFinished.value?.invoke()
+                try {
+                  if (completed) currentOnFinished.value?.invoke()
+                } finally {
+                  currentOnInteractionChange.value(false)
+                  interactionSource.tryEmit(if (completed) PressInteraction.Release(press) else PressInteraction.Cancel(press))
+                  drag?.let {
+                    interactionSource.tryEmit(if (completed) DragInteraction.Stop(it) else DragInteraction.Cancel(it))
+                  }
+                  if (!reduceMotion) animation.release()
+                }
               }
             }
           }.zIndex(1f),
       )
     }
 
-    Box(Modifier.fillMaxWidth().padding(horizontal = trackEndInset).layerBackdrop(trackBackdrop)) {
+    Box(Modifier.fillMaxWidth().layerBackdrop(trackBackdrop)) {
       Box(
         Modifier.clip(Capsule())
           .background(trackColor)
@@ -162,7 +196,7 @@ fun LiquidSlider(
           .height(6.dp)
           .layout { measurable, trackConstraints ->
             val placeable = measurable.measure(trackConstraints)
-            val width = (trackConstraints.maxWidth * animation.progress.coerceIn(0f, 1f)).fastRoundToInt()
+            val width = (trackConstraints.maxWidth * progress()).fastRoundToInt()
             layout(width, placeable.height) { placeable.placeRelative(0, 0) }
           },
       )
@@ -175,7 +209,7 @@ fun LiquidSlider(
               val fraction = tickIndex.toFloat() / intervalCount
               val horizontalPosition = if (isLtr) size.width * fraction else size.width * (1f - fraction)
               drawCircle(
-                color = if (fraction <= animation.progress) Color.White.copy(alpha = 0.7f) else accentColor.copy(alpha = 0.7f),
+                color = if (fraction <= progress()) Color.White.copy(alpha = 0.7f) else accentColor.copy(alpha = 0.7f),
                 radius = 1.dp.toPx(),
                 center = androidx.compose.ui.geometry.Offset(horizontalPosition, size.height / 2f),
               )
@@ -241,9 +275,10 @@ fun LiquidSlider(
         )
     Box(
       Modifier.graphicsLayer {
-        // The thumb center coincides with the track endpoints without ever leaving its viewport.
-        translationX = (thumbEdgePaddingPx + usableTrackWidthPx * animation.progress.coerceIn(0f, 1f)) *
-          if (isLtr) 1f else -1f
+        val halfThumb = (thumbWidthPx / 2f).coerceAtMost(sliderWidthPx / 2f)
+        val safeCenterPx = (sliderWidthPx * progress())
+          .coerceIn(halfThumb, sliderWidthPx - halfThumb)
+        translationX = (safeCenterPx - thumbWidthPx / 2f) * if (isLtr) 1f else -1f
       }.then(thumbModifier).size(40.dp, 24.dp),
     )
   }

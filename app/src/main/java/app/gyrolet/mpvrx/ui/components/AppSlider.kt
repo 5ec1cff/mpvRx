@@ -15,6 +15,9 @@ import androidx.compose.material3.SliderState
 import androidx.compose.material3.RangeSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -53,10 +56,14 @@ fun AppSlider(
   onValueChangeFinished: (() -> Unit)? = null,
   colors: SliderColors = SliderDefaults.colors(),
   interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+  onInteractionChange: (Boolean) -> Unit = {},
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val glassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
   if (!glassEnabled || !valueRange.start.isFinite() || !valueRange.endInclusive.isFinite() || valueRange.endInclusive <= valueRange.start) {
+    val pressed by interactionSource.collectIsPressedAsState()
+    val dragged by interactionSource.collectIsDraggedAsState()
+    LaunchedEffect(pressed, dragged) { onInteractionChange(pressed || dragged) }
     androidx.compose.material3.Slider(
       value = value,
       onValueChange = onValueChange,
@@ -72,7 +79,12 @@ fun AppSlider(
   }
 
   val sliderState = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
-  SideEffect { sliderState.value = value }
+  var isUserInteracting by remember(sliderState) { mutableStateOf(false) }
+  // Incoming preference/MPV updates must not overwrite a value owned by the active drag.
+  // Sync only when the external value changes, rather than on every recomposition.
+  LaunchedEffect(value, sliderState) {
+    if (!isUserInteracting) sliderState.value = value
+  }
   val surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh
   val canvasBackdrop = rememberCanvasBackdrop { drawRect(surfaceColor) }
   val backdrop = LocalKyantPlayerBackdrop.current ?: canvasBackdrop
@@ -107,6 +119,11 @@ fun AppSlider(
       },
     enabled = enabled,
     onValueChangeFinished = onValueChangeFinished,
+    interactionSource = interactionSource,
+    onInteractionChange = {
+      isUserInteracting = it
+      onInteractionChange(it)
+    },
     accentColor = if (enabled) colors.activeTrackColor else colors.disabledActiveTrackColor,
     trackColor = if (enabled) colors.inactiveTrackColor else colors.disabledInactiveTrackColor,
   )
