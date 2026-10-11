@@ -2470,9 +2470,9 @@ private fun PlaylistsTabContent(
       EmptyMusicState(text = "No playlists found. Create one!")
     } else {
       val gridColumns by remember(gridState) {
-    derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
-  }
-  val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+        derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
+      }
+      val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
       Box(modifier = Modifier.fillMaxSize()) {
         if (viewMode == MusicViewMode.GRID) {
           LazyVerticalGrid(
@@ -2484,7 +2484,7 @@ private fun PlaylistsTabContent(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
           ) {
             items(count = playlists.size, key = { index -> playlists[index].id }) { index ->
-          val playlist = playlists[index]
+              val playlist = playlists[index]
               val details = playlistDetails[playlist.id]
               val itemCount = details?.first ?: 0
               val artworkSongs = details?.second ?: emptyList()
@@ -2493,7 +2493,7 @@ private fun PlaylistsTabContent(
                 itemCount = itemCount,
                 artworkSongs = artworkSongs,
                 isSelected = selectionManager.isSelected(playlist),
-            selectionNeighbors = mediaSelectionNeighbors(index, playlists.size, gridColumns) { neighbor ->
+                selectionNeighbors = mediaSelectionNeighbors(index, playlists.size, gridColumns) { neighbor ->
               selectionManager.isSelected(playlists[neighbor])
             },
                 isGridMode = true,
@@ -2509,7 +2509,7 @@ private fun PlaylistsTabContent(
             contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = navBarHeight + 16.dp)
           ) {
             items(count = playlists.size, key = { index -> playlists[index].id }) { index ->
-          val playlist = playlists[index]
+              val playlist = playlists[index]
               val details = playlistDetails[playlist.id]
               val itemCount = details?.first ?: 0
               val artworkSongs = details?.second ?: emptyList()
@@ -2518,7 +2518,7 @@ private fun PlaylistsTabContent(
                 itemCount = itemCount,
                 artworkSongs = artworkSongs,
                 isSelected = selectionManager.isSelected(playlist),
-            selectionNeighbors = mediaSelectionNeighbors(index, playlists.size, 1) { neighbor ->
+                selectionNeighbors = mediaSelectionNeighbors(index, playlists.size, 1) { neighbor ->
               selectionManager.isSelected(playlists[neighbor])
             },
                 isGridMode = false,
