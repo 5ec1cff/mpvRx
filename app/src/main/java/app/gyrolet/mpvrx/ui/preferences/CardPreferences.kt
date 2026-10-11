@@ -60,8 +60,9 @@ import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
  */
 internal val LocalInsidePreferenceCard = staticCompositionLocalOf { false }
 private const val ConnectedPreferenceGap = "mpvrx-settings-connected-gap"
+internal const val SelectedPreferenceTile = "mpvrx-settings-selected-tile"
 
-private data class ConnectedPreferenceFrame(val top: Int, val bottom: Int)
+private data class ConnectedPreferenceFrame(val top: Int, val bottom: Int, val selected: Boolean)
 
 @Composable
 fun PreferenceCard(
@@ -95,7 +96,7 @@ fun PreferenceCard(
             val topRadius = if (index == 0) outerRadius.toPx() else innerRadius.toPx()
             val bottomRadius =
               if (index == tileFrames.lastIndex) outerRadius.toPx() else innerRadius.toPx()
-            Path().apply {
+            val path = Path().apply {
               addRoundRect(
                 RoundRect(
                   left = 0f, top = top, right = size.width, bottom = bottom,
@@ -106,9 +107,10 @@ fun PreferenceCard(
                 ),
               )
             }
+            path to (if (frame.selected) colors.secondaryContainer else colors.surfaceContainerLow)
           }
           onDrawBehind {
-            connectedPaths.forEach { path -> drawPath(path, color = colors.surfaceContainerLow) }
+            connectedPaths.forEach { (path, color) -> drawPath(path, color = color) }
           }
         },
       content = {
@@ -129,7 +131,7 @@ fun PreferenceCard(
         if (!isDivider && precedingTile) y += spacingPx
         positions[index] = y
         if (!isDivider && placeable.height > 0) {
-          frames.add(ConnectedPreferenceFrame(y, y + placeable.height))
+          frames.add(ConnectedPreferenceFrame(y, y + placeable.height, measurables[index].layoutId == SelectedPreferenceTile))
           precedingTile = true
         } else if (isDivider) {
           precedingTile = false
@@ -215,18 +217,18 @@ fun ExpressivePreferenceTile(
 fun ExpressivePreferenceItem(
   modifier: Modifier = Modifier,
   selected: Boolean = false,
-  // Independent rows remain fully rounded, even inside a shared PreferenceCard.
+  // Standalone keeps its content shape; grouped selection is drawn by PreferenceCard.
   standalone: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colors = MaterialTheme.colorScheme
   val insideGroup = LocalInsidePreferenceCard.current
   val color by animateColorAsState(
-    // Legacy PreferenceCard renders unselected item backgrounds behind its children.
-    // Avoid covering its exposed outer corners with a second rectangular surface.
+    // PreferenceCard paints both selected and unselected tiles at their measured connected
+    // corners; a child surface must not override that geometry.
     targetValue = when {
+      insideGroup -> androidx.compose.ui.graphics.Color.Transparent
       selected -> colors.secondaryContainer
-      insideGroup && !standalone -> androidx.compose.ui.graphics.Color.Transparent
       else -> colors.surfaceContainerLow
     },
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
@@ -235,8 +237,9 @@ fun ExpressivePreferenceItem(
   Surface(
     modifier = modifier
       .fillMaxWidth()
+      .then(if (insideGroup && selected) Modifier.layoutId(SelectedPreferenceTile) else Modifier)
       .then(if (insideGroup) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 2.dp)),
-    shape = if (insideGroup && !standalone) MaterialTheme.shapes.medium else MaterialTheme.shapes.large,
+    shape = if (insideGroup && !standalone) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
     color = color,
   ) {
     content()

@@ -26,12 +26,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
+import app.gyrolet.mpvrx.ui.preferences.SelectedPreferenceTile
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
@@ -77,16 +79,16 @@ fun SwitchPreference(
     )
   val insideConnectedCard = LocalInsidePreferenceCard.current
   val shape = when {
-    groupIndex != null && groupSize != null -> connectedShape
     insideConnectedCard -> MaterialTheme.shapes.small
+    groupIndex != null && groupSize != null -> connectedShape
     else -> MaterialTheme.shapes.large
   }
-  // Each preference owns its subtle tonal surface; there is no background panel
-  // spanning the whole group. Active preferences are noticeably, but gently, emphasized.
+  // Inside a connected PreferenceCard the parent owns all tile fills, including selection.
+  // Standalone switches still draw their own animated tonal surfaces.
   val containerColor by animateColorAsState(
     targetValue = when {
-      value -> MaterialTheme.colorScheme.secondaryContainer
       insideConnectedCard -> androidx.compose.ui.graphics.Color.Transparent
+      value -> MaterialTheme.colorScheme.secondaryContainer
       else -> MaterialTheme.colorScheme.surfaceContainerLow
     },
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
@@ -96,6 +98,7 @@ fun SwitchPreference(
     modifier =
       modifier
         .fillMaxWidth()
+        .then(if (insideConnectedCard && value) Modifier.layoutId(SelectedPreferenceTile) else Modifier)
         .tvFocusHighlight(shape, enabled = enabled, focusedScale = 1.01f),
     shape = shape,
     color = containerColor,

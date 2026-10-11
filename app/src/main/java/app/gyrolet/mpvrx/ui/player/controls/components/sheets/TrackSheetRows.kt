@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -133,14 +134,15 @@ fun AddTrackRow(
   title: String,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.medium,
   actions: @Composable RowScope.() -> Unit = {},
 ) {
   Row(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(MaterialTheme.shapes.medium, focusedScale = 1.01f)
-        .clip(MaterialTheme.shapes.medium)
+        .tvFocusHighlight(shape, focusedScale = 1.01f)
+        .clip(shape)
         .background(animatedPlayerSheetSelectionColor(false))
         .clickable(role = Role.Button, onClick = onClick)
         .heightIn(min = 56.dp)

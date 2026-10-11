@@ -355,6 +355,8 @@ fun SubtitlesSheet(
         AddTrackRow(
           stringResource(R.string.player_sheets_add_ext_sub),
           onAddSubtitle,
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+          shape = rememberConnectedShape(index = 0, itemCount = 2, layout = ConnectedLayout.Vertical),
           actions = {
             PlayerSheetAction(Icons.RoundedFilled.Search, stringResource(R.string.settings_search_title), onOpenOnlineSearch)
             if (aiEnabled && realtimeSubsEnabled) {
@@ -514,13 +516,13 @@ fun SubtitlesSheet(
             }
             is SubtitleItem.Off -> {
               val haptics = rememberAppHaptics()
-              val shape = MaterialTheme.shapes.medium
+              val shape = rememberConnectedShape(index = 1, itemCount = 2, layout = ConnectedLayout.Vertical)
               val isFrostedOff = LocalKyantPlayerBackdrop.current != null
               Surface(
                 modifier =
                   Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
                     .tvInitialFocus(initialFocusRequester)
                     .tvFocusHighlight(shape)
                     .clip(shape)
