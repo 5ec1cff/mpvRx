@@ -5,7 +5,7 @@
             <solid android:color="@color/ic_launcher_background" />
         </shape>
     </item>
-    <item android:width="112dp" android:height="112dp"
+    <item android:width="120dp" android:height="120dp"
         android:drawable="@drawable/ic_launcher_purple_foreground"
         android:gravity="center" />
 </layer-list>

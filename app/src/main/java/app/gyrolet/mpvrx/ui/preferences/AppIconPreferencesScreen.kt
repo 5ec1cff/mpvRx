@@ -113,7 +113,7 @@ object AppIconPreferencesScreen : Screen {
               horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
               Box(
-                modifier = Modifier.size(86.dp).clip(RoundedCornerShape(20.dp)).background(Color.Black),
+                modifier = Modifier.size(92.dp).clip(RoundedCornerShape(20.dp)).background(Color.Black),
                 contentAlignment = Alignment.Center,
               ) {
                 // Use Android's drawable renderer for native VectorDrawable gradient support.

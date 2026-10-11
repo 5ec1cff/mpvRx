@@ -2858,6 +2858,8 @@
   <string name="pref_app_icon_description">Select a launcher icon. More designs can be added in future updates.</string>
   <string name="app_icon_purple">Purple ribbon</string>
   <string name="app_icon_purple_description">New gradient mpvRx logo (default)</string>
+  <string name="app_icon_solid_purple">Solid purple ribbon</string>
+  <string name="app_icon_solid_purple_description">Solid purple mpvRx ribbon logo</string>
   <string name="app_icon_classic">Classic</string>
   <string name="app_icon_classic_description">Original mpvRx launcher icon</string>
   <string name="app_icon_change_failed">Unable to change the launcher icon.</string>

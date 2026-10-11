@@ -25,6 +25,8 @@ internal enum class LauncherIcon(
 ) {
   Purple("app.gyrolet.mpvrx.PurpleLauncher", "app.gyrolet.mpvrx.TvPurpleLauncher",
     R.string.app_icon_purple, R.string.app_icon_purple_description, R.mipmap.ic_launcher_purple),
+  SolidPurple("app.gyrolet.mpvrx.SolidPurpleLauncher", "app.gyrolet.mpvrx.TvSolidPurpleLauncher",
+    R.string.app_icon_solid_purple, R.string.app_icon_solid_purple_description, R.mipmap.ic_launcher_solid_purple),
   Classic("app.gyrolet.mpvrx.ClassicLauncher", "app.gyrolet.mpvrx.TvClassicLauncher",
     R.string.app_icon_classic, R.string.app_icon_classic_description, R.mipmap.ic_launcher),
 }
@@ -34,11 +36,12 @@ internal object LauncherIconManager {
 
   fun current(context: Context): LauncherIcon {
     val pm = context.packageManager
-    val classic = pm.getComponentEnabledSetting(component(context, LauncherIcon.Classic.phoneAlias))
-    val purple = pm.getComponentEnabledSetting(component(context, LauncherIcon.Purple.phoneAlias))
-    return if (classic == PackageManager.COMPONENT_ENABLED_STATE_ENABLED &&
-      purple == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-    ) LauncherIcon.Classic else LauncherIcon.Purple
+    // The gradient Purple alias is the manifest default; all other choices start disabled.
+    // Detect explicitly selected aliases so existing user selections survive an upgrade.
+    return LauncherIcon.entries.firstOrNull { icon ->
+      pm.getComponentEnabledSetting(component(context, icon.phoneAlias)) ==
+        PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+    } ?: LauncherIcon.Purple
   }
 
 
