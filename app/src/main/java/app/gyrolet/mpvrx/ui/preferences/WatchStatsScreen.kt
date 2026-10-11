@@ -64,6 +64,7 @@ import app.gyrolet.mpvrx.repository.WatchStatsSnapshot
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
@@ -637,10 +638,11 @@ private fun TopMediaLeaderboardBentoCard(
         }
       }
 
-      // Filter chips inside card
-      FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+      // A single connected horizontal selection control. Material handles selection color
+      // transitions, while shared shape tokens handle logical RTL corners.
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
       ) {
         listOf(
           R.string.pref_all_sources,
@@ -648,10 +650,22 @@ private fun TopMediaLeaderboardBentoCard(
           R.string.watch_stats_audio,
         ).forEachIndexed { index, labelRes ->
           FilterChip(
+            modifier = Modifier.weight(1f),
             selected = mediaFilter == index,
             onClick = { onFilterChange(index) },
-            label = { Text(stringResource(labelRes)) },
-            shape = CircleShape,
+            label = {
+              Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Text(
+                  text = stringResource(labelRes),
+                  maxLines = 1,
+                  overflow = TextOverflow.Ellipsis,
+                )
+              }
+            },
+            shape = rememberConnectedShape(
+              index, 3, ConnectedLayout.Horizontal,
+              tokens = AppConnectedControlShapeTokens,
+            ),
           )
         }
       }
@@ -671,12 +685,14 @@ private fun TopMediaLeaderboardBentoCard(
         }
       } else {
         val maxSeconds = topMedia.firstOrNull()?.seconds?.coerceAtLeast(1L) ?: 1L
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
           topMedia.forEachIndexed { index, media ->
             LeaderboardMediaRow(
               rank = index + 1,
               media = media,
               maxSeconds = maxSeconds,
+              index = index,
+              itemCount = topMedia.size,
             )
           }
         }
@@ -690,6 +706,8 @@ private fun LeaderboardMediaRow(
   rank: Int,
   media: WatchMediaStats,
   maxSeconds: Long,
+  index: Int,
+  itemCount: Int,
 ) {
   val rankColor = when (rank) {
     1 -> Color(0xFFFFB300) // Gold
@@ -706,7 +724,7 @@ private fun LeaderboardMediaRow(
   }
 
   Surface(
-    shape = RoundedCornerShape(16.dp),
+    shape = rememberConnectedShape(index, itemCount, ConnectedLayout.Vertical),
     color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
     modifier = Modifier.fillMaxWidth(),
   ) {

@@ -30,6 +30,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -97,6 +98,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -152,6 +154,9 @@ import app.gyrolet.mpvrx.ui.preferences.PreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.ProfileWatchStatistics
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.onWallpaper
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -738,101 +743,75 @@ private fun ProfileOverviewCard(
       }
     }
 
-    // Shortcut Tiles
-    if (isTablet || (isLandscape && configuration.screenWidthDp >= 720)) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-      ) {
-        ProfileShortcutTile(
-          icon = Icons.RoundedFilled.History,
-          label = stringResource(R.string.ui_recents),
-          count = recentCount,
-          containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-          contentColor = MaterialTheme.colorScheme.primary,
-          onClick = onRecents,
-          modifier = Modifier.weight(1f),
-        )
-        ProfileShortcutTile(
-          icon = Icons.RoundedFilled.Subscriptions,
-          label = stringResource(R.string.ui_playlists),
-          count = playlistCount,
-          containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-          contentColor = MaterialTheme.colorScheme.secondary,
-          onClick = onPlaylists,
-          modifier = Modifier.weight(1f),
-        )
-        ProfileShortcutTile(
-          icon = Icons.RoundedFilled.Image,
-          label = stringResource(R.string.ui_snapshots),
-          count = snapshotCount,
-          containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-          contentColor = MaterialTheme.colorScheme.tertiary,
-          onClick = onSnapshots,
-          modifier = Modifier.weight(1f),
-        )
-        if (showNetwork) {
-          ProfileShortcutTile(
-            icon = Icons.RoundedFilled.BringYourOwnIp,
-            label = stringResource(R.string.ui_network),
-            count = null,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            onClick = onNetwork,
-            modifier = Modifier.weight(1f),
-          )
-        }
+    // Intentional Material 3 Expressive connected bento group; no large tinted backdrop.
+    // The logical corner radii adapt automatically to 1, 2 or 4 columns and RTL direction.
+    val shortcuts = buildList {
+      add(ProfileShortcutDestination(
+        Icons.RoundedFilled.History, stringResource(R.string.ui_recents), recentCount,
+        MaterialTheme.colorScheme.primary, onRecents,
+      ))
+      add(ProfileShortcutDestination(
+        Icons.RoundedFilled.Subscriptions, stringResource(R.string.ui_playlists), playlistCount,
+        MaterialTheme.colorScheme.secondary, onPlaylists,
+      ))
+      add(ProfileShortcutDestination(
+        Icons.RoundedFilled.Image, stringResource(R.string.ui_snapshots), snapshotCount,
+        MaterialTheme.colorScheme.tertiary, onSnapshots,
+      ))
+      if (showNetwork) add(ProfileShortcutDestination(
+        Icons.RoundedFilled.BringYourOwnIp, stringResource(R.string.ui_network), null,
+        MaterialTheme.colorScheme.primary, onNetwork,
+      ))
+    }
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+      val columns = when {
+        maxWidth < 300.dp -> 1
+        maxWidth >= 680.dp -> 4
+        else -> 2
       }
-    } else {
-      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          ProfileShortcutTile(
-            icon = Icons.RoundedFilled.History,
-            label = stringResource(R.string.ui_recents),
-            count = recentCount,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.primary,
-            onClick = onRecents,
-            modifier = Modifier.weight(1f),
-          )
-          ProfileShortcutTile(
-            icon = Icons.RoundedFilled.Subscriptions,
-            label = stringResource(R.string.ui_playlists),
-            count = playlistCount,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.secondary,
-            onClick = onPlaylists,
-            modifier = Modifier.weight(1f),
-          )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          ProfileShortcutTile(
-            icon = Icons.RoundedFilled.Image,
-            label = stringResource(R.string.ui_snapshots),
-            count = snapshotCount,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            contentColor = MaterialTheme.colorScheme.tertiary,
-            onClick = onSnapshots,
-            modifier = Modifier.weight(1f),
-          )
-          if (showNetwork) {
-            ProfileShortcutTile(
-              icon = Icons.RoundedFilled.BringYourOwnIp,
-              label = stringResource(R.string.ui_network),
-              count = null,
-              containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-              contentColor = MaterialTheme.colorScheme.onSurface,
-              onClick = onNetwork,
-              modifier = Modifier.weight(1f),
-            )
-          } else {
-            Spacer(Modifier.weight(1f))
+      Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+        shortcuts.chunked(columns).forEachIndexed { rowIndex, rowShortcuts ->
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+          ) {
+            rowShortcuts.forEachIndexed { columnIndex, shortcut ->
+              val index = rowIndex * columns + columnIndex
+              val shape = rememberConnectedShape(
+                index = index,
+                itemCount = shortcuts.size,
+                layout = ConnectedLayout.Grid,
+                columns = columns,
+              )
+              ProfileShortcutTile(
+                icon = shortcut.icon,
+                label = shortcut.label,
+                count = shortcut.count,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = shortcut.accent,
+                onClick = shortcut.onClick,
+                shape = shape,
+                modifier = Modifier.weight(1f),
+              )
+            }
+            repeat(columns - rowShortcuts.size) {
+              Spacer(modifier = Modifier.weight(1f))
+            }
           }
         }
       }
     }
   }
 }
+
+/** Existing destinations and counts, with geometry kept separate from navigation behavior. */
+private data class ProfileShortcutDestination(
+  val icon: AppIcon,
+  val label: String,
+  val count: Int?,
+  val accent: Color,
+  val onClick: () -> Unit,
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -843,27 +822,28 @@ private fun ProfileShortcutTile(
   containerColor: Color,
   contentColor: Color,
   onClick: () -> Unit,
+  shape: Shape,
   modifier: Modifier = Modifier,
 ) {
   Surface(
     onClick = onClick,
-    shape = MaterialTheme.shapes.large,
+    shape = shape,
     color = containerColor,
     contentColor = contentColor,
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
     modifier =
       modifier
-        .heightIn(min = 64.dp)
-        .tvFocusHighlight(MaterialTheme.shapes.large),
+        .heightIn(min = 90.dp)
+        .tvFocusHighlight(shape),
   ) {
     Row(
-      modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+      modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(10.dp),
+      horizontalArrangement = Arrangement.spacedBy(9.dp),
     ) {
       Surface(
         shape = CircleShape,
-        color = contentColor.copy(alpha = 0.12f),
+        color = contentColor.copy(alpha = 0.14f),
         contentColor = contentColor,
         modifier = Modifier.size(40.dp),
       ) {
@@ -878,7 +858,7 @@ private fun ProfileShortcutTile(
         if (count != null) {
           Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleMediumEmphasized,
+            style = MaterialTheme.typography.titleLargeEmphasized,
             color = MaterialTheme.colorScheme.onSurface,
           )
         }

@@ -347,11 +347,14 @@ private fun NormalTopBar(
                 }
               }
             },
+            // Match the Profile hero title: headline styles use the app's bundled
+            // expressive Google Sans Flex variable-display cut (or the user's chosen
+            // display font), without overriding accessibility or language fallbacks.
             style =
               if (forceHeadlineSmall) {
-                MaterialTheme.typography.headlineSmallEmphasized
+                MaterialTheme.typography.headlineSmallEmphasized.copy(fontWeight = FontWeight.ExtraBold)
               } else {
-                MaterialTheme.typography.titleLargeEmphasized
+                MaterialTheme.typography.headlineMediumEmphasized.copy(fontWeight = FontWeight.ExtraBold)
               },
             color = MaterialTheme.colorScheme.primary.onWallpaper(),
             maxLines = 1,
