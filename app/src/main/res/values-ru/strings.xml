@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Использовать одиночное касание для центрального жеста</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Использовать одно касание по центру для жестов (например, воспроизведение/пауза) вместо двойного.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Перемещение субтитров перетаскиванием</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Перетаскивайте любые субтитры вверх или вниз отдельно. Удерживайте палец в центре, затем перетащите, чтобы переместить оба потока.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Удерживайте палец в центре и перетаскивайте вверх или вниз для перемещения основных субтитров. Удерживайте палец прямо на субтитрах, чтобы переместить эту дорожку отдельно. Обычные свайпы по-прежнему открывают плейлист.</string>
   <string name="pref_gesture_view_title">Вид</string>
   <string name="pref_gesture_double_tap_custom_info">Пользовательские действия можно назначить этим жестам в input.conf с помощью следующих кодов клавиш:
 

@@ -3495,6 +3495,7 @@ class PlayerActivity :
 
   override fun onResume() {
     super.onResume()
+    app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.refreshTaskIcon(this)
     if (!mpvInitialized || !ownsPlaybackSession()) return
     if (!isInPictureInPictureMode && hasWindowFocus()) completePipExpansion()
     restoreForegroundVideoAndAmbientIfUnlocked()

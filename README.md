@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="website/public/images/icon.svg" width="250" height="250" alt="mpvRx app icon" />
+  <img src="website/public/images/icon.svg" width="250" height="250" alt="mpvRx solid purple app icon" />
 </p>
 
 <h1 align="center">mpvRx</h1>
@@ -79,7 +79,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Multi-Tap Continuous Seeking** | Triple/quadruple tap to keep seeking further without lifting |
 | **Horizontal Swipe to Seek** | Swipe across video to seek with live time/delta overlay |
 | **Long-Press Dynamic Speed** | Long-press activates configurable speed boost; swipe left/right to adjust across 8 presets |
-| **Subtitle Drag Gesture** | Long-press center screen to drag subtitles vertically when active |
+| **Subtitle Drag Gesture** | Hold the center to move primary subtitles; hold either subtitle directly to move that track independently |
 | **Subtitle Zoom & Dialogue Seek** | Pinch subtitle text to resize it and swipe across subtitles to seek between dialogue lines |
 | **Pinch-to-Zoom with Pan** | Pinch to zoom (-1x to 3x) with simultaneous pan and single-finger pan after zoom |
 | **Volume Boost via Gesture** | Vertical swipe volume can exceed 100% into configurable boost range |
@@ -164,6 +164,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Landscape/Portrait Adaptive Layouts** | Completely different control layouts per orientation |
 | **One-Tap Control Unlock** | When playback controls are locked, tap the unlock button at the top-left or top-right according to the side you touch |
 | **Double-Back Unlock** | While controls are locked, the first Back press shows a reminder; a second quick press unlocks them |
+| **App Icons** | Solid purple is the default across app, splash, Recents, website, and store artwork; gradient and classic remain selectable in Appearance |
 | **Hide Button Backgrounds** | Transparent buttons with only icons visible |
 | **Centralized "More Sheet"** | Quick access to all player buttons and custom controls |
 | **In-Player Settings** | Toggle 10+ settings (gestures, PiP, UI behavior) without leaving playback |

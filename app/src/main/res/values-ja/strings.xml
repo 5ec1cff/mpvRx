@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">中央ジェスチャーにシングルタップを使用</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">中央のジェスチャー（再生/一時停止など）にダブルタップではなくシングルタップを使用します。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">ドラッグで字幕を移動</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">字幕を上下にドラッグすると個別に移動できます。中央を長押ししてからドラッグすると両方を移動できます。</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">中央を長押しして上下にドラッグすると主字幕を移動できます。字幕を直接長押しすると、そのトラックを個別に移動できます。通常のスワイプでは引き続きプレイリストが開きます。</string>
   <string name="pref_gesture_view_title">表示</string>
   <string name="pref_gesture_double_tap_custom_info">input.confで次のキーコードを使用して、これらのジェスチャーにカスタム操作を割り当てられます：
 

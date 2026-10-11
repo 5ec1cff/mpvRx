@@ -46,6 +46,8 @@ import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 
 /** User-selectable built-in launcher icons; new designs only require catalogue + manifest entries. */
 @Serializable
@@ -54,7 +56,10 @@ object AppIconPreferencesScreen : Screen {
   override fun Content() {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
-    var current by remember { mutableStateOf(LauncherIconManager.current(context)) }
+    var current by remember { mutableStateOf(runCatching { LauncherIconManager.current(context) }.getOrDefault(LauncherIcon.SolidPurple)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+      current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
+    }
     Scaffold(
       topBar = {
         SettingsTopAppBar(
@@ -93,10 +98,10 @@ object AppIconPreferencesScreen : Screen {
               if (!selected) {
                 try {
                   LauncherIconManager.select(context, choice)
-                  current = LauncherIconManager.current(context)
+                  current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
                 } catch (_: Exception) {
                   Toast.makeText(context, R.string.app_icon_change_failed, Toast.LENGTH_LONG).show()
-                  current = LauncherIconManager.current(context)
+                  current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
                 }
               }
             },

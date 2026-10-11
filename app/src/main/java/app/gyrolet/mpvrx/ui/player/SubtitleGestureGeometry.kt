@@ -52,7 +52,7 @@ private val SUBTITLE_MARKUP_REGEX = Regex("<[^>]*>|\\{[^}]*\\}")
 /** Use the rendered height, not a device-dependent number of pixels per percentage point. */
 fun draggedSubtitlePosition(start: Float, deltaY: Float, positionHeight: Float): Float =
   if (positionHeight > 0f && deltaY.isFinite()) {
-    (start + deltaY * 100f / positionHeight).coerceIn(0f, 100f)
+    (start + deltaY * 100f / positionHeight).coerceIn(0f, 150f)
   } else {
     start
   }

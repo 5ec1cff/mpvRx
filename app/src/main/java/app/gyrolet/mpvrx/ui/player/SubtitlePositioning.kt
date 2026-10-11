@@ -27,6 +27,7 @@ fun getSubtitleGestureRegion(
   screenWidth: Float,
   screenHeight: Float,
   renderInVideoFrame: Boolean,
+  includeWhenTextEmpty: Boolean = false,
 ): SubtitleGestureRegion? {
   val trackId = getTrackSelectionId(target.selectionProperty)
   if (trackId <= 0 || PlaybackSession.getPropertyBoolean("${target.prefix}-visibility") == false) return null
@@ -47,8 +48,13 @@ fun getSubtitleGestureRegion(
   return estimateSubtitleGestureRegion(
     target = target,
     trackId = trackId,
-    text = PlaybackSession.getPropertyString("${target.prefix}-text").orEmpty(),
-    position = position,
+    // Center holds need position geometry even between subtitle lines. This placeholder is
+    // only used for geometry; it is never rendered or included in subtitle hit testing.
+    text = PlaybackSession.getPropertyString("${target.prefix}-text").orEmpty().let {
+      if (includeWhenTextEmpty && it.isBlank()) "M" else it
+    },
+    // Center drags must also recover a subtitle positioned beyond the visible frame.
+    position = if (includeWhenTextEmpty) position.coerceIn(0f, 100f) else position,
     scale = scale,
     screenWidth = screenWidth,
     screenHeight = screenHeight,
@@ -58,7 +64,8 @@ fun getSubtitleGestureRegion(
     marginX = (PlaybackSession.getPropertyInt("sub-margin-x") ?: 19).toFloat(),
     marginY = (PlaybackSession.getPropertyInt("sub-margin-y") ?: 34).toFloat(),
     fontReferenceHeight = fontReferenceHeight,
-  )?.let { region ->
+  )?.let { estimatedRegion ->
+    val region = if (includeWhenTextEmpty) estimatedRegion.copy(position = position) else estimatedRegion
     if (!overlaysFollowVideoZoom()) return@let region
     region.zoomedAroundCenter(
       videoZoomMultiplier(PlaybackSession.videoZoom.value),

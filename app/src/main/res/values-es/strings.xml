@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Usar un toque para el gesto central</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Usar un solo toque en el centro para los gestos (como reproducir/pausar) en lugar de un doble toque.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Arrastrar para mover subtítulos</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Arrastra cualquiera de los subtítulos hacia arriba o abajo para moverlo por separado. Mantén pulsado el centro y arrastra para mover ambos.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Mantén pulsado el centro y arrastra arriba o abajo para mover los subtítulos principales. Mantén pulsado un subtítulo para mover esa pista por separado. Los deslizamientos normales siguen abriendo la lista de reproducción.</string>
   <string name="pref_gesture_view_title">Vista</string>
   <string name="pref_gesture_double_tap_custom_info">Puedes asignar acciones personalizadas a estos gestos en input.conf mediante los siguientes códigos de tecla:
 

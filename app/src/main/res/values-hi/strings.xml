@@ -249,7 +249,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">बीच के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">बीच में जेस्चर (जैसे प्ले/पॉज) के लिए डबल टैप की बजाय सिंगल टैप इस्तेमाल करें।</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">खींचकर उपशीर्षक खिसकाएँ</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">किसी भी उपशीर्षक को अलग से खिसकाने के लिए ऊपर या नीचे खींचें। दोनों को खिसकाने के लिए बीच में दबाकर रखें, फिर खींचें।</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">मुख्य उपशीर्षक को खिसकाने के लिए बीच में दबाकर रखें, फिर ऊपर या नीचे खींचें। किसी भी उपशीर्षक को सीधे दबाकर रखने पर उसका ट्रैक अलग से खिसकाया जा सकता है। सामान्य स्वाइप से प्लेलिस्ट पहले की तरह खुलती है।</string>
   <string name="pref_gesture_view_title">व्यू</string>
   <string name="pref_gesture_double_tap_custom_info">आप input.conf में इन की-कोड्स का इस्तेमाल करके इन जेस्चरों पर कस्टम एक्शन बांध सकते हैं:\n\nबाएं: MBTN_LEFT_DBL\nबीच: MBTN_MID_DBL\nदाएं: MBTN_RIGHT_DBL</string>
   <string name="pref_gesture_media_title">मीडिया कंट्रोल्स</string>

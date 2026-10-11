@@ -151,6 +151,13 @@ import kotlin.reflect.KProperty
 
 // ~45% opaque charcoal (#AARRGGBB): visible on bright scenes without hiding the video like solid black.
 private const val SUBTITLE_GESTURE_HIGHLIGHT_COLOR = "#73202429"
+private const val SUBTITLE_GESTURE_HIGHLIGHT_PADDING = 8f
+
+private data class SubtitleGestureBoxStyle(
+  val borderStyle: String?,
+  val backgroundColor: String?,
+  val shadowOffset: String?,
+)
 
 enum class AutoCropState {
   IDLE,
@@ -5343,7 +5350,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   private val subtitleGestureDispatcher = Dispatchers.IO.limitedParallelism(1)
   private val pendingSubtitleProperties = ConcurrentHashMap<String, Float>()
   private val subtitleFlushQueued = AtomicBoolean(false)
-  @Volatile private var savedSubtitleBoxStyle: Pair<String?, String?>? = null
+  @Volatile private var savedSubtitleBoxStyle: SubtitleGestureBoxStyle? = null
   @Volatile private var hiddenSubtitleVisibility: String? = null
   private var lastSubtitleGestureText: String? = null
 
@@ -5394,8 +5401,19 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     viewModelScope.launch(subtitleGestureDispatcher) {
       if (active) {
         if (savedSubtitleBoxStyle != null) return@launch
-        savedSubtitleBoxStyle =
-          PlaybackSession.getPropertyString("sub-border-style") to PlaybackSession.getPropertyString("sub-back-color")
+        val style = SubtitleGestureBoxStyle(
+          PlaybackSession.getPropertyString("sub-border-style"),
+          PlaybackSession.getPropertyString("sub-back-color"),
+          PlaybackSession.getPropertyString("sub-shadow-offset"),
+        )
+        savedSubtitleBoxStyle = style
+        // For background-box, mpv uses sub-shadow-offset as padding around all text lines.
+        // Keep larger user margins; restore the exact original value when the gesture ends.
+        val padding = maxOf(
+          style.shadowOffset?.toFloatOrNull() ?: subtitlesPreferences.shadowOffset.get().toFloat(),
+          SUBTITLE_GESTURE_HIGHLIGHT_PADDING,
+        )
+        PlaybackSession.setPropertyFloat("sub-shadow-offset", padding)
         PlaybackSession.setPropertyString("sub-border-style", "background-box")
         PlaybackSession.setPropertyString("sub-back-color", SUBTITLE_GESTURE_HIGHLIGHT_COLOR)
         val other = SubtitleGestureTarget.entries.firstOrNull { target != null && it != target }
@@ -5413,13 +5431,17 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   private fun restoreSubtitleGestureHighlight() {
     hiddenSubtitleVisibility?.let { PlaybackSession.setPropertyBoolean(it, true) }
     hiddenSubtitleVisibility = null
-    val (style, color) = savedSubtitleBoxStyle ?: return
+    val style = savedSubtitleBoxStyle ?: return
     savedSubtitleBoxStyle = null
     // mpv may not have reported a value at gesture start; fall back to the user's saved choice.
-    PlaybackSession.setPropertyString("sub-border-style", style ?: subtitlesPreferences.borderStyle.get().value)
+    PlaybackSession.setPropertyString("sub-border-style", style.borderStyle ?: subtitlesPreferences.borderStyle.get().value)
     PlaybackSession.setPropertyString(
       "sub-back-color",
-      color ?: subtitlesPreferences.backgroundColor.get().toColorHexString(),
+      style.backgroundColor ?: subtitlesPreferences.backgroundColor.get().toColorHexString(),
+    )
+    PlaybackSession.setPropertyString(
+      "sub-shadow-offset",
+      style.shadowOffset ?: subtitlesPreferences.shadowOffset.get().toString(),
     )
   }
 

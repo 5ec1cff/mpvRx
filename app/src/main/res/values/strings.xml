@@ -321,7 +321,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Use single tap for center gesture</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Use a single tap in the center for gestures (like play/pause) instead of a double tap.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Hold and drag subtitles</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Press and hold on a subtitle, then drag up or down to move it. Normal swipes still open the playlist.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Hold the center, then drag up or down to move primary subtitles. Hold directly on either subtitle to move that track independently. Normal swipes still open the playlist.</string>
   <string name="pref_gesture_view_title">View</string>
   <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL</string>
   <string name="pref_gesture_media_title">Media controls</string>
@@ -2860,9 +2860,9 @@
   <string name="pref_app_icon_summary">Choose the icon shown by your launcher</string>
   <string name="pref_app_icon_description">Select a launcher icon. More designs can be added in future updates.</string>
   <string name="app_icon_purple">Purple ribbon</string>
-  <string name="app_icon_purple_description">New gradient mpvRx logo (default)</string>
+  <string name="app_icon_purple_description">Gradient mpvRx ribbon logo</string>
   <string name="app_icon_solid_purple">Solid purple ribbon</string>
-  <string name="app_icon_solid_purple_description">Solid purple mpvRx ribbon logo</string>
+  <string name="app_icon_solid_purple_description">Solid purple mpvRx ribbon logo (default)</string>
   <string name="app_icon_classic">Classic</string>
   <string name="app_icon_classic_description">Original mpvRx launcher icon</string>
   <string name="app_icon_change_failed">Unable to change the launcher icon.</string>

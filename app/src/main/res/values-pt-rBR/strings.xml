@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Usar toque único para o gesto central</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Usar um único toque no centro para gestos (como reproduzir/pausar) em vez de um toque duplo.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Arrastar para mover legendas</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Arraste qualquer legenda para cima ou para baixo para movê-la separadamente. Mantenha o centro pressionado e arraste para mover ambas.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Mantenha o centro pressionado e arraste para cima ou para baixo para mover as legendas principais. Mantenha uma legenda pressionada para mover essa faixa separadamente. Os deslizes normais continuam abrindo a lista de reprodução.</string>
   <string name="pref_gesture_view_title">Visualização</string>
   <string name="pref_gesture_double_tap_custom_info">Você pode vincular ações personalizadas a estes gestos no input.conf usando os seguintes códigos de tecla:
 

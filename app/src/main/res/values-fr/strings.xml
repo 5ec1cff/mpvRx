@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Utiliser un appui simple pour le geste central</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Utiliser un seul appui au centre pour les gestes (comme lecture/pause) au lieu d’un double appui.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Faire glisser pour déplacer les sous-titres</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Faites glisser un sous-titre vers le haut ou le bas pour le déplacer séparément. Appuyez longuement au centre, puis faites glisser pour déplacer les deux.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Appuyez longuement au centre, puis faites glisser vers le haut ou le bas pour déplacer les sous-titres principaux. Appuyez longuement sur un sous-titre pour déplacer cette piste séparément. Les balayages ordinaires ouvrent toujours la liste de lecture.</string>
   <string name="pref_gesture_view_title">Vue</string>
   <string name="pref_gesture_double_tap_custom_info">Vous pouvez associer des actions personnalisées à ces gestes dans input.conf avec les codes de touche suivants :
 

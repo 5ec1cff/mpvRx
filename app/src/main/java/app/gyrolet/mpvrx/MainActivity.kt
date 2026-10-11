@@ -317,6 +317,9 @@ open class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
+    runCatching { app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.reconcile(this) }
+      .onFailure { Log.w("LauncherIcon", "Unable to reconcile launcher aliases", it) }
+    app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.refreshTaskIcon(this)
     pipHelper.updatePictureInPictureParams()
     if (!isPipMode && (pendingPipExitResolution || wasInPipMode)) {
       window.decorView.post {

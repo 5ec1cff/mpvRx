@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">中间手势使用单击</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">中间区域的手势（如播放/暂停）使用单击，而不是双击。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">拖动以移动字幕</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">上下拖动任意字幕可单独移动该字幕。长按屏幕中央后拖动可同时移动两组字幕。</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">长按屏幕中央后上下拖动，可移动主字幕。直接长按任意字幕后拖动，可单独移动该字幕轨道。普通滑动仍会打开播放列表。</string>
   <string name="pref_gesture_view_title">视图</string>
   <string name="pref_gesture_double_tap_custom_info">可在 input.conf 中使用以下按键代码为这些手势绑定自定义操作：
 

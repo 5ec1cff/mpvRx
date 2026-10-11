@@ -294,7 +294,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Одинарний дотик для центрального жесту</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Використовувати одинарний дотик по центру для жестів (наприклад, відтворення/пауза) замість подвійного.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Переміщення субтитрів перетягуванням</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Перетягуйте будь-які субтитри вгору або вниз окремо. Утримуйте палець у центрі, а потім перетягніть, щоб перемістити обидва потоки.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Утримуйте палець у центрі та перетягуйте вгору або вниз, щоб перемістити основні субтитри. Утримуйте палець безпосередньо на субтитрах, щоб перемістити цю доріжку окремо. Звичайні свайпи й надалі відкривають список відтворення.</string>
   <string name="pref_gesture_view_title">Вигляд</string>
   <string name="pref_gesture_double_tap_custom_info">Ви можете призначити власні дії для цих жестів у input.conf за допомогою таких кодів клавіш:
 

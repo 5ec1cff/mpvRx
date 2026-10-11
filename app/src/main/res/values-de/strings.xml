@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">Einfaches Tippen für mittlere Geste verwenden</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">Für Gesten in der Mitte (z. B. Wiedergabe/Pause) einmal statt doppelt tippen.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Untertitel durch Ziehen verschieben</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">Ziehe einen Untertitel nach oben oder unten, um ihn einzeln zu verschieben. Halte die Mitte gedrückt und ziehe, um beide zu verschieben.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">Halte die Mitte gedrückt und ziehe nach oben oder unten, um die primären Untertitel zu verschieben. Halte direkt einen Untertitel gedrückt, um diese Spur einzeln zu verschieben. Normale Wischgesten öffnen weiterhin die Wiedergabeliste.</string>
   <string name="pref_gesture_view_title">Ansicht</string>
   <string name="pref_gesture_double_tap_custom_info">Diesen Gesten können in input.conf mit den folgenden Tastencodes benutzerdefinierte Aktionen zugewiesen werden:
 

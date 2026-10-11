@@ -254,7 +254,7 @@
   <string name="pref_gesture_use_single_tap_for_center_title">استخدام نقرة واحدة لإيماءة الوسط</string>
   <string name="pref_gesture_use_single_tap_for_center_summary">استخدام نقرة واحدة في الوسط للإيماءات (مثل التشغيل/الإيقاف المؤقت) بدلًا من النقر المزدوج.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">السحب لتحريك الترجمة</string>
-  <string name="pref_gesture_center_vertical_subtitle_position_summary">اسحب أي ترجمة لأعلى أو لأسفل لتحريكها بشكل مستقل. اضغط مطولاً في المنتصف ثم اسحب لتحريك الترجمتين.</string>
+  <string name="pref_gesture_center_vertical_subtitle_position_summary">اضغط مطولاً في المنتصف ثم اسحب لأعلى أو لأسفل لتحريك الترجمة الأساسية. اضغط مطولاً على أي ترجمة لتحريك مسارها بشكل مستقل. تظل السحبات العادية تفتح قائمة التشغيل.</string>
   <string name="pref_gesture_view_title">عرض</string>
   <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:
 

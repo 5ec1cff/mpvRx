@@ -150,6 +150,18 @@ fun GestureHandler(
     }
   }
 
+  val primarySubtitleDragRegion by rememberUpdatedState<(Float, Float) -> SubtitleGestureRegion?> { width, height ->
+    val target = SubtitleGestureTarget.Primary
+    val track = subtitleTracks.find { it.id == getTrackSelectionId(target.selectionProperty) }
+    val isAss = track?.codec?.let { it.contains("ass", true) || it.contains("ssa", true) } == true
+    val preserveAssLayout = isAss && PlaybackSession.getPropertyString("sub-ass-override") != "force"
+    getSubtitleGestureRegion(
+      target, width, height,
+      preserveAssLayout || PlaybackSession.getPropertyString("sub-use-margins") == "no",
+      includeWhenTextEmpty = true,
+    )?.takeUnless { MpvConfigOverridePolicy.isOwnedByMpvConf("sub-pos") }
+  }
+
   val panelShown by viewModel.panelShown.collectAsState()
   val anyPanelShown = panelShown != Panels.None || externalPanelShown
   val allowGesturesInPanels by playerPreferences.allowGesturesInPanels.collectAsState()
@@ -516,15 +528,27 @@ fun GestureHandler(
             val isVerticalGestureDeadZone =
               startPosition.y <= topGestureDeadZonePx ||
                 startPosition.y >= size.height - bottomGestureDeadZonePx
-            val touchedSubtitle = if (centerVerticalSubtitlePositionGesture) {
+            val subtitleHit = if (centerVerticalSubtitlePositionGesture) {
               findSubtitleGestureTarget(
                 subtitleRegions(size.width.toFloat(), size.height.toFloat()),
                 startPosition.x, startPosition.y, 12.dp.toPx(),
-              )?.takeUnless { MpvConfigOverridePolicy.isOwnedByMpvConf("${it.target.prefix}-pos") }
+              )
             } else null
+            val touchedSubtitle = subtitleHit?.takeUnless {
+              MpvConfigOverridePolicy.isOwnedByMpvConf("${it.target.prefix}-pos")
+            }
+            // Direct subtitle hits select that track; a center hold elsewhere selects primary.
+            // This is independent of the center swipe-up toggle, so ordinary swipes keep working.
+            val centerSubtitle = if (subtitleHit == null && centerVerticalSubtitlePositionGesture &&
+              !isVerticalGestureDeadZone &&
+              startPosition.x in (size.width * 0.35f)..(size.width * 0.65f)
+            ) {
+              primarySubtitleDragRegion(size.width.toFloat(), size.height.toFloat())
+            } else null
+            val selectedSubtitle = touchedSubtitle ?: centerSubtitle
             val subtitleGestureGeneration = PlaybackSession.state.value.generation
-            val isStartOnSubtitleText = touchedSubtitle != null
-            speedHoldPending = paused == false && multipleSpeedGesture > 0f && !isStartOnSubtitleText
+            val isStartOnSubtitleText = subtitleHit != null
+            speedHoldPending = paused == false && multipleSpeedGesture > 0f && selectedSubtitle == null
 
             // Reset long press tracking at the start of each gesture
             longPressTriggeredDuringTouch = false
@@ -543,10 +567,10 @@ fun GestureHandler(
             val volumeGestureSens = 0.1f
             val mpvVolumeGestureSens = 0.1f
             var subtitleDragStartY = startPosition.y
-            var subtitleDragPosition = touchedSubtitle?.position ?: 0f
+            var subtitleDragPosition = selectedSubtitle?.position ?: 0f
             var lastDraggedPosition: Float? = null
             // A moving finger is a swipe, not a pending subtitle long-press.
-            var subtitleHoldEligible = isStartOnSubtitleText
+            var subtitleHoldEligible = selectedSubtitle != null
             var subtitleHighlightShown = false
 
             // Original speed for long press
@@ -565,7 +589,9 @@ fun GestureHandler(
                     if (subtitleHoldEligible && claimGesture(GestureOwner.SUBTITLE_VERTICAL)) {
                       longPressTriggered = true
                       isSubtitleHoldActive = true
-                      viewModel.setSubtitleGestureHighlight(true, touchedSubtitle?.target)
+                      speedHoldPending = false
+                      suppressHorizontalSeekForPointer = true
+                      viewModel.setSubtitleGestureHighlight(true, selectedSubtitle?.target)
                       subtitleHighlightShown = true
                       longPressTriggeredDuringTouch = true
                       actionHaptics.pickup()
@@ -575,7 +601,7 @@ fun GestureHandler(
                         )
                       }
                     } else if (
-                      !isStartOnSubtitleText &&
+                      selectedSubtitle == null &&
                       paused == false &&
                       multipleSpeedGesture > 0f &&
                       claimGesture(GestureOwner.SPEED)
@@ -732,9 +758,9 @@ fun GestureHandler(
                           "subtitle_vertical" -> {
                             isVerticalGestureActive = true
                             subtitleDragStartY = currentPosition.y
-                            subtitleDragPosition = touchedSubtitle?.position ?: subtitleDragPosition
+                            subtitleDragPosition = selectedSubtitle?.position ?: subtitleDragPosition
                             if (!subtitleHighlightShown) {
-                              viewModel.setSubtitleGestureHighlight(true, touchedSubtitle?.target)
+                              viewModel.setSubtitleGestureHighlight(true, selectedSubtitle?.target)
                               subtitleHighlightShown = true
                             }
                             startingY = 0f
@@ -814,8 +840,10 @@ fun GestureHandler(
                         }
                         "subtitle_vertical" -> {
                           if (isSubtitleHoldActive && gestureOwner == GestureOwner.SUBTITLE_VERTICAL) {
-                            val selected = touchedSubtitle
-                            if (selected != null && PlaybackSession.state.value.generation == subtitleGestureGeneration) {
+                            val selected = selectedSubtitle
+                            if (selected != null && PlaybackSession.state.value.generation == subtitleGestureGeneration &&
+                              getTrackSelectionId(selected.target.selectionProperty) == selected.trackId
+                            ) {
                               // Lock the target for this entire touch, even if the tracks cross.
                               val newPosition = draggedSubtitlePosition(
                                 subtitleDragPosition, currentPosition.y - subtitleDragStartY, selected.positionHeight,
@@ -1025,7 +1053,7 @@ fun GestureHandler(
               longPressJob.cancel()
               if (subtitleHighlightShown) viewModel.setSubtitleGestureHighlight(false)
               if (PlaybackSession.state.value.generation == subtitleGestureGeneration) {
-                val selected = touchedSubtitle
+                val selected = selectedSubtitle
                 lastDraggedPosition?.let { position ->
                   if (selected != null && getTrackSelectionId(selected.target.selectionProperty) == selected.trackId) {
                     viewModel.persistSubtitleGesturePosition(selected.target, position)

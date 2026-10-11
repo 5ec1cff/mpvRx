@@ -43,12 +43,12 @@
     <application
         android:name=".App"
         android:appCategory="video"
-        android:banner="@drawable/tv_banner"
+        android:banner="@drawable/tv_banner_solid_purple"
         android:enableOnBackInvokedCallback="false"
-        android:icon="@mipmap/ic_launcher_purple"
+        android:icon="@mipmap/ic_launcher_solid_purple"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
-        android:roundIcon="@mipmap/ic_launcher_purple_round"
+        android:roundIcon="@mipmap/ic_launcher_solid_purple_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.mpvrx"
         android:largeHeap="true"
@@ -120,6 +120,15 @@
             android:theme="@style/Theme.mpvrx.Splash">
         </activity>
 
+        <activity
+            android:name=".PurpleMainActivity"
+            android:exported="false"
+            android:enableOnBackInvokedCallback="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.mpvrx.PurpleSplash" />
+
         <!-- Classic icon uses a separate launcher target so Android can render its matching
              system splash before any application code runs. -->
         <activity
@@ -133,9 +142,9 @@
 
         <activity-alias
             android:name=".PurpleLauncher"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".PurpleMainActivity"
             android:exported="true"
-            android:enabled="true"
+            android:enabled="false"
             android:icon="@mipmap/ic_launcher_purple"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_purple_round">
@@ -148,7 +157,7 @@
             android:name=".SolidPurpleLauncher"
             android:targetActivity=".MainActivity"
             android:exported="true"
-            android:enabled="false"
+            android:enabled="true"
             android:icon="@mipmap/ic_launcher_solid_purple"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_solid_purple_round">
@@ -196,9 +205,9 @@
 
                 <activity-alias
             android:name=".TvPurpleLauncher"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".PurpleMainActivity"
             android:exported="true"
-            android:enabled="true"
+            android:enabled="false"
             android:icon="@mipmap/ic_launcher_purple"
             android:label="@string/app_name"
             android:banner="@drawable/tv_banner_purple">
@@ -211,7 +220,7 @@
             android:name=".TvSolidPurpleLauncher"
             android:targetActivity=".MainActivity"
             android:exported="true"
-            android:enabled="false"
+            android:enabled="true"
             android:icon="@mipmap/ic_launcher_solid_purple"
             android:label="@string/app_name"
             android:banner="@drawable/tv_banner_solid_purple">
@@ -700,6 +709,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+        <receiver
+            android:name=".ui.preferences.LauncherIconRepairReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
 
