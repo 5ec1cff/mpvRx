@@ -134,6 +134,8 @@ fun ExpressivePreferenceTile(
 fun ExpressivePreferenceItem(
   modifier: Modifier = Modifier,
   selected: Boolean = false,
+  // Independent rows remain fully rounded, even inside a shared PreferenceCard.
+  standalone: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colors = MaterialTheme.colorScheme
@@ -147,7 +149,7 @@ fun ExpressivePreferenceItem(
     modifier = modifier
       .fillMaxWidth()
       .then(if (insideGroup) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 2.dp)),
-    shape = if (insideGroup) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
+    shape = if (insideGroup && !standalone) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
     color = color,
   ) {
     content()

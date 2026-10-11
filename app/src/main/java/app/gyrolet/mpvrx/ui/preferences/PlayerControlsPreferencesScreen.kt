@@ -140,36 +140,38 @@ object PlayerControlsPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
-                title = stringResource(id = R.string.pref_layout_top_right_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT))
-                },
-              )
-              PreferenceIconSummary(buttons = topRightButtons)
-
-              PreferenceDivider()
-
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
-                title = stringResource(id = R.string.pref_layout_bottom_right_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT))
-                },
-              )
-              PreferenceIconSummary(buttons = bottomRightButtons)
-
-              PreferenceDivider()
-
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
-                title = stringResource(id = R.string.pref_layout_bottom_left_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT))
-                },
-              )
-              PreferenceIconSummary(buttons = bottomLeftButtons)
+              // Each region owns its own fully rounded surface, rather than sharing
+              // a rectangular backdrop with neighboring regions.
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
+                    title = stringResource(R.string.pref_layout_top_right_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT)) },
+                  )
+                  PreferenceIconSummary(buttons = topRightButtons)
+                }
+              }
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
+                    title = stringResource(R.string.pref_layout_bottom_right_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT)) },
+                  )
+                  PreferenceIconSummary(buttons = bottomRightButtons)
+                }
+              }
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
+                    title = stringResource(R.string.pref_layout_bottom_left_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT)) },
+                  )
+                  PreferenceIconSummary(buttons = bottomLeftButtons)
+                }
+              }
             }
           }
 
@@ -180,14 +182,16 @@ object PlayerControlsPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
-                title = stringResource(id = R.string.pref_layout_portrait_bottom_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM))
-                },
-              )
-              PreferenceIconSummary(buttons = portraitBottomButtons)
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
+                    title = stringResource(R.string.pref_layout_portrait_bottom_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM)) },
+                  )
+                  PreferenceIconSummary(buttons = portraitBottomButtons)
+                }
+              }
             }
           }
 
@@ -220,31 +224,25 @@ object PlayerControlsPreferencesScreen : Screen {
                 )
               }
               PreferenceCard {
-                SeekbarStyle.entries.forEachIndexed { index, style ->
-                  ListItem(
-                    content = {
-                      Text(text = style.name)
-                    },
-                    trailingContent = {
-                      RadioButton(
-                        selected = seekbarStyle == style,
-                        onClick = null,
-                      )
-                    },
-                    colors =
-                      androidx.compose.material3.ListItemDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                SeekbarStyle.entries.forEach { style ->
+                  val isSelected = seekbarStyle == style
+                  // Every option is an independent Material Expressive tile:
+                  // OFF, selected, and a single available option have identical curvature.
+                  ExpressivePreferenceItem(selected = isSelected, standalone = true) {
+                    ListItem(
+                      headlineContent = { Text(style.name) },
+                      trailingContent = {
+                        RadioButton(selected = isSelected, onClick = null)
+                      },
+                      colors = androidx.compose.material3.ListItemDefaults.colors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
                       ),
-                    modifier =
-                      Modifier
-                        .selectable(
-                          selected = seekbarStyle == style,
-                          role = Role.RadioButton,
-                          onClick = { appearancePrefs.seekbarStyle.set(style) },
-                        ),
-                  )
-                  if (index < SeekbarStyle.entries.size - 1) {
-                    PreferenceDivider()
+                      modifier = Modifier.selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { appearancePrefs.seekbarStyle.set(style) },
+                      ),
+                    )
                   }
                 }
               }
@@ -270,7 +268,7 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
 
             PreferenceCard {
-              ExpressivePreferenceItem {
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_portrait_playback_buttons),
                 value = portraitPlaybackControlsPosition,
@@ -290,6 +288,8 @@ object PlayerControlsPreferencesScreen : Screen {
               PreferenceDivider()
 
               SwitchPreference(
+                groupIndex = 0,
+                groupSize = 1,
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_hide_player_buttons_background_title),
                 value = hidePlayerButtonsBackground,
                 onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
@@ -308,6 +308,8 @@ object PlayerControlsPreferencesScreen : Screen {
               PreferenceDivider()
 
               SwitchPreference(
+                groupIndex = 0,
+                groupSize = 1,
                 modifier =
                   Modifier.settingsSearchTarget(
                     R.string.pref_appearance_force_dark_player_buttons_background_title,
@@ -328,7 +330,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              ExpressivePreferenceItem {
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_display_hide_player_control_time),
                 value = if (isCustomTimeValue) -1 else playerTimeToDisappear,
@@ -364,7 +366,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              ExpressivePreferenceItem {
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_time_network_clock),
                 value = clockFormat,

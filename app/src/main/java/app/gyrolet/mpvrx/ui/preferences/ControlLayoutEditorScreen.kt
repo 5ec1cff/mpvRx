@@ -271,7 +271,7 @@ data class ControlLayoutEditorScreen(
                     .height(120.dp),
                 shape =
                   androidx.compose.foundation.shape
-                    .RoundedCornerShape(16.dp),
+                    .RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 border =
                   BorderStroke(
@@ -375,7 +375,7 @@ data class ControlLayoutEditorScreen(
               modifier = Modifier.fillMaxWidth(),
               shape =
                 androidx.compose.foundation.shape
-                  .RoundedCornerShape(16.dp),
+                  .RoundedCornerShape(24.dp),
               colors =
                 androidx.compose.material3.CardDefaults.cardColors(
                   containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -449,7 +449,7 @@ private fun IconsLegend() {
         .padding(top = 24.dp, bottom = 8.dp),
     shape =
       androidx.compose.foundation.shape
-        .RoundedCornerShape(16.dp),
+        .RoundedCornerShape(24.dp),
     colors =
       androidx.compose.material3.CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
