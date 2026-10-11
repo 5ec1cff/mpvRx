@@ -375,6 +375,7 @@ val apiKeyInfo =
 
                 item {
                   PreferenceCard {
+                    ExpressivePreferenceItem {
                     TextFieldPreference(
                       value = apiKeyInfo.apiKey,
                       onValueChange = apiKeyInfo.onChange,
@@ -405,6 +406,7 @@ val apiKeyInfo =
                         }
                       },
                     )
+                    }
 
                     PreferenceDivider()
 

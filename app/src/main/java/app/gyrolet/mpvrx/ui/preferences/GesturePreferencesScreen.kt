@@ -510,6 +510,7 @@ object GesturePreferencesScreen : Screen {
                   CustomKeyCodes.DoubleTapCenter,
                   CustomKeyCodes.DoubleTapRight,
                 ).map { it.keyCode }.toImmutableList()
+              ExpressivePreferenceItem {
               FooterPreference(
                 summary = {
                   var annotatedString =
@@ -537,6 +538,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 
@@ -639,6 +641,7 @@ object GesturePreferencesScreen : Screen {
                   CustomKeyCodes.MediaPlay,
                   CustomKeyCodes.MediaNext,
                 ).map { it.keyCode }.toImmutableList()
+              ExpressivePreferenceItem {
               FooterPreference(
                 summary = {
                   var annotatedString =
@@ -666,6 +669,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 

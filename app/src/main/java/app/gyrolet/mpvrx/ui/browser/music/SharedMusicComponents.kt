@@ -118,7 +118,6 @@ fun SharedMusicTrackListItem(
     onAction = onSwipeAction,
     modifier = modifier
       .fillMaxWidth()
-      .padding(horizontal = 8.dp, vertical = 2.dp)
       .tvFocusHighlight(cardShape, focusedScale = 1.03f)
       .clip(cardShape)
       .tvContextMenu(onLongClick)
@@ -143,7 +142,7 @@ fun SharedMusicTrackListItem(
       modifier = Modifier
         .fillMaxWidth()
         .heightIn(min = 64.dp)
-        .padding(horizontal = 12.dp, vertical = 8.dp),
+        .padding(horizontal = 12.dp, vertical = 4.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
       val itemArtSize = if (isCircular) (coverArtSizeDp * 1.3f).toInt().coerceAtLeast(48).dp else coverArtSizeDp.dp

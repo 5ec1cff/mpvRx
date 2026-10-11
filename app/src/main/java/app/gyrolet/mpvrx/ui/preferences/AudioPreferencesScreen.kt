@@ -394,6 +394,7 @@ object AudioPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val preferredLanguages by preferences.preferredLanguages.collectAsState()
+              ExpressivePreferenceItem {
               TextFieldPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_preferred_languages),
                 value = preferredLanguages,
@@ -431,6 +432,7 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
               val audioPitchCorrection by preferences.audioPitchCorrection.collectAsState()
@@ -669,6 +671,7 @@ object AudioPreferencesScreen : Screen {
 
               PreferenceDivider()
               val paxsenixApiKey by preferences.paxsenixApiKey.collectAsState()
+              ExpressivePreferenceItem {
               TextFieldPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_paxsenix_api_key),
                 value = paxsenixApiKey,
@@ -693,6 +696,7 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
             }
           }
         }

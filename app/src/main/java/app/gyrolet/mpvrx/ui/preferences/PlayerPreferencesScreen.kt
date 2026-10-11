@@ -680,6 +680,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                   PreferenceDivider()
 
                   val customIntroKeywords by preferences.customIntroKeywords.collectAsState()
+                  ExpressivePreferenceItem {
                   TextFieldPreference(
                     value = customIntroKeywords,
                     onValueChange = preferences.customIntroKeywords::set,
@@ -709,6 +710,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                       }
                     },
                   )
+                  }
                 }
 
                 PreferenceDivider()
@@ -730,6 +732,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                   PreferenceDivider()
 
                   val customOutroKeywords by preferences.customOutroKeywords.collectAsState()
+                  ExpressivePreferenceItem {
                   TextFieldPreference(
                     value = customOutroKeywords,
                     onValueChange = preferences.customOutroKeywords::set,
@@ -759,6 +762,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                       }
                     },
                   )
+                  }
                 }
               }
 

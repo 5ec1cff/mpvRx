@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetDragHandle
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurface
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
 import kotlin.math.roundToInt
 
@@ -96,19 +98,23 @@ fun DraggablePanel(
     val panelHeight = if (isPortrait) (configuration.screenHeightDp.dp * 0.5f).coerceAtMost(maxHeight) else maxHeight
 
     val colors = panelCardsColors()
+    val backdrop = LocalKyantPlayerBackdrop.current
+    val panelShape = shape ?: MaterialTheme.shapes.extraLargeIncreased
+    val panelColor = containerColor ?: colors.containerColor
     Surface(
       modifier =
         Modifier
           .absoluteOffset { IntOffset(offsetX.coerceIn(minOffset, maxOffset).roundToInt(), 0) }
           .onSizeChanged { panelWidth = it.width }
           .widthIn(max = 380.dp)
-          .height(panelHeight),
-      shape = shape ?: MaterialTheme.shapes.extraLargeIncreased,
-      color = containerColor ?: colors.containerColor,
+          .height(panelHeight)
+          .playerGlassSurface(backdrop, panelShape, panelColor),
+      shape = panelShape,
+      color = if (backdrop != null) Color.Transparent else panelColor,
       contentColor = colors.contentColor,
-      tonalElevation = tonalElevation,
-      shadowElevation = shadowElevation,
-      border = border,
+      tonalElevation = if (backdrop != null) 0.dp else tonalElevation,
+      shadowElevation = if (backdrop != null) 0.dp else shadowElevation,
+      border = if (backdrop != null) null else border,
     ) {
       Column(Modifier.fillMaxWidth()) {
         // Drag Handle & Indicator

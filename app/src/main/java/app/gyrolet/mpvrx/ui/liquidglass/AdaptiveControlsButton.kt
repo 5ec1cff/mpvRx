@@ -126,7 +126,8 @@ fun AdaptiveControlsContainer(
   val clickEvent = LocalPlayerButtonsClickEvent.current
   val resolvedTint =
     color.takeUnless { it == Color.Unspecified }
-      ?: if (liquidGlassEnabled) PlayerLiquidTokens.contentColor else playerButtonContentColor()
+      ?: if (hideBackground) LocalContentColor.current
+      else if (liquidGlassEnabled) PlayerLiquidTokens.contentColor else playerButtonContentColor()
   val resolvedSurface =
     surfaceColor.takeUnless { it == Color.Unspecified }
       ?: if (liquidGlassEnabled) PlayerLiquidTokens.surfaceColor else playerButtonContainerColor()
@@ -137,7 +138,7 @@ fun AdaptiveControlsContainer(
       .tvFocusHighlight(CircleShape, isInteractive && enabled)
       .then(if (isInteractive) Modifier.minimumInteractiveComponentSize() else Modifier)
 
-  if (liquidGlassEnabled && useGlass) {
+  if (liquidGlassEnabled && useGlass && !hideBackground) {
     CompositionLocalProvider(LocalContentColor provides contentTint) {
       LiquidButton(
         onClick = {

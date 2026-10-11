@@ -88,7 +88,7 @@ fun ExpressivePreferenceGroup(
         .fillMaxWidth()
         .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring)
         .padding(horizontal = 16.dp, vertical = 8.dp),
-    verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
     content = content,
   )
 }
@@ -149,7 +149,7 @@ fun ExpressivePreferenceItem(
     modifier = modifier
       .fillMaxWidth()
       .then(if (insideGroup) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 2.dp)),
-    shape = if (insideGroup && !standalone) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
+    shape = if (insideGroup && !standalone) MaterialTheme.shapes.medium else MaterialTheme.shapes.large,
     color = color,
   ) {
     content()
@@ -163,7 +163,7 @@ fun ExpressivePreferenceItem(
 fun PreferenceDivider(modifier: Modifier = Modifier) {
   if (LocalInsidePreferenceCard.current) {
     // The two adjacent Column gaps provide the separation; never draw a row divider.
-    Spacer(modifier = modifier.fillMaxWidth().height(0.dp))
+    // No content: the parent Column already provides the 4dp gap.
   } else {
     HorizontalDivider(
       modifier = modifier.padding(horizontal = 16.dp),

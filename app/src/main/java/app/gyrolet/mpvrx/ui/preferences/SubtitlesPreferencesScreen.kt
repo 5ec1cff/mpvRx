@@ -314,6 +314,7 @@ object SubtitlesPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val preferredLanguages by preferences.preferredLanguages.collectAsState()
+              ExpressivePreferenceItem {
               TextFieldPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_preferred_languages),
                 value = preferredLanguages,
@@ -352,6 +353,7 @@ object SubtitlesPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -1369,6 +1371,7 @@ private fun SubtitleApiKeyPreference(
   val context = LocalContext.current
   var showApiKey by rememberSaveable(spec.sourceKey) { mutableStateOf(false) }
 
+  ExpressivePreferenceItem {
   TextFieldPreference(
     modifier = modifier,
     value = spec.value,
@@ -1445,4 +1448,5 @@ private fun SubtitleApiKeyPreference(
       }
     },
   )
+  }
 }

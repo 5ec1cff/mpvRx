@@ -43,6 +43,7 @@ import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 
 /**
  * Shared Material 3 Expressive state colors for player selection sheets.
@@ -52,13 +53,13 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 @Composable
 internal fun playerSheetSelectionColor(
   selected: Boolean,
-  frosted: Boolean = false,
+  frosted: Boolean = LocalKyantPlayerBackdrop.current != null,
 ): Color {
   val colors = MaterialTheme.colorScheme
   return when {
-    selected && frosted -> colors.secondaryContainer.copy(alpha = 0.82f)
+    selected && frosted -> colors.secondaryContainer.copy(alpha = 0.65f)
     selected -> colors.secondaryContainer
-    frosted -> colors.surfaceContainerHigh.copy(alpha = 0.68f)
+    frosted -> colors.surfaceContainerLow.copy(alpha = 0.35f)
     else -> colors.surfaceContainerHigh
   }
 }
@@ -67,7 +68,7 @@ internal fun playerSheetSelectionColor(
 @Composable
 internal fun animatedPlayerSheetSelectionColor(
   selected: Boolean,
-  frosted: Boolean = false,
+  frosted: Boolean = LocalKyantPlayerBackdrop.current != null,
   label: String = "playerOptionSelection",
 ): Color {
   val reduceMotion = AppMotion.playerReducedMotion()

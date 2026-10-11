@@ -100,6 +100,7 @@ import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
+import app.gyrolet.mpvrx.preferences.MpvConfigControlledFeatures
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
 import app.gyrolet.mpvrx.preferences.VideoSortType
@@ -1150,6 +1151,16 @@ class PlayerActivity :
    * `viewModel.controlsShown`, which the tree reads when it mounts, so the controls still appear.
    */
   private fun setupPlayerControls() {
+    lifecycleScope.launch {
+      combine(
+        appearancePreferences.liquidGlassEnabled.changes(),
+        decoderPreferences.hdrScreenOutput.changes(),
+      ) { glass, hdr ->
+        glass && !hdr && !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)
+      }.distinctUntilChanged().collect { useTexture ->
+        player.setTextureRendering(useTexture)
+      }
+    }
     binding.controls.postOnAnimation {
       if (isDestroyed || isFinishing) return@postOnAnimation
       binding.controls.setContent {

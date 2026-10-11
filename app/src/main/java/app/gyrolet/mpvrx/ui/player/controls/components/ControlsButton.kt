@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.player.controls.components
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -68,7 +69,7 @@ fun ControlsButton(
     icon = icon,
     onLongClick = onLongClick,
     title = title,
-    color = color ?: playerButtonContentColor(),
+    color = color ?: if (LocalHidePlayerButtonsBackground.current) LocalContentColor.current else playerButtonContentColor(),
     enabled = enabled,
     onLongClickLabel = onLongClickLabel,
     hideBackground = LocalHidePlayerButtonsBackground.current,

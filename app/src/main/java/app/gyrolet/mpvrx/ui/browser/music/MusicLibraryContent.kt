@@ -1576,7 +1576,7 @@ private fun SongGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(5.dp)
+        .padding(2.dp)
     ) {
       Box(
         modifier = Modifier
@@ -1612,7 +1612,7 @@ private fun SongGridCard(
         SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
       }
 
-      Spacer(modifier = Modifier.height(6.dp))
+      Spacer(modifier = Modifier.height(4.dp))
 
       Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1789,7 +1789,7 @@ private fun AlbumGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(5.dp)
+        .padding(2.dp)
     ) {
       Box(
         modifier = Modifier
@@ -1808,7 +1808,7 @@ private fun AlbumGridCard(
         SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
       }
 
-      Spacer(modifier = Modifier.height(6.dp))
+      Spacer(modifier = Modifier.height(4.dp))
 
       Column(
         modifier = Modifier.fillMaxWidth(),
@@ -2029,7 +2029,7 @@ private fun ArtistGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(8.dp),
+        .padding(4.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       Box(
@@ -2044,7 +2044,7 @@ private fun ArtistGridCard(
         SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
       }
 
-      Spacer(modifier = Modifier.height(8.dp))
+      Spacer(modifier = Modifier.height(4.dp))
 
       Text(
         text = artist.name,
@@ -2348,7 +2348,7 @@ private fun MusicPlaylistCard(
       Column(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(5.dp)
+          .padding(2.dp)
       ) {
         Box(modifier = Modifier.fillMaxWidth()) {
           PlaylistArtCollage(
@@ -2359,7 +2359,7 @@ private fun MusicPlaylistCard(
           SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Column(modifier = Modifier.fillMaxWidth()) {
           Text(

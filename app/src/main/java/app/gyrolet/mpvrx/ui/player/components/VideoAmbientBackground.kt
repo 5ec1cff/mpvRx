@@ -13,7 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.PixelCopy
-import android.view.SurfaceView
+import app.gyrolet.mpvrx.ui.player.MPVView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -123,7 +123,7 @@ data class VideoAmbientFrame(
 
 @Composable
 fun rememberVideoAmbientFrame(
-  surfaceView: SurfaceView,
+  surfaceView: MPVView,
   active: Boolean,
   playbackGeneration: Long,
   hdrScreenMode: HdrScreenMode,
@@ -224,7 +224,7 @@ private class VideoAmbientPipeline : AutoCloseable {
   @Volatile private var closed = false
 
   suspend fun runCapture(
-    surfaceView: SurfaceView,
+    surfaceView: MPVView,
     isSurfaceReady: () -> Boolean,
     isPlaying: () -> Boolean,
     fallbackFrame: suspend () -> Bitmap?,
@@ -533,24 +533,24 @@ internal fun ambientMeanAbsoluteDifference(
 }
 
 private suspend fun captureSurface(
-  surfaceView: SurfaceView,
+  surfaceView: MPVView,
   destination: Bitmap,
   handler: Handler,
 ): Int =
   suspendCancellableCoroutine { continuation ->
-    val surface = surfaceView.holder.surface
+    val surface = surfaceView.renderSurface
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
       continuation.resume(CAPTURE_UNSUPPORTED)
       return@suspendCancellableCoroutine
     }
-    if (!surface.isValid) {
+    if (surface?.isValid != true) {
       continuation.resume(CAPTURE_RETRY)
       return@suspendCancellableCoroutine
     }
 
     try {
       PixelCopy.request(
-        surfaceView,
+        surface,
         destination,
         { result ->
           if (continuation.isActive) {

@@ -28,6 +28,7 @@ import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.preferences.ExpressivePreferenceItem
 import app.gyrolet.mpvrx.ui.preferences.PreferenceCard
 import app.gyrolet.mpvrx.ui.preferences.PreferenceDivider
 import app.gyrolet.mpvrx.ui.preferences.PreferenceSectionHeader
@@ -116,6 +117,7 @@ fun LazyListScope.liquidGlassPreferences(
         LiquidGlassHighlightStyle.Plain to stringResource(R.string.pref_liquid_glass_highlight_plain),
       )
     PreferenceCard {
+      ExpressivePreferenceItem {
       ListPreference(
         value = highlightStyle,
         onValueChange = preferences.liquidGlassHighlightStyle::set,
@@ -126,6 +128,7 @@ fun LazyListScope.liquidGlassPreferences(
         enabled = enabled,
         modifier = Modifier.settingsSearchTarget(R.string.pref_liquid_glass_highlight_style),
       )
+      }
       PreferenceDivider()
       LiquidGlassSlider(
         preferences.liquidGlassHighlightStrength,
