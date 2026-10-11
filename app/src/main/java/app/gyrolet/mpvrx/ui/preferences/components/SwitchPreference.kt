@@ -84,8 +84,11 @@ fun SwitchPreference(
   // Each preference owns its subtle tonal surface; there is no background panel
   // spanning the whole group. Active preferences are noticeably, but gently, emphasized.
   val containerColor by animateColorAsState(
-    targetValue = if (value) MaterialTheme.colorScheme.secondaryContainer
-      else MaterialTheme.colorScheme.surfaceContainerLow,
+    targetValue = when {
+      value -> MaterialTheme.colorScheme.secondaryContainer
+      insideConnectedCard -> androidx.compose.ui.graphics.Color.Transparent
+      else -> MaterialTheme.colorScheme.surfaceContainerLow
+    },
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "settingsOptionSelectionColor",
   )

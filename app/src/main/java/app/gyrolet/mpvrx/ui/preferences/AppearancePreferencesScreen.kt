@@ -225,7 +225,9 @@ object AppearancePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceCard {
+            // Leave previews off a painted panel; only the actual preference controls
+            // belong to the per-item connected background group.
+            Column(modifier = Modifier.fillMaxWidth()) {
               Row(
                 modifier =
                   Modifier
@@ -328,6 +330,7 @@ object AppearancePreferencesScreen : Screen {
                     onClick = { backstack.navigateTo(WallpaperEditorScreen()) },
                   )
 
+                  PreferenceCard {
                    ExpressivePreferenceItem {
                    Preference(
                      modifier = Modifier.settingsSearchTarget(R.string.pref_app_icon_title),
@@ -438,6 +441,7 @@ object AppearancePreferencesScreen : Screen {
                       Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline)
                     },
                   )
+                  }
                 }
               }
             }

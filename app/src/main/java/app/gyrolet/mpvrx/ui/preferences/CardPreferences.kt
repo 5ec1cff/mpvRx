@@ -34,6 +34,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -41,29 +52,99 @@ import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 
 /**
- * Flat preference group used throughout Settings.
+ * A connected Material 3 Expressive group for legacy Compose Preference rows.
  *
- * Grouping is expressed through consistent gaps, row geometry, and focus/ripple states,
- * not an extra surface color behind the controls. This also removes per-row drawing,
- * shape-path allocations and layout-time mutable state from the previous implementation.
+ * Draws each measured row separately with a small transparent gap, and only rounds
+ * the exposed group corners. This is shared by the Appearance, Player, Audio,
+ * Subtitle, Advanced, AI, About and other preference pages.
  */
 internal val LocalInsidePreferenceCard = staticCompositionLocalOf { false }
+private const val ConnectedPreferenceGap = "mpvrx-settings-connected-gap"
+
+private data class ConnectedPreferenceFrame(val top: Int, val bottom: Int)
 
 @Composable
 fun PreferenceCard(
   modifier: Modifier = Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
+  val colors = MaterialTheme.colorScheme
+  val spacingPx = with(LocalDensity.current) { AppConnectedShapeTokens.spacing.roundToPx() }
+  val outerRadius = AppConnectedShapeTokens.outerCorner
+  val innerRadius = AppConnectedShapeTokens.innerCorner
+  var tileFrames by remember { mutableStateOf(emptyList<ConnectedPreferenceFrame>()) }
   val reduceMotion = AppMotion.shouldReduceMotion()
+
+  // The outer mask keeps highlight/ripple surfaces within the expressive group boundary.
   Column(
     modifier = modifier
       .fillMaxWidth()
       .padding(horizontal = 16.dp, vertical = 8.dp)
       .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring),
-    verticalArrangement = Arrangement.spacedBy(4.dp),
   ) {
-    CompositionLocalProvider(LocalInsidePreferenceCard provides true) {
-      content()
+    val columnScope = this
+    Layout(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(outerRadius))
+        .drawWithCache {
+          val connectedPaths = tileFrames.mapIndexedNotNull { index, frame ->
+            val top = frame.top.toFloat()
+            val bottom = frame.bottom.toFloat()
+            if (bottom <= top) return@mapIndexedNotNull null
+            val topRadius = if (index == 0) outerRadius.toPx() else innerRadius.toPx()
+            val bottomRadius =
+              if (index == tileFrames.lastIndex) outerRadius.toPx() else innerRadius.toPx()
+            Path().apply {
+              addRoundRect(
+                RoundRect(
+                  left = 0f, top = top, right = size.width, bottom = bottom,
+                  topLeftCornerRadius = CornerRadius(topRadius),
+                  topRightCornerRadius = CornerRadius(topRadius),
+                  bottomRightCornerRadius = CornerRadius(bottomRadius),
+                  bottomLeftCornerRadius = CornerRadius(bottomRadius),
+                ),
+              )
+            }
+          }
+          onDrawBehind {
+            connectedPaths.forEach { path -> drawPath(path, color = colors.surfaceContainerLow) }
+          }
+        },
+      content = {
+        CompositionLocalProvider(LocalInsidePreferenceCard provides true) {
+          content(columnScope)
+        }
+      },
+    ) { measurables, constraints ->
+      val childConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+      val placeables = measurables.map { it.measure(childConstraints) }
+      val positions = IntArray(placeables.size)
+      val frames = ArrayList<ConnectedPreferenceFrame>(placeables.size)
+      var y = 0
+      var precedingTile = false
+      placeables.forEachIndexed { index, placeable ->
+        val isDivider = measurables[index].layoutId == ConnectedPreferenceGap
+        // Adjacent rows without an explicit PreferenceDivider still get a small connected gap.
+        if (!isDivider && precedingTile) y += spacingPx
+        positions[index] = y
+        if (!isDivider && placeable.height > 0) {
+          frames.add(ConnectedPreferenceFrame(y, y + placeable.height))
+          precedingTile = true
+        } else if (isDivider) {
+          precedingTile = false
+        }
+        y += placeable.height
+      }
+      if (tileFrames != frames) tileFrames = frames
+      layout(
+        constraints.maxWidth,
+        y.coerceIn(constraints.minHeight, constraints.maxHeight),
+      ) {
+        placeables.forEachIndexed { index, placeable ->
+          placeable.placeRelative(0, positions[index])
+        }
+      }
     }
   }
 }
@@ -141,7 +222,13 @@ fun ExpressivePreferenceItem(
   val colors = MaterialTheme.colorScheme
   val insideGroup = LocalInsidePreferenceCard.current
   val color by animateColorAsState(
-    targetValue = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
+    // Legacy PreferenceCard renders unselected item backgrounds behind its children.
+    // Avoid covering its exposed outer corners with a second rectangular surface.
+    targetValue = when {
+      selected -> colors.secondaryContainer
+      insideGroup && !standalone -> androidx.compose.ui.graphics.Color.Transparent
+      else -> colors.surfaceContainerLow
+    },
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "preferenceItemColor",
   )
@@ -162,8 +249,7 @@ fun ExpressivePreferenceItem(
 @Composable
 fun PreferenceDivider(modifier: Modifier = Modifier) {
   if (LocalInsidePreferenceCard.current) {
-    // The two adjacent Column gaps provide the separation; never draw a row divider.
-    // No content: the parent Column already provides the 4dp gap.
+    Spacer(modifier = modifier.fillMaxWidth().height(AppConnectedShapeTokens.spacing).layoutId(ConnectedPreferenceGap))
   } else {
     HorizontalDivider(
       modifier = modifier.padding(horizontal = 16.dp),
