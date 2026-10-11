@@ -10,7 +10,6 @@
 package app.gyrolet.mpvrx.ui.preferences
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement

@@ -596,10 +596,9 @@ fun SubtitleTrackRow(
       MaterialTheme.shapes.medium
     }
   val isFrosted = LocalKyantPlayerBackdrop.current != null
-  val containerColor by animateColorAsState(
-    targetValue =
-      animatedPlayerSheetSelectionColor(isSelected, frosted = isFrosted, label = "subtitleTrackSelection"),
-    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+  val containerColor = animatedPlayerSheetSelectionColor(
+    selected = isSelected,
+    frosted = isFrosted,
     label = "subtitleTrackSelection",
   )
   val badges = subtitleTrackBadges(track, selectionIndicator, isExternal)

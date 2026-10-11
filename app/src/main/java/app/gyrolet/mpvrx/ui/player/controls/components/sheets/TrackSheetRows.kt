@@ -56,10 +56,10 @@ internal fun playerSheetSelectionColor(
 ): Color {
   val colors = MaterialTheme.colorScheme
   return when {
-    selected && frosted -> colors.secondaryContainer.copy(alpha = 0.65f)
+    selected && frosted -> colors.secondaryContainer.copy(alpha = 0.82f)
     selected -> colors.secondaryContainer
-    frosted -> colors.surfaceContainerLow.copy(alpha = 0.35f)
-    else -> colors.surfaceContainerLow
+    frosted -> colors.surfaceContainerHigh.copy(alpha = 0.68f)
+    else -> colors.surfaceContainerHigh
   }
 }
 
