@@ -137,6 +137,7 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (jellyfinUiState.servers.isEmpty()) {
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_jellyfin_server_management),
                   title = { Text(stringResource(R.string.pref_jellyfin_add_server)) },
@@ -159,6 +160,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddServerOpen = true
                   },
                 )
+                }
               } else {
                 jellyfinUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -282,6 +284,7 @@ object MediaServersPreferencesScreen : Screen {
                 }
 
                 PreferenceDivider()
+                ExpressivePreferenceItem {
                 Preference(
                   title = { Text(stringResource(R.string.pref_jellyfin_add_another_server)) },
                   summary = {
@@ -303,6 +306,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddServerOpen = true
                   },
                 )
+                }
               }
             }
           }
@@ -413,6 +417,7 @@ object MediaServersPreferencesScreen : Screen {
                   onClick = { isSeerrConnectionDialogOpen = true },
                 )
               } else {
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_seerr_server_management),
                   title = { Text(stringResource(R.string.pref_seerr_add_server)) },
@@ -432,6 +437,7 @@ object MediaServersPreferencesScreen : Screen {
                   },
                   onClick = { isSeerrConnectionDialogOpen = true },
                 )
+                }
               }
             }
           }
@@ -447,6 +453,7 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (navidromeUiState.servers.isEmpty()) {
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_navidrome_title),
                   title = { Text(stringResource(R.string.pref_navidrome_add_server)) },
@@ -469,6 +476,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddNavidromeServerOpen = true
                   },
                 )
+                }
               } else {
                 navidromeUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -592,6 +600,7 @@ object MediaServersPreferencesScreen : Screen {
 
                 PreferenceDivider()
 
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_navidrome_title),
                   title = { Text(stringResource(R.string.pref_navidrome_add_another_server)) },
@@ -613,6 +622,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddNavidromeServerOpen = true
                   },
                 )
+                }
               }
             }
           }
@@ -628,6 +638,7 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (audiobookshelfUiState.servers.isEmpty()) {
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_audiobookshelf_title),
                   title = { Text(stringResource(R.string.pref_audiobookshelf_add_server)) },
@@ -650,6 +661,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddAudiobookshelfServerOpen = true
                   },
                 )
+                }
               } else {
                 audiobookshelfUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -784,6 +796,7 @@ object MediaServersPreferencesScreen : Screen {
 
                 PreferenceDivider()
 
+                ExpressivePreferenceItem {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_audiobookshelf_title),
                   title = { Text(stringResource(R.string.pref_audiobookshelf_add_another_server)) },
@@ -805,6 +818,7 @@ object MediaServersPreferencesScreen : Screen {
                     isAddAudiobookshelfServerOpen = true
                   },
                 )
+                }
               }
             }
           }

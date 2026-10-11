@@ -437,6 +437,7 @@ object SubtitlesPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles_fonts_dir),
                 enabled = "sub-fonts-dir" !in configOwnedOptions,
@@ -467,6 +468,7 @@ object SubtitlesPreferencesScreen : Screen {
                 },
                 onClick = { fontFolderPicker.launch(null) },
               )
+              }
 
               PreferenceDivider()
 
@@ -488,6 +490,7 @@ object SubtitlesPreferencesScreen : Screen {
                     it == LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY
                 } ?: defaultSubtitleFontDisplayName(effectiveDefaultFont)
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles_font_title),
                 value = fontValue,
@@ -516,9 +519,11 @@ object SubtitlesPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.reload_fonts),
                 title = { Text(stringResource(R.string.reload_fonts)) },
@@ -538,10 +543,12 @@ object SubtitlesPreferencesScreen : Screen {
                 enabled = fontsFolder.isNotBlank(),
                 onClick = { reloadFontsFrom(fontsFolder) },
               )
+              }
 
               if (fontsFolder.isNotBlank() || customFonts.isNotEmpty()) {
                 PreferenceDivider()
 
+                ExpressivePreferenceItem {
                 Preference(
                   title = {
                     Text(
@@ -566,6 +573,7 @@ object SubtitlesPreferencesScreen : Screen {
                     }
                   },
                 )
+                }
               }
             }
           }
@@ -582,6 +590,7 @@ object SubtitlesPreferencesScreen : Screen {
             PreferenceCard {
               var showClearDialog by remember { mutableStateOf(false) }
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles_search_mode_title),
                 value = onlineSubtitleSearchMode,
@@ -596,6 +605,7 @@ object SubtitlesPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -662,6 +672,7 @@ object SubtitlesPreferencesScreen : Screen {
                   map
                 }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitle_sources_title),
                 title = { Text(stringResource(R.string.pref_subtitle_sources_title)) },
@@ -681,6 +692,7 @@ object SubtitlesPreferencesScreen : Screen {
                 },
                 onClick = { showSourcesDialog = true },
               )
+              }
 
               if (showSourcesDialog) {
                 val allSourcesLabel = stringResource(R.string.pref_all_sources)
@@ -1113,6 +1125,7 @@ object SubtitlesPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles_clear_downloads),
                 title = {
@@ -1125,6 +1138,7 @@ object SubtitlesPreferencesScreen : Screen {
                 onClick = { showClearDialog = true },
                 enabled = subtitleSaveFolder.isNotBlank(),
               )
+              }
 
               if (showClearDialog) {
                 AlertDialog(
@@ -1226,12 +1240,14 @@ fun MultiChoicePreference(
   var showDialog by remember { mutableStateOf(false) }
   var query by rememberSaveable { mutableStateOf("") }
 
+  ExpressivePreferenceItem {
   Preference(
     modifier = modifier,
     title = title,
     summary = summary,
     onClick = { showDialog = true },
   )
+  }
 
   if (showDialog) {
     val valuesList = values.toList()

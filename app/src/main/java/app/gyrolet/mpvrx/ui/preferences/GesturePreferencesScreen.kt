@@ -233,6 +233,7 @@ object GesturePreferencesScreen : Screen {
               PreferenceDivider()
 
               val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_horizontal_swipe_sensitivity),
                 value = horizontalSwipeSensitivity,
@@ -255,11 +256,13 @@ object GesturePreferencesScreen : Screen {
                 onSliderValueChange = { playerPreferences.horizontalSwipeSensitivity.set(it.toFixed(3)) },
                 sliderValue = horizontalSwipeSensitivity,
               )
+              }
 
               PreferenceDivider()
 
               val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
               val holdSpeedSliderValue = snapHoldSpeedBoost(holdForMultipleSpeed)
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_hold_for_multiple_speed),
                 value = holdSpeedSliderValue,
@@ -279,6 +282,7 @@ object GesturePreferencesScreen : Screen {
                 onSliderValueChange = { playerPreferences.holdForMultipleSpeed.set(snapHoldSpeedBoost(it).toFixed(2)) },
                 sliderValue = holdSpeedSliderValue,
               )
+              }
             }
           }
 
@@ -293,6 +297,7 @@ object GesturePreferencesScreen : Screen {
               val predefinedValues = listOf(3, 5, 10, 15, 20, 25, 30)
               val isCustomValue = !predefinedValues.contains(doubleTapSeekDuration)
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_double_tap_seek_duration),
                 value = if (isCustomValue) -1 else doubleTapSeekDuration,
@@ -325,6 +330,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -372,6 +378,7 @@ object GesturePreferencesScreen : Screen {
               val doubleTapSeekAreaWidth by preferences.doubleTapSeekAreaWidth.collectAsState()
               val seekAreaValues = listOf(20, 25, 30, 35, 40, 45)
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_double_tap_seek_area_width_title),
                 value = doubleTapSeekAreaWidth,
@@ -386,10 +393,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_left_title),
                 value = leftDoubleTap,
@@ -404,10 +413,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_center_title),
                 value = centerDoubleTap,
@@ -434,10 +445,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_right_title),
                 value = rightDoubleTap,
@@ -452,6 +465,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -533,6 +547,7 @@ object GesturePreferencesScreen : Screen {
           item {
             PreferenceCard {
               val mediaPreviousGesture by preferences.mediaPreviousGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_previous),
                 value = mediaPreviousGesture,
@@ -560,9 +575,11 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val mediaPlayGesture by preferences.mediaPlayGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_play),
                 value = mediaPlayGesture,
@@ -582,9 +599,11 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val mediaNextGesture by preferences.mediaNextGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_next),
                 value = mediaNextGesture,
@@ -612,6 +631,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               val mediaKeyCodes =
                 listOf(

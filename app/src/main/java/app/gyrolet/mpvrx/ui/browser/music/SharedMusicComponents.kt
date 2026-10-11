@@ -304,7 +304,7 @@ fun SharedMusicGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(if (isCircular) 14.dp else 8.dp),
+        .padding(if (isCircular) 8.dp else 5.dp),
       horizontalAlignment = if (isCircular) Alignment.CenterHorizontally else Alignment.Start,
     ) {
       Box(

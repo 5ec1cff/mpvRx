@@ -119,6 +119,7 @@ object DecoderPreferencesScreen : Screen {
             PreferenceCard {
               val profile by preferences.profile.collectAsState()
               val currentProfile = MPVProfile.fromValue(profile)
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_decoder_profile_title),
                 value = currentProfile,
@@ -133,6 +134,7 @@ object DecoderPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -264,6 +266,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               val debanding by preferences.debanding.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_decoder_debanding_title),
                 value = debanding,
@@ -278,6 +281,7 @@ object DecoderPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -399,6 +403,7 @@ object DecoderPreferencesScreen : Screen {
                         PreferenceDivider()
 
                         val anime4kQuality by preferences.anime4kQuality.collectAsState()
+                        ExpressivePreferenceItem {
                         ListPreference(
                           value = anime4kQuality,
                           onValueChange = { preferences.anime4kQuality.set(it) },
@@ -412,6 +417,7 @@ object DecoderPreferencesScreen : Screen {
                             )
                           },
                         )
+                        }
 
                         PreferenceDivider()
 

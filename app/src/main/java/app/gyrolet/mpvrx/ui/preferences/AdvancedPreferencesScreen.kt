@@ -348,6 +348,7 @@ object AdvancedPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
                 value = currentAppLanguage,
@@ -364,6 +365,7 @@ object AdvancedPreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 
@@ -409,6 +411,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_export_settings_title),
                 title = { Text(text = stringResource(R.string.pref_export_settings_title)) },
@@ -429,9 +432,11 @@ object AdvancedPreferencesScreen : Screen {
                   exportLauncher.launch(settingsManager.getDefaultExportFilename())
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_import_settings_title),
                 title = { Text(text = stringResource(R.string.pref_import_settings_title)) },
@@ -452,6 +457,7 @@ object AdvancedPreferencesScreen : Screen {
                   importLauncher.launch(arrayOf("text/xml", "application/xml", "*/*"))
                 },
               )
+              }
             }
           }
 
@@ -462,6 +468,7 @@ object AdvancedPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_mpv_conf_storage_location),
                 title = { Text(stringResource(R.string.pref_advanced_mpv_conf_storage_location)) },
@@ -487,9 +494,11 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { storageRootPicker.launch(null) },
               )
+              }
 
               if (baseStorageFolder.isNotEmpty()) {
                 PreferenceDivider()
+                ExpressivePreferenceItem {
                 Preference(
                   title = { Text(stringResource(R.string.pref_clear_storage_root_title)) },
                   icon = {
@@ -508,6 +517,7 @@ object AdvancedPreferencesScreen : Screen {
                     subtitlesPreferences.subtitleSaveFolder.set("")
                   },
                 )
+                }
               }
             }
           }
@@ -551,6 +561,7 @@ object AdvancedPreferencesScreen : Screen {
                 }
               }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_mpv_conf),
                 title = { Text(stringResource(R.string.pref_advanced_mpv_conf)) },
@@ -566,6 +577,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(ConfigEditorScreen(ConfigEditorScreen.ConfigType.MPV_CONF))
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -576,6 +588,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_input_conf),
                 title = { Text(stringResource(R.string.pref_advanced_input_conf)) },
@@ -591,6 +604,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(ConfigEditorScreen(ConfigEditorScreen.ConfigType.INPUT_CONF))
                 },
               )
+              }
             }
           }
 
@@ -619,6 +633,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_manage_lua_scripts_title),
                 title = { Text(stringResource(R.string.pref_manage_lua_scripts_title)) },
@@ -651,9 +666,11 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 enabled = mpvConfStorageLocation.isNotBlank() && enableLuaScripts,
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
                 summary = {
@@ -666,6 +683,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
                 },
               )
+              }
             }
           }
 
@@ -714,6 +732,7 @@ object AdvancedPreferencesScreen : Screen {
                   stringResource(R.string.pref_clear_playback_history_recently_played_none)
                 }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_clear_playback_history),
                 title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
@@ -732,6 +751,7 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { isConfirmDialogShown = true },
               )
+              }
 
               if (isConfirmDialogShown) {
                 ConfirmDialog(
@@ -826,6 +846,7 @@ object AdvancedPreferencesScreen : Screen {
                 }
               }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_clear_config_cache_title),
                 title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
@@ -883,9 +904,11 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_clear_thumbnail_cache_title),
                 title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
@@ -905,6 +928,7 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { isClearThumbsConfirmShown = true },
               )
+              }
 
               if (isClearThumbsConfirmShown) {
                 ConfirmDialog(
@@ -947,6 +971,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_clear_fonts_cache),
                 title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
@@ -991,6 +1016,7 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
             }
           }
 
@@ -1020,6 +1046,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               SliderPreference(
                 value = debugLogSizeMb.toFloat(),
                 onValueChange = { value -> preferences.debugLogSizeMb.set(value.toInt().coerceIn(1, 10)) },
@@ -1035,9 +1062,11 @@ object AdvancedPreferencesScreen : Screen {
                 valueRange = 1f..10f,
                 valueSteps = 8,
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_dump_logs_title),
                 title = { Text(stringResource(R.string.pref_advanced_dump_logs_title)) },
@@ -1065,6 +1094,7 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
             }
           }
         }

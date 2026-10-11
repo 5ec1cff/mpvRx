@@ -124,6 +124,37 @@ fun ExpressivePreferenceTile(
 }
 
 /**
+ * A neutral per-preference Material 3 container for ComposePreference-backed rows.
+ *
+ * The external preference library renders interactive content without its own surface;
+ * wrapping its existing interaction preserves the click/slider callbacks while matching
+ * SwitchPreference and the other Expressive tiles. The parent section stays transparent.
+ */
+@Composable
+fun ExpressivePreferenceItem(
+  modifier: Modifier = Modifier,
+  selected: Boolean = false,
+  content: @Composable () -> Unit,
+) {
+  val colors = MaterialTheme.colorScheme
+  val insideGroup = LocalInsidePreferenceCard.current
+  val color by animateColorAsState(
+    targetValue = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "preferenceItemColor",
+  )
+  Surface(
+    modifier = modifier
+      .fillMaxWidth()
+      .then(if (insideGroup) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 2.dp)),
+    shape = if (insideGroup) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
+    color = color,
+  ) {
+    content()
+  }
+}
+
+/**
  * A divider to separate preferences within a card.
  */
 @Composable

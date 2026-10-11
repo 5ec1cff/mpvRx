@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.components.AppSlider
+import app.gyrolet.mpvrx.ui.preferences.ExpressivePreferenceItem
 import me.zhanghai.compose.preference.LocalPreferenceTheme
 import me.zhanghai.compose.preference.Preference
 import org.koin.compose.koinInject
@@ -37,20 +38,21 @@ fun AppSliderPreference(
   val preferences = koinInject<AppearancePreferences>()
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
   if (!glassEnabled) {
-    me.zhanghai.compose.preference.SliderPreference(
+    ExpressivePreferenceItem(modifier = modifier) {
+      me.zhanghai.compose.preference.SliderPreference(
       value = value,
       onValueChange = onValueChange,
       sliderValue = sliderValue,
       onSliderValueChange = onSliderValueChange,
       title = title,
-      modifier = modifier,
       valueRange = valueRange,
       valueSteps = valueSteps,
       enabled = enabled,
       icon = icon,
       summary = summary,
       valueText = valueText,
-    )
+      )
+    }
     return
   }
 
@@ -61,9 +63,9 @@ fun AppSliderPreference(
       observedValue = value
     }
   }
+  ExpressivePreferenceItem(modifier = modifier) {
   Preference(
     title = title,
-    modifier = modifier,
     enabled = enabled,
     icon = icon,
     summary = {
@@ -92,4 +94,5 @@ fun AppSliderPreference(
       }
     },
   )
+  }
 }

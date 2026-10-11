@@ -285,6 +285,7 @@ object AiIntegrationScreen : Screen {
             item {
               PreferenceCard {
                 val providers = AiProvider.values().toList()
+                ExpressivePreferenceItem {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_ai_provider_title),
                   value = provider,
@@ -306,6 +307,7 @@ object AiIntegrationScreen : Screen {
                     Text(provider.displayName, color = MaterialTheme.colorScheme.outline)
                   },
                 )
+                }
               }
             }
 
@@ -823,6 +825,7 @@ val apiKeyInfo =
 
                   PreferenceDivider()
 
+                  ExpressivePreferenceItem {
                   ListPreference(
                     value = subtitleGenerationOutputFormat,
                     onValueChange = { preferences.subtitleGenerationOutputFormat.set(it) },
@@ -844,9 +847,11 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
 
                   PreferenceDivider()
 
+                  ExpressivePreferenceItem {
                   ListPreference(
                     value = sttProvider,
                     onValueChange = preferences.sttProvider::set,
@@ -869,6 +874,7 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
 
                   PreferenceDivider()
 
@@ -888,6 +894,7 @@ val apiKeyInfo =
                   PreferenceDivider()
 
                   val sttLanguage by preferences.sttLanguage.collectAsState()
+                  ExpressivePreferenceItem {
                   ListPreference(
                     modifier = Modifier.settingsSearchTarget(R.string.pref_translation_section),
                     value = sttLanguage,
@@ -951,6 +958,7 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
                 }
               }
 

@@ -270,6 +270,7 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
 
             PreferenceCard {
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_portrait_playback_buttons),
                 value = portraitPlaybackControlsPosition,
@@ -284,6 +285,7 @@ object PlayerControlsPreferencesScreen : Screen {
                 },
                 summary = { Text(portraitPlaybackControlsPosition.displayName) },
               )
+              }
 
               PreferenceDivider()
 
@@ -326,6 +328,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_display_hide_player_control_time),
                 value = if (isCustomTimeValue) -1 else playerTimeToDisappear,
@@ -357,9 +360,11 @@ object PlayerControlsPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_time_network_clock),
                 value = clockFormat,
@@ -374,6 +379,7 @@ object PlayerControlsPreferencesScreen : Screen {
                 },
                 summary = { Text(clockFormat.displayName) },
               )
+              }
             }
 
             if (showCustomTimeDialog) {

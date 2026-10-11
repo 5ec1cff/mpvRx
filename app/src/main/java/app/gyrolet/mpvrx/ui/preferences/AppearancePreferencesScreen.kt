@@ -328,6 +328,7 @@ object AppearancePreferencesScreen : Screen {
                     onClick = { backstack.navigateTo(WallpaperEditorScreen()) },
                   )
 
+                   ExpressivePreferenceItem {
                    Preference(
                      modifier = Modifier.settingsSearchTarget(R.string.pref_app_icon_title),
                      title = { Text(stringResource(R.string.pref_app_icon_title)) },
@@ -339,6 +340,7 @@ object AppearancePreferencesScreen : Screen {
                      },
                      onClick = { backstack.navigateTo(AppIconPreferencesScreen) },
                    )
+                   }
 
                   PreferenceDivider()
 
@@ -383,6 +385,7 @@ object AppearancePreferencesScreen : Screen {
                       googleFontFamily.isNotBlank() -> googleFontFamily
                       else -> stringResource(R.string.app_font_google_sans_flex)
                     }
+                  ExpressivePreferenceItem {
                   Preference(
                     modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_app_font_title),
                     title = { Text(stringResource(R.string.pref_appearance_app_font_title)) },
@@ -394,10 +397,12 @@ object AppearancePreferencesScreen : Screen {
                     },
                     onClick = { isAppFontSheetOpen = true },
                   )
+                  }
 
                   PreferenceDivider()
 
                   val appUiScale by preferences.appUiScale.collectAsState()
+                  ExpressivePreferenceItem {
                   SliderPreference(
                     modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_ui_scale_title),
                     value = pendingAppUiScale ?: appUiScale,
@@ -419,6 +424,7 @@ object AppearancePreferencesScreen : Screen {
                     onSliderValueChange = { pendingAppUiScale = it },
                     sliderValue = pendingAppUiScale ?: appUiScale,
                   )
+                  }
 
                   PreferenceDivider()
 

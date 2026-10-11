@@ -103,6 +103,7 @@ object NetworkConfigurationPreferencesScreen : Screen {
           }
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_yt_dlp_manager),
                 title = { Text(stringResource(R.string.ui_yt_dlp_manager)) },
@@ -110,6 +111,7 @@ object NetworkConfigurationPreferencesScreen : Screen {
                 icon = { Icon(Icons.RoundedFilled.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 onClick = { backStack.navigateTo(YtdlpSettingsScreen) },
               )
+              }
             }
           }
         }

@@ -246,6 +246,7 @@ object AudioPreferencesScreen : Screen {
               PreferenceDivider()
               val mediaServerPreferences = koinInject<MediaServerPreferences>()
               val musicSourceProvider by mediaServerPreferences.musicSourceProvider.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_music_player_switch_title),
                 value = musicSourceProvider,
@@ -275,6 +276,7 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 
@@ -285,6 +287,7 @@ object AudioPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val audioVisualizerStyle by preferences.audioVisualizerStyle.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_visualizer_style_title),
                 value = audioVisualizerStyle,
@@ -331,9 +334,11 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
               val audioOrientation by preferences.audioOrientation.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
                 value = audioOrientation,
@@ -348,6 +353,7 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val audioAmbientMode by preferences.audioAmbientMode.collectAsState()
@@ -534,6 +540,7 @@ object AudioPreferencesScreen : Screen {
 
               PreferenceDivider()
               val audioChannel by preferences.audioChannels.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_channels),
                 value = audioChannel,
@@ -549,9 +556,11 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val volumeBoostCap by preferences.volumeBoostCap.collectAsState()
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_volume_boost_cap),
                 value = volumeBoostCap.toFloat(),
@@ -572,6 +581,7 @@ object AudioPreferencesScreen : Screen {
                 onSliderValueChange = { preferences.volumeBoostCap.set(it.toInt()) },
                 sliderValue = volumeBoostCap.toFloat(),
               )
+              }
 
               PreferenceDivider()
               Text(
@@ -621,6 +631,7 @@ object AudioPreferencesScreen : Screen {
 
               PreferenceDivider()
               val lyricsTargetLanguage by preferences.lyricsTargetLanguage.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_target_language),
                 value = lyricsTargetLanguage,
@@ -635,9 +646,11 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val lyricsDisplayMode by preferences.lyricsTranslationDisplayMode.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_display_mode),
                 value = lyricsDisplayMode,
@@ -652,6 +665,7 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val paxsenixApiKey by preferences.paxsenixApiKey.collectAsState()

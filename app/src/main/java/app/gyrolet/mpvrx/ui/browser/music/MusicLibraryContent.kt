@@ -149,6 +149,8 @@ import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.browser.cards.SelectionIndicator
 import app.gyrolet.mpvrx.ui.browser.cards.animatedSelectionColor
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.rememberMediaSelectionShape
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
@@ -1477,9 +1479,9 @@ private fun SongsTabContent(
         state = gridState,
         columns = GridCells.Adaptive(minSize = gridCoverArtSizeDp.dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+        horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap)
       ) {
         items(count = songs.size, key = { index -> songs[index].id }) { index ->
           val song = songs[index]
@@ -1502,7 +1504,8 @@ private fun SongsTabContent(
       LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = navBarHeight + 16.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 4.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap)
       ) {
         items(count = songs.size, key = { index -> songs[index].id }) { index ->
           val song = songs[index]
@@ -1573,7 +1576,7 @@ private fun SongGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(8.dp)
+        .padding(5.dp)
     ) {
       Box(
         modifier = Modifier
@@ -1705,9 +1708,9 @@ private fun AlbumsTabContent(
         state = gridState,
         columns = GridCells.Adaptive(minSize = gridCoverArtSizeDp.dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+        horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap)
       ) {
         items(count = albums.size, key = { index -> albums[index].id }) { index ->
           val album = albums[index]
@@ -1726,7 +1729,8 @@ private fun AlbumsTabContent(
       LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = navBarHeight + 16.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 4.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap)
       ) {
         items(count = albums.size, key = { index -> albums[index].id }) { index ->
           val album = albums[index]
@@ -1785,7 +1789,7 @@ private fun AlbumGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(8.dp)
+        .padding(5.dp)
     ) {
       Box(
         modifier = Modifier
@@ -1858,7 +1862,7 @@ private fun AlbumListCard(
   Surface(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(horizontal = 8.dp, vertical = 2.dp)
+      .padding(horizontal = 0.dp)
       .clip(selectedShape)
       .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
       .tvContextMenu(onLongClick)
@@ -1944,9 +1948,9 @@ private fun ArtistsTabContent(
         state = gridState,
         columns = GridCells.Adaptive(minSize = (gridCoverArtSizeDp * 1.1f).toInt().dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+        horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap)
       ) {
         items(count = artists.size, key = { index -> artists[index].id }) { index ->
           val artist = artists[index]
@@ -1965,7 +1969,8 @@ private fun ArtistsTabContent(
       LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = navBarHeight + 16.dp)
+        contentPadding = PaddingValues(start = 8.dp, top = 4.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap)
       ) {
         items(count = artists.size, key = { index -> artists[index].id }) { index ->
           val artist = artists[index]
@@ -2024,7 +2029,7 @@ private fun ArtistGridCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(14.dp),
+        .padding(8.dp),
       horizontalAlignment = Alignment.CenterHorizontally
     ) {
       Box(
@@ -2079,7 +2084,7 @@ private fun ArtistListCard(
   Surface(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(horizontal = 8.dp, vertical = 2.dp)
+      .padding(horizontal = 0.dp)
       .clip(selectedShape)
       .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
       .tvContextMenu(onLongClick)
@@ -2343,7 +2348,7 @@ private fun MusicPlaylistCard(
       Column(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(8.dp)
+          .padding(5.dp)
       ) {
         Box(modifier = Modifier.fillMaxWidth()) {
           PlaylistArtCollage(
@@ -2376,7 +2381,7 @@ private fun MusicPlaylistCard(
     Surface(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 8.dp, vertical = 2.dp)
+        .padding(horizontal = 0.dp)
         .clip(selectedShape)
         .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
         .tvContextMenu(onLongClick)
@@ -2479,9 +2484,9 @@ private fun PlaylistsTabContent(
             state = gridState,
             columns = GridCells.Adaptive(minSize = gridCoverArtSizeDp.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+            verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+            horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap)
           ) {
             items(count = playlists.size, key = { index -> playlists[index].id }) { index ->
               val playlist = playlists[index]
@@ -2506,7 +2511,8 @@ private fun PlaylistsTabContent(
           LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 0.dp, top = 8.dp, end = 0.dp, bottom = navBarHeight + 16.dp)
+            contentPadding = PaddingValues(start = 8.dp, top = 4.dp, end = 8.dp, bottom = navBarHeight + 8.dp),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap)
           ) {
             items(count = playlists.size, key = { index -> playlists[index].id }) { index ->
               val playlist = playlists[index]
