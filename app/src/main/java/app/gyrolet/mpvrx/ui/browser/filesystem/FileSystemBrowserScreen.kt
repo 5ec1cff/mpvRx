@@ -90,6 +90,8 @@ import app.gyrolet.mpvrx.preferences.MediaLayoutMode
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
@@ -1459,8 +1461,8 @@ private fun FileSystemBrowserContent(
                     top = 4.dp,
                     bottom = navigationBarHeight,
                   ),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+                verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
               ) {
                 // Breadcrumb navigation (if not at root)
                 if (!isAtRoot && breadcrumbs.isNotEmpty()) {
@@ -1581,6 +1583,7 @@ private fun FileSystemBrowserContent(
             LazyColumn(
               state = listState,
               modifier = Modifier.fillMaxSize(),
+              verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
               contentPadding =
                 PaddingValues(
                   start = 8.dp,
@@ -1907,8 +1910,8 @@ private fun FileSystemSearchContent(
                     top = 12.dp,
                     bottom = navigationBarHeight,
                   ),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+                verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
               ) {
                 // Folders first
                 items(
@@ -1991,6 +1994,7 @@ private fun FileSystemSearchContent(
             LazyColumn(
               state = listState,
               modifier = Modifier.fillMaxSize(),
+              verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
               contentPadding =
                 PaddingValues(
                   start = 8.dp,

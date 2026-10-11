@@ -104,6 +104,8 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
@@ -1443,8 +1445,8 @@ private fun GridContent(
           top = 8.dp,
           bottom = navigationBarHeight + 8.dp,
         ),
-      horizontalArrangement = Arrangement.spacedBy(2.dp),
-      verticalArrangement = Arrangement.spacedBy(2.dp),
+      horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+      verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
     ) {
       items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
         val folder = folders[index]
@@ -1539,6 +1541,7 @@ private fun ListContent(
     LazyColumn(
       state = listState,
       modifier = Modifier.fillMaxSize(),
+      verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
       contentPadding =
         PaddingValues(
           start = 8.dp,
@@ -1733,8 +1736,8 @@ private fun SearchResultsContent(
               top = 8.dp,
               bottom = navigationBarHeight + 8.dp,
             ),
-          horizontalArrangement = Arrangement.spacedBy(2.dp),
-          verticalArrangement = Arrangement.spacedBy(2.dp),
+          horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+          verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
         ) {
           items(
             count = folders.size,
@@ -1786,6 +1789,7 @@ private fun SearchResultsContent(
     } else {
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
         contentPadding =
           PaddingValues(
             start = 8.dp,

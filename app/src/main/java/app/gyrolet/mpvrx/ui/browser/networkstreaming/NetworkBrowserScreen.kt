@@ -78,6 +78,8 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkFolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkImageCard
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkVideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
@@ -738,8 +740,8 @@ private fun NetworkBrowserContent(
                   top = 8.dp,
                   bottom = navigationBarHeight,
                 ),
-              horizontalArrangement = Arrangement.spacedBy(2.dp),
-              verticalArrangement = Arrangement.spacedBy(2.dp),
+              horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+              verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
             ) {
               browserSection(gridColumns, folders, folderHeaderText, topPadding = 8.dp) { folder ->
                 NetworkFolderCard(
@@ -780,6 +782,7 @@ private fun NetworkBrowserContent(
             LazyColumn(
               state = listState,
               modifier = Modifier.fillMaxSize(),
+              verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
               contentPadding =
                 PaddingValues(
                   start = 8.dp,

@@ -84,6 +84,8 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
 import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
@@ -1139,8 +1141,8 @@ internal fun VideoListContent(
                     top = 8.dp,
                     bottom = bottomPadding + 8.dp,
                   ),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+                verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
               ) {
                 items(
                   count = videosWithInfo.size,
@@ -1204,6 +1206,7 @@ internal fun VideoListContent(
               LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
                 contentPadding =
                   PaddingValues(
                     start = 8.dp,
