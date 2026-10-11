@@ -12,6 +12,8 @@ package app.gyrolet.mpvrx.ui.preferences
 import android.app.Application
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -71,6 +75,10 @@ import app.gyrolet.mpvrx.ui.browser.selection.SelectionState
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
@@ -217,9 +225,9 @@ object FoldersPreferencesScreen : Screen {
         } else {
           LazyColumn(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
           ) {
-            items(allBlacklistedFolders, key = { it }) { folderPath ->
+            itemsIndexed(allBlacklistedFolders, key = { _, path -> path }) { index, folderPath ->
               val isVideo = folderPath in blacklistedVideoFolders
               val isAudio = folderPath in blacklistedAudioFolders
               val scope = when {
@@ -230,6 +238,7 @@ object FoldersPreferencesScreen : Screen {
 
               BlacklistedFolderItem(
                 folderPath = folderPath,
+                shape = rememberConnectedShape(index, allBlacklistedFolders.size, ConnectedLayout.Vertical),
                 scope = scope,
                 isSelected = selectionState.isSelected(folderPath),
                 isInSelectionMode = selectionState.isInSelectionMode,
@@ -486,6 +495,7 @@ private fun NoMediaPreferenceCard(
 @Composable
 private fun BlacklistedFolderItem(
   folderPath: String,
+  shape: Shape,
   scope: BlacklistScope,
   isSelected: Boolean,
   isInSelectionMode: Boolean,
@@ -494,17 +504,17 @@ private fun BlacklistedFolderItem(
   onLongClick: () -> Unit,
   onClick: () -> Unit,
 ) {
+  val selectionColor by animateColorAsState(
+    targetValue =
+      if (isSelected) MaterialTheme.colorScheme.primaryContainer
+      else MaterialTheme.colorScheme.surfaceContainerLow,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "hiddenFolderSelected",
+  )
   Card(
     modifier = Modifier.fillMaxWidth(),
-    colors =
-      CardDefaults.cardColors(
-        containerColor =
-          if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer
-          } else {
-            MaterialTheme.colorScheme.surfaceVariant
-          },
-      ),
+    shape = shape,
+    colors = CardDefaults.cardColors(containerColor = selectionColor),
   ) {
     Row(
       modifier =

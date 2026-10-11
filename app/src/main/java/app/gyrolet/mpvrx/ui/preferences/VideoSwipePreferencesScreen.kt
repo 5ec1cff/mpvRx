@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,6 +68,9 @@ import app.gyrolet.mpvrx.ui.browser.cards.labelRes
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics
@@ -108,27 +112,41 @@ object VideoSwipePreferencesScreen : Screen {
     ) { padding ->
       val (listState, highlight) =
         rememberSettingsSearchList(VideoSwipePreferencesScreen, MaterialTheme.colorScheme.primary)
-      LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(padding).then(highlight)) {
-        item {
-          SwipeDirectionPreference(
-            right = true,
-            action = right,
-            zonePercent = rightZonePercent,
-            onZonePercentChange = { preferences.videoSwipeRightZonePercent.set(it) },
-            modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_right),
-            onChange = { editingRight = true },
-          )
-          HorizontalDivider()
+      LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize().padding(padding).then(highlight),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+      ) {
+        item(key = "right-swipe") {
+          Surface(
+            shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+          ) {
+            SwipeDirectionPreference(
+              right = true,
+              action = right,
+              zonePercent = rightZonePercent,
+              onZonePercentChange = { preferences.videoSwipeRightZonePercent.set(it) },
+              modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_right),
+              onChange = { editingRight = true },
+            )
+          }
         }
-        item {
-          SwipeDirectionPreference(
-            right = false,
-            action = left,
-            zonePercent = leftZonePercent,
-            onZonePercentChange = { preferences.videoSwipeLeftZonePercent.set(it) },
-            modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_left),
-            onChange = { editingRight = false },
-          )
+        item(key = "left-swipe") {
+          Surface(
+            shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+          ) {
+            SwipeDirectionPreference(
+              right = false,
+              action = left,
+              zonePercent = leftZonePercent,
+              onZonePercentChange = { preferences.videoSwipeLeftZonePercent.set(it) },
+              modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_left),
+              onChange = { editingRight = false },
+            )
+          }
         }
       }
     }

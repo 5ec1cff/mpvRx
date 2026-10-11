@@ -26,10 +26,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.components.IconSwitch
+import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
@@ -73,12 +75,20 @@ fun SwitchPreference(
       itemCount = groupSize ?: 1,
       layout = ConnectedLayout.Vertical,
     )
-  val shape = if (groupIndex != null && groupSize != null) connectedShape else MaterialTheme.shapes.large
+  val insideConnectedCard = LocalInsidePreferenceCard.current
+  val shape = when {
+    groupIndex != null && groupSize != null -> connectedShape
+    insideConnectedCard -> MaterialTheme.shapes.small
+    else -> MaterialTheme.shapes.large
+  }
   val containerColor by
     animateColorAsState(
       targetValue =
         if (value) {
           MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+        } else if (insideConnectedCard) {
+          // The enclosing PreferenceCard paints connected rows; do not cover its exterior corners.
+          Color.Transparent
         } else {
           MaterialTheme.colorScheme.surfaceContainerLow
         },

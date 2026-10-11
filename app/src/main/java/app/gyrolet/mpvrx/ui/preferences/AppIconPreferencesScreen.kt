@@ -5,6 +5,8 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
@@ -64,7 +70,7 @@ object AppIconPreferencesScreen : Screen {
           top = padding.calculateTopPadding() + 12.dp,
           bottom = padding.calculateBottomPadding() + 24.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         item {
           Text(
@@ -74,8 +80,14 @@ object AppIconPreferencesScreen : Screen {
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
           )
         }
-        items(LauncherIcon.entries, key = { it.name }) { choice ->
+        itemsIndexed(LauncherIcon.entries, key = { _, choice -> choice.name }) { index, choice ->
           val selected = current == choice
+          val shape = rememberConnectedShape(index, LauncherIcon.entries.size, ConnectedLayout.Vertical)
+          val borderColor by animateColorAsState(
+            targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+            animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+            label = "appIconSelection",
+          )
           Card(
             onClick = {
               if (!selected) {
@@ -91,9 +103,9 @@ object AppIconPreferencesScreen : Screen {
             modifier = Modifier.fillMaxWidth(),
             border = BorderStroke(
               if (selected) 2.dp else 1.dp,
-              if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+              borderColor,
             ),
-            shape = RoundedCornerShape(22.dp),
+            shape = shape,
           ) {
             Row(
               modifier = Modifier.fillMaxWidth().padding(16.dp),

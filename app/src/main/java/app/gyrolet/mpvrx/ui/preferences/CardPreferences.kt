@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -21,14 +22,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -39,34 +53,95 @@ import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 
 /**
- * A card container for grouping related preferences, mimicking modern Android settings UI.
+ * Shared contract for the settings pages that still use PreferenceCard and PreferenceDivider.
+ * Draw each immediate preference as its own connected tile, without relocating controls or
+ * altering their persistence, dialog callbacks, keyboard focus or search-target modifiers.
  */
+internal val LocalInsidePreferenceCard = staticCompositionLocalOf { false }
+private const val ConnectedPreferenceGap = "mpvrx-settings-connected-gap"
+
+private data class ConnectedPreferenceFrame(val top: Int, val bottom: Int)
+
 @Composable
 fun PreferenceCard(
   modifier: Modifier = Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
-  Card(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)
-        .animateContentSize(if (AppMotion.shouldReduceMotion()) snap() else AppMotion.IntSizeSpring),
-    shape = RoundedCornerShape(32.dp),
-    colors =
-      CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-      ),
-    elevation =
-      CardDefaults.cardElevation(
-        defaultElevation = 0.dp,
-      ),
+  val colors = MaterialTheme.colorScheme
+  val spacingPx = with(LocalDensity.current) { AppConnectedShapeTokens.spacing.roundToPx() }
+  val outerRadius = AppConnectedShapeTokens.outerCorner
+  val innerRadius = AppConnectedShapeTokens.innerCorner
+  var tileFrames by remember { mutableStateOf(emptyList<ConnectedPreferenceFrame>()) }
+  val reduceMotion = AppMotion.shouldReduceMotion()
+
+  // The outer mask keeps highlight/ripple surfaces within the expressive group boundary.
+  Column(
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 16.dp, vertical = 8.dp)
+      .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring),
   ) {
-    Column(
-      modifier = Modifier.padding(vertical = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-      content()
+    val columnScope = this
+    Layout(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(outerRadius))
+        .drawBehind {
+          tileFrames.forEachIndexed { index, frame ->
+            val top = frame.top.toFloat()
+            val bottom = frame.bottom.toFloat()
+            if (bottom <= top) return@forEachIndexed
+            val topRadius = if (index == 0) outerRadius.toPx() else innerRadius.toPx()
+            val bottomRadius =
+              if (index == tileFrames.lastIndex) outerRadius.toPx() else innerRadius.toPx()
+            val tilePath = Path().apply {
+              addRoundRect(
+                RoundRect(
+                  left = 0f, top = top, right = size.width, bottom = bottom,
+                  topLeftCornerRadius = CornerRadius(topRadius),
+                  topRightCornerRadius = CornerRadius(topRadius),
+                  bottomRightCornerRadius = CornerRadius(bottomRadius),
+                  bottomLeftCornerRadius = CornerRadius(bottomRadius),
+                ),
+              )
+            }
+            drawPath(tilePath, color = colors.surfaceContainerLow)
+          }
+        },
+      content = {
+        CompositionLocalProvider(LocalInsidePreferenceCard provides true) {
+          content(columnScope)
+        }
+      },
+    ) { measurables, constraints ->
+      val childConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+      val placeables = measurables.map { it.measure(childConstraints) }
+      val positions = IntArray(placeables.size)
+      val frames = ArrayList<ConnectedPreferenceFrame>(placeables.size)
+      var y = 0
+      var precedingTile = false
+      placeables.forEachIndexed { index, placeable ->
+        val isDivider = measurables[index].layoutId == ConnectedPreferenceGap
+        // Adjacent rows without an explicit PreferenceDivider still get a small connected gap.
+        if (!isDivider && precedingTile) y += spacingPx
+        positions[index] = y
+        if (!isDivider && placeable.height > 0) {
+          frames.add(ConnectedPreferenceFrame(y, y + placeable.height))
+          precedingTile = true
+        } else if (isDivider) {
+          precedingTile = false
+        }
+        y += placeable.height
+      }
+      if (tileFrames != frames) tileFrames = frames
+      layout(
+        constraints.maxWidth,
+        y.coerceIn(constraints.minHeight, constraints.maxHeight),
+      ) {
+        placeables.forEachIndexed { index, placeable ->
+          placeable.placeRelative(0, positions[index])
+        }
+      }
     }
   }
 }
@@ -124,10 +199,14 @@ fun ExpressivePreferenceTile(
  */
 @Composable
 fun PreferenceDivider(modifier: Modifier = Modifier) {
-  HorizontalDivider(
-    modifier = modifier.padding(horizontal = 16.dp),
-    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-  )
+  if (LocalInsidePreferenceCard.current) {
+    Spacer(modifier = modifier.fillMaxWidth().height(AppConnectedShapeTokens.spacing).layoutId(ConnectedPreferenceGap))
+  } else {
+    HorizontalDivider(
+      modifier = modifier.padding(horizontal = 16.dp),
+      color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
+  }
 }
 
 /**
