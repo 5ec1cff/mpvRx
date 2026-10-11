@@ -9,9 +9,12 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,12 +33,11 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
+import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
-import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.Preference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -70,49 +72,47 @@ object NetworkConfigurationPreferencesScreen : Screen {
       },
     ) { padding ->
       ProvideExpressivePreferenceLocals {
-        val (settingsListState, settingsHighlight) =
-          rememberSettingsSearchList(NetworkConfigurationPreferencesScreen, MaterialTheme.colorScheme.primary)
-        LazyColumn(
-          state = settingsListState,
-          modifier = Modifier.fillMaxSize().padding(padding).then(settingsHighlight),
+        val scrollState = rememberScrollState()
+        val settingsHighlight =
+          rememberSettingsSearchHighlight(
+            NetworkConfigurationPreferencesScreen,
+            scrollState,
+            MaterialTheme.colorScheme.primary,
+          )
+        Column(
+          modifier =
+            Modifier
+              .fillMaxSize()
+              .padding(padding)
+              .then(settingsHighlight)
+              .verticalScroll(scrollState)
+              .padding(bottom = MaterialTheme.spacing.extraLarge),
+          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
-          }
-          item {
-            PreferenceCard {
-              SwitchPreference(
+          // Streaming tools live directly on Network. YT-DLP intentionally comes first,
+          // followed by P2P, matching the order in which users choose a stream source.
+          YtdlpManagerSections()
+
+          PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
+          ExpressivePreferenceGroup {
+            SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_enable_p2p_streaming_title),
                 value = enableP2pStreaming,
                 onValueChange = preferences.enableP2pStreaming::set,
                 title = { Text(stringResource(R.string.pref_enable_p2p_streaming_title)) },
                 summary = { Text(stringResource(R.string.pref_enable_p2p_streaming_summary), color = MaterialTheme.colorScheme.outline) },
+                groupIndex = 0,
+                groupSize = 2,
               )
-              PreferenceDivider()
-              SwitchPreference(
+            SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_enable_hls_proxy_title),
                 value = enableHlsProxy,
                 onValueChange = preferences.enableHlsProxy::set,
                 title = { Text(stringResource(R.string.pref_enable_hls_proxy_title)) },
                 summary = { Text(stringResource(R.string.pref_enable_hls_proxy_summary), color = MaterialTheme.colorScheme.outline) },
+                groupIndex = 1,
+                groupSize = 2,
               )
-            }
-          }
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.ui_yt_dlp_manager))
-          }
-          item {
-            PreferenceCard {
-              ExpressivePreferenceItem {
-              Preference(
-                modifier = Modifier.settingsSearchTarget(R.string.ui_yt_dlp_manager),
-                title = { Text(stringResource(R.string.ui_yt_dlp_manager)) },
-                summary = { Text(stringResource(R.string.ui_install_and_update_yt_dlp_for_streaming_support), color = MaterialTheme.colorScheme.outline) },
-                icon = { Icon(Icons.RoundedFilled.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = { backStack.navigateTo(YtdlpSettingsScreen) },
-              )
-              }
-            }
           }
         }
       }

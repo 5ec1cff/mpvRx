@@ -1692,7 +1692,7 @@ object SearchablePreferences {
 
       addSearchEntries(
         category = "Network",
-        screen = YtdlpSettingsScreen,
+        screen = NetworkConfigurationPreferencesScreen,
         anchorItemIndex = 0,
         SearchEntrySpec(R.string.ui_download_media_subtitles, listOf("yt-dlp", "subtitle", "download", "manual")),
         SearchEntrySpec(R.string.ui_include_auto_generated_subtitles, listOf("yt-dlp", "subtitle", "automatic", "captions", "youtube")),

@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package app.gyrolet.mpvrx.ui.preferences
 
 import android.content.ContentUris
@@ -6,6 +8,8 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
@@ -66,7 +71,9 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.expressiveDisplayFontForText
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import java.io.File
 import java.time.LocalDate
@@ -228,7 +235,7 @@ private fun WatchTimeBentoCard(stats: WatchStatsSnapshot) {
               letterSpacing = 1.sp,
             )
             Text(
-              text = "Overall Playback",
+              text = stringResource(R.string.watch_stats_overall_playback),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -251,8 +258,8 @@ private fun WatchTimeBentoCard(stats: WatchStatsSnapshot) {
 
       Text(
         text = formatHumanDuration(stats.totalSeconds),
-        style = MaterialTheme.typography.displaySmall,
-        fontWeight = FontWeight.ExtraBold,
+        style = MaterialTheme.typography.displaySmallEmphasized,
+        fontFamily = expressiveDisplayFontForText(formatHumanDuration(stats.totalSeconds)),
         color = MaterialTheme.colorScheme.onSurface,
       )
     }
@@ -262,8 +269,9 @@ private fun WatchTimeBentoCard(stats: WatchStatsSnapshot) {
 @Composable
 private fun WatchSplitBentoCard(stats: WatchStatsSnapshot) {
   val total = stats.videoSeconds + stats.audioSeconds
-  val videoFraction = if (total > 0) stats.videoSeconds.toFloat() / total.toFloat() else 0.5f
-  val videoPercent = if (total > 0) ((stats.videoSeconds * 100f) / total).toInt() else 0
+  val videoFraction = if (total > 0) stats.videoSeconds.toFloat() / total.toFloat() else 0f
+  val audioFraction = if (total > 0) stats.audioSeconds.toFloat() / total.toFloat() else 0f
+  val videoPercent = (videoFraction * 100f).toInt()
   val audioPercent = if (total > 0) 100 - videoPercent else 0
 
   BentoCard(modifier = Modifier.fillMaxWidth()) {
@@ -272,171 +280,107 @@ private fun WatchSplitBentoCard(stats: WatchStatsSnapshot) {
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Row(
-          horizontalArrangement = Arrangement.spacedBy(10.dp),
-          verticalAlignment = Alignment.CenterVertically,
+        Surface(
+          shape = CircleShape,
+          color = MaterialTheme.colorScheme.secondaryContainer,
+          contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+          modifier = Modifier.size(36.dp),
         ) {
-          Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.size(36.dp),
-          ) {
-            Box(contentAlignment = Alignment.Center) {
-              Icon(
-                imageVector = Icons.RoundedFilled.SmartDisplay,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-              )
-            }
-          }
-          Text(
-            text = "Media Breakdown",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-          )
-        }
-      }
-
-      // Dual segment capsule bar
-      Box(
-        modifier = Modifier
-          .fillMaxWidth()
-          .height(14.dp)
-          .clip(CircleShape)
-          .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-      ) {
-        if (total > 0) {
-          Row(modifier = Modifier.fillMaxSize()) {
-            if (videoFraction > 0f) {
-              Box(
-                modifier = Modifier
-                  .weight(videoFraction.coerceAtLeast(0.01f))
-                  .fillMaxHeight()
-                  .background(MaterialTheme.colorScheme.primary),
-              )
-            }
-            if (1f - videoFraction > 0f) {
-              Box(
-                modifier = Modifier
-                  .weight((1f - videoFraction).coerceAtLeast(0.01f))
-                  .fillMaxHeight()
-                  .background(MaterialTheme.colorScheme.tertiary),
-              )
-            }
+          Box(contentAlignment = Alignment.Center) {
+            Icon(Icons.RoundedFilled.SmartDisplay, null, modifier = Modifier.size(18.dp))
           }
         }
+        Text(
+          text = stringResource(R.string.watch_stats_media_breakdown),
+          style = MaterialTheme.typography.titleMediumEmphasized,
+        )
       }
 
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
-        val videoShape =
-          rememberConnectedShape(
-            index = 0,
-            itemCount = 2,
-            layout = ConnectedLayout.Horizontal,
-          )
-        val audioShape =
-          rememberConnectedShape(
-            index = 1,
-            itemCount = 2,
-            layout = ConnectedLayout.Horizontal,
-          )
-
-        // Connected video tile
-        Surface(
+        MediaShareTile(
+          title = stringResource(R.string.watch_stats_video),
+          duration = stats.videoSeconds,
+          percentage = videoPercent,
+          fraction = videoFraction,
+          color = MaterialTheme.colorScheme.primary,
+          shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal),
           modifier = Modifier.weight(1f),
-          shape = videoShape,
-          color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-        ) {
-          Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-          ) {
-            Box(
-              modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-            )
-            Column {
-              Text(
-                text = stringResource(R.string.watch_stats_video),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-              Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-              ) {
-                Text(
-                  text = formatHumanDuration(stats.videoSeconds),
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Bold,
-                )
-                if (total > 0) {
-                  Text(
-                    text = "($videoPercent%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                }
-              }
-            }
-          }
-        }
-
-        // Connected audio tile
-        Surface(
+        )
+        MediaShareTile(
+          title = stringResource(R.string.watch_stats_audio),
+          duration = stats.audioSeconds,
+          percentage = audioPercent,
+          fraction = audioFraction,
+          color = MaterialTheme.colorScheme.tertiary,
+          shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal),
           modifier = Modifier.weight(1f),
-          shape = audioShape,
-          color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f),
-        ) {
-          Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-          ) {
-            Box(
-              modifier = Modifier
-                .size(10.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiary),
-            )
-            Column {
-              Text(
-                text = stringResource(R.string.watch_stats_audio),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-              Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-              ) {
-                Text(
-                  text = formatHumanDuration(stats.audioSeconds),
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Bold,
-                )
-                if (total > 0) {
-                  Text(
-                    text = "($audioPercent%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                }
-              }
-            }
-          }
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun MediaShareTile(
+  title: String,
+  duration: Long,
+  percentage: Int,
+  fraction: Float,
+  color: Color,
+  shape: androidx.compose.ui.graphics.Shape,
+  modifier: Modifier = Modifier,
+) {
+  val animatedFraction by animateFloatAsState(
+    targetValue = fraction.coerceIn(0f, 1f),
+    animationSpec = if (AppMotion.shouldReduceMotion()) snap() else AppMotion.Effect.Alpha,
+    label = "mediaShareProgress",
+  )
+  Surface(
+    modifier = modifier,
+    shape = shape,
+    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
+  ) {
+    Column(
+      modifier = Modifier.padding(14.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          text = title,
+          style = MaterialTheme.typography.titleSmallEmphasized,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(44.dp)) {
+          CircularProgressIndicator(
+            progress = { animatedFraction },
+            modifier = Modifier.fillMaxSize(),
+            color = color,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            strokeWidth = 5.dp,
+          )
+          Text(
+            text = "$percentage%",
+            style = MaterialTheme.typography.labelMediumEmphasized,
+            fontFamily = expressiveDisplayFontForText(percentage.toString()),
+          )
         }
       }
+      Text(
+        text = formatHumanDuration(duration),
+        style = MaterialTheme.typography.headlineSmallEmphasized,
+        fontFamily = expressiveDisplayFontForText(formatHumanDuration(duration)),
+        color = color,
+      )
     }
   }
 }
@@ -447,8 +391,7 @@ private fun WeeklyActivityBentoCard(days: Map<String, Long>) {
   val dates = remember(today) { (6 downTo 0).map { today.minusDays(it.toLong()) } }
   val values = dates.map { days[it.toString()] ?: 0L }
   val max = values.maxOrNull() ?: 0L
-  val peakDayIndex = if (max > 0L) values.indexOfFirst { it == max }.takeIf { it in dates.indices } else null
-  val peakDayName = peakDayIndex?.let { dates[it].dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
+  val todayWatchTime = values.lastOrNull() ?: 0L
   val chartMax = max.coerceAtLeast(1L)
 
   val primaryColor = MaterialTheme.colorScheme.primary
@@ -489,19 +432,18 @@ private fun WeeklyActivityBentoCard(days: Map<String, Long>) {
           )
         }
 
-        if (peakDayName != null) {
-          Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-          ) {
-            Text(
-              text = "Peak: $peakDayName",
-              style = MaterialTheme.typography.labelSmall,
-              fontWeight = FontWeight.SemiBold,
-              modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            )
-          }
+        Surface(
+          shape = MaterialTheme.shapes.medium,
+          color = MaterialTheme.colorScheme.primaryContainer,
+          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
+          val todayText = formatHumanDuration(todayWatchTime)
+          Text(
+            text = stringResource(R.string.watch_stats_today, todayText),
+            style = MaterialTheme.typography.labelLargeEmphasized,
+            fontFamily = expressiveDisplayFontForText(todayText),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+          )
         }
       }
 
@@ -517,6 +459,11 @@ private fun WeeklyActivityBentoCard(days: Map<String, Long>) {
           val value = values[index]
           val isToday = index == 6
           val fraction = if (max > 0L) (value.toFloat() / chartMax.toFloat()).coerceIn(0f, 1f) else 0f
+          val animatedFraction by animateFloatAsState(
+            targetValue = fraction,
+            animationSpec = if (AppMotion.shouldReduceMotion()) snap() else AppMotion.Spatial.Expressive,
+            label = "weeklyWatchBar$index",
+          )
 
           Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -536,7 +483,7 @@ private fun WeeklyActivityBentoCard(days: Map<String, Long>) {
                 Box(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(fraction.coerceAtLeast(0.12f))
+                    .fillMaxHeight(animatedFraction.coerceAtLeast(0.12f))
                     .clip(CircleShape)
                     .background(
                       if (isToday) {

@@ -7,6 +7,8 @@
  * (at your option) any later version.
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package app.gyrolet.mpvrx.ui.preferences
 
 import android.app.Application
@@ -352,14 +354,17 @@ private fun NoMediaPreferenceCard(
   var showAddMarkerDialog by remember { mutableStateOf(false) }
   var markerInput by remember { mutableStateOf("") }
 
-  Card(
+  val orderedMarkers = remember(markerNames) { markerNames.sorted() }
+  val itemCount = 2 + orderedMarkers.size
+  Column(
     modifier = modifier.fillMaxWidth(),
-    colors =
-      CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-      ),
+    verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
   ) {
-    Column {
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = rememberConnectedShape(0, itemCount, ConnectedLayout.Vertical),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
       Row(
         modifier =
           Modifier
@@ -372,8 +377,7 @@ private fun NoMediaPreferenceCard(
         Column(modifier = Modifier.weight(1f)) {
           Text(
             text = stringResource(R.string.pref_folders_include_hidden_title),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMediumEmphasized,
           )
           Spacer(modifier = Modifier.height(4.dp))
           Text(
@@ -387,56 +391,74 @@ private fun NoMediaPreferenceCard(
           onCheckedChange = onIncludeNoMediaFoldersChanged,
         )
       }
+    }
 
-      if (includeNoMediaFolders) {
-        HorizontalDivider()
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-          Text(
-            text = stringResource(R.string.pref_folders_hidden_markers_title),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-          )
-          Text(
-            text = stringResource(R.string.pref_folders_hidden_markers_summary),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-
-          if (markerNames.isEmpty()) {
+    orderedMarkers.forEachIndexed { markerIndex, markerName ->
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = rememberConnectedShape(markerIndex + 1, itemCount, ConnectedLayout.Vertical),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Column(modifier = Modifier.weight(1f)) {
+            Text(markerName, style = MaterialTheme.typography.titleSmallEmphasized)
             Text(
-              text = stringResource(R.string.pref_folders_hidden_markers_empty),
-              modifier = Modifier.padding(top = 8.dp),
+              text = stringResource(R.string.pref_folders_hidden_markers_title),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-          } else {
-            markerNames.sorted().forEach { markerName ->
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Text(text = markerName, modifier = Modifier.weight(1f))
-                IconButton(onClick = { onMarkerNamesChanged(markerNames - markerName) }) {
-                  Icon(
-                    Icons.RoundedFilled.Close,
-                    contentDescription =
-                      stringResource(R.string.pref_folders_remove_marker, markerName),
-                  )
-                }
-              }
-            }
           }
+          IconButton(onClick = { onMarkerNamesChanged(markerNames - markerName) }) {
+            Icon(
+              Icons.RoundedFilled.Close,
+              contentDescription = stringResource(R.string.pref_folders_remove_marker, markerName),
+            )
+          }
+        }
+      }
+    }
 
-          TextButton(
-            onClick = {
-              markerInput = ""
-              showAddMarkerDialog = true
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = rememberConnectedShape(itemCount - 1, itemCount, ConnectedLayout.Vertical),
+      colors = CardDefaults.cardColors(
+        containerColor = if (includeNoMediaFolders) {
+          MaterialTheme.colorScheme.secondaryContainer
+        } else {
+          MaterialTheme.colorScheme.surfaceContainerLow
+        },
+      ),
+      onClick = {
+        if (includeNoMediaFolders) {
+          markerInput = ""
+          showAddMarkerDialog = true
+        }
+      },
+      enabled = includeNoMediaFolders,
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+      ) {
+        Icon(Icons.RoundedFilled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
+        Column(modifier = Modifier.weight(1f)) {
+          Text(
+            text = stringResource(R.string.pref_folders_add_marker),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+          )
+          Text(
+            text = if (orderedMarkers.isEmpty()) {
+              stringResource(R.string.pref_folders_hidden_markers_empty)
+            } else {
+              stringResource(R.string.pref_folders_hidden_markers_summary)
             },
-          ) {
-            Icon(Icons.RoundedFilled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(stringResource(R.string.pref_folders_add_marker))
-          }
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
       }
     }

@@ -245,9 +245,12 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
       ),
     NetworkConfigurationPreferencesScreen to
       listOf(
+        SettingsSearchListAnchor(titleRes = R.string.ui_yt_dlp_manager, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ui_release_channel, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ytdlp_subtitles_language, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ytdlp_playlist_behavior, itemIndex = 0),
         SettingsSearchListAnchor(titleRes = R.string.pref_section_p2p_streaming, itemIndex = 0),
-        SettingsSearchListAnchor(titleRes = R.string.pref_enable_p2p_streaming_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.ui_yt_dlp_manager, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_enable_p2p_streaming_title, itemIndex = 0),
       ),
   )
 

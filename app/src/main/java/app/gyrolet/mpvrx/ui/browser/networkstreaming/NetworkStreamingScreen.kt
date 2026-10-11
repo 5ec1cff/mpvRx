@@ -100,7 +100,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpInstallPromptDialog
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpInstallProgressDialog
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
-import app.gyrolet.mpvrx.ui.preferences.YtdlpSettingsScreen
+import app.gyrolet.mpvrx.ui.preferences.NetworkConfigurationPreferencesScreen
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionInput
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionScreen
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionViewModel
@@ -621,7 +621,7 @@ object NetworkStreamingScreen : Screen {
         onConfigure = {
           showYtdlpInstallPrompt = false
           pendingYtdlpUrl = null
-          backstack.navigateTo(YtdlpSettingsScreen)
+          backstack.navigateTo(NetworkConfigurationPreferencesScreen)
         },
         onDismiss = {
           showYtdlpInstallPrompt = false
