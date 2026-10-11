@@ -500,6 +500,7 @@ fun GestureHandler(
               !brightnessGesture &&
                 !volumeGesture &&
                 !centerVerticalSubtitlePositionGesture &&
+                !enableCenterSwipeUpGesture &&
                 !enableVideoMiniPlayer &&
                 multipleSpeedGesture <= 0f
             ) ||
@@ -531,7 +532,6 @@ fun GestureHandler(
             // State for vertical gestures (volume/brightness)
             var startingY = 0f
             var mpvVolumeStartingY = 0f
-            var prevDragY = 0f
             var originalVolumePercent = currentVolumePercent
             var originalMPVVolume = currentMPVVolume
             var originalBrightness = currentBrightness
@@ -671,6 +671,7 @@ fun GestureHandler(
                               claimGesture(GestureOwner.PLAYLIST)
                             ) {
                               gestureType = "playlist_swipe"
+                              actionHaptics.pickup()
                               viewModel.isPlaylistSwipeActive.value = true
                               viewModel.playlistSwipeOffset.value = deltaY
                               viewModel.sheetShown.update { Sheets.Playlist }
@@ -1072,8 +1073,6 @@ fun GestureHandler(
             var lastCalculatedSubScale = 1f
             var initialSecondarySubScale = 1f
             var lastCalculatedSecondarySubScale = 1f
-            var initialPinchMidY = 0f
-            var lastPinchSubPos = 100f
             var scaleChanged = false
             var linkedScaleChanged = false
             var linkSecondaryScale = false
@@ -1137,8 +1136,6 @@ fun GestureHandler(
                       initialSecondarySubScale =
                         PlaybackSession.getPropertyFloat("secondary-sub-scale") ?: subtitlesPreferences.secondarySubScale.get()
                       lastCalculatedSecondarySubScale = initialSecondarySubScale
-                      initialPinchMidY = midY
-                      lastPinchSubPos = selected.position
                       linkSecondaryScale = selected.target == SubtitleGestureTarget.Primary && secondarySubPinchZoomEnabled &&
                         isSecondarySubtitleActive() && !MpvConfigOverridePolicy.isOwnedByMpvConf("secondary-sub-scale")
                       // A linked pinch resizes both tracks, so keep both visible.
@@ -1152,8 +1149,10 @@ fun GestureHandler(
                     }
                   } else {
                     if (isSubZoomMode) {
-                      val midDriftY = abs(midY - initialPinchMidY)
-                      if (!gestureStarted && (abs(dist - initialDist) > 5f || midDriftY > 12f)) {
+                      // Pinch is zoom-only: vertical midpoint drift must not move the
+                      // subtitle position. Position changes only via press-and-hold
+                      // single-finger vertical drag (subtitle_vertical path above).
+                      if (!gestureStarted && abs(dist - initialDist) > 5f) {
                         gestureStarted = true
                       }
 
@@ -1174,15 +1173,6 @@ fun GestureHandler(
                           }
                           viewModel.playerUpdate.update {
                             PlayerUpdates.SubtitleZoom(currentSubScale, selected.target == SubtitleGestureTarget.Secondary)
-                          }
-                        }
-                        if (centerVerticalSubtitlePositionGesture &&
-                          !MpvConfigOverridePolicy.isOwnedByMpvConf("${selected.target.prefix}-pos")
-                        ) {
-                          val newPosition = draggedSubtitlePosition(selected.position, midY - initialPinchMidY, selected.positionHeight)
-                          if (newPosition != lastPinchSubPos) {
-                            viewModel.previewSubtitlePosition(newPosition, selected.target)
-                            lastPinchSubPos = newPosition
                           }
                         }
                       }
@@ -1251,9 +1241,6 @@ fun GestureHandler(
               val selected = selectedSubtitle
               val stillSameTrack = selected != null && PlaybackSession.state.value.generation == subtitleGestureGeneration &&
                 getTrackSelectionId(selected.target.selectionProperty) == selected.trackId
-              if (stillSameTrack && selected != null && lastPinchSubPos != selected.position) {
-                viewModel.persistSubtitleGesturePosition(selected.target, lastPinchSubPos)
-              }
               if (scaleChanged && stillSameTrack) {
                 if (selectedSubtitle?.target == SubtitleGestureTarget.Secondary) {
                   subtitlesPreferences.secondarySubScale.set(lastCalculatedSubScale)
