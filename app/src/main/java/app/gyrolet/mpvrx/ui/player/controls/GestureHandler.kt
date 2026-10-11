@@ -500,6 +500,7 @@ fun GestureHandler(
               !brightnessGesture &&
                 !volumeGesture &&
                 !centerVerticalSubtitlePositionGesture &&
+                !enableCenterSwipeUpGesture &&
                 !enableVideoMiniPlayer &&
                 multipleSpeedGesture <= 0f
             ) ||
@@ -531,7 +532,6 @@ fun GestureHandler(
             // State for vertical gestures (volume/brightness)
             var startingY = 0f
             var mpvVolumeStartingY = 0f
-            var prevDragY = 0f
             var originalVolumePercent = currentVolumePercent
             var originalMPVVolume = currentMPVVolume
             var originalBrightness = currentBrightness
@@ -671,6 +671,7 @@ fun GestureHandler(
                               claimGesture(GestureOwner.PLAYLIST)
                             ) {
                               gestureType = "playlist_swipe"
+                              actionHaptics.pickup()
                               viewModel.isPlaylistSwipeActive.value = true
                               viewModel.playlistSwipeOffset.value = deltaY
                               viewModel.sheetShown.update { Sheets.Playlist }
