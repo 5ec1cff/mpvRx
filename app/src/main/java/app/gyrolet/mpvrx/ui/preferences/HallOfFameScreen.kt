@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -258,6 +259,7 @@ object HallOfFameScreen : Screen {
               itemKey = { it.profileUrl ?: it.displayName },
               onRetry = { refreshRequest++ },
               activityUrl = "$githubRepoUrl/commits",
+              groupedContent = { entries -> HallOfFameActiveBento(entries) },
             ) { contributor ->
               HallOfFamePersonCard(
                 name = contributor.displayName,
@@ -278,20 +280,11 @@ object HallOfFameScreen : Screen {
               itemKey = { it.login },
               onRetry = { refreshRequest++ },
               activityUrl = "$githubRepoUrl/issues",
+              expressiveHeader = true,
               highlightedKeys = topReporters.mapTo(mutableSetOf()) { it.login },
               highlightedContent = if (topReporters.isEmpty()) null else {
                 {
-                  HallOfFameTopThree(topReporters) { member, tileModifier, shape ->
-                    HallOfFameSpotlightCard(
-                      name = member.login,
-                      subtitle = communityDetails(member),
-                      badge = stringResource(R.string.hall_of_fame_tester_badge),
-                      avatarUrl = member.avatarUrl,
-                      profileUrl = member.profileUrl,
-                      modifier = tileModifier,
-                      shape = shape,
-                    )
-                  }
+                  HallOfFameExpressiveReporters(topReporters)
                 }
               },
             ) { member ->
@@ -372,6 +365,8 @@ private fun <T> LazyGridScope.creditsSection(
   activityUrl: String,
   highlightedKeys: Set<String> = emptySet(),
   highlightedContent: (@Composable () -> Unit)? = null,
+  groupedContent: (@Composable (List<T>) -> Unit)? = null,
+  expressiveHeader: Boolean = false,
   expanded: Boolean = true,
   onToggleExpanded: (() -> Unit)? = null,
   content: @Composable (T) -> Unit,
@@ -382,6 +377,7 @@ private fun <T> LazyGridScope.creditsSection(
       icon = icon,
       title = stringResource(titleRes),
       subtitle = stringResource(subtitleRes),
+      expressive = expressiveHeader,
       onClick = onToggleExpanded,
       trailing = {
         if (!state.loading && !state.failed) {
@@ -436,14 +432,21 @@ private fun <T> LazyGridScope.creditsSection(
   }
   if (expanded) {
     val visible = state.entries.filterNot { itemKey(it) in highlightedKeys }
-    items(
-      visible,
-      key = { "$sectionKey:${itemKey(it)}" },
-      contentType = { "person" },
-    ) { entry ->
-      content(entry)
+    if (groupedContent != null && visible.isNotEmpty()) {
+      item(key = "$sectionKey:connected", span = { GridItemSpan(maxLineSpan) }) {
+        groupedContent(visible)
+      }
+      added++
+    } else {
+      items(
+        visible,
+        key = { "$sectionKey:${itemKey(it)}" },
+        contentType = { "person" },
+      ) { entry ->
+        content(entry)
+      }
+      added += visible.size
     }
-    added += visible.size
   }
   return added
 }
@@ -467,6 +470,150 @@ private fun <T> HallOfFameTopThree(
     }
     repeat((3 - visibleEntries.size).coerceAtLeast(0)) {
       Spacer(Modifier.weight(1f))
+    }
+  }
+}
+
+
+/**
+ * One connected bento grid, reflowed at compact/tablet widths. Logical grid corners follow
+ * the visible contributor order; an incomplete final row stretches to the available width.
+ */
+@Composable
+private fun HallOfFameActiveBento(entries: List<GitHubContributor>) {
+  if (entries.isEmpty()) return
+  val colors = MaterialTheme.colorScheme
+  BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    val columns = when {
+      maxWidth < 340.dp -> 1
+      maxWidth >= 700.dp -> 3
+      else -> 2
+    }
+    Column(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clip(MaterialTheme.shapes.extraLarge)
+        .background(colors.surfaceContainerLow)
+        .padding(AppConnectedShapeTokens.spacing),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+    ) {
+      entries.chunked(columns).forEachIndexed { rowIndex, rowEntries ->
+        Row(
+          modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+        ) {
+          rowEntries.forEachIndexed { columnIndex, contributor ->
+            val index = rowIndex * columns + columnIndex
+            HallOfFamePersonCard(
+              name = contributor.displayName,
+              details = pluralStringResource(
+                R.plurals.hall_of_fame_commit_count, contributor.contributions, contributor.contributions,
+              ),
+              avatarUrl = contributor.avatarUrl,
+              profileUrl = contributor.profileUrl,
+              modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 90.dp),
+              shape = rememberConnectedShape(index, entries.size, ConnectedLayout.Grid, columns),
+              prominent = index < 2,
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Expressive reporter spotlight, with a full-width lead and an asymmetric connected pair. */
+@Composable
+private fun HallOfFameExpressiveReporters(entries: List<GitHubCommunityMember>) {
+  if (entries.isEmpty()) return
+  val colors = MaterialTheme.colorScheme
+  val badge = stringResource(R.string.hall_of_fame_tester_badge)
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clip(MaterialTheme.shapes.extraLarge)
+      .background(colors.surfaceContainerLow)
+      .padding(AppConnectedShapeTokens.spacing),
+    verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+  ) {
+    val lead = entries.first()
+    val heroShape = RoundedCornerShape(
+      topStart = 30.dp, topEnd = 30.dp,
+      bottomEnd = if (entries.size > 1) 8.dp else 30.dp,
+      bottomStart = if (entries.size > 1) 8.dp else 30.dp,
+    )
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .clip(heroShape)
+        .background(colors.tertiaryContainer)
+        .profileClickable(lead.login, lead.profileUrl)
+        .padding(horizontal = 18.dp, vertical = 20.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+      AvatarWithRing(lead.avatarUrl, size = 72.dp)
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+          lead.login,
+          style = MaterialTheme.typography.titleLarge,
+          color = colors.onTertiaryContainer,
+          fontWeight = FontWeight.Bold,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+          communityDetails(lead),
+          style = MaterialTheme.typography.bodyMedium,
+          color = colors.onTertiaryContainer,
+          maxLines = 3,
+          overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+          badge,
+          style = MaterialTheme.typography.labelLarge,
+          fontWeight = FontWeight.Bold,
+          color = colors.onTertiaryContainer,
+        )
+      }
+      Icon(Icons.RoundedFilled.ChevronRight, null, Modifier.size(24.dp), tint = colors.onTertiaryContainer)
+    }
+    val remaining = entries.drop(1).take(2)
+    if (remaining.isNotEmpty()) {
+      BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        if (maxWidth < 320.dp) {
+          Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+            remaining.forEachIndexed { index, member ->
+              HallOfFameSpotlightCard(
+                name = member.login,
+                subtitle = communityDetails(member),
+                badge = badge,
+                avatarUrl = member.avatarUrl,
+                profileUrl = member.profileUrl,
+                shape = rememberConnectedShape(index, remaining.size, ConnectedLayout.Vertical),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 192.dp),
+              )
+            }
+          }
+        } else {
+          Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+          ) {
+            remaining.forEachIndexed { index, member ->
+              HallOfFameSpotlightCard(
+                name = member.login,
+                subtitle = communityDetails(member),
+                badge = badge,
+                avatarUrl = member.avatarUrl,
+                profileUrl = member.profileUrl,
+                shape = rememberConnectedShape(index, remaining.size, ConnectedLayout.Horizontal),
+                modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 208.dp),
+              )
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -599,18 +746,19 @@ private fun SectionHeader(
   modifier: Modifier = Modifier,
   onClick: (() -> Unit)? = null,
   trailing: (@Composable () -> Unit)? = null,
+  expressive: Boolean = false,
 ) {
   val colors = MaterialTheme.colorScheme
-  val shape = MaterialTheme.shapes.extraLarge
+  val shape = if (expressive) RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp, bottomEnd = 12.dp, bottomStart = 12.dp) else MaterialTheme.shapes.extraLarge
   Row(
     modifier = modifier
       .fillMaxWidth()
       .padding(top = 16.dp, bottom = 2.dp)
       .clip(shape)
-      .background(colors.surfaceContainerLow)
+      .background(if (expressive) colors.secondaryContainer else colors.surfaceContainerLow)
       .border(BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.28f)), shape)
       .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-      .padding(horizontal = 14.dp, vertical = 12.dp),
+      .padding(horizontal = 14.dp, vertical = if (expressive) 20.dp else 12.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(14.dp),
   ) {
@@ -622,7 +770,7 @@ private fun SectionHeader(
       Text(
         text = title,
         modifier = Modifier.semantics { heading() },
-        style = MaterialTheme.typography.titleLarge,
+        style = if (expressive) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
       )
       Text(
@@ -863,15 +1011,16 @@ private fun HallOfFamePersonCard(
   avatarUrl: String?,
   profileUrl: String?,
   modifier: Modifier = Modifier,
+  shape: Shape = RoundedCornerShape(20.dp),
+  prominent: Boolean = false,
 ) {
   val colors = MaterialTheme.colorScheme
-  val shape = RoundedCornerShape(20.dp)
   Row(
     modifier = modifier
       .fillMaxWidth()
       .heightIn(min = 72.dp)
       .clip(shape)
-      .background(colors.surfaceContainerLow)
+      .background(if (prominent) colors.secondaryContainer else colors.surfaceContainerLow)
       .border(BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.35f)), shape)
       .profileClickable(name, profileUrl)
       .padding(horizontal = 10.dp, vertical = 10.dp),

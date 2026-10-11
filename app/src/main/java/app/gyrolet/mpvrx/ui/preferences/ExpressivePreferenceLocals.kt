@@ -26,10 +26,10 @@ internal fun ProvideExpressivePreferenceLocals(content: @Composable () -> Unit) 
   ProvidePreferenceLocals(
     theme =
       preferenceTheme(
-        categoryPadding = PaddingValues(start = 24.dp, top = 28.dp, end = 24.dp, bottom = 10.dp),
+        categoryPadding = PaddingValues(start = 24.dp, top = 22.dp, end = 24.dp, bottom = 10.dp),
         categoryColor = colors.primary,
-        categoryTextStyle = typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        padding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+        categoryTextStyle = typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+        padding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         horizontalSpacing = 16.dp,
         verticalSpacing = 6.dp,
         iconContainerMinWidth = 52.dp,

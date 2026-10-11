@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -494,19 +495,39 @@ private fun SettingsDestinationGroup(
   onItemClick: (SettingsDestination) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Column(
-    modifier = modifier.fillMaxWidth(),
-    verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
-  ) {
-    section.items.forEachIndexed { index, item ->
-      SettingsDestinationRow(
-        item = item,
-        index = index,
-        itemCount = section.items.size,
-        tint = section.tint,
-        isSelected = selectedScreen == item.screen,
-        onClick = { onItemClick(item) },
-      )
+  BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    // Keep phones legible; spacious settings panes can show connected 2-column bento tiles.
+    val columns = if (maxWidth >= 560.dp && section.items.size >= 3) 2 else 1
+    Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+      section.items.chunked(columns).forEachIndexed { rowIndex, rowItems ->
+        if (columns == 1) {
+          val item = rowItems.first()
+          SettingsDestinationRow(
+            item = item,
+            index = rowIndex,
+            itemCount = section.items.size,
+            tint = section.tint,
+            isSelected = selectedScreen == item.screen,
+            onClick = { onItemClick(item) },
+          )
+        } else {
+          Row(horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+            rowItems.forEachIndexed { columnIndex, item ->
+              SettingsDestinationRow(
+                item = item,
+                index = rowIndex * columns + columnIndex,
+                itemCount = section.items.size,
+                tint = section.tint,
+                isSelected = selectedScreen == item.screen,
+                onClick = { onItemClick(item) },
+                modifier = Modifier.weight(1f),
+                layout = ConnectedLayout.Grid,
+                columns = columns,
+              )
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -519,12 +540,16 @@ private fun SettingsDestinationRow(
   tint: Color,
   isSelected: Boolean,
   onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  layout: ConnectedLayout = ConnectedLayout.Vertical,
+  columns: Int = 1,
 ) {
   val shape =
     rememberConnectedShape(
       index = index,
       itemCount = itemCount,
-      layout = ConnectedLayout.Vertical,
+      layout = layout,
+      columns = columns,
     )
   val containerColor =
     if (isSelected) {
@@ -534,7 +559,7 @@ private fun SettingsDestinationRow(
     }
   Surface(
     modifier =
-      Modifier
+      modifier
         .fillMaxWidth()
         .tvFocusHighlight(shape, focusedScale = 1.01f)
         .clip(shape)

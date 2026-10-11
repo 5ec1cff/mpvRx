@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
@@ -48,8 +50,9 @@ fun PreferenceCard(
     modifier =
       modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp),
-    shape = MaterialTheme.shapes.extraLargeIncreased,
+        .padding(horizontal = 16.dp, vertical = 8.dp)
+        .animateContentSize(if (AppMotion.shouldReduceMotion()) snap() else AppMotion.IntSizeSpring),
+    shape = RoundedCornerShape(32.dp),
     colors =
       CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -144,15 +147,16 @@ fun PreferenceSectionHeader(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Surface(
-      modifier = Modifier.width(5.dp).height(30.dp),
+      modifier = Modifier.width(7.dp).height(34.dp),
       color = MaterialTheme.colorScheme.primary,
-      shape = MaterialTheme.shapes.extraSmall,
+      shape = RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp, bottomStart = 2.dp, bottomEnd = 2.dp),
       content = {},
     )
     Spacer(modifier = Modifier.width(12.dp))
     Text(
       text = title,
-      style = MaterialTheme.typography.headlineSmall,
+      style = MaterialTheme.typography.titleLarge,
+      fontWeight = FontWeight.Bold,
       color = MaterialTheme.colorScheme.onSurface,
     )
   }
