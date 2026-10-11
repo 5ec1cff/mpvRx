@@ -80,6 +80,7 @@ import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkFolderCard
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkImageCard
 import app.gyrolet.mpvrx.ui.browser.cards.NetworkVideoCard
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.imageviewer.ImageViewerItem
 import app.gyrolet.mpvrx.ui.imageviewer.ImageViewerScreen
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
@@ -642,6 +643,7 @@ private fun NetworkBrowserContent(
         remember(filteredFiles, includeAudio) {
           filteredFiles.filter { it.isPlayableNetworkMedia(includeAudio) || it.isNetworkPlaylistFile() }
         }
+      val videoIndices = remember(videos) { videos.mapIndexed { index, file -> file.path to index }.toMap() }
       val images =
         remember(filteredFiles, includeImages) {
           if (includeImages) filteredFiles.filter { it.isNetworkImageFile() } else emptyList()
@@ -754,6 +756,9 @@ private fun NetworkBrowserContent(
                     onClick = { onVideoClick(video) },
                     onLongClick = onVideoLongClick?.let { handler -> { handler(video) } },
                     isSelected = isVideoSelected(video),
+                    selectionNeighbors = mediaSelectionNeighbors(
+                      videoIndices[video.path] ?: -1, videos.size, gridColumns,
+                    ) { neighbor -> isVideoSelected(videos[neighbor]) },
                     isGridMode = true,
                     mediaType = mediaTypeBadgeFor(video, includeImages, isImage = false),
                   )
@@ -798,6 +803,9 @@ private fun NetworkBrowserContent(
                     onClick = { onVideoClick(video) },
                     onLongClick = onVideoLongClick?.let { handler -> { handler(video) } },
                     isSelected = isVideoSelected(video),
+                    selectionNeighbors = mediaSelectionNeighbors(
+                      videoIndices[video.path] ?: -1, videos.size, 1,
+                    ) { neighbor -> isVideoSelected(videos[neighbor]) },
                     isGridMode = false,
                     mediaType = mediaTypeBadgeFor(video, includeImages, isImage = false),
                   )

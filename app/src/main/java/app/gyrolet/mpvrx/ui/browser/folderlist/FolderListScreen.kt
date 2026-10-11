@@ -104,6 +104,7 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
 import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
@@ -1456,6 +1457,9 @@ private fun GridContent(
         FolderCard(
           folder = folder,
           isSelected = selectionManager.isSelected(folder),
+          selectionNeighbors = mediaSelectionNeighbors(index, folders.size, computedColumns) { neighbor ->
+            selectionManager.isSelected(folders[neighbor])
+          },
           isRecentlyPlayed = isRecentlyPlayed,
           onClick = { onFolderClick(folder) },
           onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),
@@ -1543,7 +1547,8 @@ private fun ListContent(
           bottom = navigationBarHeight,
         ),
     ) {
-      items(folders, key = { it.bucketId }) { folder ->
+      items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
+        val folder = folders[index]
         val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
         val isRecentlyPlayed = recentlyPlayedParent == folder.path
         val newCount = newCountByBucketId[folder.bucketId] ?: 0
@@ -1553,6 +1558,9 @@ private fun ListContent(
         FolderCard(
           folder = folder,
           isSelected = selectionManager.isSelected(folder),
+          selectionNeighbors = mediaSelectionNeighbors(index, folders.size, 1) { neighbor ->
+            selectionManager.isSelected(folders[neighbor])
+          },
           isRecentlyPlayed = isRecentlyPlayed,
           onClick = { onFolderClick(folder) },
           onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),

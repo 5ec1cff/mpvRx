@@ -160,6 +160,7 @@ fun FolderCard(
   placeholderIconSize: Dp? = null,
   viewPreferences: BrowserPageViewPreferences? = null,
   uiConfig: FolderCardUiConfig? = null,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val resolvedUiConfig = uiConfig ?: rememberFolderCardUiConfig(viewPreferences)
   val unlimitedNameLines = resolvedUiConfig.unlimitedNameLines
@@ -207,7 +208,6 @@ fun FolderCard(
 
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
   val selectionContainerColor = animatedSelectionColor(isSelected)
-  val selectionBorderColor = animatedSelectionBorderColor(isSelected)
   val showSelectionBadge = isSelected || selectionContainerColor.alpha > 0.001f
 
   // Remove the redundant folder name from the path
@@ -235,7 +235,7 @@ fun FolderCard(
     }
   }
 
-  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
 
   VideoSwipeSurface(
     identity = folder.path,
@@ -249,8 +249,7 @@ fun FolderCard(
         .fillMaxWidth()
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
-        .border(2.dp, selectionBorderColor, cardShape)
-        .semantics { selected = isSelected }
+                .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,

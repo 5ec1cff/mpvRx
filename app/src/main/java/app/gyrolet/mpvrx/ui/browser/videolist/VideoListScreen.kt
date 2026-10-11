@@ -84,6 +84,7 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
 import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserBottomBar
@@ -1154,6 +1155,9 @@ internal fun VideoListContent(
                       progressPercentage = videoWithInfo.progressPercentage,
                       isRecentlyPlayed = isRecentlyPlayed,
                       isSelected = selectionManager.isSelected(videoWithInfo.video),
+                      selectionNeighbors = mediaSelectionNeighbors(index, videosWithInfo.size, columns) { neighbor ->
+                        selectionManager.isSelected(videosWithInfo[neighbor].video)
+                      },
                       isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
                       isWatched = videoWithInfo.isWatched,
                       isPinned = videoWithInfo.video.path in pinnedVideoPaths,
@@ -1221,6 +1225,9 @@ internal fun VideoListContent(
                       progressPercentage = videoWithInfo.progressPercentage,
                       isRecentlyPlayed = isRecentlyPlayed,
                       isSelected = selectionManager.isSelected(videoWithInfo.video),
+                      selectionNeighbors = mediaSelectionNeighbors(index, videosWithInfo.size, 1) { neighbor ->
+                        selectionManager.isSelected(videosWithInfo[neighbor].video)
+                      },
                       isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
                       isWatched = videoWithInfo.isWatched,
                       isPinned = videoWithInfo.video.path in pinnedVideoPaths,

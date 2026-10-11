@@ -76,6 +76,7 @@ fun NetworkVideoCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   isGridMode: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
   /** Corner label naming the media type; null hides it (shown only when images are mixed in). */
   mediaType: NetworkMediaType? = null,
 ) {
@@ -156,9 +157,8 @@ fun NetworkVideoCard(
   }
 
   val displayName = if (showExtensionField) file.name else file.name.substringBeforeLast('.', file.name)
-  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
   val selectionColor = animatedSelectionColor(isSelected)
-  val selectionBorder = animatedSelectionBorderColor(isSelected)
 
   Card(
     modifier =
@@ -166,8 +166,7 @@ fun NetworkVideoCard(
         .fillMaxWidth()
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
-        .border(2.dp, selectionBorder, cardShape)
-        .semantics { selected = isSelected }
+                .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,

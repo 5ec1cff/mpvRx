@@ -231,6 +231,7 @@ fun VideoCard(
   /** Path line under the title, mirroring the network card's source line. */
   sourceSubtitle: String? = null,
   titleAction: (@Composable () -> Unit)? = null,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   // Screens hoist this once and pass it down; collecting per card would register a dozen
   // preference observers for every visible item in a grid.
@@ -279,14 +280,13 @@ fun VideoCard(
     }
 
   val selectionContainerColor = animatedSelectionColor(isSelected)
-  val selectionBorderColor = animatedSelectionBorderColor(isSelected)
   val showSelectionBadge = isSelected || selectionContainerColor.alpha > 0.001f
 
   // Hold the last displayed thumbnail for this file across grid/list size changes.
   // Repository memory remains the source of truth for new requests.
   var retainedThumbnail by remember(video.path, video.dateModified, video.size) { mutableStateOf<Bitmap?>(null) }
 
-  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
 
   VideoSwipeSurface(
     identity = video.path,
@@ -301,8 +301,7 @@ fun VideoCard(
           if (isGridMode) Modifier.fillMaxWidth() else Modifier.fillMaxWidth(),
         ).tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
-        .border(2.dp, selectionBorderColor, cardShape)
-        .semantics { selected = isSelected }
+                .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,

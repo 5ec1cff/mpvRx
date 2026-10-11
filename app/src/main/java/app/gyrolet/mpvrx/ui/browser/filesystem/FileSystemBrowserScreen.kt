@@ -90,6 +90,7 @@ import app.gyrolet.mpvrx.preferences.MediaLayoutMode
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
@@ -1473,11 +1474,12 @@ private fun FileSystemBrowserContent(
 
                 // Folders first
                 items(
-                  items = folderItems,
-                  key = { it.path },
+                  count = folderItems.size,
+                  key = { index -> folderItems[index].path },
                   contentType = { "folder_item" },
                   span = { GridItemSpan(spansInfo.folderSpan) },
-                ) { folder ->
+                ) { index ->
+                  val folder = folderItems[index]
                   val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
                   val folderModel =
                     app.gyrolet.mpvrx.domain.media.model.VideoFolder(
@@ -1493,6 +1495,9 @@ private fun FileSystemBrowserContent(
                   FolderCard(
                     folder = folderModel,
                     isSelected = selectionManager.isSelected(folder),
+                    selectionNeighbors = mediaSelectionNeighbors(index, folderItems.size, (spansInfo.spans / spansInfo.folderSpan).coerceAtLeast(1)) { neighbor ->
+                      selectionManager.isSelected(folderItems[neighbor])
+                    },
                     isRecentlyPlayed = false,
                     onClick = { onFolderClick(folder) },
                     onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),
@@ -1511,17 +1516,21 @@ private fun FileSystemBrowserContent(
 
                 // Videos second
                 items(
-                  items = videoItems,
-                  key = { "${it.video.id}_${it.video.path}" },
+                  count = videoItems.size,
+                  key = { index -> "${videoItems[index].video.id}_${videoItems[index].video.path}" },
                   contentType = { "video_item" },
                   span = { GridItemSpan(spansInfo.videoSpan) },
-                ) { videoFile ->
+                ) { index ->
+                  val videoFile = videoItems[index]
                   val archiveEntry = ZipArchiveMedia.isPlaybackUri(videoFile.video.uri.toString())
                   VideoCard(
                       video = videoFile.video,
                       progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                       isRecentlyPlayed = false,
                       isSelected = selectionManager.isSelected(videoFile),
+                      selectionNeighbors = mediaSelectionNeighbors(index, videoItems.size, (spansInfo.spans / spansInfo.videoSpan).coerceAtLeast(1)) { neighbor ->
+                        selectionManager.isSelected(videoItems[neighbor])
+                      },
                       onClick = { onVideoClick(videoFile) },
                       onLongClick = if (archiveEntry) null else ({ onVideoLongClick(videoFile) }),
                       onThumbClick =
@@ -1592,10 +1601,11 @@ private fun FileSystemBrowserContent(
 
               // Folders first
               items(
-                items = folderItems,
-                key = { it.path },
+                count = folderItems.size,
+                key = { index -> folderItems[index].path },
                 contentType = { "folder_item" },
-              ) { folder ->
+              ) { index ->
+                val folder = folderItems[index]
                 val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
                 val folderModel =
                   app.gyrolet.mpvrx.domain.media.model.VideoFolder(
@@ -1611,6 +1621,9 @@ private fun FileSystemBrowserContent(
                 FolderCard(
                   folder = folderModel,
                   isSelected = selectionManager.isSelected(folder),
+                    selectionNeighbors = mediaSelectionNeighbors(index, folderItems.size, 1) { neighbor ->
+                      selectionManager.isSelected(folderItems[neighbor])
+                    },
                   isRecentlyPlayed = false,
                   onClick = { onFolderClick(folder) },
                   onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),
@@ -1631,16 +1644,20 @@ private fun FileSystemBrowserContent(
 
               // Videos second
               items(
-                items = videoItems,
-                key = { "${it.video.id}_${it.video.path}" },
+                count = videoItems.size,
+                key = { index -> "${videoItems[index].video.id}_${videoItems[index].video.path}" },
                 contentType = { "video_item" },
-              ) { videoFile ->
+              ) { index ->
+                val videoFile = videoItems[index]
                 val archiveEntry = ZipArchiveMedia.isPlaybackUri(videoFile.video.uri.toString())
                 VideoCard(
                     video = videoFile.video,
                     progressPercentage = videoFilesWithPlayback[videoFile.video.id],
                     isRecentlyPlayed = false,
                     isSelected = selectionManager.isSelected(videoFile),
+                      selectionNeighbors = mediaSelectionNeighbors(index, videoItems.size, 1) { neighbor ->
+                        selectionManager.isSelected(videoItems[neighbor])
+                      },
                     onClick = { onVideoClick(videoFile) },
                     onLongClick = if (archiveEntry) null else ({ onVideoLongClick(videoFile) }),
                     onThumbClick =

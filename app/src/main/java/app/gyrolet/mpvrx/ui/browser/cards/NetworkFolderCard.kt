@@ -62,6 +62,7 @@ fun NetworkFolderCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   isGridMode: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -69,9 +70,8 @@ fun NetworkFolderCard(
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val interactionSource = remember { MutableInteractionSource() }
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
-  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode)
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
   val selectionColor = animatedSelectionColor(isSelected)
-  val selectionBorder = animatedSelectionBorderColor(isSelected)
 
   Card(
     modifier =
@@ -79,8 +79,7 @@ fun NetworkFolderCard(
         .fillMaxWidth()
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
-        .border(2.dp, selectionBorder, cardShape)
-        .semantics { selected = isSelected }
+                .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
           interactionSource = interactionSource,
