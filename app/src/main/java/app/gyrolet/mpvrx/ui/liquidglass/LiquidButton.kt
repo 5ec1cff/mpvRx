@@ -80,22 +80,33 @@ fun LiquidButton(
     }
   // Read animated state in the layer phase, not composition. The same controller survives
   // SDR/HDR renderer changes, so pressing/dragging a button never changes its interaction model.
+  //
+  // Keep the elastic transform inside the control's measured bounds. drawBackdrop owns an
+  // offscreen layer exactly as large as the composable; scaling that layer above 1f cuts the
+  // capsule flat when a pill sits against a constrained player-control boundary. Compress first,
+  // then let the dragged axis stretch back toward its resting size so the interaction remains
+  // elastic without ever asking a parent for out-of-bounds pixels.
   val pressTransform: GraphicsLayerScope.() -> Unit = {
     if (animatePress && size.minDimension > 0f) {
       val width = size.width
       val heightPx = size.height
       val progress = interactiveHighlight.pressProgress
-      val scale = lerp(1f, 1f + 4.dp.toPx() / heightPx, progress)
       val maxOffset = size.minDimension
       val offset = interactiveHighlight.offset
-      translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
-      translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
-      val maxDragScale = 4.dp.toPx() / heightPx
+      val compressedScale = lerp(1f, 1f - (4.dp.toPx() / heightPx).coerceAtMost(0.10f), progress)
       val offsetAngle = atan2(offset.y, offset.x)
-      scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) *
+      val availableStretch = 1f - compressedScale
+      scaleX = compressedScale + availableStretch *
+        abs(cos(offsetAngle) * offset.x / size.maxDimension).coerceAtMost(1f) *
         (width / heightPx).fastCoerceAtMost(1f)
-      scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) *
+      scaleY = compressedScale + availableStretch *
+        abs(sin(offsetAngle) * offset.y / size.maxDimension).coerceAtMost(1f) *
         (heightPx / width).fastCoerceAtMost(1f)
+
+      val horizontalRoom = (width * (1f - scaleX) / 2f).coerceAtLeast(0f)
+      val verticalRoom = (heightPx * (1f - scaleY) / 2f).coerceAtLeast(0f)
+      translationX = horizontalRoom * tanh(0.12f * offset.x / maxOffset)
+      translationY = verticalRoom * tanh(0.12f * offset.y / maxOffset)
     }
   }
   val glassModifier =

@@ -108,6 +108,7 @@ fun DraggablePanel(
     val backdrop = LocalKyantPlayerBackdrop.current
     val panelShape = shape ?: MaterialTheme.shapes.extraLargeIncreased
     val panelColor = containerColor ?: colors.containerColor
+    val expressivePanelColor = panelColor.copy(alpha = minOf(panelColor.alpha, 0.88f))
     Surface(
       modifier =
         Modifier
@@ -117,11 +118,19 @@ fun DraggablePanel(
           .height(panelHeight)
           .playerGlassSurface(backdrop, panelShape, panelColor, enabled = liquidGlassEnabled),
       shape = panelShape,
-      color = if (liquidGlassEnabled) Color.Transparent else panelColor,
+      color = if (liquidGlassEnabled) Color.Transparent else expressivePanelColor,
       contentColor = colors.contentColor,
       tonalElevation = if (liquidGlassEnabled) 0.dp else tonalElevation,
       shadowElevation = if (liquidGlassEnabled) 0.dp else shadowElevation,
-      border = if (liquidGlassEnabled) null else border,
+      border =
+        if (liquidGlassEnabled) {
+          null
+        } else {
+          border ?: BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+          )
+        },
     ) {
       Column(Modifier.fillMaxWidth()) {
         // Drag Handle & Indicator

@@ -20,6 +20,7 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.VectorizedFiniteAnimationSpec
 import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
@@ -237,6 +238,8 @@ fun PlayerSheet(
   ) {
     val sheetShape = MaterialTheme.shapes.extraLargeIncreased.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize)
     val baseContainerColor = surfaceColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
+    val expressiveContainerColor =
+      baseContainerColor.copy(alpha = minOf(baseContainerColor.alpha, 0.88f))
     val glassModifier = Modifier.playerGlassSurface(
       backdrop = playerBackdrop.takeIf { isFrosted },
       shape = sheetShape,
@@ -280,8 +283,17 @@ fun PlayerSheet(
           )
           .then(glassModifier),
       shape = sheetShape,
-      color = if (isFrosted) Color.Transparent else baseContainerColor,
+      color = if (isFrosted) Color.Transparent else expressiveContainerColor,
       tonalElevation = if (isFrosted) 0.dp else tonalElevation,
+      border =
+        if (isFrosted) {
+          null
+        } else {
+          BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+          )
+        },
       content = {
         BackHandler(
           enabled = anchoredDraggableState.targetValue == 0,

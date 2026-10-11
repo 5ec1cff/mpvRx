@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -59,11 +60,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.roundedfilled.Replay
 import `is`.xyz.mpv.Utils
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
+import org.koin.compose.koinInject
 
 private val compactSpeedIndicatorWidth = 32.dp
 
@@ -138,31 +144,54 @@ fun PlayerUpdate(
   content: @Composable () -> Unit = {},
 ) {
   val controlsOffset = rememberPlayerUpdateOffset()
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val backdrop = LocalKyantPlayerBackdrop.current
+  val containerModifier =
+    modifier
+      .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
+      .animateContentSize()
 
-  Surface(
-    shape = RoundedCornerShape(100.dp),
-    color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-    border =
-      BorderStroke(
-        1.dp,
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-      ),
-    modifier =
-      modifier
-        .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
-        .animateContentSize(),
-  ) {
+  val indicatorContent: @Composable () -> Unit = {
     Box(
-      modifier =
-        Modifier
-          .stableNumericWidth(stableWidthText)
-          .padding(vertical = 4.dp, horizontal = 10.dp),
+      modifier = Modifier.stableNumericWidth(stableWidthText),
       contentAlignment = Alignment.Center,
     ) {
       content()
+    }
+  }
+
+  if (liquidGlassEnabled) {
+    LiquidButton(
+      onClick = {},
+      enabled = false,
+      backdrop = backdrop,
+      modifier = containerModifier,
+      height = 32.dp,
+      horizontalPadding = 10.dp,
+      surfaceColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.42f),
+      content = { indicatorContent() },
+    )
+  } else {
+    Surface(
+      shape = RoundedCornerShape(100.dp),
+      color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
+      contentColor = MaterialTheme.colorScheme.onSurface,
+      tonalElevation = 0.dp,
+      shadowElevation = 0.dp,
+      border =
+        BorderStroke(
+          1.dp,
+          MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+        ),
+      modifier = containerModifier,
+    ) {
+      Box(
+        modifier = Modifier.padding(vertical = 4.dp, horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+      ) {
+        indicatorContent()
+      }
     }
   }
 }
