@@ -78,6 +78,8 @@ import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.NavigationBarSelectionEffect
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.browser.cards.PlaylistCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
@@ -611,11 +613,13 @@ object PlaylistScreen : Screen {
           ) {
             items(count = playlistsWithCount.size, key = { playlistsWithCount[it].playlist.id }) { index ->
               val playlistWithCount = playlistsWithCount[index]
+              val neighbors = mediaSelectionNeighbors(index, playlistsWithCount.size, folderGridColumns) { n -> selectionManager.isSelected(playlistsWithCount[n]) }
               PlaylistCard(
                 playlist = playlistWithCount.playlist,
                 itemCount = playlistWithCount.itemCount,
                 sources = playlistWithCount.sources,
                 isSelected = selectionManager.isSelected(playlistWithCount),
+                selectionNeighbors = neighbors,
                 onClick = { onPlaylistClick(playlistWithCount) },
                 onLongClick = { onPlaylistLongClick(playlistWithCount) },
                 onThumbClick = { onPlaylistClick(playlistWithCount) },
@@ -653,13 +657,17 @@ object PlaylistScreen : Screen {
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = bottomPadding),
+            verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
           ) {
-            items(playlistsWithCount, key = { it.playlist.id }) { playlistWithCount ->
+            items(count = playlistsWithCount.size, key = { playlistsWithCount[it].playlist.id }) { index ->
+              val playlistWithCount = playlistsWithCount[index]
+              val neighbors = mediaSelectionNeighbors(index, playlistsWithCount.size, 1) { n -> selectionManager.isSelected(playlistsWithCount[n]) }
               PlaylistCard(
                 playlist = playlistWithCount.playlist,
                 itemCount = playlistWithCount.itemCount,
                 sources = playlistWithCount.sources,
                 isSelected = selectionManager.isSelected(playlistWithCount),
+                selectionNeighbors = neighbors,
                 onClick = { onPlaylistClick(playlistWithCount) },
                 onLongClick = { onPlaylistLongClick(playlistWithCount) },
                 onThumbClick = { onPlaylistClick(playlistWithCount) },

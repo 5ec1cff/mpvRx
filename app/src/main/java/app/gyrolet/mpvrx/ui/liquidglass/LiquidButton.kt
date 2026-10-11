@@ -24,6 +24,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
@@ -47,7 +50,8 @@ import kotlin.math.tanh
 /**
  * App adapter for Kyant's catalog LiquidButton.
  *
- * Shared optics and press feedback, with a static fallback when no backdrop is available.
+ * Shared press/drag feedback in both renderer modes. Without a sampleable backdrop (native HDR),
+ * translucent surfaces reveal the underlying video without claiming to blur or refract it.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -67,13 +71,33 @@ fun LiquidButton(
 ) {
   val glassSettings = rememberLiquidGlassSettings()
   val reducedMotion = AppMotion.shouldReduceMotion()
-  val animatePress = enabled && !reducedMotion && backdrop != null
+  val animatePress = enabled && !reducedMotion
   val interactionSource = remember { MutableInteractionSource() }
   val animationScope = rememberCoroutineScope()
   val interactiveHighlight =
     remember(animationScope) {
       InteractiveHighlight(animationScope = animationScope)
     }
+  // Read animated state in the layer phase, not composition. The same controller survives
+  // SDR/HDR renderer changes, so pressing/dragging a button never changes its interaction model.
+  val pressTransform: GraphicsLayerScope.() -> Unit = {
+    if (animatePress && size.minDimension > 0f) {
+      val width = size.width
+      val heightPx = size.height
+      val progress = interactiveHighlight.pressProgress
+      val scale = lerp(1f, 1f + 4.dp.toPx() / heightPx, progress)
+      val maxOffset = size.minDimension
+      val offset = interactiveHighlight.offset
+      translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+      translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+      val maxDragScale = 4.dp.toPx() / heightPx
+      val offsetAngle = atan2(offset.y, offset.x)
+      scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) *
+        (width / heightPx).fastCoerceAtMost(1f)
+      scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) *
+        (heightPx / width).fastCoerceAtMost(1f)
+    }
+  }
   val glassModifier =
     if (backdrop != null) {
       Modifier.drawBackdrop(
@@ -92,32 +116,7 @@ fun LiquidButton(
         highlight = { glassSettings.highlight(Highlight.Default) },
         shadow = { glassSettings.shadow(Shadow(radius = 6.dp)) },
         innerShadow = { glassSettings.innerShadow(InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f))) },
-        layerBlock =
-          if (animatePress) {
-            {
-              val width = size.width
-              val heightPx = size.height
-              val progress = interactiveHighlight.pressProgress
-              val scale = lerp(1f, 1f + 4.dp.toPx() / heightPx, progress)
-              val maxOffset = size.minDimension
-              val offset = interactiveHighlight.offset
-              translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
-              translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
-
-              val maxDragScale = 4.dp.toPx() / heightPx
-              val offsetAngle = atan2(offset.y, offset.x)
-              scaleX =
-                scale +
-                  maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) *
-                  (width / heightPx).fastCoerceAtMost(1f)
-              scaleY =
-                scale +
-                  maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) *
-                  (heightPx / width).fastCoerceAtMost(1f)
-            }
-          } else {
-            null
-          },
+        layerBlock = if (animatePress) pressTransform else null,
         onDrawSurface = {
           if (tint.isSpecified) {
             drawRect(tint, blendMode = BlendMode.Hue)
@@ -127,13 +126,38 @@ fun LiquidButton(
         },
       )
     } else {
-      val fallbackColor =
-        if (surfaceColor.isSpecified) surfaceColor else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.32f)
+      val baseColor = when {
+        surfaceColor.isSpecified -> surfaceColor
+        tint.isSpecified -> tint
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+      }
+      val fill = Brush.verticalGradient(
+        0f to baseColor.copy(alpha = 0.68f),
+        0.45f to baseColor.copy(alpha = 0.42f),
+        1f to baseColor.copy(alpha = 0.58f),
+      )
+      val rim = Brush.linearGradient(
+        listOf(
+          Color.White.copy(alpha = (0.43f * glassSettings.highlightStrength).coerceIn(0f, 1f)),
+          Color.White.copy(alpha = (0.10f * glassSettings.highlightStrength).coerceIn(0f, 1f)),
+          baseColor.copy(alpha = (0.30f * glassSettings.highlightStrength).coerceIn(0f, 1f)),
+        ),
+      )
       Modifier
-        .shadow(6.dp, Capsule())
+        .graphicsLayer(pressTransform)
+        .shadow(
+          elevation = if (glassSettings.shadowStrength > 0f) 6.dp * glassSettings.shadowRadius else 0.dp,
+          shape = Capsule(),
+          clip = false,
+          ambientColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceIn(0f, 1f)),
+          spotColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceIn(0f, 1f)),
+        )
         .clip(Capsule())
-        .background(fallbackColor)
-        .border(1.dp, Color.White.copy(alpha = 0.2f), Capsule())
+        .background(fill, Capsule())
+        .then(
+          if (glassSettings.highlightWidth > 0f) Modifier.border(1.dp * glassSettings.highlightWidth, rim, Capsule())
+          else Modifier,
+        )
     }
 
   Row(

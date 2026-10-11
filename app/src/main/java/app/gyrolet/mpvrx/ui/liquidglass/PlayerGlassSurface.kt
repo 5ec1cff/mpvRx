@@ -4,8 +4,11 @@
 
 package app.gyrolet.mpvrx.ui.liquidglass
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -18,14 +21,18 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 
+/** Surface treatment is independent of whether the renderer exposes a sampleable video layer. */
+internal val LocalPlayerGlassSurfaceActive = staticCompositionLocalOf { false }
+
 /** Shared material for player sheets and movable panels; one optical layer per container. */
 @Composable
 internal fun Modifier.playerGlassSurface(
   backdrop: Backdrop?,
   shape: Shape,
   containerColor: Color,
+  enabled: Boolean = true,
 ): Modifier {
-  if (backdrop == null) return this
+  if (!enabled) return this
   val settings = rememberLiquidGlassSettings()
   val reducedMotion = AppMotion.playerReducedMotion()
   val tint = remember(containerColor) {
@@ -35,6 +42,24 @@ internal fun Modifier.playerGlassSurface(
       0f to containerColor.copy(alpha = 0.86f),
       0.25f to containerColor.copy(alpha = 0.80f),
       1f to containerColor.copy(alpha = 0.80f),
+    )
+  }
+  // SurfaceView is composed by Android outside the Compose scene. Keep HDR untouched and
+  // show it through the same translucent backing; do not sample stale frames or fake a blur.
+  if (backdrop == null) {
+    return background(tint, shape).then(
+      if (settings.highlightWidth > 0f && settings.highlightStrength > 0f) {
+        Modifier.border(
+          1.dp * settings.highlightWidth,
+          Brush.verticalGradient(
+            listOf(
+              Color.White.copy(alpha = (0.18f * settings.highlightStrength).coerceIn(0f, 1f)),
+              Color.White.copy(alpha = (0.04f * settings.highlightStrength).coerceIn(0f, 1f)),
+            ),
+          ),
+          shape,
+        )
+      } else Modifier,
     )
   }
   return drawBackdrop(

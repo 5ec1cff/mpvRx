@@ -94,6 +94,7 @@ fun PlaylistCard(
   onThumbClick: () -> Unit,
   modifier: Modifier = Modifier,
   isSelected: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
   isGridMode: Boolean = false,
   thumbnail: Bitmap? = null,
   /** Source kinds present in this playlist; null means a local file. Empty for M3U playlists. */
@@ -255,6 +256,7 @@ fun PlaylistCard(
       secondThumbnail = secondThumbnailBitmap,
       placeholderIcon = placeholderIcon,
       isSelected = isSelected,
+      selectionNeighbors = selectionNeighbors,
       onClick = onClick,
       onLongClick = onLongClick,
       onRenameClick = if (isFavorites) null else onRenameClick,
@@ -334,6 +336,7 @@ fun PlaylistCard(
   FolderCard(
     folder = folderModel,
     isSelected = isSelected,
+    selectionNeighbors = selectionNeighbors,
     isRecentlyPlayed = false,
     onClick = onClick,
     onLongClick = onLongClick,
@@ -424,6 +427,7 @@ private fun YouTubePlaylistGridCard(
   secondThumbnail: ImageBitmap? = null,
   placeholderIcon: AppIcon,
   isSelected: Boolean,
+  selectionNeighbors: MediaSelectionNeighbors,
   onClick: () -> Unit,
   onLongClick: () -> Unit,
   onRenameClick: (() -> Unit)?,
@@ -432,12 +436,13 @@ private fun YouTubePlaylistGridCard(
 ) {
   var menuExpanded by remember { mutableStateOf(false) }
   val selectionColor = animatedSelectionColor(isSelected)
+  val cardShape = rememberMediaSelectionShape(isSelected, grid = true, neighbors = selectionNeighbors)
 
   Column(
     modifier =
       modifier
         .fillMaxWidth()
-        .clip(AppShapeScale.large)
+        .clip(cardShape)
         .background(selectionColor)
         .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)

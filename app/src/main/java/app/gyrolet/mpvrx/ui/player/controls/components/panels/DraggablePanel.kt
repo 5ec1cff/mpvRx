@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,6 +53,10 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetDragHandle
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurface
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
 import kotlin.math.roundToInt
 
@@ -75,6 +80,8 @@ fun DraggablePanel(
 ) {
   var offsetX by remember { mutableFloatStateOf(0f) }
   var panelWidth by remember { mutableIntStateOf(0) }
+  val preferences = koinInject<AppearancePreferences>()
+  val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
 
   val configuration = LocalConfiguration.current
   val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -108,13 +115,13 @@ fun DraggablePanel(
           .onSizeChanged { panelWidth = it.width }
           .widthIn(max = 380.dp)
           .height(panelHeight)
-          .playerGlassSurface(backdrop, panelShape, panelColor),
+          .playerGlassSurface(backdrop, panelShape, panelColor, enabled = liquidGlassEnabled),
       shape = panelShape,
-      color = if (backdrop != null) Color.Transparent else panelColor,
+      color = if (liquidGlassEnabled) Color.Transparent else panelColor,
       contentColor = colors.contentColor,
-      tonalElevation = if (backdrop != null) 0.dp else tonalElevation,
-      shadowElevation = if (backdrop != null) 0.dp else shadowElevation,
-      border = if (backdrop != null) null else border,
+      tonalElevation = if (liquidGlassEnabled) 0.dp else tonalElevation,
+      shadowElevation = if (liquidGlassEnabled) 0.dp else shadowElevation,
+      border = if (liquidGlassEnabled) null else border,
     ) {
       Column(Modifier.fillMaxWidth()) {
         // Drag Handle & Indicator
@@ -143,7 +150,9 @@ fun DraggablePanel(
         Column(
           modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()),
         ) {
-          content()
+          CompositionLocalProvider(LocalPlayerGlassSurfaceActive provides liquidGlassEnabled) {
+            content()
+          }
         }
       }
     }

@@ -92,6 +92,9 @@ import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
@@ -837,8 +840,8 @@ private fun RecentItemsContent(
               end = 8.dp,
               bottom = if (isInSelectionMode) 88.dp else navigationBarHeight,
             ),
-          horizontalArrangement = Arrangement.spacedBy(2.dp),
-          verticalArrangement = Arrangement.spacedBy(2.dp),
+          horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+          verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
         ) {
           items(
             count = recentItems.size,
@@ -850,6 +853,9 @@ private fun RecentItemsContent(
               }
             },
           ) { index ->
+            val neighbors = mediaSelectionNeighbors(index, recentItems.size, columns) { n ->
+              selectionManager.isSelected(recentItems[n])
+            }
             when (val item = recentItems[index]) {
               is RecentlyPlayedItem.VideoItem -> {
                 VideoCard(
@@ -858,6 +864,7 @@ private fun RecentItemsContent(
                   isOldAndUnplayed = swipePlaybackInfo[item.video.path]?.isOldAndUnplayed == true,
                   progressPercentage = null,
                   isSelected = selectionManager.isSelected(item),
+                  selectionNeighbors = neighbors,
                   onClick = {
                     if (selectionManager.isInSelectionMode) {
                       selectionManager.toggleFromUser(item)
@@ -899,6 +906,7 @@ private fun RecentItemsContent(
                 FolderCard(
                   folder = folderModel,
                   isSelected = selectionManager.isSelected(item),
+                  selectionNeighbors = neighbors,
                   isRecentlyPlayed = false,
                   onClick = {
                     if (selectionManager.isInSelectionMode) {
@@ -962,6 +970,7 @@ private fun RecentItemsContent(
         LazyColumn(
           state = listState,
           modifier = Modifier.fillMaxSize(),
+          verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
           contentPadding =
             PaddingValues(
               start = 8.dp,
@@ -979,12 +988,16 @@ private fun RecentItemsContent(
               }
             },
           ) { index ->
+            val neighbors = mediaSelectionNeighbors(index, recentItems.size, 1) { n ->
+              selectionManager.isSelected(recentItems[n])
+            }
             when (val item = recentItems[index]) {
               is RecentlyPlayedItem.VideoItem -> {
                 VideoCard(
                   video = item.video,
                   progressPercentage = null,
                   isSelected = selectionManager.isSelected(item),
+                  selectionNeighbors = neighbors,
                   onClick = {
                     if (selectionManager.isInSelectionMode) {
                       selectionManager.toggleFromUser(item)
@@ -1031,6 +1044,7 @@ private fun RecentItemsContent(
                 FolderCard(
                   folder = folderModel,
                   isSelected = selectionManager.isSelected(item),
+                  selectionNeighbors = neighbors,
                   isRecentlyPlayed = false,
                   onClick = {
                     if (selectionManager.isInSelectionMode) {

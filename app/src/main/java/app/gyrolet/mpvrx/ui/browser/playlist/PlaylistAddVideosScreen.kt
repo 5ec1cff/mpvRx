@@ -69,6 +69,9 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.rememberVideoCardUiConfig
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderSortDialog
@@ -387,17 +390,19 @@ data class PlaylistAddVideosScreen(
             state = videoGridState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+            verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
           ) {
             items(count = sortedVideos.size, key = { sortedVideos[it].id }, contentType = { "video" }) { index ->
               val video = sortedVideos[index]
+              val neighbors = mediaSelectionNeighbors(index, sortedVideos.size, columns) { n -> selectionManager?.isSelected(sortedVideos[n]) == true }
               VideoCard(
                 video = video,
                 isGridMode = true,
                 gridColumns = columns,
                 showSubtitleIndicator = showSubtitleIndicator,
                 isSelected = selectionManager?.isSelected(video) == true,
+                selectionNeighbors = neighbors,
                 onClick = { selectionManager?.toggle(video) },
                 onThumbClick = { selectionManager?.toggle(video) },
                 onLongClick = { selectionManager?.handleLongClick(video) },
@@ -410,15 +415,20 @@ data class PlaylistAddVideosScreen(
         LazyColumn(
           state = videoListState,
           modifier = Modifier.padding(padding),
+          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+          verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
         ) {
           items(
-            items = sortedVideos,
-            key = { it.id },
+            count = sortedVideos.size,
+            key = { sortedVideos[it].id },
             contentType = { "video" },
-          ) { video: Video ->
+          ) { index ->
+            val video = sortedVideos[index]
+            val neighbors = mediaSelectionNeighbors(index, sortedVideos.size, 1) { n -> selectionManager?.isSelected(sortedVideos[n]) == true }
             VideoCard(
               video = video,
               isSelected = selectionManager?.isSelected(video) == true,
+              selectionNeighbors = neighbors,
               onClick = { selectionManager?.toggle(video) },
               onThumbClick = { selectionManager?.toggle(video) },
               onLongClick = { selectionManager?.handleLongClick(video) },

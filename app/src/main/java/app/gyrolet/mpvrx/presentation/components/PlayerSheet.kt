@@ -98,6 +98,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurface
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalMotionPolicy
@@ -127,7 +128,7 @@ fun PlayerSheet(
   val preferences = koinInject<AppearancePreferences>()
   val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
   val playerBackdrop = LocalKyantPlayerBackdrop.current
-  val isFrosted = useFrostedGlass && liquidGlassEnabled && playerBackdrop != null
+  val isFrosted = useFrostedGlass && liquidGlassEnabled
   // TV/remote: request focus INTO the sheet content when it opens, so the D-pad can navigate/select
   // its rows instead of being trapped behind the (hidden) first-layer player controls. Ported from
   // mpvEx-TV; rememberTvInitialFocusRequester retries across the entrance animation and is TV-gated.
@@ -240,6 +241,7 @@ fun PlayerSheet(
       backdrop = playerBackdrop.takeIf { isFrosted },
       shape = sheetShape,
       containerColor = baseContainerColor,
+      enabled = isFrosted,
     )
 
     Surface(
@@ -286,6 +288,7 @@ fun PlayerSheet(
           onBack = internalOnDismissRequest,
         )
         CompositionLocalProvider(
+          LocalPlayerGlassSurfaceActive provides isFrosted,
           LocalMotionPolicy provides MotionPolicy(reduceMotion = reducedMotion),
           androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface,
         ) {
