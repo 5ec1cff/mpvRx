@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -696,23 +697,30 @@ private fun ProfileOverviewCard(
           containerColor = MaterialTheme.colorScheme.primaryContainer,
           contentDescription = null,
         )
-        Surface(
-          onClick = onEditProfile,
-          shape = CircleShape,
-          color = MaterialTheme.colorScheme.primary,
-          contentColor = MaterialTheme.colorScheme.onPrimary,
-          modifier =
-            Modifier
-              .size(48.dp)
-              .tvFocusHighlight(CircleShape),
-          shadowElevation = 3.dp,
+        // A small visual badge at the lower-right edge, with an independent 48dp
+        // touch target so the edit action remains easy to reach on small devices.
+        Box(
+          modifier = Modifier
+            .size(48.dp)
+            .offset(x = 6.dp, y = 6.dp)
+            .tvFocusHighlight(CircleShape)
+            .clickable(onClick = onEditProfile),
+          contentAlignment = Alignment.Center,
         ) {
-          Box(contentAlignment = Alignment.Center) {
-            Icon(
-              Icons.RoundedFilled.Edit,
-              contentDescription = editLabel,
-              modifier = Modifier.size(if (isTablet) 18.dp else 16.dp),
-            )
+          Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(28.dp),
+            shadowElevation = 2.dp,
+          ) {
+            Box(contentAlignment = Alignment.Center) {
+              Icon(
+                Icons.RoundedFilled.Edit,
+                contentDescription = editLabel,
+                modifier = Modifier.size(13.dp),
+              )
+            }
           }
         }
       }

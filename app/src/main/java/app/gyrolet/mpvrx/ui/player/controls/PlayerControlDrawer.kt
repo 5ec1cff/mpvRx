@@ -25,10 +25,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -54,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -261,7 +259,6 @@ private fun PlayerControlEdgeHandle(
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerControlPanel(
   buttons: List<PlayerButton>,
@@ -325,40 +322,40 @@ private fun PlayerControlPanelHeader(onDismissRequest: () -> Unit) {
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerControlPanelContent(
   buttons: List<PlayerButton>,
   activeButtons: Set<PlayerButton>,
   renderButton: @Composable (PlayerButton) -> Unit,
 ) {
-  BoxWithConstraints(
-    modifier =
-      Modifier
-        .fillMaxWidth()
-        .padding(start = 14.dp, end = 14.dp, bottom = 20.dp),
+  // A weighted 3-column grid never wraps because of density, font scale, or icon sizes.
+  // Fixed rows preserve control order; the final row never stretches missing cells.
+  val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+  val tileHeight = ((screenHeight - 148.dp) / 3f).coerceIn(68.dp, 104.dp)
+
+  Column(
+    modifier = Modifier.fillMaxWidth()
+      .padding(start = 14.dp, end = 14.dp, bottom = 20.dp)
+      .tvFocusGroup(),
+    verticalArrangement = Arrangement.spacedBy(PanelTileSpacing),
   ) {
-    // Floor to whole pixels: Dp rounding at some densities made 3 tiles + gaps
-    // exceed the row width, wrapping the grid to 2 columns (issue #590).
-    val density = LocalDensity.current
-    val tileWidth =
-      with(density) {
-        val availablePx = (maxWidth - PanelTileSpacing * (PanelColumnCount - 1)).toPx()
-        kotlin.math.floor(availablePx / PanelColumnCount).toDp()
-      }
-    FlowRow(
-      modifier = Modifier.fillMaxWidth().tvFocusGroup(),
-      horizontalArrangement = Arrangement.spacedBy(PanelTileSpacing),
-      verticalArrangement = Arrangement.spacedBy(PanelTileSpacing),
-      maxItemsInEachRow = PanelColumnCount,
-    ) {
-      buttons.forEach { button ->
-        PlayerControlTile(
-          button = button,
-          active = button in activeButtons,
-          renderButton = renderButton,
-          modifier = Modifier.width(tileWidth),
-        )
+    buttons.chunked(PanelColumnCount).forEach { rowButtons ->
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(PanelTileSpacing),
+      ) {
+        rowButtons.forEach { button ->
+          PlayerControlTile(
+            button = button,
+            active = button in activeButtons,
+            renderButton = renderButton,
+            tileHeight = tileHeight,
+            modifier = Modifier.weight(1f),
+          )
+        }
+        repeat(PanelColumnCount - rowButtons.size) {
+          Spacer(Modifier.weight(1f))
+        }
       }
     }
   }
@@ -369,8 +366,10 @@ private fun PlayerControlTile(
   button: PlayerButton,
   active: Boolean,
   renderButton: @Composable (PlayerButton) -> Unit,
+  tileHeight: androidx.compose.ui.unit.Dp,
   modifier: Modifier = Modifier,
 ) {
+  val compact = tileHeight < 88.dp
   val containerColor by
     animateColorAsState(
       targetValue =
@@ -398,7 +397,7 @@ private fun PlayerControlTile(
     modifier =
       modifier
         .tvFocusHighlight(RoundedCornerShape(18.dp), focusedScale = 1.02f)
-        .height(104.dp),
+        .height(tileHeight),
     shape = RoundedCornerShape(18.dp),
     color = containerColor,
     contentColor = contentColor,
@@ -408,26 +407,26 @@ private fun PlayerControlTile(
       modifier =
         Modifier
           .fillMaxSize()
-          .padding(horizontal = 6.dp, vertical = 8.dp),
+          .padding(horizontal = 2.dp, vertical = if (compact) 2.dp else 8.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center,
     ) {
       Box(
         modifier =
           Modifier
-            .size(56.dp)
+            .size(if (compact) 44.dp else 56.dp)
             .graphicsLayer {
-              scaleX = PanelIconScale
-              scaleY = PanelIconScale
+              scaleX = if (compact) 1f else PanelIconScale
+              scaleY = if (compact) 1f else PanelIconScale
             },
         contentAlignment = Alignment.Center,
       ) {
         renderButton(button)
       }
-      Spacer(Modifier.height(4.dp))
+      Spacer(Modifier.height(if (compact) 0.dp else 4.dp))
       Text(
         text = getPlayerButtonLabel(button),
-        maxLines = 2,
+        maxLines = if (compact) 1 else 2,
         overflow = TextOverflow.Ellipsis,
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.labelSmall,

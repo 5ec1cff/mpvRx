@@ -67,6 +67,8 @@ import app.gyrolet.mpvrx.presentation.components.RemoteImage
 import app.gyrolet.mpvrx.ui.browser.cards.SelectionIndicator
 import app.gyrolet.mpvrx.ui.browser.cards.VideoSwipeSurface
 import app.gyrolet.mpvrx.ui.browser.cards.animatedSelectionColor
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
+import app.gyrolet.mpvrx.ui.browser.cards.rememberMediaSelectionShape
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -88,6 +90,7 @@ fun SharedMusicTrackListItem(
   trailingText: String? = null,
   isPlaying: Boolean = false,
   isSelected: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
   fallbackIcon: AppIcon = Icons.RoundedFilled.Audiotrack,
   isCircular: Boolean = false,
   coverArtSizeDp: Int = 48,
@@ -102,6 +105,7 @@ fun SharedMusicTrackListItem(
   onSwipeAction: ((VideoSwipeAction) -> Unit)? = null,
   audioSong: MusicSong? = null,
 ) {
+  val cardShape = rememberMediaSelectionShape(isSelected, false, selectionNeighbors)
   val preferences = koinInject<BrowserPreferences>()
   val leftAction by preferences.videoSwipeLeft.collectAsState()
   val rightAction by preferences.videoSwipeRight.collectAsState()
@@ -114,9 +118,9 @@ fun SharedMusicTrackListItem(
     onAction = onSwipeAction,
     modifier = modifier
       .fillMaxWidth()
-      .padding(horizontal = 8.dp, vertical = 3.dp)
-      .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-      .clip(AppShapeScale.large)
+      .padding(horizontal = 8.dp, vertical = 2.dp)
+      .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+      .clip(cardShape)
       .tvContextMenu(onLongClick)
       .semantics { selected = isSelected }
       .then(
@@ -126,7 +130,7 @@ fun SharedMusicTrackListItem(
           Modifier.clickable(onClick = onClick)
         }
       ),
-    shape = AppShapeScale.large,
+    shape = cardShape,
     colors = CardDefaults.cardColors(
       containerColor = animatedSelectionColor(
         selected = isSelected,
@@ -274,20 +278,22 @@ fun SharedMusicGridCard(
   isCircular: Boolean = false,
   cardWidth: Dp? = null,
   isSelected: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
   isPlaying: Boolean = false,
   onClick: () -> Unit,
   onLongClick: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
 ) {
+  val cardShape = rememberMediaSelectionShape(isSelected, true, selectionNeighbors)
   Card(
     modifier = modifier
       .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier.fillMaxWidth())
-      .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-      .clip(AppShapeScale.large)
+      .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+      .clip(cardShape)
       .semantics { selected = isSelected }
       .tvContextMenu(onLongClick)
       .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-    shape = AppShapeScale.large,
+    shape = cardShape,
     colors = CardDefaults.cardColors(
       containerColor = animatedSelectionColor(
         selected = isSelected,
