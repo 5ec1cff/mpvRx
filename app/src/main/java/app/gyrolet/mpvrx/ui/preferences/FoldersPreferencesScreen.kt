@@ -441,17 +441,38 @@ private fun PlayStoreHiddenFolderCard(
           text = stringResource(R.string.pref_playstore_hidden_selected),
           style = MaterialTheme.typography.labelLarge,
         )
-        grantedTreeUris.sorted().forEach { treeUri ->
-          val displayPath = remember(treeUri) {
-            Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':')?.takeIf(String::isNotBlank)
-              ?: treeUri
-          }
-          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.RoundedFilled.Folder, contentDescription = null)
-            Text(displayPath, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            IconButton(onClick = { onRemoveFolder(treeUri) }) {
-              Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.pref_playstore_hidden_remove))
+        LazyRow(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          items(grantedTreeUris.sorted(), key = { it }) { treeUri ->
+            val displayPath = remember(treeUri) {
+              Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':')?.takeIf(String::isNotBlank)
+                ?: treeUri
             }
+            InputChip(
+              selected = false,
+              onClick = { onRemoveFolder(treeUri) },
+              label = { Text(displayPath, maxLines = 1) },
+              leadingIcon = {
+                Icon(Icons.RoundedFilled.Folder, contentDescription = null, modifier = Modifier.size(InputChipDefaults.IconSize))
+              },
+              trailingIcon = {
+                Icon(
+                  Icons.RoundedFilled.Close,
+                  contentDescription = stringResource(R.string.pref_playstore_hidden_remove),
+                  modifier = Modifier.size(InputChipDefaults.IconSize),
+                )
+              },
+              shape = CircleShape,
+              colors = InputChipDefaults.inputChipColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                leadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                trailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+              ),
+              border = null,
+            )
           }
         }
       }

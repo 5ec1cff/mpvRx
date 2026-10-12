@@ -366,6 +366,9 @@ object FolderListScreen : Screen {
     val filteredFolders = sortedFolders
 
     suspend fun deleteFolders(folders: List<VideoFolder>): FolderDeletionResult {
+      if (BuildConfig.SCOPED_STORAGE_ONLY) {
+        return FolderDeletionResult(0, folders.size, folders)
+      }
       var deleted = 0
       var failed = 0
       val failedFolders = mutableListOf<VideoFolder>()
@@ -1045,6 +1048,7 @@ object FolderListScreen : Screen {
           showCopy = true,
           showMove = true,
           showRename = selectionManager.isSingleSelection,
+          showDelete = !BuildConfig.SCOPED_STORAGE_ONLY,
           showDownscale = false,
           showAddToPlaylist = false,
           modifier = Modifier.padding(bottom = 0.dp),
@@ -1225,7 +1229,7 @@ object FolderListScreen : Screen {
       isDualPane = isDualPaneActive && selectedFolderBucketId != null,
     )
 
-    if (pendingDeleteFolders.isNotEmpty()) {
+    if (!BuildConfig.SCOPED_STORAGE_ONLY && pendingDeleteFolders.isNotEmpty()) {
       DeleteConfirmationDialog(
         isOpen = true,
         onDismiss = { pendingDeleteFolders = emptyList() },
