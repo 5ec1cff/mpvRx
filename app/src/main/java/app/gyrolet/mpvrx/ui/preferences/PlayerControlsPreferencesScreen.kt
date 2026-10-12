@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,12 +17,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,8 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,8 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
@@ -63,11 +61,9 @@ import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 
 // Enum to identify which region we are editing
@@ -116,30 +112,13 @@ object PlayerControlsPreferencesScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(id = R.string.pref_layout_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(id = R.string.pref_layout_title),
+          onBack = { backstack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(PlayerControlsPreferencesScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -160,36 +139,38 @@ object PlayerControlsPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
-                title = stringResource(id = R.string.pref_layout_top_right_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT))
-                },
-              )
-              PreferenceIconSummary(buttons = topRightButtons)
-
-              PreferenceDivider()
-
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
-                title = stringResource(id = R.string.pref_layout_bottom_right_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT))
-                },
-              )
-              PreferenceIconSummary(buttons = bottomRightButtons)
-
-              PreferenceDivider()
-
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
-                title = stringResource(id = R.string.pref_layout_bottom_left_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT))
-                },
-              )
-              PreferenceIconSummary(buttons = bottomLeftButtons)
+              // Each region owns its own fully rounded surface, rather than sharing
+              // a rectangular backdrop with neighboring regions.
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
+                    title = stringResource(R.string.pref_layout_top_right_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT)) },
+                  )
+                  PreferenceIconSummary(buttons = topRightButtons)
+                }
+              }
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
+                    title = stringResource(R.string.pref_layout_bottom_right_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT)) },
+                  )
+                  PreferenceIconSummary(buttons = bottomRightButtons)
+                }
+              }
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
+                    title = stringResource(R.string.pref_layout_bottom_left_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT)) },
+                  )
+                  PreferenceIconSummary(buttons = bottomLeftButtons)
+                }
+              }
             }
           }
 
@@ -200,14 +181,16 @@ object PlayerControlsPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
-              PreferenceCategoryWithEditButton(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
-                title = stringResource(id = R.string.pref_layout_portrait_bottom_controls),
-                onClick = {
-                  backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM))
-                },
-              )
-              PreferenceIconSummary(buttons = portraitBottomButtons)
+              ExpressivePreferenceItem(standalone = true) {
+                Column {
+                  PreferenceCategoryWithEditButton(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
+                    title = stringResource(R.string.pref_layout_portrait_bottom_controls),
+                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM)) },
+                  )
+                  PreferenceIconSummary(buttons = portraitBottomButtons)
+                }
+              }
             }
           }
 
@@ -223,38 +206,43 @@ object PlayerControlsPreferencesScreen : Screen {
             val seekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
             val useWavySeekbar by playerPrefs.useWavySeekbar.collectAsState()
 
-            PreferenceCard {
-              SeekbarStyle.entries.forEachIndexed { index, style ->
-                ListItem(
-                  content = {
-                    Text(text = style.name)
-                  },
-                  supportingContent = {
-                    SeekbarStyleLivePreview(
-                      style = style,
-                      useWavySeekbar = useWavySeekbar,
-                      modifier =
-                        Modifier
-                          .fillMaxWidth()
-                          .padding(top = 6.dp, bottom = 2.dp),
-                    )
-                  },
-                  trailingContent = {
-                    RadioButton(
-                      selected = seekbarStyle == style,
-                      onClick = null,
-                    )
-                  },
-                  colors =
-                    androidx.compose.material3.ListItemDefaults.colors(
-                      containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                  modifier =
-                    Modifier
-                      .clickable { appearancePrefs.seekbarStyle.set(style) },
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+              Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+              ) {
+                Text(
+                  text = stringResource(R.string.pref_layout_preview),
+                  style = MaterialTheme.typography.labelLarge,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (index < SeekbarStyle.entries.size - 1) {
-                  PreferenceDivider()
+                SeekbarStyleLivePreview(
+                  style = seekbarStyle,
+                  useWavySeekbar = useWavySeekbar,
+                  modifier = Modifier.fillMaxWidth(),
+                )
+              }
+              PreferenceCard {
+                SeekbarStyle.entries.forEach { style ->
+                  val isSelected = seekbarStyle == style
+                  // Every option is an independent Material Expressive tile:
+                  // OFF, selected, and a single available option have identical curvature.
+                  ExpressivePreferenceItem(selected = isSelected, standalone = true) {
+                    ListItem(
+                      headlineContent = { Text(style.name) },
+                      trailingContent = {
+                        RadioButton(selected = isSelected, onClick = null)
+                      },
+                      colors = androidx.compose.material3.ListItemDefaults.colors(
+                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                      ),
+                      modifier = Modifier.selectable(
+                        selected = isSelected,
+                        role = Role.RadioButton,
+                        onClick = { appearancePrefs.seekbarStyle.set(style) },
+                      ),
+                    )
+                  }
                 }
               }
             }
@@ -279,6 +267,7 @@ object PlayerControlsPreferencesScreen : Screen {
             var customTimeValue by remember { mutableStateOf("") }
 
             PreferenceCard {
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_portrait_playback_buttons),
                 value = portraitPlaybackControlsPosition,
@@ -293,10 +282,13 @@ object PlayerControlsPreferencesScreen : Screen {
                 },
                 summary = { Text(portraitPlaybackControlsPosition.displayName) },
               )
+              }
 
               PreferenceDivider()
 
               SwitchPreference(
+                groupIndex = 0,
+                groupSize = 1,
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_hide_player_buttons_background_title),
                 value = hidePlayerButtonsBackground,
                 onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
@@ -315,6 +307,8 @@ object PlayerControlsPreferencesScreen : Screen {
               PreferenceDivider()
 
               SwitchPreference(
+                groupIndex = 0,
+                groupSize = 1,
                 modifier =
                   Modifier.settingsSearchTarget(
                     R.string.pref_appearance_force_dark_player_buttons_background_title,
@@ -335,6 +329,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_display_hide_player_control_time),
                 value = if (isCustomTimeValue) -1 else playerTimeToDisappear,
@@ -366,9 +361,11 @@ object PlayerControlsPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem(standalone = true) {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.ui_time_network_clock),
                 value = clockFormat,
@@ -383,6 +380,7 @@ object PlayerControlsPreferencesScreen : Screen {
                 },
                 summary = { Text(clockFormat.displayName) },
               )
+              }
             }
 
             if (showCustomTimeDialog) {

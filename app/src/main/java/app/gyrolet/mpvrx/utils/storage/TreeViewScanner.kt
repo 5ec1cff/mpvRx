@@ -13,6 +13,7 @@ import android.content.Context
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -51,6 +52,7 @@ object TreeViewScanner {
 
   private data class VideoInfo(
     val displayName: String,
+    val filePath: String,
     val size: Long,
     val duration: Long,
     val dateModified: Long,
@@ -82,6 +84,7 @@ object TreeViewScanner {
     val enabled: Boolean,
     val thresholdMillis: Long,
     val playedMediaTitles: Set<String>,
+    val newLabelOverrides: Map<String, Boolean>,
   )
 
   suspend fun getFoldersInDirectory(
@@ -93,6 +96,7 @@ object TreeViewScanner {
     showNewLabels: Boolean = false,
     thresholdDays: Int = 7,
     maxAutoFlattenLevels: Int = -1,
+    newLabelOverrides: Map<String, Boolean> = emptyMap(),
   ): List<FolderData> =
     withContext(Dispatchers.IO) {
       val allFolders =
@@ -103,6 +107,7 @@ object TreeViewScanner {
           playedMediaTitles = playedMediaTitles,
           showNewLabels = showNewLabels,
           thresholdDays = thresholdDays,
+          newLabelOverrides = newLabelOverrides,
         )
 
       getEffectiveChildren(parentPath, allFolders, maxAutoFlattenLevels)
@@ -118,6 +123,7 @@ object TreeViewScanner {
     playedMediaTitles: Set<String> = emptySet(),
     showNewLabels: Boolean = false,
     thresholdDays: Int = 7,
+    newLabelOverrides: Map<String, Boolean> = emptyMap(),
   ): FolderData? =
     withContext(Dispatchers.IO) {
       val allFolders =
@@ -128,6 +134,7 @@ object TreeViewScanner {
           playedMediaTitles = playedMediaTitles,
           showNewLabels = showNewLabels,
           thresholdDays = thresholdDays,
+          newLabelOverrides = newLabelOverrides,
         )
       val normalizedFolderPath = normalizeStoragePath(folderPath) ?: return@withContext null
       val folderKey = storagePathKey(normalizedFolderPath) ?: return@withContext null
@@ -158,6 +165,7 @@ object TreeViewScanner {
     playedMediaTitles: Set<String>,
     showNewLabels: Boolean,
     thresholdDays: Int,
+    newLabelOverrides: Map<String, Boolean>,
   ): Map<String, FolderNode> =
     withContext(Dispatchers.IO) {
       val now = System.currentTimeMillis()
@@ -167,6 +175,7 @@ object TreeViewScanner {
           showNewLabels = showNewLabels,
           thresholdDays = thresholdDays,
           playedMediaTitles = playedMediaTitles,
+          newLabelOverrides = newLabelOverrides,
         )
 
       cachedTreeViewData?.let { cached ->
@@ -174,6 +183,23 @@ object TreeViewScanner {
           return@withContext cached
         }
       }
+
+      // The cache above is process-local, so a cold boot always fell through to a full MediaStore
+      // plus filesystem walk. When MediaStore has not changed since this same tree was last built,
+      // the persisted copy is still exact, so restore that instead of walking the volume again.
+      if (!forceFileSystemCheck) {
+        restoreTreeViewData(context, cacheKey)?.let { restored ->
+          cachedTreeViewData = restored
+          cacheTimestamp = now
+          cacheOptionsKey = cacheKey
+          return@withContext restored
+        }
+      }
+
+      // Read before building: recording the generation afterwards would bless a MediaStore newer
+      // than the data, and the next cold boot would keep a stale tree.
+      val observedGeneration =
+        if (forceFileSystemCheck) null else MediaStoreGenerationGuard.currentToken(context)
 
       val data =
         buildTreeViewData(
@@ -183,19 +209,135 @@ object TreeViewScanner {
           playedMediaTitles = playedMediaTitles,
           showNewLabels = showNewLabels,
           thresholdDays = thresholdDays,
+          newLabelOverrides = newLabelOverrides,
         )
 
       cachedTreeViewData = data
       cacheTimestamp = now
       cacheOptionsKey = cacheKey
+      // The snapshot is only trustworthy while MediaStore still matches, so the generation that
+      // describes it travels inside the payload. Both are dropped together when the library changes.
+      val payload = MediaStoreGenerationGuard.withGeneration(encodeTreeViewData(data), observedGeneration)
+      if (payload != null) {
+        TreeViewCache.save(context, cacheKey, payload)
+      } else {
+        // No generation to prove it fresh, so there is nothing worth keeping.
+        TreeViewCache.clear(context)
+      }
       data
     }
+
+  /**
+   * Restores a previously persisted tree, but only while MediaStore still matches the generation the
+   * snapshot was built from.
+   *
+   * The check lives here rather than at the call site so the persisted copy can never be trusted on
+   * its own.
+   */
+  private suspend fun restoreTreeViewData(
+    context: Context,
+    cacheKey: String,
+  ): Map<String, FolderNode>? {
+    val payload = TreeViewCache.load(context, cacheKey) ?: return null
+    if (!MediaStoreGenerationGuard.isSnapshotCurrent(context, payload)) return null
+    return decodeTreeViewData(payload)
+  }
+
+  // ASCII unit/record separators, escaped rather than embedded as literal control characters so the
+  // source stays readable. Both are pathological in a path or folder name.
+  private const val FIELD_SEPARATOR = "\u001F"
+  private const val RECORD_SEPARATOR = "\u001E"
+  private const val NODE_FIELD_COUNT = 15
+
+  /**
+   * Serialises every [FolderNode] field.
+   *
+   * The whole node is stored rather than the rendered [FolderData], because the tree is re-read
+   * through [getEffectiveChildren] and [getFolderDataRecursive], which need the hierarchy and the
+   * recursive aggregates, not just one directory's children.
+   */
+  private fun encodeTreeViewData(folders: Map<String, FolderNode>): String =
+    folders.entries.joinToString(RECORD_SEPARATOR) { (key, node) ->
+      listOf(
+        key,
+        node.path,
+        node.name,
+        node.directVideoCount.toString(),
+        node.directSize.toString(),
+        node.directDuration.toString(),
+        node.directLastModified.toString(),
+        node.directNewCount.toString(),
+        node.hasDirectSubfolders.toString(),
+        node.isFlattened.toString(),
+        node.recursiveVideoCount.toString(),
+        node.recursiveSize.toString(),
+        node.recursiveDuration.toString(),
+        node.recursiveLastModified.toString(),
+        node.recursiveNewCount.toString(),
+      ).joinToString(FIELD_SEPARATOR) { sanitizeField(it) }
+    }
+
+  /** Returns null when the payload is unreadable, so the caller rebuilds rather than showing junk. */
+  private fun decodeTreeViewData(payload: String): Map<String, FolderNode>? {
+    // The leading line is the embedded generation, added by MediaStoreGenerationGuard.withGeneration.
+    val body = payload.substringAfter('\n')
+    if (body.isBlank()) return null
+    val folders = linkedMapOf<String, FolderNode>()
+    for (record in body.split(RECORD_SEPARATOR)) {
+      val node = decodeTreeNode(record) ?: return null
+      folders[node.first] = node.second
+    }
+    return folders.takeIf { it.isNotEmpty() }
+  }
+
+  private fun decodeTreeNode(record: String): Pair<String, FolderNode>? {
+    val parts = record.split(FIELD_SEPARATOR)
+    if (parts.size != NODE_FIELD_COUNT) return null
+    val directVideoCount = parts[3].toIntOrNull() ?: return null
+    val directSize = parts[4].toLongOrNull() ?: return null
+    val directDuration = parts[5].toLongOrNull() ?: return null
+    val directLastModified = parts[6].toLongOrNull() ?: return null
+    val directNewCount = parts[7].toIntOrNull() ?: return null
+    val hasDirectSubfolders = parts[8].toBooleanStrictOrNull() ?: return null
+    val isFlattened = parts[9].toBooleanStrictOrNull() ?: return null
+    val recursiveVideoCount = parts[10].toIntOrNull() ?: return null
+    val recursiveSize = parts[11].toLongOrNull() ?: return null
+    val recursiveDuration = parts[12].toLongOrNull() ?: return null
+    val recursiveLastModified = parts[13].toLongOrNull() ?: return null
+    val recursiveNewCount = parts[14].toIntOrNull() ?: return null
+
+    return parts[0] to
+      FolderNode(
+        path = parts[1],
+        name = parts[2],
+        directVideoCount = directVideoCount,
+        directSize = directSize,
+        directDuration = directDuration,
+        directLastModified = directLastModified,
+        directNewCount = directNewCount,
+        hasDirectSubfolders = hasDirectSubfolders,
+        isFlattened = isFlattened,
+        recursiveVideoCount = recursiveVideoCount,
+        recursiveSize = recursiveSize,
+        recursiveDuration = recursiveDuration,
+        recursiveLastModified = recursiveLastModified,
+        recursiveNewCount = recursiveNewCount,
+      )
+  }
+
+  private fun sanitizeField(value: String): String =
+    value
+      .replace(FIELD_SEPARATOR, " ")
+      .replace(RECORD_SEPARATOR, " ")
+      .replace('\n', ' ')
+      .replace('\r', ' ')
 
   private fun buildCacheKey(
     options: MediaScanOptions,
     showNewLabels: Boolean,
     thresholdDays: Int,
     playedMediaTitles: Set<String>,
+    newLabelOverrides: Map<String, Boolean>,
   ): String {
     val playedTitlesHash =
       if (showNewLabels) {
@@ -204,7 +346,8 @@ object TreeViewScanner {
         0
       }
 
-    return "${options.cacheKey}|new=$showNewLabels|days=$thresholdDays|played=$playedTitlesHash"
+    return "${options.cacheKey}|new=$showNewLabels|days=$thresholdDays|played=$playedTitlesHash" +
+      "|marks=${newLabelOverrides.hashCode()}"
   }
 
   private suspend fun buildTreeViewData(
@@ -214,6 +357,7 @@ object TreeViewScanner {
     playedMediaTitles: Set<String>,
     showNewLabels: Boolean,
     thresholdDays: Int,
+    newLabelOverrides: Map<String, Boolean>,
   ): Map<String, FolderNode> =
     withContext(Dispatchers.IO) {
       val allFolders = mutableMapOf<String, FolderNode>()
@@ -224,6 +368,7 @@ object TreeViewScanner {
           enabled = showNewLabels,
           thresholdMillis = thresholdDays.toLong() * 24L * 60L * 60L * 1000L,
           playedMediaTitles = playedMediaTitles,
+          newLabelOverrides = newLabelOverrides,
         )
       val currentTimeMs = System.currentTimeMillis()
 
@@ -302,6 +447,7 @@ object TreeViewScanner {
             aggregate.videos.add(
               VideoInfo(
                 displayName = cursor.getString(displayNameColumn) ?: file.name,
+                filePath = file.absolutePath,
                 size = cursor.getLong(sizeColumn),
                 duration = cursor.getLong(durationColumn),
                 dateModified = cursor.getLong(dateColumn),
@@ -335,6 +481,7 @@ object TreeViewScanner {
         videos.count { video ->
           isVideoNew(
             displayName = video.displayName,
+            filePath = video.filePath,
             dateModifiedSeconds = video.dateModified,
             currentTimeMs = currentTimeMs,
             newBadgeConfig = newBadgeConfig,
@@ -398,6 +545,7 @@ object TreeViewScanner {
             audioByFolder.getOrPut(folderKey) { FolderAggregate(folderPath) }.videos +=
               VideoInfo(
                 displayName = cursor.getString(nameColumn) ?: file.name,
+                filePath = file.absolutePath,
                 size = cursor.getLong(sizeColumn),
                 duration = duration,
                 dateModified = cursor.getLong(dateColumn),
@@ -428,6 +576,7 @@ object TreeViewScanner {
 
   private fun isVideoNew(
     displayName: String,
+    filePath: String,
     dateModifiedSeconds: Long,
     currentTimeMs: Long,
     newBadgeConfig: NewBadgeConfig,
@@ -436,12 +585,14 @@ object TreeViewScanner {
       return false
     }
 
-    if (displayName in newBadgeConfig.playedMediaTitles) {
+    val identifier = PlaybackIdentity.forLocalPath(filePath)
+    if (displayName in newBadgeConfig.playedMediaTitles || identifier in newBadgeConfig.playedMediaTitles) {
       return false
     }
+    newBadgeConfig.newLabelOverrides[identifier]?.let { return it }
 
     val videoAgeMs = currentTimeMs - (dateModifiedSeconds * 1000L)
-    return videoAgeMs <= newBadgeConfig.thresholdMillis
+    return newBadgeConfig.thresholdMillis == 0L || videoAgeMs <= newBadgeConfig.thresholdMillis
   }
 
   private fun scanFileSystemRoots(
@@ -543,6 +694,7 @@ object TreeViewScanner {
             mediaFiles.count { file ->
               isVideoNew(
                 displayName = file.name,
+                filePath = file.absolutePath,
                 dateModifiedSeconds = file.lastModified() / 1000L,
                 currentTimeMs = currentTimeMs,
                 newBadgeConfig = newBadgeConfig,

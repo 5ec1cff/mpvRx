@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,22 +19,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics
 import kotlin.math.roundToInt
 
 @Composable
@@ -46,9 +51,12 @@ fun SliderItem(
   modifier: Modifier = Modifier,
   min: Int = 0,
   enabled: Boolean = true,
+  hapticLandmarks: List<Int> = emptyList(),
   icon: @Composable () -> Unit = {},
 ) {
-  val haptic = LocalHapticFeedback.current
+  val haptics = rememberAdjustmentHaptics(
+    min.toFloat(), max.toFloat(), (max - min - 1).coerceAtLeast(0), hapticLandmarks.map(Int::toFloat),
+  )
 
   Row(
     modifier =
@@ -66,20 +74,7 @@ fun SliderItem(
       modifier = Modifier.weight(1f),
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = label,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-        Text(
-          text = valueText,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-      }
+      SliderItemHeader(label = label, valueText = valueText)
 
       Slider(
         value = value.toFloat(),
@@ -87,13 +82,17 @@ fun SliderItem(
           val newValue = it.roundToInt()
           if (newValue != value) {
             onChange(newValue)
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptics.move(value.toFloat(), newValue.toFloat())
           }
         },
         modifier =
           Modifier
             .fillMaxWidth()
-            .tvFocusHighlight(RoundedCornerShape(12.dp), enabled = enabled, focusedScale = 1.01f),
+            .semantics {
+              contentDescription = label
+              stateDescription = valueText
+            }
+            .tvFocusHighlight(MaterialTheme.shapes.medium, enabled = enabled, focusedScale = 1.01f),
         valueRange = min.toFloat()..max.toFloat(),
         steps = (max - min - 1).coerceAtLeast(0),
         enabled = enabled,
@@ -113,9 +112,10 @@ fun SliderItem(
   steps: Int = 0,
   min: Float = 0f,
   enabled: Boolean = true,
+  hapticLandmarks: List<Float> = emptyList(),
   icon: @Composable () -> Unit = {},
 ) {
-  val haptic = LocalHapticFeedback.current
+  val haptics = rememberAdjustmentHaptics(min, max, steps, hapticLandmarks)
 
   Row(
     modifier =
@@ -133,20 +133,7 @@ fun SliderItem(
       modifier = Modifier.weight(1f),
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = label,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-        Text(
-          text = valueText,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-      }
+      SliderItemHeader(label = label, valueText = valueText)
 
       Slider(
         value = value,
@@ -154,18 +141,49 @@ fun SliderItem(
           val newValue = it
           if (newValue != value) {
             onChange(newValue)
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptics.move(value, newValue)
           }
         },
         modifier =
           Modifier
             .fillMaxWidth()
-            .tvFocusHighlight(RoundedCornerShape(12.dp), enabled = enabled, focusedScale = 1.01f),
+            .semantics {
+              contentDescription = label
+              stateDescription = valueText
+            }
+            .tvFocusHighlight(MaterialTheme.shapes.medium, enabled = enabled, focusedScale = 1.01f),
         valueRange = min..max,
         steps = steps,
         enabled = enabled,
       )
     }
+  }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun SliderItemHeader(
+  label: String,
+  valueText: String,
+  modifier: Modifier = Modifier,
+) {
+  FlowRow(
+    modifier = modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+  ) {
+    Text(
+      text = label,
+      modifier = Modifier.align(Alignment.CenterVertically),
+      style = MaterialTheme.typography.bodyMedium,
+    )
+    Text(
+      text = valueText,
+      modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      style = MaterialTheme.typography.labelLargeEmphasized,
+      textAlign = TextAlign.End,
+    )
   }
 }
 
@@ -180,7 +198,7 @@ fun VerticalSliderItem(
   min: Int = 0,
   icon: @Composable () -> Unit = {},
 ) {
-  val haptic = LocalHapticFeedback.current
+  val haptics = rememberAdjustmentHaptics(min.toFloat(), max.toFloat())
 
   Column(
     modifier =
@@ -199,8 +217,10 @@ fun VerticalSliderItem(
       min = min,
       max = max,
       onValueChange = {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        onChange(it)
+        if (it != value) {
+          onChange(it)
+          haptics.move(value.toFloat(), it.toFloat())
+        }
       },
       modifier = Modifier.weight(1f),
     )

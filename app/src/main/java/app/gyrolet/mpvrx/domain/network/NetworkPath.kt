@@ -14,7 +14,8 @@ import java.net.URI
 /**
  * A normalized path below a configured network-connection root.
  *
- * The persisted connection path is the root (an FTP/WebDAV directory or SMB share). Values of
+ * The persisted connection path is the root (an FTP/WebDAV directory, SMB share/folder, or SMB
+ * server). Below an SMB server root the first segment is the share name. Values of
  * this type never contain a scheme, authority, credentials, or parent traversal. The display form
  * is rooted (`/Movies/video.mkv`) while [relative] is suitable for protocol client APIs.
  */

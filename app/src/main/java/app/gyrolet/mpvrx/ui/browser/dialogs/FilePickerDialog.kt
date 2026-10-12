@@ -10,8 +10,8 @@
 package app.gyrolet.mpvrx.ui.browser.dialogs
 
 import android.content.Context
-import android.content.res.Configuration
 import android.os.Environment
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +30,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,17 +37,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.utils.storage.StorageVolumeUtils
@@ -108,6 +108,7 @@ fun FilePickerDialog(
       // Fallback / raw text
       "txt",
     ),
+  title: String? = null,
 ) {
   if (!isOpen) return
 
@@ -122,21 +123,22 @@ fun FilePickerDialog(
   // If there's only one storage volume, start there directly
   // Otherwise, start at storage root view to show all volumes
   // Respect currentPath if it's valid and exists
-  var selectedPath by remember(isOpen, currentPath, storageVolumes) {
-    val initialPath =
-      if (currentPath.isNotEmpty() && File(currentPath).exists()) {
-        currentPath
-      } else if (storageVolumes.size == 1) {
-        StorageVolumeUtils.getVolumePath(storageVolumes.first())
-      } else {
-        null // Show storage root with all volumes
-      }
+  var selectedPath by rememberSaveable(isOpen, currentPath, storageVolumes.size) {
+    val requested = File(currentPath)
+    val initialPath = when {
+      requested.isDirectory -> requested.absolutePath
+      requested.isFile -> requested.parentFile?.absolutePath
+      storageVolumes.size == 1 -> StorageVolumeUtils.getVolumePath(storageVolumes.first())
+      else -> null
+    }
     mutableStateOf(initialPath)
   }
+  var query by rememberSaveable(isOpen) { mutableStateOf("") }
 
   // Notify parent when path changes for state persistence
   LaunchedEffect(selectedPath) {
     onPathChanged?.invoke(selectedPath)
+    query = ""
   }
 
   // Determine what to show based on selectedPath
@@ -149,22 +151,30 @@ fun FilePickerDialog(
 
   // Get folders and allowed files
   val (folders, files) =
-    remember(selectedPath, matchToName) {
+    remember(selectedPath, matchToName, allowedExtensions, query) {
       if (showStorageRoot) {
         Pair(emptyList<File>(), emptyList<File>())
       } else {
-        val allFiles = currentDir?.listFiles { file -> !file.name.startsWith(".") } ?: emptyArray()
+        val allFiles = runCatching { currentDir?.listFiles() }.getOrNull() ?: emptyArray()
+        val extensions = allowedExtensions.map { it.trim().removePrefix(".") }.filter(String::isNotBlank)
+        val normalizedQuery = query.trim()
 
         // Use NaturalOrderComparator for better sorting (e.g., Ep 2 < Ep 10)
         val dirs =
-          allFiles.filter { it.isDirectory }.sortedWith { f1, f2 ->
+          allFiles.filter {
+            it.isDirectory && (normalizedQuery.isEmpty() || it.name.contains(normalizedQuery, ignoreCase = true))
+          }.sortedWith { f1, f2 ->
             app.gyrolet.mpvrx.utils.sort.SortUtils.NaturalOrderComparator.DEFAULT
               .compare(f1.name, f2.name)
           }
 
         val filteredFiles =
           allFiles.filter { file ->
-            !file.isDirectory && allowedExtensions.any { ext -> file.name.endsWith(ext, ignoreCase = true) }
+            file.isFile &&
+              (extensions.isEmpty() || extensions.any { extension ->
+                file.extension.equals(extension, ignoreCase = true)
+              }) &&
+              (normalizedQuery.isEmpty() || file.name.contains(normalizedQuery, ignoreCase = true))
           }
 
         // Final sorted files: matches first (alphabetical), then others (alphabetical)
@@ -187,180 +197,99 @@ fun FilePickerDialog(
       }
     }
 
-  val configuration = LocalConfiguration.current
-  val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-
-  androidx.compose.ui.window.Dialog(
+  AppPickerSheet(
     onDismissRequest = onDismiss,
-    properties = DialogProperties(usePlatformDefaultWidth = false),
+    title = title ?: androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_select_subtitle),
+    subtitle = selectedPath
+      ?: androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_select_storage_location),
+    scrollContent = false,
+    headerActions = {
+      NavigationButtons(
+        selectedPath = selectedPath,
+        onBack = { selectedPath = currentDir?.parent },
+        onHome = { selectedPath = Environment.getExternalStorageDirectory().absolutePath },
+        onSystemPicker = onSystemPickerRequest,
+        buttonSize = 40.dp,
+        iconSize = 24.dp,
+      )
+    },
+    actions = {
+      TextButton(onClick = onDismiss) {
+        Text(
+          androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          fontWeight = FontWeight.Medium,
+        )
+      }
+    },
+    modifier = modifier,
   ) {
-    Surface(
-      modifier = modifier.fillMaxWidth(if (isPortrait) 0.9f else 0.50f),
-      shape = MaterialTheme.shapes.extraLarge,
-      color = MaterialTheme.colorScheme.surface,
-      tonalElevation = 6.dp,
+    BackHandler(enabled = selectedPath != null) {
+      selectedPath = currentDir?.parent
+    }
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-      Column(
-        modifier = Modifier.padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+      if (!showStorageRoot) {
+        PlayerSheetSearchField(
+          query = query,
+          onQueryChange = { query = it },
+          placeholder = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_search_files),
+        )
+      }
+
+      LazyColumn(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
       ) {
-        // Title Section - orientation-aware layout
-        if (isPortrait) {
-          // Portrait: title/path stacked on top, nav buttons centered below
-          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-              Text(
-                text =
-                  androidx.compose.ui.res
-                    .stringResource(app.gyrolet.mpvrx.R.string.ui_select_subtitle),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-              )
-              Text(
-                text = selectedPath ?: "Select a storage location",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp),
+        if (showStorageRoot) {
+          items(storageVolumes, key = { StorageVolumeUtils.getVolumePath(it) ?: it.toString() }) { volume ->
+            val volumePath = StorageVolumeUtils.getVolumePath(volume)
+            if (volumePath != null) {
+              StorageVolumeItem(
+                context = context,
+                volume = volume,
+                volumePath = volumePath,
+                onClick = { selectedPath = volumePath },
               )
             }
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            ) {
-              NavigationButtons(
-                selectedPath = selectedPath,
-                onBack = { selectedPath = currentDir?.parent },
-                onHome = { selectedPath = Environment.getExternalStorageDirectory().absolutePath },
-                onSystemPicker = onSystemPickerRequest,
-                buttonSize = 48.dp,
-                iconSize = 26.dp,
+          }
+          if (storageVolumes.isEmpty()) {
+            item {
+              Text(
+                androidx.compose.ui.res.stringResource(
+                  app.gyrolet.mpvrx.R.string.ui_no_storage_devices_found,
+                ),
+                modifier = Modifier.padding(16.dp),
               )
             }
           }
         } else {
-          // Landscape: title/path left, nav buttons right (same row)
-          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Column(modifier = Modifier.weight(1f)) {
-                Text(
-                  text =
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_select_subtitle,
-                    ),
-                  style = MaterialTheme.typography.headlineMedium,
-                  fontWeight = FontWeight.Bold,
-                )
-                Text(
-                  text = selectedPath ?: "Select a storage location",
-                  style = MaterialTheme.typography.bodyMedium,
-                  fontWeight = FontWeight.Medium,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  maxLines = 1,
-                  overflow = TextOverflow.Ellipsis,
-                  modifier = Modifier.padding(top = 4.dp),
-                )
-              }
-              Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NavigationButtons(
-                  selectedPath = selectedPath,
-                  onBack = { selectedPath = currentDir?.parent },
-                  onHome = { selectedPath = Environment.getExternalStorageDirectory().absolutePath },
-                  onSystemPicker = onSystemPickerRequest,
-                  buttonSize = 40.dp,
-                  iconSize = 24.dp,
-                )
-              }
-            }
-          }
-        }
-
-        // Content Section
-        Column(
-          modifier = Modifier.fillMaxWidth(),
-          verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-          // Folder/Volume/File list
-          LazyColumn(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .height(400.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-          ) {
-            if (showStorageRoot) {
-              // Show storage volumes
-              items(storageVolumes, key = { StorageVolumeUtils.getVolumePath(it) ?: it.toString() }) { volume ->
-                val volumePath = StorageVolumeUtils.getVolumePath(volume)
-                if (volumePath != null) {
-                  StorageVolumeItem(
-                    context = context,
-                    volume = volume,
-                    volumePath = volumePath,
-                    onClick = { selectedPath = volumePath },
-                  )
-                }
-              }
-              if (storageVolumes.isEmpty()) {
-                item {
-                  Text(
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_no_storage_devices_found,
-                    ),
-                    modifier = Modifier.padding(16.dp),
-                  )
-                }
-              }
-            } else {
-              // Show folders
-              items(folders, key = { it.absolutePath }) { folder ->
-                FolderItem(
-                  folder = folder,
-                  onClick = { selectedPath = folder.absolutePath },
-                )
-              }
-              // Show files
-              items(files, key = { it.absolutePath }) { file ->
-                FileItem(
-                  file = file,
-                  onClick = { onFileSelected(file.absolutePath) },
-                )
-              }
-              if (folders.isEmpty() && files.isEmpty()) {
-                item {
-                  Text(
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_no_folders_or_supported_files,
-                    ),
-                    modifier = Modifier.padding(16.dp),
-                  )
-                }
-              }
-            }
-          }
-        }
-
-        // Footer Section (Analyze padding here)
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.End,
-        ) {
-          TextButton(
-            onClick = onDismiss,
-            shape = MaterialTheme.shapes.extraLarge,
-            // Reduced padding for the button itself if needed, or rely on Row padding
-          ) {
-            Text(
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-              fontWeight = FontWeight.Medium,
+          items(folders, key = { it.absolutePath }) { folder ->
+            FolderItem(
+              folder = folder,
+              onClick = { selectedPath = folder.absolutePath },
             )
+          }
+          items(files, key = { it.absolutePath }) { file ->
+            FileItem(
+              file = file,
+              onClick = { onFileSelected(file.absolutePath) },
+            )
+          }
+          if (folders.isEmpty() && files.isEmpty()) {
+            item {
+              Text(
+                androidx.compose.ui.res.stringResource(
+                  if (query.isBlank()) {
+                    app.gyrolet.mpvrx.R.string.ui_no_folders_or_supported_files
+                  } else {
+                    app.gyrolet.mpvrx.R.string.ui_no_matching_files
+                  },
+                ),
+                modifier = Modifier.padding(16.dp),
+              )
+            }
           }
         }
       }
@@ -369,7 +298,7 @@ fun FilePickerDialog(
 }
 
 @Composable
-private fun StorageVolumeItem(
+internal fun StorageVolumeItem(
   context: Context,
   volume: android.os.storage.StorageVolume,
   volumePath: String,
@@ -520,7 +449,11 @@ private fun NavigationButtons(
           contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         ),
     ) {
-      Icon(Icons.RoundedFilled.ArrowBack, "Back", modifier = Modifier.size(iconSize))
+      Icon(
+        Icons.RoundedFilled.ArrowBack,
+        androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.generic_back),
+        modifier = Modifier.size(iconSize),
+      )
     }
   }
 
@@ -533,7 +466,11 @@ private fun NavigationButtons(
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
       ),
   ) {
-    Icon(Icons.RoundedFilled.Home, "Home", modifier = Modifier.size(iconSize))
+    Icon(
+      Icons.RoundedFilled.Home,
+      androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.generic_home),
+      modifier = Modifier.size(iconSize),
+    )
   }
 
   FilledTonalIconButton(
@@ -545,6 +482,10 @@ private fun NavigationButtons(
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
       ),
   ) {
-    Icon(Icons.RoundedFilled.DriveFolderUpload, "System Picker", modifier = Modifier.size(iconSize))
+    Icon(
+      Icons.RoundedFilled.DriveFolderUpload,
+      androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_system_picker),
+      modifier = Modifier.size(iconSize),
+    )
   }
 }

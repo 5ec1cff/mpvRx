@@ -19,4 +19,7 @@ class DownloadPreferences(
 
   /** Resolved filesystem path of the picked folder, cached for display and fast reuse. */
   val downloadLocationPath = preferenceStore.getString("download_location_path", "")
+
+  /** Child directory under [downloadLocationTreeUri], blank when the picked tree itself is the target. */
+  val downloadLocationChildName = preferenceStore.getString("download_location_child_name", "")
 }

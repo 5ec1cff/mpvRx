@@ -91,9 +91,57 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
-          titleRes = R.string.pref_appearance_system_font_title,
-          summaryRes = R.string.pref_appearance_system_font_summary,
-          keywords = listOf("font", "system", "typeface", "google sans", "ui", "appearance"),
+          titleRes = R.string.pref_appearance_liquid_glass_title,
+          summaryRes = R.string.pref_appearance_liquid_glass_summary,
+          keywords = listOf("liquid glass", "glass", "blur", "translucent", "navigation", "seekbar", "switch"),
+          category = "Appearance",
+          screen = LiquidGlassPreferencesScreen,
+        ),
+      )
+      listOf(
+        R.string.pref_liquid_glass_opacity to listOf("opacity", "transparency", "backdrop"),
+        R.string.pref_liquid_glass_frost to listOf("frost", "blur", "frosted"),
+        R.string.pref_liquid_glass_refraction_height to listOf("refraction", "lens", "edge", "width"),
+        R.string.pref_liquid_glass_refraction_amount to listOf("refraction", "lens", "strength"),
+        R.string.pref_liquid_glass_depth to listOf("depth", "lens"),
+        R.string.pref_liquid_glass_chromatic to listOf("chromatic", "aberration", "dispersion", "rainbow"),
+        R.string.pref_liquid_glass_vibrancy to listOf("vibrancy", "color"),
+        R.string.player_sheets_filters_Saturation to listOf("saturation", "color"),
+        R.string.player_sheets_filters_brightness to listOf("brightness", "color"),
+        R.string.player_sheets_filters_contrast to listOf("contrast", "color"),
+        R.string.pref_liquid_glass_highlight_style to listOf("highlight", "style", "ambient", "plain"),
+        R.string.pref_liquid_glass_highlight_strength to listOf("highlight", "strength"),
+        R.string.pref_liquid_glass_highlight_width to listOf("highlight", "width", "rim"),
+        R.string.pref_liquid_glass_highlight_blur to listOf("highlight", "blur", "softness"),
+        R.string.pref_liquid_glass_shadow_strength to listOf("shadow", "strength"),
+        R.string.pref_liquid_glass_shadow_radius to listOf("shadow", "blur", "softness"),
+        R.string.pref_liquid_glass_inner_shadow_strength to listOf("inner shadow", "strength"),
+        R.string.pref_liquid_glass_inner_shadow_radius to listOf("inner shadow", "blur", "softness"),
+      ).forEach { (titleRes, keywords) ->
+        add(
+          SearchablePreference(
+            titleRes = titleRes,
+            keywords = listOf("liquid glass", "kyant") + keywords,
+            category = "Appearance",
+            screen = LiquidGlassPreferencesScreen,
+            targetRes = titleRes,
+          ),
+        )
+      }
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_appearance_app_font_title,
+          summaryRes = R.string.pref_appearance_app_font_summary_search,
+          keywords = listOf("font", "system", "typeface", "google sans", "google fonts", "download", "ui", "appearance"),
+          category = "Appearance",
+          screen = AppearancePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_appearance_ui_scale_title,
+          summaryRes = R.string.pref_appearance_ui_scale_summary,
+          keywords = listOf("scale", "size", "zoom", "ui", "display", "appearance"),
           category = "Appearance",
           screen = AppearancePreferencesScreen,
         ),
@@ -329,6 +377,15 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_player_external_display_projection_title,
+          summaryRes = R.string.pref_player_external_display_projection_summary,
+          keywords = listOf("external display", "hdmi", "usb-c", "wireless display", "projection", "screen"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_player_keep_screen_on_when_paused_title,
           summaryRes = R.string.pref_player_keep_screen_on_when_paused_summary,
           keywords = listOf("keep screen on", "screen", "awake", "paused", "pause", "display", "sleep"),
@@ -455,6 +512,73 @@ object SearchablePreferences {
           keywords = listOf("auto skip", "outro", "ending", "credits", "automatic", "skip ed"),
           category = "Player",
           screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_haptic_feedback_title,
+          keywords = listOf("haptic", "vibration", "feedback", "selection", "drag"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_confirm_back_to_exit_title,
+          summaryRes = R.string.pref_confirm_back_to_exit_summary,
+          keywords = listOf("back", "exit", "confirm", "double", "leave", "playback"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_player_resume_playback_title,
+          keywords = listOf("resume", "position", "always", "ask", "never", "minimum", "duration"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_player_resume_min_duration,
+          summaryRes = R.string.pref_player_resume_mode_min_duration_summary,
+          keywords = listOf("resume", "minimum", "duration", "length", "short", "seconds"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+          targetRes = R.string.pref_player_resume_playback_title,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_video_swipe_title,
+          keywords = listOf("swipe", "left", "right", "video", "folder", "watched", "queue", "delete"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_nested_tab_swipes_title,
+          keywords = listOf("swipe", "nested", "inner", "tabs", "navigation", "music", "network", "recents"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_video_swipe_right,
+          keywords = listOf("swipe", "video", "folder", "action", "zone", "width", "edge", "percentage"),
+          category = "Gestures",
+          screen = VideoSwipePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_video_swipe_left,
+          keywords = listOf("swipe", "video", "folder", "action", "zone", "width", "edge", "percentage"),
+          category = "Gestures",
+          screen = VideoSwipePreferencesScreen,
         ),
       )
       add(
@@ -804,6 +928,15 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_subtitles_secondary_pinch_zoom,
+          summaryRes = R.string.pref_subtitles_secondary_pinch_zoom_summary,
+          keywords = listOf("pinch", "zoom", "secondary", "subtitle", "scale", "dual"),
+          category = "Subtitles",
+          screen = SubtitlesPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_subtitles_fonts_dir,
           summaryRes = R.string.pref_subtitles_font_directory_summary,
           keywords = listOf("fonts", "directory", "subtitle", "custom", "folder"),
@@ -972,6 +1105,15 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_background_playback_behavior,
+          summaryRes = R.string.pref_background_playback_per_video_summary,
+          keywords = listOf("background", "remember", "per video", "individual", "save", "video"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_audio_channels,
           keywords = listOf("channels", "audio", "stereo", "surround", "output", "sound"),
           category = "Audio",
@@ -1072,7 +1214,7 @@ object SearchablePreferences {
           summaryRes = R.string.ui_install_and_update_yt_dlp_for_streaming_support,
           keywords = listOf("yt-dlp", "online", "streaming", "extractor", "network", "download"),
           category = "Network",
-          screen = YtdlpSettingsScreen,
+          screen = NetworkConfigurationPreferencesScreen,
         ),
       )
       add(
@@ -1297,7 +1439,6 @@ object SearchablePreferences {
         anchorItemIndex = 3,
         SearchEntrySpec(R.string.pref_tree_flatten_depth_title, listOf("tree", "folder", "path", "flatten", "compression")),
         SearchEntrySpec(R.string.ui_dual_pane_view, listOf("tablet", "two pane", "split", "folder")),
-        SearchEntrySpec(R.string.pref_appearance_watched_threshold_title, listOf("watched", "progress", "threshold", "percent")),
         SearchEntrySpec(R.string.ui_delete_folder_all_contents, listOf("delete", "folder", "all files", "media only")),
       )
       addSearchEntries(
@@ -1315,8 +1456,8 @@ object SearchablePreferences {
         screen = AppearancePreferencesScreen,
         anchorItemIndex = 7,
         SearchEntrySpec(R.string.pref_nav_music_title, listOf("music", "audio", "tab", "navigation")),
-        SearchEntrySpec(R.string.pref_nav_recents_title, listOf("recent", "history", "tab", "navigation")),
-        SearchEntrySpec(R.string.pref_nav_playlists_title, listOf("playlist", "tab", "navigation")),
+        SearchEntrySpec(R.string.pref_nav_profile_title, listOf("profile", "you", "library", "tab", "navigation")),
+        SearchEntrySpec(R.string.navbar_glow_title, listOf("glass", "glow", "navbar", "rim", "highlight", "liquid glass")),
         SearchEntrySpec(R.string.pref_nav_network_title, listOf("network", "stream", "tab", "navigation")),
         SearchEntrySpec(R.string.pref_nav_jellyfin_title, listOf("jellyfin", "server", "tab", "navigation")),
         SearchEntrySpec(R.string.pref_quick_play_fab_title, listOf("quick play", "fab", "floating button", "random")),
@@ -1537,8 +1678,8 @@ object SearchablePreferences {
       )
       addSearchEntries(
         category = "Network",
-        screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 9,
+        screen = NetworkConfigurationPreferencesScreen,
+        anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_enable_p2p_streaming_title, listOf("p2p", "torrent", "streaming", "enable")),
         SearchEntrySpec(R.string.pref_enable_hls_proxy_title, listOf("hls", "proxy", "streaming", "network")),
       )
@@ -1551,7 +1692,7 @@ object SearchablePreferences {
 
       addSearchEntries(
         category = "Network",
-        screen = YtdlpSettingsScreen,
+        screen = NetworkConfigurationPreferencesScreen,
         anchorItemIndex = 0,
         SearchEntrySpec(R.string.ui_download_media_subtitles, listOf("yt-dlp", "subtitle", "download", "manual")),
         SearchEntrySpec(R.string.ui_include_auto_generated_subtitles, listOf("yt-dlp", "subtitle", "automatic", "captions", "youtube")),
@@ -1584,6 +1725,20 @@ object SearchablePreferences {
         anchorItemIndex = 2,
         SearchEntrySpec(R.string.pref_seerr_server_management, listOf("seerr", "jellyseerr", "overseerr", "requests", "server", "api")),
       )
+      addSearchEntries(
+        category = "Media Servers",
+        screen = MediaServersPreferencesScreen,
+        anchorItemIndex = 3,
+        SearchEntrySpec(R.string.pref_navidrome_title, listOf("navidrome", "subsonic", "opensubsonic", "music", "server", "stream", "audio")),
+        SearchEntrySpec(R.string.pref_navidrome_add_server, listOf("navidrome", "subsonic", "connect", "server", "music")),
+      )
+      addSearchEntries(
+        category = "Media Servers",
+        screen = MediaServersPreferencesScreen,
+        anchorItemIndex = 4,
+        SearchEntrySpec(R.string.pref_audiobookshelf_title, listOf("audiobookshelf", "abs", "audiobook", "audiobooks", "server", "stream", "listening", "book")),
+        SearchEntrySpec(R.string.pref_audiobookshelf_add_server, listOf("audiobookshelf", "abs", "connect", "server", "token", "login")),
+      )
 
       // About
       add(
@@ -1593,6 +1748,15 @@ object SearchablePreferences {
           keywords = listOf("about", "version", "licenses", "acknowledgments", "info", "app"),
           category = "About",
           screen = AboutScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_hall_of_fame_title,
+          summaryRes = R.string.pref_hall_of_fame_summary,
+          keywords = listOf("hall of fame", "contributors", "credits", "developers", "testers", "issues", "community"),
+          category = "About",
+          screen = HallOfFameScreen,
         ),
       )
     }
@@ -1610,7 +1774,7 @@ object SearchablePreferences {
         keywords =
           listOf(
             "theme dark light system dynamic amoled font names labels thumbnails frame quality position",
-            "navigation home music recents playlists network quick play fab auto scroll watched threshold",
+            "navigation home music profile network jellyfin quick play fab auto scroll",
             "grid columns list folder cards video cards chips path extension duration resolution framerate subtitle",
           ),
         category = "Appearance",
@@ -1735,13 +1899,6 @@ object SearchablePreferences {
         screen = AboutScreen,
       ),
     )
-
-  fun positionOnScreen(preference: SearchablePreference): Pair<Int, Int> {
-    val screenPreferences = staticPreferences.filter { it.screen == preference.screen }
-    if (screenPreferences.isEmpty()) return 0 to 1
-    val ordinal = screenPreferences.indexOf(preference).coerceAtLeast(0)
-    return ordinal to screenPreferences.size
-  }
 
   private data class SearchField(
     val value: String,

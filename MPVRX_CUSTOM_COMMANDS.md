@@ -79,6 +79,7 @@ mpvRx also syncs `script-opts/` from the selected mpv config folder.
 | Property | Value | What it does |
 | --- | --- | --- |
 | `user-data/mpvrx/curl_response` | JSON string | Receives the latest completed curl response. Observe it; do not write to it. |
+| `user-data/mpvrx/original-path` | String | The original network path (e.g. `smb://host/share/path/video.mp4`) for the current playback item. Built from the stored connection details; falls back to the raw URI when the connection is unavailable. |
 
 ### Supported Panel IDs
 

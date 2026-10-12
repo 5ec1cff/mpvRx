@@ -116,7 +116,20 @@ private val torrentMimeTypes =
     "application/torrent",
   )
 
-/** Pure source classifier used before Android turns an unrecognised string into a file URI. */
+/**
+ * Schemes whose payload is a file already present on the device. A local `content://` or `file://`
+ * URI is only ever a torrent when it is literally a `.torrent` file, so it can be answered without
+ * running the hash regexes or parsing magnet parameters.
+ */
+private val localTorrentCheckSchemes = setOf("content", "file")
+
+/**
+ * Pure source classifier used before Android turns an unrecognised string into a file URI.
+ *
+ * Offline playback reaches this on every tap. The local-scheme fast path keeps that case to a
+ * prefix check and a substring compare instead of three `Regex.matches` plus a magnet-parameter
+ * parse, without changing any classification outcome.
+ */
 fun isTorrentSource(
   source: String,
   mimeType: String? = null,
@@ -125,6 +138,13 @@ fun isTorrentSource(
   if (value.isEmpty()) return false
   val normalizedMimeType = mimeType?.substringBefore(';')?.trim()?.lowercase()
   if (normalizedMimeType != null && normalizedMimeType in torrentMimeTypes) return true
+
+  val scheme = value.substringBefore(':', missingDelimiterValue = "").lowercase()
+  // Offline media: only a `.torrent` payload can match, so skip the hash and magnet forms entirely.
+  if (scheme in localTorrentCheckSchemes) {
+    return value.substringBefore('?').substringBefore('#').endsWith(".torrent", ignoreCase = true)
+  }
+
   if (v1HexHash.matches(value) || v1Base32Hash.matches(value) || v2HexHash.matches(value)) return true
   if (value.startsWith("magnet:?", ignoreCase = true)) {
     return magnetParameters(value).any { (key, item) ->
@@ -134,8 +154,7 @@ fun isTorrentSource(
   }
   if (value.startsWith("torrent:", ignoreCase = true)) return true
 
-  val scheme = value.substringBefore(':', missingDelimiterValue = "").lowercase()
-  return scheme in setOf("content", "file", "http", "https") &&
+  return scheme in setOf("http", "https") &&
     value.substringBefore('?').substringBefore('#').endsWith(".torrent", ignoreCase = true)
 }
 

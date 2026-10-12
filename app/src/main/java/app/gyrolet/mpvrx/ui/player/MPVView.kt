@@ -15,15 +15,15 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+import android.view.Surface
 import androidx.core.view.WindowInsetsCompat
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.anime4k.Anime4KManager
 import app.gyrolet.mpvrx.domain.hdr.HdrToysManager
-import app.gyrolet.mpvrx.network.AndroidCookieJar
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
-import app.gyrolet.mpvrx.preferences.DEFAULT_SUBTITLE_FONT_FAMILY
 import app.gyrolet.mpvrx.preferences.MpvConfigControlledFeatures
 import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
@@ -37,19 +37,33 @@ import app.gyrolet.mpvrx.ui.player.anime4k.selectRuntimeStableAnime4K
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.toColorHexString
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
-import `is`.xyz.mpv.BaseMPVView
+import app.gyrolet.mpvrx.utils.media.VideoCodecSupportInspector
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import `is`.xyz.mpv.KeyMapping
 import `is`.xyz.mpv.MPVLib
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.math.abs
 import kotlin.reflect.KProperty
+
+private fun String.toMpvLanguageList(): String =
+  split(',').map(String::trim).filter(String::isNotEmpty).joinToString(",")
 
 class MPVView(
   context: Context,
   attributes: AttributeSet,
-) : BaseMPVView(context, attributes),
+) : MpvSurfaceHost(context, attributes),
   KoinComponent {
   private val audioPreferences: AudioPreferences by inject()
+  private val appearancePreferences: AppearancePreferences by inject()
   private val playerPreferences: PlayerPreferences by inject()
   private val decoderPreferences: DecoderPreferences by inject()
   private val advancedPreferences: AdvancedPreferences by inject()
@@ -60,10 +74,68 @@ class MPVView(
   private val hdrToysManager: HdrToysManager by inject()
 
   var isExiting = false
+  private var lastRequestedFrameRate = Float.NaN
   var forceOpenGlFallback = false
-  var isSurfaceReady = false
+  private var renderCallbacksEnabled = true
+  private val surfaceReadiness = MutableStateFlow(false)
+  var isSurfaceReady: Boolean
+    get() = surfaceReadiness.value
+    private set(value) {
+      surfaceReadiness.value = value
+    }
+  var surfaceAttachmentGeneration = 0L
     private set
   var onSurfaceReady: (() -> Unit)? = null
+  @Volatile
+  var surfaceBindingEnabled = true
+    set(value) {
+      field = value
+      if (!value) isSurfaceReady = false
+    }
+
+  init {
+    // HDR stays on a native SurfaceView: TextureView/Compose cannot preserve full HDR output.
+    setTextureRendering(
+      appearancePreferences.liquidGlassEnabled.get() &&
+        !decoderPreferences.hdrScreenOutput.get() &&
+        !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT),
+    )
+  }
+
+  /**
+   * Suspends the media loader until this view's Surface is attached, like mpv-android's
+   * `playFile()` deferring `loadfile` to `surfaceCreated`. The bind is re-attempted so a failed or
+   * superseded attachment is recovered. Returns false only when binding is disabled or exiting.
+   */
+  internal suspend fun awaitSurfaceReady(): Boolean {
+    while (true) {
+      val attached =
+        withContext(Dispatchers.Main.immediate) {
+          when {
+            ensureSurfaceAttached() -> true
+            // A hidden window (backgrounded/locked) will not create a Surface until it returns.
+            isExiting || !surfaceBindingEnabled || (isAttachedToWindow && windowVisibility != VISIBLE) -> false
+            else -> null
+          }
+        }
+      if (attached != null) return attached
+      withTimeoutOrNull(SURFACE_RETRY_MS) { surfaceReadiness.first { it } }
+    }
+  }
+
+  /**
+   * Binds this view's valid Surface unless it is already the attached one. Covers a failed bind, a
+   * rebuilt core and another owner (mini player/PiP) holding the session. Main thread only.
+   */
+  internal fun ensureSurfaceAttached(): Boolean {
+    val surface = renderSurface ?: return false
+    if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || !surface.isValid) return false
+    // A Surface can be JNI-attached while mpv is still processing its nonzero wid.
+    // Do not reattach it during that window: JNI replacement briefly resets wid=0.
+    if (PlaybackSession.isSurfaceAttachedTo(this)) return isSurfaceReady
+    onRenderSurfaceAvailable(surface, width, height)
+    return isSurfaceReady
+  }
 
   /**
    * Configures the process-wide player and binds this view as its current rendering surface.
@@ -73,39 +145,86 @@ class MPVView(
     configDir: String,
     cacheDir: String,
   ): Result<Boolean> {
-    // The libmpv core is process-wide, so returning to the player can reuse a core created with
-    // older renderer preferences. Keep fallbacks stable for the lifetime of that preference
-    // selection, but recreate the core when gpu-next/Vulkan selection actually changes.
-    MpvConfigOverridePolicy.configure(advancedPreferences.mpvConfOverrides.get())
-    val requestedBackend = selectRenderBackend(ignoreForcedOpenGlFallback = true)
-    val coreConfigurationKey =
-      "${requestedBackend.configurationKey}|conf=${MpvConfigOverridePolicy.configurationKey()}" +
-        "|mpv=${mpvConfigCache.configurationKey()}"
-    val result =
-      PlaybackSession.initialize(
-        context = context.applicationContext,
-        configDir = configDir,
-        cacheDir = cacheDir,
-        coreConfigurationKey = coreConfigurationKey,
-        initOptions = ::initOptions,
-        postInitOptions = ::postInitOptions,
-        observeProperties = ::observeProperties,
-      )
-    if (result.isSuccess) {
-      holder.removeCallback(this)
-      holder.addCallback(this)
-      if (holder.surface.isValid && !isSurfaceReady) surfaceCreated(holder)
-    }
+    val result = initializeCoreSession(configDir, cacheDir)
+    if (result.isSuccess) attachSessionSurface()
     return result
   }
 
+  /**
+   * Configures the process-wide native core without touching Android view state.
+   *
+   * Keeping the Surface handoff out of this method lets [PlayerActivity] overlap the expensive
+   * `MPVLib.init()` call with window attachment and system-UI setup on the main thread. The
+   * caller must invoke [attachSessionSurface] on the main thread after this succeeds.
+   */
+  internal fun initializeCoreSession(
+    configDir: String,
+    cacheDir: String,
+  ): Result<Boolean> {
+    // The libmpv core is process-wide, so returning to the player can reuse a core created with
+    // older renderer preferences. Keep fallbacks stable for the lifetime of that preference
+    // selection, but recreate the core when gpu-next/Vulkan selection actually changes.
+    val inputs = awaitInitInputs()
+    MpvConfigOverridePolicy.configure(advancedPreferences.mpvConfOverrides.get())
+    // The core key deliberately ignores forceOpenGlFallback so a failed Vulkan attempt does not
+    // invalidate the very key it is retrying under.
+    val requestedBackend = selectRenderBackend(inputs.anime4kEnabled, inputs.gpuNextEnabled, inputs.vulkanCapable)
+    val scriptsKey = advancedPreferences.userScriptsConfigurationKey()
+    val coreConfigurationKey =
+      "${requestedBackend.configurationKey}|conf=${MpvConfigOverridePolicy.configurationKey()}" +
+        "|mpv=${mpvConfigCache.configurationKey()}|scripts=$scriptsKey"
+    return PlaybackSession.initialize(
+      context = context.applicationContext,
+      configDir = configDir,
+      cacheDir = cacheDir,
+      coreConfigurationKey = coreConfigurationKey,
+      initOptions = ::initOptions,
+      postInitOptions = ::postInitOptions,
+      observeProperties = ::observeProperties,
+      userScriptsKey = scriptsKey,
+    )
+  }
+
+  /** Binds this Android view to an initialized core. Must be called on the main thread. */
+  internal fun attachSessionSurface() {
+    renderCallbacksEnabled = true
+    ensureSurfaceAttached()
+  }
+
+  /**
+   * Whether the live core was built for a different user-script selection than the current
+   * preference. Answered without touching libmpv while scripts are disabled, which is the state
+   * for the ordinary video open, so the check costs one preference read and no lock.
+   */
+  internal fun userScriptsNeedReload(): Boolean {
+    if (!advancedPreferences.enableLuaScripts.get()) return false
+    return PlaybackSession.userScriptsNeedReload(advancedPreferences.userScriptsConfigurationKey())
+  }
+
   fun releaseSurface() {
-    holder.removeCallback(this)
+    renderCallbacksEnabled = false
+    surfaceAttachmentGeneration++
+    lastRequestedFrameRate = Float.NaN
     if (isSurfaceReady || PlaybackSession.state.value.surfaceAttached) {
       isSurfaceReady = false
       PlaybackSession.unbindSurface(this)
     }
   }
+
+  fun rebindCurrentSurface() {
+    if (!surfaceBindingEnabled || renderSurface?.isValid != true) return
+    isSurfaceReady = false
+    PlaybackSession.unbindSurface(this)
+    ensureSurfaceAttached()
+  }
+
+  private data class StartupShaderSelection(
+    val backend: RenderBackendSelection,
+    val hdrMode: HdrScreenMode,
+    val hdrPipelineReady: Boolean,
+  )
+
+  private var pendingStartupShaders: StartupShaderSelection? = null
 
   private data class RenderBackendSelection(
     val vo: String,
@@ -115,6 +234,89 @@ class MPVView(
   ) {
     val configurationKey: String
       get() = "$vo|$gpuApi|$gpuContext"
+  }
+
+  /**
+   * Everything [initOptions] needs that does not require a live core: preference reads, the
+   * MediaCodecList query, the renderer selection *ingredients* and the Pictures directory.
+   *
+   * Only the `PlaybackSession.setOptionString` calls actually need the core, so deriving these
+   * values off the main thread removes ~15 DataStore reads, a MediaCodecList query and an mkdirs
+   * from the open path without touching the MPVLib.create -> option writes -> MPVLib.init order.
+   *
+   * The subtitle and audio blocks are held as ready-to-write option pairs for the same reason:
+   * they were the two largest preference-read groups in the whole init (about 24 and 4 reads plus
+   * a font resolution and five colour conversions), and every one of those values is known well
+   * before a core exists. Deriving them here leaves `setupSubtitlesOptions`/`setupAudioOptions` as
+   * pure option writes, matching the cost of the other blocks instead of dominating them.
+   */
+  private class InitInputs(
+    val profile: String,
+    val anime4kEnabled: Boolean,
+    val gpuNextEnabled: Boolean,
+    val vulkanCapable: Boolean,
+    val hdrScreenOutputEnabled: Boolean,
+    val hdrScreenModePreference: HdrScreenMode,
+    val boostSdrToHdr: Boolean,
+    val hardwareDecoderCodecs: List<String>,
+    val useYuv420p: Boolean,
+    val logLevel: String,
+    val screenshotDirectoryPath: String,
+    val filterValues: List<Pair<String, String>>,
+    val defaultSpeed: String,
+    val preciseSeek: Boolean,
+    val subtitleOptionValues: List<Pair<String, String>>,
+    val audioOptionValues: List<Pair<String, String>>,
+  )
+
+  @Volatile
+  private var preparedInitInputs: InitInputs? = null
+  private var initInputsJob: Job? = null
+
+  /** Kicks off the derivation. Safe to call more than once; only the first call starts work. */
+  fun prepareInitInputs() {
+    if (initInputsJob != null) return
+    initInputsJob =
+      CoroutineScope(Dispatchers.IO).launch {
+        preparedInitInputs = runCatching(::computeInitInputs).getOrNull()
+      }
+  }
+
+  /** Joins the derivation, computing it inline if it is not ready or failed. */
+  private fun awaitInitInputs(): InitInputs {
+    preparedInitInputs?.let { return it }
+    initInputsJob?.let { job -> runBlocking { job.join() } }
+    return preparedInitInputs ?: computeInitInputs().also { preparedInitInputs = it }
+  }
+
+  private fun computeInitInputs(): InitInputs {
+    val screenshotDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    screenshotDirectory.mkdirs()
+    return InitInputs(
+      profile = decoderPreferences.profile.get(),
+      // These three are the inputs to the renderer choice. The choice itself is not precomputed
+      // because it also depends on forceOpenGlFallback, which differs on the Vulkan retry attempt.
+      anime4kEnabled = decoderPreferences.enableAnime4K.get() && decoderPreferences.anime4kMode.get() != "OFF",
+      gpuNextEnabled = decoderPreferences.gpuNext.get(),
+      vulkanCapable = RendererBackendPolicy.canUseVulkan(
+        buildIncludesVulkan = BuildConfig.MPV_SUPPORTS_VULKAN,
+        deviceSupportsVulkan = VulkanCapabilities.isDeviceSupported(context),
+        userEnabledVulkan = decoderPreferences.useVulkan.get(),
+        forceOpenGlFallback = false,
+      ),
+      hdrScreenOutputEnabled = decoderPreferences.hdrScreenOutput.get(),
+      hdrScreenModePreference = decoderPreferences.hdrScreenMode.get(),
+      boostSdrToHdr = decoderPreferences.boostSdrToHdr.get(),
+      hardwareDecoderCodecs = VideoCodecSupportInspector.hardwareDecoderCodecIds(),
+      useYuv420p = decoderPreferences.useYUV420P.get(),
+      logLevel = if (advancedPreferences.verboseLogging.get()) "v" else "warn",
+      screenshotDirectoryPath = screenshotDirectory.path,
+      filterValues = VideoFilters.entries.map { it.mpvProperty to it.preference(decoderPreferences).get().toString() },
+      defaultSpeed = playerPreferences.defaultSpeed.get().toString(),
+      preciseSeek = playerPreferences.usePreciseSeeking.get(),
+      subtitleOptionValues = computeSubtitleOptionValues(),
+      audioOptionValues = computeAudioOptionValues(),
+    )
   }
 
   fun getVideoOutAspect(): Double? {
@@ -183,27 +385,25 @@ class MPVView(
   var secondarySid: Int by TrackDelegate("secondary-sid")
   var aid: Int by TrackDelegate("aid")
 
-  override fun initOptions() {
-    val profile = decoderPreferences.profile.get()
-    PlaybackSession.setOptionString("profile", profile)
-    val backend = selectRenderBackend()
+  private fun initOptions() {
+    val inputs = awaitInitInputs()
+    PlaybackSession.setOptionString("profile", inputs.profile)
+    val backend = selectRenderBackend(inputs.anime4kEnabled, inputs.gpuNextEnabled, inputs.vulkanCapable)
     val useVulkan = backend.gpuApi == "vulkan"
     val hwdecMode = preferredHwdecMode(useVulkan)
     PlaybackSession.setVideoOutput(backend.vo)
     PlaybackSession.setOptionString("gpu-api", backend.gpuApi)
     PlaybackSession.setOptionString("gpu-context", backend.gpuContext)
 
-    val hdrScreenOutputEnabled = decoderPreferences.hdrScreenOutput.get()
     val isLinearAvailable = useVulkan && backend.vo == "gpu-next"
     val hdrScreenMode =
-      if (!hdrScreenOutputEnabled) {
+      if (!inputs.hdrScreenOutputEnabled) {
         HdrScreenMode.OFF
       } else {
-        val mode = decoderPreferences.hdrScreenMode.get()
-        if (mode == HdrScreenMode.LINEAR && !isLinearAvailable) {
+        if (inputs.hdrScreenModePreference == HdrScreenMode.LINEAR && !isLinearAvailable) {
           HdrScreenMode.defaultEnabledMode
         } else {
-          mode
+          inputs.hdrScreenModePreference
         }
       }
     val hdrPipelineReady = hdrScreenMode != HdrScreenMode.LINEAR || isLinearAvailable
@@ -211,116 +411,90 @@ class MPVView(
       applyHdrScreenOutputOptions(
         mode = hdrScreenMode,
         pipelineReady = hdrPipelineReady,
-        boostSdrToHdr = decoderPreferences.boostSdrToHdr.get(),
+        boostSdrToHdr = inputs.boostSdrToHdr,
       )
     }
 
     // Fongmi can map direct MediaCodec frames into Vulkan; other Vulkan builds start with copy mode.
     if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HARDWARE_DECODER)) {
+      val hardwareDecoderCodecs = inputs.hardwareDecoderCodecs
       PlaybackSession.setOptionString(
         "hwdec",
-        hwdecMode,
+        if (hardwareDecoderCodecs.isEmpty()) "no" else hwdecMode,
       )
-      PlaybackSession.setOptionString("hwdec-codecs", "all")
+      if (hardwareDecoderCodecs.isNotEmpty()) {
+        PlaybackSession.setOptionString("hwdec-codecs", hardwareDecoderCodecs.joinToString(","))
+      }
     }
 
     // These were forced on between the last known-good build (e3b1de8) and the first build
     // reproducing the HEVC/Main10 frame-drop regression (84f21fc). Keep mpv's normal direct-
-    // rendering heuristic and disable the extra decoder-frame queue, matching mpv's defaults.
+    // rendering heuristic, matching mpv's defaults.
     PlaybackSession.setOptionString("vd-lavc-dr", "auto")
-    PlaybackSession.setOptionString("vd-lavc-queue", "no")
 
-    if (decoderPreferences.useYUV420P.get()) {
+    if (inputs.useYuv420p) {
       PlaybackSession.setOptionString("vf", "format=yuv420p")
     }
-    val logLevel = if (advancedPreferences.verboseLogging.get()) "v" else "warn"
-    PlaybackSession.setOptionString("msg-level", "all=$logLevel")
-
-    PlaybackSession.setOptionString("keep-open", "yes")
-    PlaybackSession.setOptionString("input-default-bindings", "yes")
-
-    PlaybackSession.setOptionString("tls-verify", "yes")
-    PlaybackSession.setOptionString("tls-ca-file", "${context.filesDir.path}/cacert.pem")
-
-    val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-    screenshotDir.mkdirs()
-    PlaybackSession.setOptionString("screenshot-directory", screenshotDir.path)
-
-    VideoFilters.entries.forEach {
-      PlaybackSession.setOptionString(it.mpvProperty, it.preference(decoderPreferences).get().toString())
+    inputs.filterValues.forEach { (property, value) ->
+      PlaybackSession.setOptionString(property, value)
     }
 
-    PlaybackSession.setOptionString("speed", playerPreferences.defaultSpeed.get().toString())
+    PlaybackSession.setOptionString("speed", inputs.defaultSpeed)
     // Avoid forcing CPU-side film-grain synthesis globally; this can spike thermals on mobile SoCs.
     // Let mpv choose the safest path for the active decoder/backend.
     PlaybackSession.setOptionString("vd-lavc-film-grain", "auto")
 
-    // Streaming improvements
-    // Use adaptive HLS bitrate selection to avoid forcing the heaviest stream profile.
-    // This reduces thermal load and helps prevent jitter/rebuffering on long sessions.
-    PlaybackSession.setOptionString("hls-bitrate", "no")
-    PlaybackSession.setOptionString("http-allow-redirect", "yes")
-    PlaybackSession.setOptionString("cookies", "yes")
-    PlaybackSession.setOptionString("cookies-file", AndroidCookieJar.playbackCookieFile(context).absolutePath)
-    PlaybackSession.setOptionString("cache", "auto")
-    PlaybackSession.setOptionString("cache-pause", "yes")
-    PlaybackSession.setOptionString("cache-pause-wait", "2")
-    PlaybackSession.setOptionString("demuxer-max-bytes", "64MiB")
-    // Recover boundedly from transient HTTP/TLS disconnects, including non-seekable live inputs.
-    // Do not use reconnect_at_eof globally: a legitimate VOD EOF must still finish normally.
-    PlaybackSession.setOptionString(
-      "demuxer-lavf-o",
-      "http_persistent=0,reconnect=1,reconnect_on_network_error=1,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
-    )
-    // demuxer-lavf-o only reaches demuxer-internal opens (HLS/DASH segments). The primary http(s)
-    // URL is opened by stream_lavf, which reads stream-lavf-o; without it a dropped connection or
-    // one failed seek-reopen permanently stalls network playback (endless buffering).
-    PlaybackSession.setOptionString(
-      "stream-lavf-o",
-      "reconnect=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
-    )
+    // Cache, TLS, cookie and reconnect settings are applied by PlaybackSession on the first
+    // item that actually opens over the network, so a local file never pays for them.
     // Drop only video-output-bound late frames when rendering cannot keep up.
     // This prevents long-term jitter buildup without aggressively sacrificing smoothness.
     PlaybackSession.setOptionString("framedrop", "vo")
-
-    val preciseSeek = playerPreferences.usePreciseSeeking.get()
-    PlaybackSession.setOptionString("hr-seek", if (preciseSeek) "yes" else "no")
-    PlaybackSession.setOptionString("hr-seek-framedrop", if (preciseSeek) "no" else "yes")
 
     // Use audio-based video sync for better frame pacing with 4K HDR content.
     // This prevents timing jitter when the display refresh rate doesn't perfectly
     // match the video frame rate (e.g., 24fps content on 60Hz display).
     PlaybackSession.setOptionString("video-sync", "audio")
 
-    // Anime4K shader initialization (MUST be in initOptions, not after file load!)
-    if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.ANIME4K)) {
-      applyAnime4KShaders(backend.vo, backend.gpuApi)
-    }
-    // HDR Toys shaders (loaded after Anime4K so they append in the correct order)
-    if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) {
-      applyHdrToysMode(hdrScreenMode, hdrPipelineReady)
-    }
+    // These are native property/command operations (shader list changes), not mpv options.
+    // Running them before MPVLib.init() fails with "mpv_command: core not initialized".
+    // Save the selection and apply it in postInitOptions(), before the first loadfile.
+    pendingStartupShaders = StartupShaderSelection(backend, hdrScreenMode, hdrPipelineReady)
 
     setupSubtitlesOptions()
     setupAudioOptions()
+    // The built-in hook reads script-opts when MPVLib.init() creates it.
+    YtdlpManager.configureMpvHookBeforeInit(context)
+    // Restore 2.7.2's bridge environment and extractor options before the first load.
+    // This only configures paths/options; installation is still deferred to web playback.
+    setupYtdlpOptions()
+    applyStartupOptions()
+  }
+
+  /**
+   * Configures the bundled bridge at core startup and refreshes preferences for web playback.
+   */
+  fun setupYtdlpOptions() {
     YtdlpManager.setupMpvOptions(context, ytdlPreferences, subtitlesPreferences)
   }
 
-  override fun observeProperties() {
-    for ((name, format) in observedProps) PlaybackSession.observeProperty(name, format)
+  /**
+   * Apply these before loadfile: keep-open and seek policy also affect the first file.
+   */
+  private fun applyStartupOptions() {
+    val inputs = awaitInitInputs()
+    PlaybackSession.setOptionString("msg-level", "all=${inputs.logLevel}")
+    PlaybackSession.setOptionString("keep-open", "yes")
+    PlaybackSession.setOptionString("input-default-bindings", "yes")
+    PlaybackSession.setOptionString("screenshot-directory", inputs.screenshotDirectoryPath)
+    PlaybackSession.setOptionString("hr-seek", if (inputs.preciseSeek) "yes" else "no")
+    PlaybackSession.setOptionString("hr-seek-framedrop", if (inputs.preciseSeek) "no" else "yes")
   }
 
-  override fun postInitOptions() {
-    applyOsdSafeAreaMargins()
-
-    when (decoderPreferences.debanding.get()) {
-      Debanding.None -> {}
-      Debanding.CPU -> PlaybackSession.command("vf", "add", "@deband:gradfun=radius=12")
-      Debanding.GPU -> PlaybackSession.setOptionString("deband", "yes")
-    }
-
+  fun applyStartupStatistics() {
+    // The native core survives Activity recreation and playlist loads. A toggle on every
+    // load would turn an already enabled statistics overlay off on the next file.
+    if (PlaybackSession.getPropertyString("user-data/mpvrx/startup-stats-applied") == "yes") return
+    PlaybackSession.setPropertyString("user-data/mpvrx/startup-stats-applied", "yes")
     advancedPreferences.enabledStatisticsPage.get().let {
       if (it in 1..5) {
         PlaybackSession.command("script-binding", "stats/display-stats-toggle")
@@ -329,15 +503,52 @@ class MPVView(
     }
   }
 
+  private fun observeProperties() {
+    for ((name, format) in observedProps) PlaybackSession.observeProperty(name, format)
+  }
+
+  private fun postInitOptions() {
+    // Native initialization can run off the main thread. Start with a safe baseline and let the
+    // Activity's WindowInsets listener apply the real cutout margins when the view is attached.
+    PlaybackSession.setOptionString("osd-margin-x", DEFAULT_OSD_SAFE_MARGIN.toString())
+    PlaybackSession.setOptionString("osd-margin-y", DEFAULT_OSD_SAFE_MARGIN.toString())
+
+    // libmpv is initialized here, but no file has been loaded yet. Unlike initOptions(),
+    // it is safe to run change-list and shader property commands here.
+    pendingStartupShaders?.let { selection ->
+      if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.ANIME4K)) {
+        applyAnime4KShaders(selection.backend.vo, selection.backend.gpuApi)
+      }
+      // HDR Toys must be appended after Anime4K.
+      if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) {
+        applyHdrToysMode(selection.hdrMode, selection.hdrPipelineReady)
+      }
+    }
+    pendingStartupShaders = null
+
+    when (decoderPreferences.debanding.get()) {
+      Debanding.None -> {}
+      Debanding.CPU -> PlaybackSession.command("vf", "add", "@deband:gradfun=radius=12")
+      Debanding.GPU -> PlaybackSession.setOptionString("deband", "yes")
+    }
+
+  }
+
   fun applyOsdSafeAreaMargins(insets: WindowInsetsCompat? = null) {
     val resolvedInsets =
       insets ?: androidx.core.view.ViewCompat
         .getRootWindowInsets(this)
     val cutoutInsets = resolvedInsets?.getInsets(WindowInsetsCompat.Type.displayCutout())
-    val horizontalMargin = maxOf(cutoutInsets?.left ?: 0, cutoutInsets?.right ?: 0).coerceAtLeast(16)
-    val verticalMargin = (cutoutInsets?.top ?: 0).coerceAtLeast(16)
+    val horizontalMargin =
+      maxOf(cutoutInsets?.left ?: 0, cutoutInsets?.right ?: 0).coerceAtLeast(DEFAULT_OSD_SAFE_MARGIN)
+    val verticalMargin = (cutoutInsets?.top ?: 0).coerceAtLeast(DEFAULT_OSD_SAFE_MARGIN)
     PlaybackSession.setOptionString("osd-margin-x", horizontalMargin.toString())
     PlaybackSession.setOptionString("osd-margin-y", verticalMargin.toString())
+  }
+
+  private companion object {
+    const val DEFAULT_OSD_SAFE_MARGIN = 16
+    const val SURFACE_RETRY_MS = 250L
   }
 
   @Suppress("ReturnCount", "DEPRECATION")
@@ -377,46 +588,95 @@ class MPVView(
     return true
   }
 
-  override fun surfaceChanged(
-    holder: android.view.SurfaceHolder,
-    format: Int,
+  override fun onRenderSurfaceSizeChanged(
     width: Int,
     height: Int,
   ) {
-    PlaybackSession.resizeSurface(width, height, owner = this)
+    if (!PlaybackSession.resizeSurface(width, height, owner = this)) ensureSurfaceAttached()
     applyFrameRate()
+    redrawPausedFrame()
   }
 
-  override fun surfaceCreated(holder: android.view.SurfaceHolder) {
-    isSurfaceReady = PlaybackSession.bindSurface(holder.surface, width, height, this)
-    applyFrameRate()
-    post {
-      if (isSurfaceReady && holder.surface.isValid) {
+  /**
+   * A paused mpv does not render onto a new or resized Surface by itself, leaving a black or
+   * stretched buffer. A zero-distance exact seek re-renders the current frame (as REX Player does).
+   */
+  private fun redrawPausedFrame() {
+    if (isExiting || !isSurfaceReady) return
+    val state = PlaybackSession.state.value
+    if (!state.paused || state.phase != PlaybackPhase.READY || !PlaybackSession.isSurfaceAttachedTo(this)) return
+    PlaybackSession.command("seek", "0", "relative+exact")
+  }
+
+  override fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int) {
+    if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || renderSurface !== surface) return
+    if (PlaybackSession.isSurfaceAttachedTo(this)) return
+    isSurfaceReady = false
+    val bound =
+      PlaybackSession.bindSurface(surface, width, height, this, ownerIsActive = {
+        surfaceBindingEnabled && renderCallbacksEnabled && renderSurface === surface
+      })
+    if (!bound) return
+    surfaceAttachmentGeneration++
+    val attachedGeneration = surfaceAttachmentGeneration
+
+    fun notifyWhenRendererReady(attempt: Int) {
+      // Ignore checks queued for a Surface that has since been destroyed/replaced.
+      if (isExiting || !surfaceBindingEnabled || !surface.isValid || renderSurface !== surface ||
+        surfaceAttachmentGeneration != attachedGeneration || !PlaybackSession.isSurfaceAttachedTo(this)
+      ) return
+      if (PlaybackSession.isRendererReadyFor(this)) {
+        isSurfaceReady = true
+        applyFrameRate()
+        redrawPausedFrame()
         onSurfaceReady?.invoke()
+      } else if (attempt < 60) {
+        postDelayed({ notifyWhenRendererReady(attempt + 1) }, 16L)
+      } else {
+        android.util.Log.e("MPVView", "Native window never became renderer-ready")
       }
     }
+    post { notifyWhenRendererReady(0) }
   }
 
-  override fun surfaceDestroyed(holder: android.view.SurfaceHolder) {
+  override fun onRenderSurfaceDestroyed() {
+    surfaceAttachmentGeneration++
     isSurfaceReady = false
+    lastRequestedFrameRate = Float.NaN
     PlaybackSession.unbindSurface(this)
   }
 
-  private fun applyFrameRate() {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-      val fps = PlaybackSession.getPropertyDouble("container-fps") ?: 0.0
-      if (fps > 0.0 && holder?.surface?.isValid == true) {
-        try {
-          holder.surface.setFrameRate(
-            fps.toFloat(),
-            android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
-          )
-        } catch (e: Exception) {
-          Log.e(TAG, "Failed to set frame rate on surface", e)
-        }
-      }
+  /**
+   * Applies the content FPS once per effective value. Both Surface callbacks and mpv's
+   * container-fps observer converge here, avoiding duplicate vendor display-mode requests.
+   */
+  internal fun updateFrameRate(fps: Double? = null) {
+    if (
+      android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R || isExiting ||
+      !surfaceBindingEnabled || !isSurfaceReady || !PlaybackSession.state.value.surfaceAttached
+    ) return
+    val resolved = fps ?: PlaybackSession.getPropertyDouble("container-fps") ?: return
+    if (!resolved.isFinite() || resolved <= 0.0 || resolved > 1000.0) return
+
+    val surface = renderSurface ?: return
+    if (!surface.isValid) return
+
+    val requested = resolved.toFloat()
+    if (lastRequestedFrameRate.isFinite() && abs(lastRequestedFrameRate - requested) < 0.01f) return
+
+    try {
+      surface.setFrameRate(
+        requested,
+        android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
+      )
+      lastRequestedFrameRate = requested
+      Log.d(TAG, "Requested content frame rate ${"%.3f".format(requested)} Hz")
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to set frame rate on surface", e)
     }
   }
+
+  private fun applyFrameRate() = updateFrameRate()
 
   private val observedProps =
     mapOf(
@@ -449,109 +709,113 @@ class MPVView(
       // Track console visibility state
       "user-data/mpv/console/open" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "sub-text" to MPVLib.MpvFormat.MPV_FORMAT_STRING,
-      "sub-scale" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
     )
 
-  private fun setupAudioOptions() {
-    // Disable MPV's automatic audio selection
-    // App will handle track selection manually via TrackSelector to respect user choices
-    PlaybackSession.setOptionString("alang", "")
-    PlaybackSession.setOptionString("audio-display", "embedded-first")
-    PlaybackSession.setOptionString("audio-delay", (audioPreferences.defaultAudioDelay.get() / 1000.0).toString())
-    PlaybackSession.setOptionString("audio-pitch-correction", audioPreferences.audioPitchCorrection.get().toString())
-    PlaybackSession.setOptionString("volume-max", (audioPreferences.volumeBoostCap.get() + 100).toString())
-    // Prevent automatic volume normalization when downmixing multi-channel audio
-    PlaybackSession.setOptionString("audio-normalize-downmix", "no")
-  }
-
-  // Setup
-  private fun setupSubtitlesOptions() {
-    // Disable MPV's automatic subtitle selection
-    // App will handle track selection manually via TrackSelector to respect user choices
-    PlaybackSession.setOptionString("slang", "")
-    PlaybackSession.setOptionString("sub-auto", "no")
-    PlaybackSession.setOptionString("sub-file-paths", "")
-    PlaybackSession.setOptionString("subs-fallback", "no")
+  /**
+   * Derives every `sub-*` option from preferences, off the main thread.
+   *
+   * The values are written to the core verbatim by [setupSubtitlesOptions]; the option *names* and
+   * their order are kept identical to the previous inline block so libmpv still receives the same
+   * configuration in the same sequence before `MPVLib.init()`.
+   */
+  private fun computeSubtitleOptionValues(): List<Pair<String, String>> {
+    // Resolve preferred languages before packet reads begin, but preserve the global subtitle-off
+    // preference. TrackSelector remains responsible for title/forced/hearing-impaired filtering.
+    val preferredSubtitleLanguages =
+      subtitlesPreferences.preferredLanguages.get().toMpvLanguageList()
+        .takeIf { subtitlesPreferences.autoEnableSubtitles.get() }
+        .orEmpty()
 
     val fontsDirPath = "${context.filesDir.path}/fonts/"
-    PlaybackSession.setOptionString("sub-fonts-dir", fontsDirPath)
-    // Auto-detect subtitle encoding
-    PlaybackSession.setOptionString("sub-codepage", "auto")
-    // Allow embedded fonts from MKV/MP4 containers
-    PlaybackSession.setOptionString("embeddedfonts", "yes")
-    // Auto-detect font provider (system fonts, embedded fonts, etc.)
-    PlaybackSession.setOptionString("sub-font-provider", "auto")
 
-    // Delay and speed for both primary and secondary
+    // Both primary and secondary use the same font; blank/default choices use mpv's sans-serif.
+    val preferredFont = resolveSubtitleFontFamily(subtitlesPreferences)
+    val overrideAssSubs = subtitlesPreferences.overrideAssSubs.get()
+    val subAssOverride = if (overrideAssSubs) "force" else "scale"
+
+    // Note: there is no secondary-sub-speed in official mpv — sub-speed covers text subs.
     val subDelay = (subtitlesPreferences.defaultSubDelay.get() / 1000.0).toString()
     val subSpeed = subtitlesPreferences.defaultSubSpeed.get().toString()
-    PlaybackSession.setOptionString("sub-delay", subDelay)
-    PlaybackSession.setOptionString("sub-speed", subSpeed)
-    PlaybackSession.setOptionString("secondary-sub-delay", subDelay)
-    PlaybackSession.setOptionString("secondary-sub-speed", subSpeed)
-
-    val preferredFont = subtitlesPreferences.font.get().ifBlank { DEFAULT_SUBTITLE_FONT_FAMILY }
-    PlaybackSession.setOptionString("sub-font", preferredFont)
-    PlaybackSession.setOptionString("secondary-sub-font", preferredFont)
-
-    if (subtitlesPreferences.overrideAssSubs.get()) {
-      PlaybackSession.setOptionString("sub-ass-override", "force")
-      PlaybackSession.setOptionString("sub-ass-justify", "yes")
-      PlaybackSession.setOptionString("secondary-sub-ass-override", "force")
-    } else {
-      PlaybackSession.setOptionString("sub-ass-override", "no")
-      PlaybackSession.setOptionString("secondary-sub-ass-override", "no")
-    }
-
-    // Typography and styling for both primary and secondary
-    val fontSize = subtitlesPreferences.fontSize.get().toString()
-    val bold = if (subtitlesPreferences.bold.get()) "yes" else "no"
-    val italic = if (subtitlesPreferences.italic.get()) "yes" else "no"
-    val justify = subtitlesPreferences.justification.get().value
-    val textColor = subtitlesPreferences.textColor.get().toColorHexString()
-    val backgroundColor = subtitlesPreferences.backgroundColor.get().toColorHexString()
-    val borderColor = subtitlesPreferences.borderColor.get().toColorHexString()
-    val shadowColor = subtitlesPreferences.shadowColor.get().toColorHexString()
-    val borderSize = subtitlesPreferences.borderSize.get().toString()
-    val borderStyle = subtitlesPreferences.borderStyle.get().value
-    val shadowOffset = subtitlesPreferences.shadowOffset.get().toString()
-    val subPos = clampSubtitlePosition(subtitlesPreferences.subPos.get())
-    val w =
-      width.takeIf { it > 0 }?.toFloat() ?: context.resources.displayMetrics.widthPixels
-        .toFloat()
-    val h =
-      height.takeIf { it > 0 }?.toFloat() ?: context.resources.displayMetrics.heightPixels
-        .toFloat()
-    val secondarySubPos = calculateSecondarySubtitlePosition(subPos, w, h)
-    val subScale = subtitlesPreferences.subScale.get().toString()
 
     val scaleByWindow = if (subtitlesPreferences.scaleByWindow.get()) "yes" else "no"
-    val blendMode =
-      if (subtitlesPreferences.blendSubtitlesWithVideo.get() &&
-        playerPreferences.isAmbientEnabled.get()
-      ) {
-        "video"
-      } else {
-        "no"
-      }
-    PlaybackSession.setOptionString("blend-subtitles", blendMode)
+    val blendMode = subtitleBlendMode()
 
-    for ((prefix, pos) in listOf("sub-" to subPos.toString(), "secondary-sub-" to secondarySubPos.toString())) {
-      PlaybackSession.setOptionString("${prefix}font-size", fontSize)
-      PlaybackSession.setOptionString("${prefix}bold", bold)
-      PlaybackSession.setOptionString("${prefix}italic", italic)
-      PlaybackSession.setOptionString("${prefix}justify", justify)
-      PlaybackSession.setOptionString("${prefix}color", textColor)
-      PlaybackSession.setOptionString("${prefix}back-color", backgroundColor)
-      PlaybackSession.setOptionString("${prefix}border-color", borderColor)
-      PlaybackSession.setOptionString("${prefix}shadow-color", shadowColor)
-      PlaybackSession.setOptionString("${prefix}border-size", borderSize)
-      PlaybackSession.setOptionString("${prefix}border-style", borderStyle)
-      PlaybackSession.setOptionString("${prefix}shadow-offset", shadowOffset)
-      PlaybackSession.setOptionString("${prefix}scale", subScale)
-      PlaybackSession.setOptionString("${prefix}pos", pos)
-      PlaybackSession.setOptionString("${prefix}scale-by-window", scaleByWindow)
-      PlaybackSession.setOptionString("${prefix}use-margins", scaleByWindow)
+    return buildList {
+      add("slang" to preferredSubtitleLanguages)
+      add("sub-auto" to "no")
+      add("sub-file-paths" to "")
+      add("subs-fallback" to "no")
+
+      add("sub-fonts-dir" to fontsDirPath)
+      // Auto-detect subtitle encoding
+      add("sub-codepage" to "auto")
+      // Allow embedded fonts from MKV/MP4 containers
+      add("embeddedfonts" to "yes")
+      // Auto-detect font provider (system fonts, embedded fonts, etc.)
+      add("sub-font-provider" to "auto")
+      add("sub-vsfilter-bidi-compat" to if (subtitlesPreferences.forceRtlSubtitles.get()) "yes" else "no")
+
+      // Delay for both primary and secondary (secondary-sub-delay exists in official mpv).
+      add("sub-delay" to subDelay)
+      add("sub-speed" to subSpeed)
+      add("secondary-sub-delay" to subDelay)
+
+      add("sub-font" to preferredFont)
+      add("sub-ass-override" to subAssOverride)
+      // Left at mpv's default (not written) unless ASS rendering is forced on.
+      if (overrideAssSubs) add("sub-ass-justify" to "yes")
+      add("secondary-sub-ass-override" to subAssOverride)
+
+      add("blend-subtitles" to blendMode)
+
+      add("sub-font-size" to subtitlesPreferences.fontSize.get().toString())
+      // Primary style. Official mpv only has secondary-sub-delay/scale/pos/ass-override —
+      // secondary inherits font/bold/italic/justify/colors/border/shadow/windowing from primary.
+      add("sub-bold" to if (subtitlesPreferences.bold.get()) "yes" else "no")
+      add("sub-italic" to if (subtitlesPreferences.italic.get()) "yes" else "no")
+      add("sub-justify" to subtitlesPreferences.justification.get().value)
+      add("sub-color" to subtitlesPreferences.textColor.get().toColorHexString())
+      add("sub-back-color" to subtitlesPreferences.backgroundColor.get().toColorHexString())
+      add("sub-border-color" to subtitlesPreferences.borderColor.get().toColorHexString())
+      add("sub-shadow-color" to subtitlesPreferences.shadowColor.get().toColorHexString())
+      add("sub-border-size" to subtitlesPreferences.borderSize.get().toString())
+      add("sub-border-style" to subtitlesPreferences.borderStyle.get().value)
+      add("sub-shadow-offset" to subtitlesPreferences.shadowOffset.get().toString())
+      add("sub-scale" to subtitlesPreferences.subScale.get().toString())
+      add("sub-pos" to clampSubtitlePosition(subtitlesPreferences.subPos.get()).toString())
+      add("sub-scale-by-window" to scaleByWindow)
+      add("sub-use-margins" to scaleByWindow)
+      // Secondary has its own position/scale only.
+      add("secondary-sub-scale" to subtitlesPreferences.secondarySubScale.get().toString())
+      add(
+        "secondary-sub-pos" to
+          clampSubtitlePosition(subtitlesPreferences.secondarySubPos.get()).toString(),
+      )
+    }
+  }
+
+  private fun computeAudioOptionValues(): List<Pair<String, String>> =
+    buildList {
+      // Let mpv resolve the common case during demuxer initialization. TrackSelector still applies
+      // title-based commentary/description filtering after load when mpv's choice needs correction.
+      add("alang" to audioPreferences.preferredLanguages.get().toMpvLanguageList())
+      add("audio-display" to "embedded-first")
+      add("audio-delay" to (audioPreferences.defaultAudioDelay.get() / 1000.0).toString())
+      add("audio-pitch-correction" to audioPreferences.audioPitchCorrection.get().toString())
+      add("volume-max" to (audioPreferences.volumeBoostCap.get() + 100).toString())
+      // Prevent automatic volume normalization when downmixing multi-channel audio
+      add("audio-normalize-downmix" to "no")
+    }
+
+  private fun setupSubtitlesOptions() {
+    awaitInitInputs().subtitleOptionValues.forEach { (property, value) ->
+      PlaybackSession.setOptionString(property, value)
+    }
+  }
+
+  private fun setupAudioOptions() {
+    awaitInitInputs().audioOptionValues.forEach { (property, value) ->
+      PlaybackSession.setOptionString(property, value)
     }
   }
 
@@ -575,7 +839,11 @@ class MPVView(
     if (MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) return
     val profile = mode.hdrToysProfile
     if (!pipelineReady || profile == null) {
-      hdrToysManager.clear()
+      // A newly initialized core has no app HDR shaders to remove. Avoid a burst of
+      // redundant change-list commands (and native work) on every normal video open.
+      if (PlaybackSession.getPropertyString("glsl-shaders")?.contains("hdr-toys", ignoreCase = true) == true) {
+        hdrToysManager.clear()
+      }
       return
     }
     if (!hdrToysManager.apply(profile)) {
@@ -651,20 +919,6 @@ class MPVView(
     }
   }
 
-  private fun shouldUseVulkan(ignoreForcedOpenGlFallback: Boolean = false): Boolean {
-    val canUseVulkan =
-      RendererBackendPolicy.canUseVulkan(
-        buildIncludesVulkan = BuildConfig.MPV_SUPPORTS_VULKAN,
-        deviceSupportsVulkan = VulkanCapabilities.isDeviceSupported(context),
-        userEnabledVulkan = decoderPreferences.useVulkan.get(),
-        forceOpenGlFallback = forceOpenGlFallback && !ignoreForcedOpenGlFallback,
-      )
-    if (decoderPreferences.useVulkan.get() && !canUseVulkan) {
-      Log.w(TAG, "Vulkan is unavailable for this build or device. Forcing OpenGL.")
-    }
-    return canUseVulkan
-  }
-
   private fun preferredHwdecMode(usesVulkan: Boolean): String =
     RendererBackendPolicy.preferredHwdecMode(
       hardwareDecodingEnabled = decoderPreferences.tryHWDecoding.get(),
@@ -672,12 +926,16 @@ class MPVView(
       buildSupportsMediaCodecVulkan = BuildConfig.MPV_SUPPORTS_MEDIACODEC_VULKAN,
     )
 
-  private fun selectRenderBackend(ignoreForcedOpenGlFallback: Boolean = false): RenderBackendSelection {
-    val anime4kEnabled =
-      decoderPreferences.enableAnime4K.get() &&
-        (decoderPreferences.anime4kMode.get() != "OFF")
-    val gpuNextEnabled = decoderPreferences.gpuNext.get()
-    val vulkanEnabled = shouldUseVulkan(ignoreForcedOpenGlFallback)
+  /**
+   * Pure decision over already-resolved ingredients. [initOptions] passes the precomputed values;
+   * [initializeSession] resolves them itself because it needs the selection for the core key and
+   * must ignore [forceOpenGlFallback] there.
+   */
+  private fun selectRenderBackend(
+    anime4kEnabled: Boolean,
+    gpuNextEnabled: Boolean,
+    vulkanEnabled: Boolean,
+  ): RenderBackendSelection {
 
     if (anime4kEnabled && gpuNextEnabled && !vulkanEnabled) {
       return RenderBackendSelection(

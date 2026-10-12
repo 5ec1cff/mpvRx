@@ -67,6 +67,7 @@ data class PlaybackSubtitleTrack(
 object MediaUtils {
   fun shouldPlayInMiniPlayerOnly(isAudio: Boolean): Boolean {
     if (!isAudio) return false
+    if (userScriptRuntimeNeedsReload()) return false
     val audioPreferences =
       runCatching { org.koin.core.context.GlobalContext.get().get<app.gyrolet.mpvrx.preferences.AudioPreferences>() }.getOrNull()
     if (audioPreferences?.miniPlayerTrackSwitching?.get() != true) return false
@@ -86,6 +87,19 @@ object MediaUtils {
   ) {
     if (queueItems.isEmpty()) return
     val selectedIndex = startIndex.coerceIn(queueItems.indices)
+    if (userScriptRuntimeNeedsReload()) {
+      val token = PreparedPlaybackLaunchStore.stage(queueItems, selectedIndex, isExplicitQueue = true)
+      context.startActivity(Intent(context, PlayerActivity::class.java)
+        .setAction(Intent.ACTION_VIEW)
+        .setData(Uri.parse(queueItems[selectedIndex].originalUri))
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        .putExtra("internal_launch", true)
+        .putExtra("is_audio", true)
+        .putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_QUEUE, true)
+        .putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_TOKEN, token)
+        .putExtra("playlist_index", selectedIndex))
+      return
+    }
     PlaybackSession.replaceQueue(queueItems, selectedIndex, isExplicitQueue = true)
     val item = queueItems[selectedIndex]
     PlaybackSession.load(item)
@@ -105,6 +119,11 @@ object MediaUtils {
     runCatching {
       ContextCompat.startForegroundService(context, serviceIntent)
     }
+  }
+
+  private fun userScriptRuntimeNeedsReload(): Boolean {
+    val preferences = org.koin.core.context.GlobalContext.get().get<app.gyrolet.mpvrx.preferences.AdvancedPreferences>()
+    return PlaybackSession.userScriptsNeedReload(preferences.userScriptsConfigurationKey())
   }
 
   fun playFiles(
@@ -127,10 +146,12 @@ object MediaUtils {
       videos.map { video ->
         PlaybackItem.fromUri(
           uri = video.uri.toString(),
-          stableId = video.path.takeIf(String::isNotBlank)?.let(PlaybackIdentity::forLocalPath),
+          stableId = playbackIdentity(video),
           title = video.displayName,
           mimeType = if (video.isAudio) "audio/*" else video.mimeType,
           durationSeconds = (video.duration / 1000L).toInt().takeIf { it > 0 },
+          videoWidth = video.width,
+          videoHeight = video.height,
         )
       }
 
@@ -148,6 +169,7 @@ object MediaUtils {
     val intent =
       Intent(Intent.ACTION_VIEW, selected.uri).apply {
         setClass(context, PlayerActivity::class.java)
+        addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         putExtra("internal_launch", true)
         putExtra(PlayerActivity.EXTRA_PREPARED_PLAYBACK_QUEUE, true)
@@ -156,9 +178,10 @@ object MediaUtils {
         putExtra("launch_source", launchSource)
         putExtra("is_audio", selected.isAudio)
         putExtra("title", selected.displayName)
-        putExtra("local_media_path", selected.path)
+        localPlaybackPath(selected)?.let { putExtra("local_media_path", it) }
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, selected.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, selected.height)
+        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, selected.rotation)
       }
     PlaybackPerformanceTrace.mark("OPEN_REQUEST", "source=$launchSource queue=${videos.size}")
     context.startActivity(intent)
@@ -197,11 +220,12 @@ object MediaUtils {
     playlistArtworkUrls: List<String> = emptyList(),
     isAudio: Boolean = false,
     playlistDurationsSeconds: List<Int> = emptyList(),
+    startPositionSeconds: Double? = null,
   ) {
     val videoSource = source as? Video
     val localPath =
       when {
-        videoSource != null -> videoSource.path.takeIf(String::isNotBlank)
+        videoSource != null -> localPlaybackPath(videoSource)
         source is String && source.startsWith("file://", ignoreCase = true) -> source.removePrefix("file://")
         source is String && source.startsWith("/") -> source
         source is Uri && source.scheme.equals("file", ignoreCase = true) -> source.path
@@ -295,7 +319,7 @@ object MediaUtils {
         PlayerActivity::class.java
       },
     )
-    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     intent.putExtra("internal_launch", true)
     localPath?.let { intent.putExtra("local_media_path", it) }
@@ -303,6 +327,10 @@ object MediaUtils {
       intent.putExtra("is_audio", videoSource.isAudio)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, videoSource.width)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, videoSource.height)
+      intent.putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, videoSource.rotation)
+    }
+    startPositionSeconds?.takeIf { it.isFinite() && it >= 0 }?.let {
+      intent.putExtra(PlayerActivity.EXTRA_START_POSITION_SECONDS, it)
     }
     applyPlaybackExtras(
       intent = intent,
@@ -344,6 +372,18 @@ object MediaUtils {
       "source=${launchSource ?: (if (videoSource != null) "library" else "direct")} kind=${if (videoSource != null) "video" else (playbackUri.scheme ?: "path")}",
     )
     context.startActivity(intent)
+  }
+
+  private fun playbackIdentity(video: Video): String =
+    if (video.uri.scheme.equals("archive", ignoreCase = true)) {
+      PlaybackIdentity.forUri(video.uri.toString())
+    } else {
+      video.path.takeIf(String::isNotBlank)?.let(PlaybackIdentity::forLocalPath)
+        ?: PlaybackIdentity.forUri(video.uri.toString())
+    }
+
+  private fun localPlaybackPath(video: Video): String? = video.path.takeIf { path ->
+    path.isNotBlank() && Uri.parse(path).scheme?.lowercase() in setOf(null, "file")
   }
 
   private fun String?.isHistoryResumeLaunch(): Boolean =
@@ -631,18 +671,4 @@ object MediaUtils {
     }
   }
 
-  fun formatIsoRelativeTime(isoString: String?): String {
-    if (isoString.isNullOrBlank()) return ""
-    return runCatching {
-      val cleanIso = isoString.trim()
-      val date =
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          java.time.Instant.parse(cleanIso).toEpochMilli()
-        } else {
-          val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-          sdf.parse(cleanIso)?.time ?: return ""
-        }
-      formatRelativeTime(date)
-    }.getOrDefault("")
-  }
 }

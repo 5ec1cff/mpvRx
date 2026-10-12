@@ -10,6 +10,8 @@
 package app.gyrolet.mpvrx.ui.player.controls.components.panels
 
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
+import app.gyrolet.mpvrx.ui.player.applySubtitleScales
+import app.gyrolet.mpvrx.ui.player.subtitleBlendMode
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
@@ -55,10 +58,13 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
   val configOwnedOptions = currentMpvConfigOverrideOptions()
   val layoutOptions = setOf("sub-ass-override", "secondary-sub-ass-override", "sub-pos", "secondary-sub-pos")
   val scaleOptions = setOf("sub-scale", "secondary-sub-scale")
+  // mpv has no secondary-sub-scale-by-window / secondary-sub-use-margins — secondary
+  // inherits the primary windowing behavior.
   val scaleByWindowOptions =
-    setOf("sub-scale-by-window", "sub-use-margins", "secondary-sub-scale-by-window", "secondary-sub-use-margins")
+    setOf("sub-scale-by-window", "sub-use-margins")
   val blendOptions = setOf("blend-subtitles")
-  val miscellaneousOptions = layoutOptions + scaleOptions + scaleByWindowOptions + blendOptions
+  val bidiOptions = setOf("sub-vsfilter-bidi-compat")
+  val miscellaneousOptions = layoutOptions + scaleOptions + scaleByWindowOptions + blendOptions + bidiOptions
   var isExpanded by remember { mutableStateOf(true) }
   ExpandableCard(
     isExpanded,
@@ -106,6 +112,22 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
           title = { Text(stringResource(R.string.player_sheets_sub_scale_by_window)) },
           summary = { Text(stringResource(R.string.player_sheets_sub_scale_by_window_summary)) },
         )
+        var secondaryPinchZoom by remember {
+          mutableStateOf(preferences.secondarySubPinchZoom.get())
+        }
+        LaunchedEffect(preferences.secondarySubPinchZoom.get()) {
+          secondaryPinchZoom = preferences.secondarySubPinchZoom.get()
+        }
+        SwitchPreference(
+          secondaryPinchZoom,
+          enabled = scaleOptions.none(configOwnedOptions::contains),
+          onValueChange = {
+            secondaryPinchZoom = it
+            preferences.secondarySubPinchZoom.set(it)
+          },
+          title = { Text(stringResource(R.string.pref_subtitles_secondary_pinch_zoom)) },
+          summary = { Text(stringResource(R.string.pref_subtitles_secondary_pinch_zoom_summary)) },
+        )
         var blendSubtitlesWithVideo by remember {
           mutableStateOf(preferences.blendSubtitlesWithVideo.get())
         }
@@ -115,21 +137,42 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
           onValueChange = {
             blendSubtitlesWithVideo = it
             preferences.blendSubtitlesWithVideo.set(it)
-            val blendMode = if (it && playerPreferences.isAmbientEnabled.get()) "video" else "no"
+            val blendMode = subtitleBlendMode()
             PlaybackSession.setPropertyString("blend-subtitles", blendMode)
           },
           title = { Text(stringResource(R.string.player_sheets_sub_blend_with_video)) },
           summary = { Text(stringResource(R.string.player_sheets_sub_blend_with_video_summary)) },
         )
-        val subScale by PlaybackSession.propFloat["sub-scale"].collectAsState()
+        var forceRtlSubtitles by remember {
+          mutableStateOf(preferences.forceRtlSubtitles.get())
+        }
+        SwitchPreference(
+          forceRtlSubtitles,
+          enabled = bidiOptions.none(configOwnedOptions::contains),
+          onValueChange = {
+            forceRtlSubtitles = it
+            preferences.forceRtlSubtitles.set(it)
+            PlaybackSession.setPropertyString("sub-vsfilter-bidi-compat", if (it) "yes" else "no")
+            PlaybackSession.command("sub-reload")
+          },
+          title = { Text(stringResource(R.string.player_sheets_sub_force_rtl)) },
+          summary = { Text(stringResource(R.string.player_sheets_sub_force_rtl_summary)) },
+        )
+        val subScale by preferences.subScale.collectAsState()
         val subPos by PlaybackSession.propInt["sub-pos"].collectAsState()
+        val secondarySid by PlaybackSession.propInt["secondary-sid"].collectAsState()
+        val isSecondaryActive = (secondarySid ?: PlaybackSession.getPropertyString("secondary-sid")?.toIntOrNull() ?: 0) > 0
+        val secondarySubScale by preferences.secondarySubScale.collectAsState()
+        val secondarySubPos by PlaybackSession.propInt["secondary-sub-pos"].collectAsState()
         SliderItem(
-          label = stringResource(R.string.player_sheets_sub_scale),
-          value = subScale ?: preferences.subScale.get(),
-          valueText = (subScale ?: preferences.subScale.get()).toFixed(2).toString(),
+          label = stringResource(
+            if (isSecondaryActive) R.string.player_sheets_sub_primary_scale else R.string.player_sheets_sub_scale,
+          ),
+          value = subScale,
+          valueText = subScale.toFixed(2).toString(),
           onChange = {
             preferences.subScale.set(it)
-            PlaybackSession.setPropertyFloat("sub-scale", it)
+            applySubtitleScales()
           },
           max = 5f,
           enabled = scaleOptions.none(configOwnedOptions::contains),
@@ -141,7 +184,9 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
           },
         )
         SliderItem(
-          label = stringResource(R.string.player_sheets_sub_position),
+          label = stringResource(
+            if (isSecondaryActive) R.string.player_sheets_sub_primary_position else R.string.player_sheets_sub_position,
+          ),
           value = subPos ?: preferences.subPos.get(),
           valueText = (subPos ?: preferences.subPos.get()).toString(),
           onChange = {
@@ -157,6 +202,36 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
             )
           },
         )
+        if (isSecondaryActive) {
+          SliderItem(
+            label = stringResource(R.string.player_sheets_secondary_sub_scale),
+            value = secondarySubScale,
+            valueText = secondarySubScale.toFixed(2).toString(),
+            onChange = {
+              preferences.secondarySubScale.set(it)
+              applySubtitleScales()
+            },
+            max = 5f,
+            enabled = scaleOptions.none(configOwnedOptions::contains),
+            icon = {
+              Icon(Icons.RoundedFilled.FormatSize, null)
+            },
+          )
+          SliderItem(
+            label = stringResource(R.string.player_sheets_secondary_sub_position),
+            value = secondarySubPos ?: preferences.secondarySubPos.get(),
+            valueText = (secondarySubPos ?: preferences.secondarySubPos.get()).toString(),
+            onChange = {
+              preferences.secondarySubPos.set(it)
+              PlaybackSession.setPropertyInt("secondary-sub-pos", it)
+            },
+            max = 150,
+            enabled = layoutOptions.none(configOwnedOptions::contains),
+            icon = {
+              Icon(Icons.RoundedFilled.AlignVerticalCenter, null)
+            },
+          )
+        }
         Row(
           modifier =
             Modifier
@@ -168,9 +243,10 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
             enabled = miscellaneousOptions.none(configOwnedOptions::contains),
             onClick = {
               val defaultSubPos = preferences.subPos.deleteAndGet()
-              preferences.subScale.deleteAndGet().let {
-                PlaybackSession.setPropertyFloat("sub-scale", it)
-              }
+              preferences.subScale.delete()
+              preferences.secondarySubScale.delete()
+              applySubtitleScales()
+              preferences.secondarySubPos.delete()
               val defaultOverride = preferences.overrideAssSubs.deleteAndGet()
               overrideAssSubs = defaultOverride
               applySubtitleLayout(defaultSubPos, defaultOverride)
@@ -183,6 +259,10 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
               blendSubtitlesWithVideo = defaultBlendSubtitles
               val blendMode = if (defaultBlendSubtitles && playerPreferences.isAmbientEnabled.get()) "video" else "no"
               PlaybackSession.setPropertyString("blend-subtitles", blendMode)
+              val defaultForceRtl = preferences.forceRtlSubtitles.deleteAndGet()
+              forceRtlSubtitles = defaultForceRtl
+              PlaybackSession.setPropertyString("sub-vsfilter-bidi-compat", if (defaultForceRtl) "yes" else "no")
+              PlaybackSession.command("sub-reload")
             },
           ) {
             Row {

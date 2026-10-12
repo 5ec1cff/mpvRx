@@ -34,6 +34,7 @@ class RecentlyPlayedRepositoryImpl(
     height: Int,
     launchSource: String?,
     playlistId: Int?,
+    artworkUrl: String?,
   ) = addMutex.withLock {
     // Check if there's an existing entry for this file
     val existingEntry = recentlyPlayedDao.getByFilePath(filePath)
@@ -54,6 +55,7 @@ class RecentlyPlayedRepositoryImpl(
           // Preserve the original launch source when reopening the same file
           launchSource = existingEntry.launchSource,
           playlistId = playlistId ?: existingEntry.playlistId,
+          artworkUrl = artworkUrl ?: existingEntry.artworkUrl,
         )
       recentlyPlayedDao.insert(entity)
     } else {
@@ -70,12 +72,18 @@ class RecentlyPlayedRepositoryImpl(
           timestamp = System.currentTimeMillis(),
           launchSource = launchSource,
           playlistId = playlistId,
+          artworkUrl = artworkUrl,
         )
       recentlyPlayedDao.insert(entity)
     }
   }
 
   override suspend fun getLastPlayed(): RecentlyPlayedEntity? = recentlyPlayedDao.getLastPlayed()
+
+  override suspend fun markLastPlayed(filePath: String, timestamp: Long) = addMutex.withLock {
+    val previousTimestamp = recentlyPlayedDao.getLastPlayed()?.timestamp ?: 0L
+    recentlyPlayedDao.markLastPlayed(filePath, maxOf(timestamp, previousTimestamp + 1L))
+  }
 
   override fun observeLastPlayed(): Flow<RecentlyPlayedEntity?> = recentlyPlayedDao.observeLastPlayed()
 

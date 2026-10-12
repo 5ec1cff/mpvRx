@@ -15,12 +15,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -62,7 +63,6 @@ import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -79,19 +79,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.VideoSwipeAction
+import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
+import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.domain.browser.FileSystemItem
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
+import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.FolderViewMode
@@ -103,9 +104,14 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.cards.FolderCard
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCardUiConfig
+import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserBottomBar
+import app.gyrolet.mpvrx.ui.browser.components.rememberBrowserBottomBarBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
@@ -139,12 +145,23 @@ import app.gyrolet.mpvrx.utils.sort.SortUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import java.io.File
+
+private data class FolderDeletionResult(
+  val deleted: Int,
+  val failed: Int,
+  val failedFolders: List<VideoFolder>,
+)
 
 @Serializable
 object FolderListScreen : Screen {
@@ -171,7 +188,7 @@ object FolderListScreen : Screen {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
     val coroutineScope = rememberCoroutineScope()
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val folderDeletionMutex = remember { Mutex() }
 
     // ViewModels and preferences
     val viewModel: FolderListViewModel =
@@ -348,15 +365,17 @@ object FolderListScreen : Screen {
 
     val filteredFolders = sortedFolders
 
-    suspend fun deleteFolders(folders: List<VideoFolder>): Pair<Int, Int> {
+    suspend fun deleteFolders(folders: List<VideoFolder>): FolderDeletionResult {
       var deleted = 0
       var failed = 0
+      val failedFolders = mutableListOf<VideoFolder>()
       val deleteAll = browserPreferences.deleteFolderAllContents.get()
       // The audio-only folder browser must always be able to delete the audio files it shows,
       // regardless of the general "include audio in browser" preference (which only governs the
       // regular video browser). The regular (video) browser keeps its existing preference-driven behavior.
       val includeAudio = audioOnly || browserPreferences.includeAudioBrowser.get()
       for (folder in folders) {
+        var folderFailed = false
         try {
           if (deleteAll) {
             val ids = setOf(folder.bucketId)
@@ -367,6 +386,7 @@ object FolderListScreen : Screen {
               val (d, f) = viewModel.deleteVideos(videos)
               deleted += d
               failed += f
+              folderFailed = f > 0
             }
             val dir = java.io.File(folder.path)
             if (dir.exists()) {
@@ -374,6 +394,7 @@ object FolderListScreen : Screen {
                 deleted++
               } else {
                 failed++
+                folderFailed = true
               }
             }
           } else {
@@ -397,14 +418,35 @@ object FolderListScreen : Screen {
               deleted++
             } else {
               failed++
+              folderFailed = true
             }
           }
         } catch (e: Exception) {
           Log.e("FolderListScreen", "Error deleting folder ${folder.path}", e)
           failed++
+          folderFailed = true
         }
+        if (folderFailed) failedFolders += folder
       }
-      return Pair(deleted, failed)
+      return FolderDeletionResult(deleted, failed, failedFolders)
+    }
+
+    suspend fun deleteFoldersInBackground(folders: List<VideoFolder>): FolderDeletionResult =
+      withContext(Dispatchers.IO) {
+        folderDeletionMutex.withLock { deleteFolders(folders) }
+      }
+
+    fun clearSelectedFolderForDeletion(folders: List<VideoFolder>): VideoFolder? {
+      val selectedFolder = folders.firstOrNull { it.bucketId == selectedFolderBucketId } ?: return null
+      selectedFolderBucketId = null
+      selectedFolderName = null
+      return selectedFolder
+    }
+
+    fun restoreSelectedFolderAfterFailure(folder: VideoFolder?) {
+      folder ?: return
+      selectedFolderBucketId = folder.bucketId
+      selectedFolderName = folder.name
     }
 
     // Selection manager
@@ -412,7 +454,22 @@ object FolderListScreen : Screen {
       rememberSelectionManager(
         items = sortedFolders,
         getId = { it.bucketId },
-        onDeleteItems = { folders, _ -> deleteFolders(folders) },
+        onDeleteItems = { folders, _ ->
+          val selectedFolder = clearSelectedFolderForDeletion(folders)
+          viewModel.beginFolderDeletion(folders)
+          try {
+            val result = deleteFoldersInBackground(folders)
+            viewModel.finishFolderDeletion(folders, result.failedFolders)
+            if (selectedFolder != null && result.failedFolders.any { it.bucketId == selectedFolder.bucketId }) {
+              restoreSelectedFolderAfterFailure(selectedFolder)
+            }
+            result.deleted to result.failed
+          } catch (error: Exception) {
+            viewModel.finishFolderDeletion(folders, folders)
+            restoreSelectedFolderAfterFailure(selectedFolder)
+            throw error
+          }
+        },
         onOperationComplete = { viewModel.refresh() },
       )
 
@@ -507,18 +564,6 @@ object FolderListScreen : Screen {
       }
     }
 
-    // Lifecycle observer for refresh
-    DisposableEffect(lifecycleOwner) {
-      val observer =
-        LifecycleEventObserver { _, event ->
-          if (event == Lifecycle.Event.ON_RESUME) {
-            viewModel.recalculateNewVideoCounts()
-          }
-        }
-      lifecycleOwner.lifecycle.addObserver(observer)
-      onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
     // Optimized back handler for immediate response
     val shouldHandleBack =
       selectionManager.isInSelectionMode ||
@@ -551,9 +596,15 @@ object FolderListScreen : Screen {
 
     @Composable
     fun FoldersPane() {
-      Scaffold(
-        contentWindowInsets = if (embedded) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
-        topBar = {
+      val bottomBarBackdrop = rememberBrowserBottomBarBackdrop()
+      val showFloatingBottomBar = selectionManager.isInSelectionMode
+
+      Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+          modifier = Modifier.captureLiquidGlassBackdrop(bottomBarBackdrop),
+          containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
+          contentWindowInsets = if (embedded) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+          topBar = {
           if (embedded) {
             // Embedded inside another screen (e.g. Music tab) which already renders its own top bar.
           } else if (internalIsSearching) {
@@ -647,23 +698,6 @@ object FolderListScreen : Screen {
                     }
                     selectionManager.clear()
                   }
-                }
-              },
-              onPinClick = {
-                coroutineScope.launch {
-                  val selectedFolders = selectionManager.getSelectedItems()
-                  if (selectedFolders.isEmpty()) return@launch
-                  val updated = foldersPreferences.pinnedFolders.get().toMutableSet()
-                  val shouldUnpinAll = selectedFolders.all { it.path in updated }
-                  selectedFolders.forEach { folder ->
-                    if (shouldUnpinAll) {
-                      updated.remove(folder.path)
-                    } else {
-                      updated.add(folder.path)
-                    }
-                  }
-                  foldersPreferences.pinnedFolders.set(updated)
-                  selectionManager.clear()
                 }
               },
               onBlacklistClick = {
@@ -777,7 +811,7 @@ object FolderListScreen : Screen {
               FloatingActionButtonMenuItem(
                 onClick = {
                   isFabExpanded.value = false
-                  filePicker.launch(arrayOf("video/*"))
+                  filePicker.launch(if (audioOnly) arrayOf("audio/*") else arrayOf("video/*"))
                 },
                 icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
                 text = {
@@ -854,6 +888,8 @@ object FolderListScreen : Screen {
                     // Show search results
                     SearchResultsContent(
                       searchResults = searchResults,
+                      onChanged = { viewModel.refresh() },
+                      audioOnly = audioOnly,
                       navigationBarHeight = navigationBarHeight,
                       onFolderClick = { folder ->
                         if (isDualPaneActive) {
@@ -896,9 +932,9 @@ object FolderListScreen : Screen {
                   selectionManager = selectionManager,
                   onRefresh = { viewModel.refresh() },
                   onFolderClick = { folder ->
-                    if (selectionManager.isInSelectionMode) {
-                      selectionManager.toggle(folder)
-                    } else {
+                    if (selectionManager.isInSelectionMode && !ZipArchiveMedia.isBrowserPath(folder.path)) {
+                      selectionManager.toggleFromUser(folder)
+                    } else if (!selectionManager.isInSelectionMode) {
                       if (isDualPaneActive) {
                         selectedFolderBucketId = folder.bucketId
                         selectedFolderName = folder.name
@@ -911,7 +947,7 @@ object FolderListScreen : Screen {
                     }
                   },
                   onFolderLongClick = { folder ->
-                    selectionManager.handleLongClick(folder)
+                    if (!ZipArchiveMedia.isBrowserPath(folder.path)) selectionManager.handleLongClick(folder)
                   },
                   onTogglePin = { folder ->
                     coroutineScope.launch {
@@ -941,45 +977,81 @@ object FolderListScreen : Screen {
             )
           }
 
-          BrowserBottomBar(
-            isSelectionMode = selectionManager.isInSelectionMode,
-            onCopyClick = {
-              operationType.value = CopyPasteOps.OperationType.Copy
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onMoveClick = {
-              operationType.value = CopyPasteOps.OperationType.Move
-              if (CopyPasteOps.canUseDirectFileOperations()) {
-                folderPickerOpen.value = true
-              } else {
-                treePickerLauncher.launch(null)
-              }
-            },
-            onRenameClick = { renameDialogOpen = true },
-            onDeleteClick = { pendingDeleteFolders = selectionManager.getSelectedItems() },
-            onAddToPlaylistClick = { },
-            showCopy = true,
-            showMove = true,
-            showRename = selectionManager.isSingleSelection,
-            showDownscale = false,
-            showAddToPlaylist = false,
-            modifier =
-              Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 0.dp),
-          )
-
           FabScrollHelper.FabScrim(
             visible = isFabExpanded.value && !quickPlayFabDirect,
             onDismiss = { isFabExpanded.value = false },
           )
         }
       }
+
+      // Independent Floating Bottom Bar - positioned at absolute bottom
+      AnimatedVisibility(
+        visible = showFloatingBottomBar,
+        enter =
+          slideInVertically(
+            animationSpec =
+              spring(
+                dampingRatio = AppMotion.Spatial.Expressive.dampingRatio,
+                stiffness = AppMotion.Spatial.Expressive.stiffness,
+              ),
+            initialOffsetY = { fullHeight -> fullHeight },
+          ),
+        exit =
+          slideOutVertically(
+            animationSpec =
+              spring(
+                dampingRatio = AppMotion.Spatial.Standard.dampingRatio,
+                stiffness = AppMotion.Spatial.Standard.stiffness,
+              ),
+            targetOffsetY = { fullHeight -> fullHeight },
+          ),
+        modifier = Modifier.align(Alignment.BottomCenter),
+      ) {
+        BrowserBottomBar(
+          backdrop = bottomBarBackdrop,
+          isSelectionMode = selectionManager.isInSelectionMode,
+          onCopyClick = {
+            operationType.value = CopyPasteOps.OperationType.Copy
+            if (CopyPasteOps.canUseDirectFileOperations()) {
+              folderPickerOpen.value = true
+            } else {
+              treePickerLauncher.launch(null)
+            }
+          },
+          onMoveClick = {
+            operationType.value = CopyPasteOps.OperationType.Move
+            if (CopyPasteOps.canUseDirectFileOperations()) {
+              folderPickerOpen.value = true
+            } else {
+              treePickerLauncher.launch(null)
+            }
+          },
+          onRenameClick = { renameDialogOpen = true },
+          onDeleteClick = { pendingDeleteFolders = selectionManager.getSelectedItems() },
+          onAddToPlaylistClick = { },
+          onPinClick = {
+            val selectedFolders = selectionManager.getSelectedItems()
+            if (selectedFolders.isNotEmpty()) {
+              val pinned = foldersPreferences.pinnedFolders.get()
+              val paths = selectedFolders.map { it.path }.toSet()
+              foldersPreferences.pinnedFolders.set(if (pinned.containsAll(paths)) pinned - paths else pinned + paths)
+              selectionManager.clear()
+            }
+          },
+          unpinSelected =
+            selectionManager.getSelectedItems().let { selected ->
+              selected.isNotEmpty() && selected.all { it.path in pinnedFolderPaths }
+            },
+          showCopy = true,
+          showMove = true,
+          showRename = selectionManager.isSingleSelection,
+          showDownscale = false,
+          showAddToPlaylist = false,
+          modifier = Modifier.padding(bottom = 0.dp),
+        )
+      }
     }
+  }
 
     if (isDualPaneActive && selectedFolderBucketId != null) {
       Row(modifier = Modifier.fillMaxSize()) {
@@ -1160,17 +1232,24 @@ object FolderListScreen : Screen {
         onConfirm = {
           val foldersToDelete = pendingDeleteFolders
           pendingDeleteFolders = emptyList()
+          val selectedFolder = clearSelectedFolderForDeletion(foldersToDelete)
+          viewModel.beginFolderDeletion(foldersToDelete)
+          selectionManager.clear()
           coroutineScope.launch {
-            runCatching {
-              val (deleted, failed) = deleteFolders(foldersToDelete)
-              if (deleted > 0) {
+            try {
+              val result = deleteFoldersInBackground(foldersToDelete)
+              viewModel.finishFolderDeletion(foldersToDelete, result.failedFolders)
+              if (selectedFolder != null && result.failedFolders.any { it.bucketId == selectedFolder.bucketId }) {
+                restoreSelectedFolderAfterFailure(selectedFolder)
+              }
+              if (result.deleted > 0) {
                 android.widget.Toast
                   .makeText(
                     context,
                     context.getString(app.gyrolet.mpvrx.R.string.ui_deleted_successfully),
                     android.widget.Toast.LENGTH_SHORT,
                   ).show()
-              } else if (failed > 0) {
+              } else if (result.failed > 0) {
                 android.widget.Toast
                   .makeText(
                     context,
@@ -1178,19 +1257,25 @@ object FolderListScreen : Screen {
                     android.widget.Toast.LENGTH_SHORT,
                   ).show()
               }
-            }.onFailure {
+            } catch (cancellation: CancellationException) {
+              viewModel.finishFolderDeletion(foldersToDelete, foldersToDelete)
+              restoreSelectedFolderAfterFailure(selectedFolder)
+              throw cancellation
+            } catch (error: Exception) {
+              viewModel.finishFolderDeletion(foldersToDelete, foldersToDelete)
+              restoreSelectedFolderAfterFailure(selectedFolder)
               android.widget.Toast
                 .makeText(
                   context,
                   context.getString(
                     R.string.toast_failed_to_delete_reason,
-                    it.message ?: context.getString(R.string.generic_unknown_error),
+                    error.message ?: context.getString(R.string.generic_unknown_error),
                   ),
                   android.widget.Toast.LENGTH_SHORT,
                 ).show()
+            } finally {
+              viewModel.refresh()
             }
-            selectionManager.clear()
-            viewModel.refresh()
           }
         },
         itemType = "folder",
@@ -1224,10 +1309,14 @@ private fun FolderListContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  modifier: Modifier = Modifier,
 ) {
+  val swipeScope = rememberCoroutineScope()
+  val swipeActions = rememberVideoSwipeActions(audioOnly = audioOnly) { swipeScope.launch { onRefresh() } }
   val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
   val showLoading = isLoading && !hasCompletedInitialLoad
   val showEmpty = folders.isEmpty() && hasCompletedInitialLoad && !foldersWereDeleted
+  val folderCardUiConfig = app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig()
 
   val hasEnoughItems = folders.size > 20
   val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
@@ -1244,7 +1333,7 @@ private fun FolderListContent(
     isRefreshing = isRefreshing,
     onRefresh = onRefresh,
     listState = listState,
-    modifier = Modifier.fillMaxSize(),
+    modifier = modifier.fillMaxSize(),
   ) {
     if (showLoading || showEmpty) {
       Box(
@@ -1282,9 +1371,11 @@ private fun FolderListContent(
           onTogglePin = onTogglePin,
           selectedFolderBucketId = selectedFolderBucketId,
           audioOnly = audioOnly,
+          uiConfig = folderCardUiConfig,
         )
       } else {
         ListContent(
+          onFolderSwipe = swipeActions.folder.takeUnless { selectionManager.isInSelectionMode },
           folders = folders,
           foldersWithNewCount = foldersWithNewCount,
           pinnedFolderPaths = pinnedFolderPaths,
@@ -1299,6 +1390,7 @@ private fun FolderListContent(
           onTogglePin = onTogglePin,
           selectedFolderBucketId = selectedFolderBucketId,
           audioOnly = audioOnly,
+          uiConfig = folderCardUiConfig,
         )
       }
     }
@@ -1321,7 +1413,9 @@ private fun GridContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  uiConfig: app.gyrolet.mpvrx.ui.browser.cards.FolderCardUiConfig? = null,
 ) {
+  val folderCardUiConfig = uiConfig ?: app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig()
   val newCountByBucketId =
     remember(foldersWithNewCount) {
       foldersWithNewCount.associate { it.folder.bucketId to it.newVideoCount }
@@ -1330,29 +1424,15 @@ private fun GridContent(
 
   BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
     val browserPreferences = org.koin.compose.koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>()
-    val manualGridColumnsEnabled by browserPreferences.manualGridColumnsEnabled.collectAsState()
-    val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
-    val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
-
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-    val folderGridColumnsPref = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
 
     val isTablet = configuration.smallestScreenWidthDp >= 600
     val dualPaneForTablet by browserPreferences.dualPaneForTablet.collectAsState()
     val isDualPaneActive = isTablet && dualPaneForTablet
     val isDualPane = isDualPaneActive && selectedFolderBucketId != null
 
-    val computedColumns =
-      if (manualGridColumnsEnabled) {
-        folderGridColumnsPref.coerceAtLeast(1)
-      } else {
-        val contentHorizontalPadding = 8.dp
-        val itemSpacing = 2.dp
-        val usableWidth = maxWidth - (contentHorizontalPadding * 2) - itemSpacing
-        val folderMinWidth = 100.dp
-        (usableWidth / folderMinWidth).toInt().coerceAtLeast(1)
-      }
+    val spansInfo = calculateResponsiveGridSpans(maxWidth = maxWidth, isDualPane = isDualPane)
+    val computedColumns = spansInfo.spans / spansInfo.folderSpan
 
     LazyVerticalGrid(
       columns = GridCells.Fixed(computedColumns),
@@ -1362,13 +1442,15 @@ private fun GridContent(
         PaddingValues(
           start = 8.dp,
           end = 8.dp,
-          bottom = navigationBarHeight,
+          top = 8.dp,
+          bottom = navigationBarHeight + 8.dp,
         ),
-      horizontalArrangement = Arrangement.spacedBy(2.dp),
-      verticalArrangement = Arrangement.spacedBy(2.dp),
+      horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+      verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
     ) {
       items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
         val folder = folders[index]
+        val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
         val isRecentlyPlayed = recentlyPlayedParent == folder.path
         val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
@@ -1377,17 +1459,22 @@ private fun GridContent(
         FolderCard(
           folder = folder,
           isSelected = selectionManager.isSelected(folder),
+          selectionNeighbors = mediaSelectionNeighbors(index, folders.size, computedColumns) { neighbor ->
+            selectionManager.isSelected(folders[neighbor])
+          },
           isRecentlyPlayed = isRecentlyPlayed,
           onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
+          onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),
           onThumbClick =
-            if (tapThumbnailToSelect) {
-              { selectionManager.toggle(folder) }
+            if (tapThumbnailToSelect && !archiveFolder) {
+              { selectionManager.toggleFromUser(folder) }
             } else {
               { onFolderClick(folder) }
             },
           newVideoCount = newCount,
+          customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = true,
+          uiConfig = folderCardUiConfig,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
@@ -1435,7 +1522,10 @@ private fun ListContent(
   onTogglePin: (VideoFolder) -> Unit,
   selectedFolderBucketId: String? = null,
   audioOnly: Boolean = false,
+  onFolderSwipe: ((VideoFolder, VideoSwipeAction) -> Unit)? = null,
+  uiConfig: app.gyrolet.mpvrx.ui.browser.cards.FolderCardUiConfig? = null,
 ) {
+  val folderCardUiConfig = uiConfig ?: app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig()
   val configuration = androidx.compose.ui.platform.LocalConfiguration.current
   val isTablet = configuration.smallestScreenWidthDp >= 600
   val browserPreferences = org.koin.compose.koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>()
@@ -1451,14 +1541,18 @@ private fun ListContent(
     LazyColumn(
       state = listState,
       modifier = Modifier.fillMaxSize(),
+      verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
       contentPadding =
         PaddingValues(
           start = 8.dp,
           end = 8.dp,
+          top = 4.dp,
           bottom = navigationBarHeight,
         ),
     ) {
-      items(folders, key = { it.bucketId }) { folder ->
+      items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
+        val folder = folders[index]
+        val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
         val isRecentlyPlayed = recentlyPlayedParent == folder.path
         val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
@@ -1467,17 +1561,23 @@ private fun ListContent(
         FolderCard(
           folder = folder,
           isSelected = selectionManager.isSelected(folder),
+          selectionNeighbors = mediaSelectionNeighbors(index, folders.size, 1) { neighbor ->
+            selectionManager.isSelected(folders[neighbor])
+          },
           isRecentlyPlayed = isRecentlyPlayed,
           onClick = { onFolderClick(folder) },
-          onLongClick = { onFolderLongClick(folder) },
+          onLongClick = if (archiveFolder) null else ({ onFolderLongClick(folder) }),
           onThumbClick =
-            if (tapThumbnailToSelect) {
-              { selectionManager.toggle(folder) }
+            if (tapThumbnailToSelect && !archiveFolder) {
+              { selectionManager.toggleFromUser(folder) }
             } else {
               { onFolderClick(folder) }
             },
           newVideoCount = newCount,
+          customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = false,
+          uiConfig = folderCardUiConfig,
+          onSwipeAction = onFolderSwipe.takeUnless { archiveFolder },
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
@@ -1538,7 +1638,10 @@ private fun SearchResultsContent(
   onFolderClick: (app.gyrolet.mpvrx.domain.media.model.VideoFolder) -> Unit,
   onVideoClick: (app.gyrolet.mpvrx.domain.media.model.Video) -> Unit,
   mediaLayoutMode: app.gyrolet.mpvrx.preferences.MediaLayoutMode,
+  onChanged: () -> Unit,
+  audioOnly: Boolean,
 ) {
+  val swipeActions = rememberVideoSwipeActions(audioOnly = audioOnly, onChanged = onChanged)
   val folders =
     searchResults.filterIsInstance<FileSystemItem.Folder>().map { folder ->
       app.gyrolet.mpvrx.domain.media.model.VideoFolder(
@@ -1552,6 +1655,7 @@ private fun SearchResultsContent(
       )
     }
   val videos = searchResults.filterIsInstance<FileSystemItem.VideoFile>().map { it.video }
+  val swipePlaybackInfo = rememberSwipePlaybackInfo(videos)
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
@@ -1569,6 +1673,8 @@ private fun SearchResultsContent(
   val showDurationField by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
+  val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val videoCardUiConfig =
     remember(
       unlimitedNameLines,
@@ -1585,6 +1691,8 @@ private fun SearchResultsContent(
       showDurationField,
       centerGridTitles,
       thumbnailQuality,
+      swipeLeft,
+      swipeRight,
     ) {
       VideoCardUiConfig(
         unlimitedNameLines = unlimitedNameLines,
@@ -1601,8 +1709,12 @@ private fun SearchResultsContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        swipeLeft = swipeLeft,
+        swipeRight = swipeRight,
       )
     }
+
+  val folderCardUiConfig = app.gyrolet.mpvrx.ui.browser.cards.rememberFolderCardUiConfig()
 
   val isGridMode = mediaLayoutMode == app.gyrolet.mpvrx.preferences.MediaLayoutMode.GRID
 
@@ -1624,8 +1736,8 @@ private fun SearchResultsContent(
               top = 8.dp,
               bottom = navigationBarHeight + 8.dp,
             ),
-          horizontalArrangement = Arrangement.spacedBy(4.dp),
-          verticalArrangement = Arrangement.spacedBy(4.dp),
+          horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+          verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
         ) {
           items(
             count = folders.size,
@@ -1634,15 +1746,18 @@ private fun SearchResultsContent(
             span = { GridItemSpan(spansInfo.folderSpan) },
           ) { index ->
             val folder = folders[index]
+            val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
             FolderCard(
               folder = folder,
               isSelected = false,
               isRecentlyPlayed = false,
               onClick = { onFolderClick(folder) },
-              onLongClick = {},
+              onLongClick = null,
               onThumbClick = { onFolderClick(folder) },
               newVideoCount = 0,
               isGridMode = true,
+              uiConfig = folderCardUiConfig,
+              customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
             )
           }
 
@@ -1653,14 +1768,19 @@ private fun SearchResultsContent(
             span = { GridItemSpan(spansInfo.videoSpan) },
           ) { index ->
             val video = videos[index]
+            val archiveEntry = ZipArchiveMedia.isPlaybackUri(video.uri.toString())
             VideoCard(
               video = video,
+              isWatched = swipePlaybackInfo[video.path]?.isWatched == true,
+              isOldAndUnplayed = swipePlaybackInfo[video.path]?.isOldAndUnplayed == true,
               isSelected = false,
               onClick = { onVideoClick(video) },
-              onLongClick = {},
+              onLongClick = null,
               onThumbClick = { onVideoClick(video) },
               isGridMode = true,
               showSubtitleIndicator = showSubtitleIndicator,
+              allowThumbnailGeneration = !archiveEntry,
+              allowThumbnailLoading = !archiveEntry,
               uiConfig = videoCardUiConfig,
             )
           }
@@ -1669,6 +1789,7 @@ private fun SearchResultsContent(
     } else {
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
         contentPadding =
           PaddingValues(
             start = 8.dp,
@@ -1683,15 +1804,19 @@ private fun SearchResultsContent(
           contentType = { "folder_item" },
         ) { index ->
           val folder = folders[index]
+          val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
           FolderCard(
             folder = folder,
             isSelected = false,
             isRecentlyPlayed = false,
             onClick = { onFolderClick(folder) },
-            onLongClick = {},
+            onLongClick = null,
             onThumbClick = { onFolderClick(folder) },
             newVideoCount = 0,
             isGridMode = false,
+            uiConfig = folderCardUiConfig,
+            customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
+            onSwipeAction = swipeActions.folder.takeUnless { archiveFolder },
           )
         }
 
@@ -1701,14 +1826,20 @@ private fun SearchResultsContent(
           contentType = { "video_item" },
         ) { index ->
           val video = videos[index]
+          val archiveEntry = ZipArchiveMedia.isPlaybackUri(video.uri.toString())
           VideoCard(
             video = video,
             isSelected = false,
             onClick = { onVideoClick(video) },
-            onLongClick = {},
+            onLongClick = null,
             onThumbClick = { onVideoClick(video) },
             isGridMode = false,
+              onSwipeAction = swipeActions.video.takeUnless { archiveEntry },
+            isWatched = swipePlaybackInfo[video.path]?.isWatched == true,
+            isOldAndUnplayed = swipePlaybackInfo[video.path]?.isOldAndUnplayed == true,
             showSubtitleIndicator = showSubtitleIndicator,
+            allowThumbnailGeneration = !archiveEntry,
+            allowThumbnailLoading = !archiveEntry,
             uiConfig = videoCardUiConfig,
           )
         }

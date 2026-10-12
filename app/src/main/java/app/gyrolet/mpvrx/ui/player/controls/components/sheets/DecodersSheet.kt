@@ -9,18 +9,22 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.ui.player.Decoder
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.RendererBackendPolicy
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 
 @Composable
 fun DecodersSheet(
@@ -36,14 +40,20 @@ fun DecodersSheet(
       buildSupportsMediaCodecVulkan = BuildConfig.MPV_SUPPORTS_MEDIACODEC_VULKAN,
     )
 
-  PlayerSheet(onDismissRequest) {
-    LazyColumn {
-      items(Decoder.entries.minusElement(Decoder.Auto), key = { it.name }) { decoder ->
+  PlayerSheet(onDismissRequest, title = stringResource(R.string.btn_label_decoder)) {
+    val decoders = Decoder.entries.minusElement(Decoder.Auto)
+    LazyColumn(
+      contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+    ) {
+      itemsIndexed(decoders, key = { _, decoder -> decoder.name }) { index, decoder ->
         AudioTrackRow(
           title = stringResource(R.string.player_sheets_decoder_formatted, decoder.title, decoder.value),
           isSelected = selectedDecoder == decoder,
           enabled = decoder != Decoder.HWPlus || directMediaCodecAllowed,
           onClick = { onSelect(decoder) },
+          groupIndex = index,
+          groupSize = decoders.size,
         )
       }
     }

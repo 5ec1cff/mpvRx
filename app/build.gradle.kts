@@ -1,6 +1,30 @@
+import com.android.build.api.instrumentation.AsmClassVisitorFactory
+import com.android.build.api.instrumentation.ClassContext
+import com.android.build.api.instrumentation.ClassData
+import com.android.build.api.instrumentation.InstrumentationParameters
+import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
 import java.util.Properties
+
+// SMBJ-RPC uses a desktop-only exception for malformed replies. Remap the dependency's
+// references before D8/R8 so decoding failures stay catchable IOExceptions on Android.
+// This fixes the missing runtime type instead of suppressing R8's missing-class diagnostic.
+abstract class SmbRpcExceptionCompatibility : AsmClassVisitorFactory<InstrumentationParameters.None> {
+  override fun isInstrumentable(classData: ClassData): Boolean =
+    classData.className.startsWith("com.rapid7.client.dcerpc.")
+
+  override fun createClassVisitor(classContext: ClassContext, nextClassVisitor: ClassVisitor): ClassVisitor =
+    ClassRemapper(nextClassVisitor, object : Remapper() {
+      override fun map(internalName: String): String =
+        if (internalName == "java/rmi/UnmarshalException") {
+          "app/gyrolet/mpvrx/data/network/client/SmbRpcDecodeException"
+        } else internalName
+    })
+}
 
 val localProperties =
   Properties().apply {
@@ -20,7 +44,7 @@ val activeAbis =
     listOf("arm64-v8a", "armeabi-v7a") + x86Abis
   }
 val universalOnlyDistributions = setOf("noVulkan", "fongmi")
-val releaseVersionCode = 250
+val releaseVersionCode = 272
 val versionCodeBandSize = 10_000
 val stableVersionCode = releaseVersionCode * versionCodeBandSize + (versionCodeBandSize - 1)
 val previewVersionCode =
@@ -36,6 +60,15 @@ plugins {
   alias(libs.plugins.ktlint)
 }
 
+androidComponents {
+  onVariants(selector().all()) { variant ->
+    variant.instrumentation.transformClassesWith(
+      SmbRpcExceptionCompatibility::class.java,
+      InstrumentationScope.ALL,
+    ) {}
+  }
+}
+
 android {
   namespace = "app.gyrolet.mpvrx"
   compileSdk = 37
@@ -48,7 +81,7 @@ android {
     // Stable occupies the top of its version band. Preview uses the next band's commit-count
     // offset, so Stable -> Preview -> newer Preview -> next Stable is always an Android upgrade.
     versionCode = stableVersionCode
-    versionName = "2.5.0"
+    versionName = "2.7.2"
 
     vectorDrawables {
       useSupportLibrary = true
@@ -145,7 +178,7 @@ android {
 
     create("preview") {
       initWith(getByName("release"))
-      signingConfig = null
+      signingConfig = signingConfigs.getByName("debug")
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "true")
       versionNameSuffix = "-beta.r${getCommitCount()}"
     }
@@ -257,19 +290,18 @@ dependencies {
   implementation(libs.androidx.ui.graphics)
   implementation(libs.androidx.material3.android)
   implementation(libs.google.material)
-  implementation(libs.androidx.compose.material)
   implementation(libs.androidx.ui.tooling.preview)
   debugImplementation(libs.androidx.ui.tooling)
   debugImplementation(libs.leakcanary.android)
   implementation(libs.bundles.compose.navigation3)
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.core.splashscreen)
+  implementation(libs.kmp.vibrate)
   implementation(libs.androidx.compose.constraintlayout)
-  implementation(libs.androidx.preference.ktx)
   implementation(libs.androidx.constraintlayout)
   implementation(libs.composables.material.symbols.rounded.filled.android)
   implementation(libs.composables.material.symbols.rounded.filled.cmp)
-  implementation(libs.androidx.compose.animation.graphics)
   implementation(libs.mediasession)
   implementation(libs.androidx.documentfile)
   implementation(libs.androidx.palette)
@@ -314,6 +346,13 @@ dependencies {
 
   // Network protocol libraries
   implementation(libs.smbj)
+  implementation(libs.dcerpc) {
+    // Reuse the existing SMBJ/crypto stack and use Android's Guava flavor.
+    exclude(group = "com.hierynomus", module = "smbj")
+    exclude(group = "org.bouncycastle", module = "bcprov-jdk18on")
+    exclude(group = "com.google.guava", module = "guava")
+  }
+  implementation(libs.guava)
   implementation(libs.commons.net)
   implementation(libs.jsch)
   implementation(libs.sardine.android) {
@@ -321,9 +360,12 @@ dependencies {
   }
   implementation(libs.libarchive.android)
   implementation(libs.nanohttpd)
-  implementation(libs.lazycolumnscrollbar)
   implementation(libs.reorderable)
   implementation(libs.androidx.biometric)
+  implementation(libs.telephoto.zoomable)
+  implementation(libs.haze.blur)
+  implementation(libs.kyant.backdrop)
+  implementation(libs.kyant.shapes)
 
   // libtorrent4j's Java API plus the native library for every enabled APK ABI.
   implementation(libs.libtorrent4j)

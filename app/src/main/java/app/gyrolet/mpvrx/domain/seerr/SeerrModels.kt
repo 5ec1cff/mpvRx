@@ -107,11 +107,6 @@ data class SearchResultItem(
       }
     }
 
-  fun hasExistingRequest(): Boolean =
-    mediaInfo?.status != null &&
-      mediaInfo.status != MediaStatus.UNKNOWN.value &&
-      mediaInfo.status != MediaStatus.DELETED.value
-
   fun getMediaStatus(): MediaStatus? {
     val standardStatus = mediaInfo?.status
     val status4k = mediaInfo?.status4k
@@ -143,9 +138,6 @@ data class SearchResultItem(
     return date?.take(4)
   }
 
-  fun isAvailableOrPartial(): Boolean =
-    mediaInfo?.status == MediaStatus.AVAILABLE.value ||
-      mediaInfo?.status == MediaStatus.PARTIALLY_AVAILABLE.value
 }
 
 @Serializable
@@ -213,9 +205,6 @@ data class MediaDetails(
     return date?.take(4)
   }
 
-  fun getDirector(): String? =
-    credits?.crew?.firstOrNull { it.job == "Director" }?.name
- 
   fun getMediaStatus(): MediaStatus? {
     val standardStatus = mediaInfo?.status
     val status4k = mediaInfo?.status4k
@@ -328,12 +317,6 @@ data class MediaInfo(
       }
     }
 
-  fun isFullyAvailable(): Boolean =
-    status == MediaStatus.AVAILABLE.value && !jellyfinMediaId.isNullOrBlank()
-
-  fun isPartiallyAvailable(): Boolean =
-    status == MediaStatus.PARTIALLY_AVAILABLE.value
-
   fun getJellyfinItemId(): String? {
     val raw = jellyfinMediaId ?: jellyfinMediaId4k ?: return null
     return if (raw.length == 32 && !raw.contains("-")) {
@@ -436,13 +419,6 @@ data class CreateRequestBody(
 )
 
 @Serializable
-data class ApproveRequestBody(
-  @SerialName("serverId") val serverId: Int? = null,
-  @SerialName("profileId") val profileId: Int? = null,
-  @SerialName("rootFolder") val rootFolder: String? = null,
-)
-
-@Serializable
 data class SeerrServiceProfile(
   @SerialName("id") val id: Int? = null,
   @SerialName("name") val name: String? = null,
@@ -493,23 +469,6 @@ data class SeerrSonarrServerResponse(
 )
 
 @Serializable
-data class DiscoverSlider(
-  @SerialName("id") val id: Int,
-  @SerialName("type") val type: Int? = null,
-  @SerialName("title") val title: String? = null,
-  @SerialName("isBuiltIn") val isBuiltIn: Boolean = false,
-  @SerialName("enabled") val enabled: Boolean = true,
-  @SerialName("data") val data: String? = null,
-)
-
-@Serializable
-data class GenreSliderItem(
-  @SerialName("id") val id: Int,
-  @SerialName("name") val name: String,
-  @SerialName("backdrops") val backdrops: List<String>? = null,
-)
-
-@Serializable
 data class Genre(
   @SerialName("id") val id: Int,
   @SerialName("name") val name: String,
@@ -543,31 +502,7 @@ data class JellyseerrUser(
   @SerialName("requestCount") val requestCount: Int = 0,
 ) {
   fun isAdmin(): Boolean = Permissions.hasPermission(permissions, Permissions.ADMIN)
-  fun canRequest(): Boolean = Permissions.hasPermission(permissions, Permissions.REQUEST) || isAdmin()
-  fun canAutoApprove(): Boolean = Permissions.hasPermission(permissions, Permissions.AUTO_APPROVE) || isAdmin()
-  fun canManageRequests(): Boolean = Permissions.hasPermission(permissions, Permissions.MANAGE_REQUESTS) || isAdmin()
 }
-
-@Serializable
-data class PublicSettings(
-  @SerialName("initialized") val initialized: Boolean = false,
-  @SerialName("version") val version: String? = null,
-)
-
-@Serializable
-data class UserQuotaResponse(
-  @SerialName("movie") val movie: QuotaInfo? = null,
-  @SerialName("tv") val tv: QuotaInfo? = null,
-)
-
-@Serializable
-data class QuotaInfo(
-  @SerialName("days") val days: Int? = null,
-  @SerialName("limit") val limit: Int? = null,
-  @SerialName("used") val used: Int = 0,
-  @SerialName("remaining") val remaining: Int = 0,
-  @SerialName("restricted") val restricted: Boolean = false,
-)
 
 object Permissions {
   const val NONE = 0L

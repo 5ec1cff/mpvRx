@@ -404,9 +404,11 @@ internal class BlobRenderer(
     volumeScale: Float,
   ) {
     spectrumUploadBuffer.clear()
+    val active = sourceAudio.active
+    val scale = if (active) volumeScale else 0f
     val populatedBins = min(spectrum.size, 512)
     for (index in 0 until populatedBins) {
-      spectrumUploadBuffer.put(spectrum[index] * volumeScale)
+      spectrumUploadBuffer.put(spectrum[index] * scale)
     }
     for (index in populatedBins until 512) {
       spectrumUploadBuffer.put(0f)
@@ -468,7 +470,12 @@ internal class BlobRenderer(
     GLES30.glViewport(0, 0, sceneTarget.width, sceneTarget.height)
     GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT)
     GLES30.glEnable(GLES30.GL_BLEND)
-    GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE)
+    GLES30.glBlendFuncSeparate(
+      GLES30.GL_SRC_ALPHA,
+      GLES30.GL_ONE,
+      GLES30.GL_ONE,
+      GLES30.GL_ONE_MINUS_SRC_ALPHA,
+    )
 
     GLES30.glUseProgram(blobProgram)
     GLES30.glUniformMatrix4fv(uBlobMvp, 1, false, mvp, 0)

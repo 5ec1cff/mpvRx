@@ -31,6 +31,15 @@ class FoldersPreferences(
   // Set of folder paths that should be hidden from the audio/music library
   val blacklistedAudioFolders = preferenceStore.getStringSet("blacklisted_audio_folders", emptySet())
   val pinnedFolders = preferenceStore.getStringSet("pinned_folders", emptySet())
+  // Video file paths pinned to the top of their folder listing
+  val pinnedVideos = preferenceStore.getStringSet("pinned_videos", emptySet())
+
+  /** Pins all [paths] unless every one is already pinned, in which case they are unpinned. */
+  fun togglePinnedVideos(paths: Collection<String>) {
+    if (paths.isEmpty()) return
+    val current = pinnedVideos.get()
+    pinnedVideos.set(if (current.containsAll(paths)) current - paths.toSet() else current + paths)
+  }
   val includeNoMediaFolders = preferenceStore.getBoolean("include_nomedia_folders", false)
   val hiddenFolderMarkerNames =
     preferenceStore.getStringSet("hidden_folder_marker_names", setOf(".nomedia"))

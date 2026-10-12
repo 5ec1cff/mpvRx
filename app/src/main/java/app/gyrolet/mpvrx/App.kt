@@ -10,39 +10,54 @@
 package app.gyrolet.mpvrx
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.Application
 import android.content.ComponentName
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.os.Process
 import android.os.StrictMode
+import android.os.SystemClock
 import android.util.Log
 import android.view.View
+import androidx.compose.ui.AndroidComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.di.DatabaseModule
 import app.gyrolet.mpvrx.di.FileManagerModule
 import app.gyrolet.mpvrx.di.PreferencesModule
-import app.gyrolet.mpvrx.preferences.AudioPreferences
+import app.gyrolet.mpvrx.preferences.AdvancedPreferences
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.presentation.crash.CrashActivity
 import app.gyrolet.mpvrx.presentation.crash.GlobalExceptionHandler
+import app.gyrolet.mpvrx.domain.network.NetworkImageRepository
 import app.gyrolet.mpvrx.repository.NetworkRepository
-import app.gyrolet.mpvrx.ui.player.PlaybackPerformanceTrace
+import app.gyrolet.mpvrx.ui.player.MediaPlayerWidget
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
+import app.gyrolet.mpvrx.ui.player.PlaybackPerformanceTrace
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
+import app.gyrolet.mpvrx.ui.theme.AppTheme
+import app.gyrolet.mpvrx.ui.theme.DarkMode
 import `is`.xyz.mpv.FastThumbnails
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.context.GlobalContext
@@ -57,17 +72,60 @@ class App :
   private val networkAutoConnectStarted = AtomicBoolean(false)
   private val metadataMaintenanceStarted = AtomicBoolean(false)
   private val fastThumbnailsStarted = AtomicBoolean(false)
+  private val imageCacheCleanupStarted = AtomicBoolean(false)
+  private val settingsAutoBackupRunning = AtomicBoolean(false)
   private var startedActivityCount = 0
+
+  private data class WidgetAppearanceState(
+    val darkMode: DarkMode,
+    val appTheme: AppTheme,
+    val customTheme: String,
+    val selectedCustomThemeName: String,
+    val amoledMode: Boolean,
+  )
+
+  private data class WatchTrackingState(
+    val item: app.gyrolet.mpvrx.ui.player.PlaybackItem?,
+    val generation: Long,
+    val phase: PlaybackPhase,
+    val paused: Boolean,
+    val stalled: Boolean,
+    val resetVersion: Long,
+  )
 
   companion object {
     private const val TAG = "App"
     private const val POST_START_MAINTENANCE_DELAY_MS = 10_000L
     private const val THUMBNAIL_WARMUP_DELAY_MS = 1_500L
-    private const val IDLE_MPV_CORE_GRACE_MS = 3L * 60L * 1000L
+    // Was 3 minutes, shorter than a normal folder browse-through. Every open inside that window
+    // paid a full core rebuild: initOptions() plus MPVLib.init() (mpv.conf + Lua scripts).
+    private const val IDLE_MPV_CORE_GRACE_MS = 20L * 60L * 1000L
+    private const val WATCH_STATS_INTERVAL_MS = 15_000L
   }
 
+  @OptIn(ExperimentalComposeUiApi::class)
   override fun onCreate() {
     super.onCreate()
+
+    // Material3 alpha29 brings Compose UI 1.13.0-alpha01, which re-enables out-of-frame
+    // IME dispatch. Batch StopInput/StartInput on the next frame so focus transfers don't
+    // briefly hide/reopen the keyboard (AndroidX b/530704636). Applies to every form/sheet.
+    AndroidComposeUiFlags.isOutOfFrameSchedulerForTextInputEventsEnabled = false
+
+    val processName =
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        Application.getProcessName()
+      } else {
+        getSystemService(ActivityManager::class.java).runningAppProcesses
+          ?.firstOrNull { it.pid == Process.myPid() }?.processName
+      }
+    if (processName == "$packageName:crash") {
+      startKoin {
+        androidContext(this@App)
+        modules(PreferencesModule)
+      }
+      return
+    }
 
     configureDebugStrictMode()
 
@@ -90,6 +148,8 @@ class App :
     startPlaybackPerformanceTracing()
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
     startIdleMpvCoreReaper()
+    startWidgetUpdates()
+    startWatchStatsTracking()
 
     applicationScope.launch {
       runCatching {
@@ -140,12 +200,88 @@ class App :
     // Explicit library refreshes and normal MediaStore notifications still invalidate app caches.
   }
 
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    MediaPlayerWidget.requestUpdate(this)
+  }
+
+  private fun startWidgetUpdates() {
+    val appearancePreferences: AppearancePreferences = getKoin().get()
+    applicationScope.launch {
+      combine(
+        appearancePreferences.darkMode.changes(),
+        appearancePreferences.appTheme.changes(),
+        appearancePreferences.customTheme.changes(),
+        appearancePreferences.selectedCustomThemeName.changes(),
+        appearancePreferences.amoledMode.changes(),
+      ) { darkMode, appTheme, customTheme, selectedCustomThemeName, amoledMode ->
+        WidgetAppearanceState(darkMode, appTheme, customTheme, selectedCustomThemeName, amoledMode)
+      }.distinctUntilChanged().collect {
+        MediaPlayerWidget.requestUpdate(this@App)
+      }
+    }
+    applicationScope.launch {
+      combine(PlaybackSession.state, PlaybackSession.queue) { state, queue -> state to queue }
+        .distinctUntilChanged()
+        .collect { MediaPlayerWidget.requestUpdate(this@App) }
+    }
+  }
+
+  private fun startWatchStatsTracking() {
+    val repository = getKoin().get<app.gyrolet.mpvrx.repository.WatchStatsRepository>()
+    applicationScope.launch {
+      var lastSessionKey: Triple<Long, Long, String>? = null
+      combine(
+        PlaybackSession.state,
+        PlaybackSession.propBoolean["core-idle"],
+        PlaybackSession.propBoolean["paused-for-cache"],
+        repository.resetVersion,
+      ) { state, coreIdle, pausedForCache, resetVersion ->
+        WatchTrackingState(
+          item = state.currentItem,
+          generation = state.generation,
+          phase = state.phase,
+          paused = state.paused,
+          stalled = coreIdle == true || pausedForCache == true,
+          resetVersion = resetVersion,
+        )
+      }
+        .distinctUntilChanged()
+        .collectLatest { (item, generation, phase, paused, stalled, resetVersion) ->
+          if (item == null || paused || stalled || phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)) {
+            return@collectLatest
+          }
+          val sessionKey = Triple(resetVersion, generation, item.stableId)
+          if (lastSessionKey != sessionKey) {
+            repository.recordSession(item)
+            lastSessionKey = sessionKey
+          }
+          var recordedAt = SystemClock.elapsedRealtime()
+          try {
+            while (true) {
+              delay(WATCH_STATS_INTERVAL_MS)
+              val now = SystemClock.elapsedRealtime()
+              val elapsedSeconds = (now - recordedAt) / 1_000L
+              recordedAt = now
+              repository.recordPlayback(item, elapsedSeconds)
+            }
+          } finally {
+            val remainder = (SystemClock.elapsedRealtime() - recordedAt) / 1_000L
+            if (remainder > 0) {
+              withContext(NonCancellable) { repository.recordPlayback(item, remainder) }
+            }
+          }
+        }
+    }
+  }
+
   override fun onActivityStarted(activity: Activity) {
     if (activity is PlayerActivity) PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_STARTED")
     if (startedActivityCount++ == 0) {
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppForegrounded()
       scheduleFastThumbnailWarmupOnce()
       scheduleMetadataMaintenanceOnce()
+      scheduleImageCacheCleanupOnce()
     }
   }
 
@@ -155,6 +291,22 @@ class App :
     if (startedActivityCount == 0 && !activity.isChangingConfigurations) {
       pauseVideoWhenBackgroundPlaybackDisabled(activity)
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppBackgrounded()
+      scheduleSettingsAutoBackup()
+    }
+  }
+
+  private fun scheduleSettingsAutoBackup() {
+    val preferences = getKoin().get<AdvancedPreferences>()
+    val folderUri = preferences.mpvConfStorageUri.get().takeIf(String::isNotBlank) ?: return
+    if (!preferences.autoBackupEnabled.get() || !settingsAutoBackupRunning.compareAndSet(false, true)) return
+    applicationScope.launch(Dispatchers.IO) {
+      try {
+        getKoin().get<app.gyrolet.mpvrx.preferences.SettingsManager>()
+          .autoBackupIfChanged(folderUri)
+          .onFailure { error -> Log.e(TAG, "Automatic settings backup failed", error) }
+      } finally {
+        settingsAutoBackupRunning.set(false)
+      }
     }
   }
 
@@ -166,7 +318,7 @@ class App :
       Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && playerActivity.isInPictureInPictureMode
     if (isInPictureInPicture) return
 
-    val videoBackgroundPlaybackEnabled = getKoin().get<AudioPreferences>().backgroundPlayback.get()
+    val videoBackgroundPlaybackEnabled = PlaybackSession.isVideoBackgroundPlaybackEnabled()
     if (videoBackgroundPlaybackEnabled) return
 
     val state = PlaybackSession.state.value
@@ -257,12 +409,6 @@ class App :
     if (activity is PlayerActivity) PlaybackPerformanceTrace.end("ON_DESTROY")
   }
 
-  /**
-   * Keep libmpv warm for quick navigation/re-entry, but do not pin its native decoder/renderer
-   * allocation forever after playback has genuinely ended. collectLatest makes this self-cancelling:
-   * any new load, surface attachment, background session, or other state change aborts the grace
-   * timer before destruction can run.
-   */
   private fun startIdleMpvCoreReaper() {
     applicationScope.launch {
       PlaybackSession.state.collectLatest { state ->
@@ -360,6 +506,28 @@ class App :
       } catch (error: Exception) {
         metadataMaintenanceStarted.set(false)
         Log.w(TAG, "Deferred metadata maintenance failed", error)
+      }
+    }
+  }
+
+  private fun scheduleImageCacheCleanupOnce() {
+    if (!imageCacheCleanupStarted.compareAndSet(false, true)) return
+    applicationScope.launch(Dispatchers.IO) {
+      try {
+        delay(POST_START_MAINTENANCE_DELAY_MS)
+        app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia.clearLegacyCache(
+          this@App,
+          PlaybackSession.state.value.currentItem?.originalUri,
+        )
+        val imageRepository: NetworkImageRepository = getKoin().get()
+        imageRepository.evictStaleImageCaches()
+        Log.d(TAG, "Network image cache cleanup completed")
+      } catch (cancellation: CancellationException) {
+        imageCacheCleanupStarted.set(false)
+        throw cancellation
+      } catch (error: Exception) {
+        imageCacheCleanupStarted.set(false)
+        Log.w(TAG, "Network image cache cleanup failed", error)
       }
     }
   }

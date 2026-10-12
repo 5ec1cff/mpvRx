@@ -17,6 +17,7 @@ import android.os.Bundle
 import android.util.Log
 import android.app.Activity
 import androidx.activity.ComponentActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,12 +25,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -39,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -50,6 +54,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -57,10 +62,15 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.presentation.components.ProvideLiquidGlassBackdrop
+import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
+import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.browser.components.MiniPlayer
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.DarkMode
+import app.gyrolet.mpvrx.ui.theme.AppWallpaperHost
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
 import app.gyrolet.mpvrx.ui.theme.rememberThemeTransitionState
 import android.view.SurfaceHolder
@@ -73,6 +83,9 @@ import app.gyrolet.mpvrx.ui.player.MPVPipHelper
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
+import app.gyrolet.mpvrx.ui.player.PlayerArtworkDestination
+import app.gyrolet.mpvrx.ui.player.PlayerArtworkTransitionOverlay
+import app.gyrolet.mpvrx.ui.player.PlayerLifecyclePolicy
 import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.toObject
@@ -81,6 +94,7 @@ import app.gyrolet.mpvrx.ui.utils.ScreenNavDisplay
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import app.gyrolet.mpvrx.utils.device.appUiScaleOverrideConfiguration
 import app.gyrolet.mpvrx.utils.media.fileExtension
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
@@ -98,7 +112,7 @@ private const val NON_VULKAN_NOTICE_SHOWN = "non_vulkan_notice_shown"
 /**
  * Main entry point for the application
  */
-class MainActivity : AppCompatActivity() {
+open class MainActivity : AppCompatActivity() {
   private val appearancePreferences by inject<AppearancePreferences>()
   private val playerPreferences by inject<PlayerPreferences>()
   private var appliedEdgeToEdgeDarkMode: Boolean? = null
@@ -117,6 +131,9 @@ class MainActivity : AppCompatActivity() {
     }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Match REX Player's splash handoff: use only Android's system SplashScreen and hand
+    // directly into the real UI. Do not draw a second Compose logo/title layer afterwards.
+    installSplashScreen()
     super.onCreate(savedInstanceState)
 
     if (DeviceFormFactor.isTelevision(this)) {
@@ -243,38 +260,54 @@ class MainActivity : AppCompatActivity() {
         }
       } else {
         MpvrxTheme(transitionState = themeTransitionState) {
-          Surface(modifier = Modifier.fillMaxSize()) {
-            Navigator()
-          }
-          if (showRendererBuildNotice) {
-            val acknowledgeNotice = {
-              rendererNoticePreferences.edit().putBoolean(NON_VULKAN_NOTICE_SHOWN, true).apply()
-              showRendererBuildNotice = false
+          AppWallpaperHost {
+            Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+              Navigator()
             }
-            AlertDialog(
-              onDismissRequest = acknowledgeNotice,
-              title = { Text(getString(R.string.renderer_build_notice_title)) },
-              text = {
-                Text(
-                  getString(
-                    if (deviceSupportsVulkan) {
-                      R.string.renderer_build_notice_supported_device
-                    } else {
-                      R.string.renderer_build_notice_unsupported_device
-                    },
-                  ),
-                )
-              },
-              confirmButton = {
-                TextButton(onClick = acknowledgeNotice) {
-                  Text(getString(R.string.generic_ok))
-                }
-              },
-            )
+            if (showRendererBuildNotice) {
+              val acknowledgeNotice = {
+                rendererNoticePreferences.edit().putBoolean(NON_VULKAN_NOTICE_SHOWN, true).apply()
+                showRendererBuildNotice = false
+              }
+              AlertDialog(
+                onDismissRequest = acknowledgeNotice,
+                title = { Text(getString(R.string.renderer_build_notice_title)) },
+                text = {
+                  Text(
+                    getString(
+                      if (deviceSupportsVulkan) {
+                        R.string.renderer_build_notice_supported_device
+                      } else {
+                        R.string.renderer_build_notice_unsupported_device
+                      },
+                    ),
+                  )
+                },
+                confirmButton = {
+                  TextButton(onClick = acknowledgeNotice) {
+                    Text(getString(R.string.generic_ok))
+                  }
+                },
+              )
+            }
           }
         }
       }
     }
+
+  }
+
+  override fun attachBaseContext(newBase: android.content.Context?) {
+    if (newBase == null) {
+      super.attachBaseContext(null)
+      return
+    }
+
+    // An override configuration is re-merged by the framework on every configuration change.
+    // createConfigurationContext() is not, so rotation would drop the scale on devices that
+    // handle the rotation themselves instead of recreating the activity.
+    applyOverrideConfiguration(appUiScaleOverrideConfiguration(newBase, appearancePreferences.appUiScale.get()))
+    super.attachBaseContext(newBase)
   }
 
   override fun onStart() {
@@ -284,6 +317,9 @@ class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
+    runCatching { app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.reconcile(this) }
+      .onFailure { Log.w("LauncherIcon", "Unable to reconcile launcher aliases", it) }
+    app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.refreshTaskIcon(this)
     pipHelper.updatePictureInPictureParams()
     if (!isPipMode && (pendingPipExitResolution || wasInPipMode)) {
       window.decorView.post {
@@ -340,14 +376,20 @@ class MainActivity : AppCompatActivity() {
   private fun schedulePipExitResolution() {
     pendingPipExitResolution = true
     if (isFinishing || isDestroyed) {
-      pendingPipExitResolution = false
-      wasInPipMode = false
-      isExpandingFromPip = false
+      stopPipPlayback()
       return
     }
     if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && hasWindowFocus()) {
       completePipExpansion()
     }
+  }
+
+  private fun stopPipPlayback() {
+    val hadPipSession = wasInPipMode || pendingPipExitResolution
+    pendingPipExitResolution = false
+    wasInPipMode = false
+    isExpandingFromPip = false
+    if (hadPipSession) MediaPlaybackService.stopForTerminalDismissal()
   }
 
   private fun completePipExpansion() {
@@ -395,9 +437,20 @@ class MainActivity : AppCompatActivity() {
   override fun onStop() {
     super.onStop()
     pipHelper.onStop()
-    pendingPipExitResolution = false
-    wasInPipMode = false
-    isExpandingFromPip = false
+    val powerManager = getSystemService(android.os.PowerManager::class.java)
+    val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
+    if (
+      PlayerLifecyclePolicy.shouldTreatStopAsPipDismissal(
+        wasInPictureInPictureMode = wasInPipMode,
+        isInPictureInPictureMode = isInPictureInPictureMode,
+        isActivityFinishing = isFinishing,
+        isChangingConfigurations = isChangingConfigurations,
+        isScreenOffOrLocked = powerManager?.isInteractive == false || keyguardManager?.isKeyguardLocked == true,
+        alreadyHandled = false,
+      )
+    ) {
+      stopPipPlayback()
+    }
   }
 
   private fun isCurrentMediaAudioOnly(): Boolean {
@@ -434,6 +487,7 @@ class MainActivity : AppCompatActivity() {
   }
 
   override fun onDestroy() {
+    if (!isChangingConfigurations) stopPipPlayback()
     pendingPipExitResolution = false
     wasInPipMode = false
     isExpandingFromPip = false
@@ -459,8 +513,9 @@ class MainActivity : AppCompatActivity() {
 
     val synchronizedBarStyle =
       SystemBarStyle.auto(
-        lightScrim = Color(0xFFF7F5F8).toArgb(),
-        darkScrim = Color(0xFF161217).toArgb(),
+        // Fully transparent so the wallpaper is visible behind the status/navigation bars.
+        lightScrim = android.graphics.Color.TRANSPARENT,
+        darkScrim = android.graphics.Color.TRANSPARENT,
       ) { isDarkMode }
     enableEdgeToEdge(
       statusBarStyle = synchronizedBarStyle,
@@ -469,11 +524,22 @@ class MainActivity : AppCompatActivity() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       window.isNavigationBarContrastEnforced = false
     }
+    if (Build.VERSION.SDK_INT >= 35) {
+      window.isStatusBarContrastEnforced = false
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      // Draw into camera-cutout areas too, so the wallpaper covers the whole screen.
+      window.attributes =
+        window.attributes.apply {
+          layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+    }
     appliedEdgeToEdgeDarkMode = isDarkMode
   }
 
   private companion object {
     const val SYSTEM_BAR_THEME_SWITCH_PROGRESS = 0.55f
+
   }
 
   /**
@@ -511,6 +577,7 @@ class MainActivity : AppCompatActivity() {
     val updateState by (updateViewModel?.updateState ?: fallbackUpdateState).collectAsState()
     val isDownloading by (updateViewModel?.isDownloading ?: fallbackIsDownloading).collectAsState()
     val downloadProgress by (updateViewModel?.downloadProgress ?: fallbackDownloadProgress).collectAsState()
+    val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
 
     // Provide both LocalBackStack and the LazyList/Grid states to all screens
     CompositionLocalProvider(
@@ -525,10 +592,15 @@ class MainActivity : AppCompatActivity() {
       }
 
       if (hasNavEntries) {
+        val miniPlayerBackdrop = rememberLiquidGlassBackdrop()
         Box(modifier = Modifier.fillMaxSize()) {
           ScreenNavDisplay(
-            modifier = Modifier.fillMaxSize(),
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .captureLiquidGlassBackdrop(miniPlayerBackdrop, liquidGlassEnabled),
             backStack = typedBackstack,
+            opaqueFrom = app.gyrolet.mpvrx.ui.preferences.PreferencesScreen,
             onBack = {
               if (typedBackstack.size <= 1 || !typedBackstack.popSafely()) {
                 this@MainActivity.finish()
@@ -540,6 +612,41 @@ class MainActivity : AppCompatActivity() {
           val isPortrait = miniPlayerConfig.orientation == Configuration.ORIENTATION_PORTRAIT
           val isTablet = miniPlayerConfig.smallestScreenWidthDp >= 600
           val isDualPane = NavigationBarState.isDualPaneFolderSelected
+          val isNavBarVisible = NavigationBarState.isNavBarVisible
+          val isSelectionMode = NavigationBarState.isInSelectionMode
+          val reducedMotion = AppMotion.shouldReduceMotion()
+          val placementAnimation = if (reducedMotion) snap() else tween<androidx.compose.ui.unit.Dp>(
+            durationMillis = 320,
+            easing = FastOutSlowInEasing,
+          )
+          // The clearance moves with the floating bars instead of snapping at navigation changes.
+          // Keep the insets and base spacing fixed; animate visual translation instead
+          // of remeasuring the mini-player whenever the navigation visibility changes.
+          val portraitLift by animateDpAsState(
+            targetValue = when {
+              isSelectionMode -> NavigationBarState.selectionBarClearance
+              isNavBarVisible -> (NavigationBarState.navigationBarClearance - 12.dp).coerceAtLeast(0.dp)
+              else -> 0.dp
+            },
+            animationSpec = placementAnimation,
+            label = "mini_player_portrait_lift",
+          )
+          val wideBottomPadding by animateDpAsState(
+            targetValue = if (isSelectionMode) NavigationBarState.selectionBarClearance else 12.dp,
+            animationSpec = placementAnimation,
+            label = "mini_player_wide_bottom_clearance",
+          )
+          val wideStartPadding by animateDpAsState(
+            targetValue =
+              if (isNavBarVisible) {
+                NavigationBarState.navbarLeftOffset.coerceAtLeast(16.dp) +
+                  NavigationBarState.navbarWidth.coerceAtLeast(0.dp) + 12.dp
+              } else {
+                12.dp
+              },
+            animationSpec = placementAnimation,
+            label = "mini_player_wide_start_clearance",
+          )
 
           val miniPlayerModifier =
             when {
@@ -558,48 +665,27 @@ class MainActivity : AppCompatActivity() {
                   .align(Alignment.BottomCenter)
                   .fillMaxWidth()
                   .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    bottom =
-                      (if (NavigationBarState.isNavBarVisible) {
-                        NavigationBarState.navigationBarClearance
-                      } else {
-                        12.dp
-                      }) +
-                        (if (NavigationBarState.isInSelectionMode) {
-                          NavigationBarState.selectionBarClearance
-                        } else {
-                          0.dp
-                        }),
-                  )
+                  .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                  .offset(y = -portraitLift)
 
               // Landscape/tablet single-pane: sit on the right side of the nav bar,
               // which slides left when the mini player appears.
-              else -> {
-                val isNavBarOnScreen = NavigationBarState.isNavBarVisible
-                val navBarLeft = if (NavigationBarState.navbarLeftOffset > 0.dp) NavigationBarState.navbarLeftOffset else 16.dp
-                val navBarWidth = if (NavigationBarState.navbarWidth > 0.dp) NavigationBarState.navbarWidth else 320.dp
-                val startPadding = if (isNavBarOnScreen) (navBarLeft + navBarWidth + 12.dp) else 12.dp
-                val bottomPadding = if (NavigationBarState.isInSelectionMode) {
-                  NavigationBarState.selectionBarClearance
-                } else {
-                  12.dp
-                }
-
+              else ->
                 Modifier
                   .align(Alignment.BottomStart)
-                  .padding(
-                    start = startPadding,
-                    end = 12.dp,
-                  )
+                  .padding(start = wideStartPadding, end = 12.dp)
                   .fillMaxWidth()
                   .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(bottom = bottomPadding)
-              }
+                  .padding(bottom = wideBottomPadding)
             }
 
-          MiniPlayer(modifier = miniPlayerModifier)
+          ProvideLiquidGlassBackdrop(
+            backdrop = miniPlayerBackdrop,
+            enabled = liquidGlassEnabled,
+          ) {
+            MiniPlayer(modifier = miniPlayerModifier)
+          }
+          PlayerArtworkTransitionOverlay(PlayerArtworkDestination.MINI, Modifier.matchParentSize())
         }
       }
 

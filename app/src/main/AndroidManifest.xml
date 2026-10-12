@@ -3,12 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29"
@@ -40,18 +43,22 @@
     <application
         android:name=".App"
         android:appCategory="video"
-        android:banner="@drawable/tv_banner"
+        android:banner="@drawable/tv_banner_solid_purple"
         android:enableOnBackInvokedCallback="false"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher_solid_purple"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher_solid_purple_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.mpvrx"
         android:largeHeap="true"
         android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="35">
+        <meta-data
+            android:name="com.samsung.android.support.ongoing_activity"
+            android:value="true" />
+
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"
@@ -79,6 +86,30 @@
             android:name="androidx.mediarouter.media.MediaTransferReceiver"
             android:exported="true" />
 
+        <receiver
+            android:name=".ui.player.MediaPlayerWidget"
+            android:exported="false"
+            android:label="@string/media_widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/media_player_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ui.player.MediaPlayerPillWidget"
+            android:exported="false"
+            android:label="@string/media_widget_pill_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/media_player_pill_widget_info" />
+        </receiver>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -86,25 +117,132 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
-            android:theme="@style/Theme.mpvrx">
+            android:theme="@style/Theme.mpvrx.Splash">
+        </activity>
+
+        <activity
+            android:name=".PurpleMainActivity"
+            android:exported="false"
+            android:enableOnBackInvokedCallback="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.mpvrx.PurpleSplash" />
+
+        <!-- Classic icon uses a separate launcher target so Android can render its matching
+             system splash before any application code runs. -->
+        <activity
+            android:name=".ClassicMainActivity"
+            android:exported="false"
+            android:enableOnBackInvokedCallback="true"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:theme="@style/Theme.mpvrx.ClassicSplash" />
+
+        <activity-alias
+            android:name=".PurpleLauncher"
+            android:targetActivity=".PurpleMainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher_purple"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_purple_round">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".SolidPurpleLauncher"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="true"
+            android:icon="@mipmap/ic_launcher_solid_purple"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_solid_purple_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ClassicLauncher"
+            android:targetActivity=".ClassicMainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Keep text/config file-open separate from PlayerActivity's media intents. -->
+        <activity
+            android:name=".ui.editor.ExternalTextEditorActivity"
+            android:exported="true"
+            android:theme="@style/Theme.mpvrx"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/javascript" />
+                <data android:mimeType="application/x-javascript" />
+                <data android:mimeType="application/x-lua" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
-        <activity-alias
-            android:name=".TvLauncherActivity"
-            android:targetActivity=".MainActivity"
-            android:banner="@drawable/tv_banner"
+                <activity-alias
+            android:name=".TvPurpleLauncher"
+            android:targetActivity=".PurpleMainActivity"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher">
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher_purple"
+            android:label="@string/app_name"
+            android:banner="@drawable/tv_banner_purple">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity-alias>
+        <activity-alias
+            android:name=".TvSolidPurpleLauncher"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="true"
+            android:icon="@mipmap/ic_launcher_solid_purple"
+            android:label="@string/app_name"
+            android:banner="@drawable/tv_banner_solid_purple">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".TvClassicLauncher"
+            android:targetActivity=".ClassicMainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:banner="@drawable/tv_banner">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
 
         <activity
             android:name=".ui.player.PlayerActivity"
@@ -188,7 +326,6 @@
                 <data android:mimeType="video/*" />
                 <data android:mimeType="audio/*" />
                 <data android:mimeType="image/*" />
-                <data android:mimeType="text/plain" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -294,6 +431,12 @@
             android:targetActivity=".ui.player.PlayerActivity"
             android:exported="true"
             android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- various URL intent filters for popular youtube-dl extractors -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -454,7 +597,27 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:theme="@style/Theme.mpvrx" />
-        <activity android:name=".presentation.crash.CrashActivity" />
+        <activity
+            android:name=".presentation.crash.CrashActivity"
+            android:process=":crash"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.mpvrx" />
+        <activity
+            android:name=".presentation.crash.DebugLogsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.mpvrx" />
+        <provider
+            android:name=".presentation.crash.CrashReportProvider"
+            android:authorities="${applicationId}.crash-reports"
+            android:exported="false"
+            android:grantUriPermissions="true"
+            android:process=":crash">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/crash_report_paths" />
+        </provider>
 
         <activity
             android:name=".ui.mediainfo.MediaInfoActivity"
@@ -546,6 +709,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+        <receiver
+            android:name=".ui.preferences.LauncherIconRepairReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
 

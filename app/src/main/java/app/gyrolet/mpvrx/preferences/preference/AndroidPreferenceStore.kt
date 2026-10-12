@@ -11,7 +11,6 @@ package app.gyrolet.mpvrx.preferences.preference
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
 import app.gyrolet.mpvrx.preferences.preference.AndroidPreference.BooleanPrimitive
 import app.gyrolet.mpvrx.preferences.preference.AndroidPreference.FloatPrimitive
 import app.gyrolet.mpvrx.preferences.preference.AndroidPreference.IntPrimitive
@@ -27,9 +26,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.shareIn
 
+/** The app's default preferences file, identical to androidx PreferenceManager.getDefaultSharedPreferences. */
+fun Context.defaultSharedPreferences(): SharedPreferences =
+  getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE)
+
 class AndroidPreferenceStore(
   context: Context,
-  private val sharedPreferences: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context),
+  private val sharedPreferences: SharedPreferences = context.defaultSharedPreferences(),
 ) : PreferenceStore {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 

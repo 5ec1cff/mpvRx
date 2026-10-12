@@ -35,6 +35,10 @@ enum class ResumePlaybackMode(
     R.string.pref_player_resume_mode_always,
     R.string.pref_player_resume_mode_always_summary,
   ),
+  MinimumDuration(
+    R.string.pref_player_resume_mode_min_duration,
+    R.string.pref_player_resume_mode_min_duration_summary,
+  ),
   Ask(
     R.string.pref_player_resume_mode_ask,
     R.string.pref_player_resume_mode_ask_summary,
@@ -148,7 +152,12 @@ enum class Sheets {
   AudioProperties,
   VisualizerStyle,
   Lyrics,
+  LyricsProvider,
   Scopes,
+  PostProcessingConfig,
+  BookmarkEditor,
+  AudiobookRewind,
+  AudiobookSleepTimer,
 }
 
 enum class Panels {
@@ -177,6 +186,7 @@ sealed class PlayerUpdates {
 
   data class SubtitleZoom(
     val scale: Float,
+    val secondary: Boolean = false,
   ) : PlayerUpdates()
 
   data class HorizontalSeek(

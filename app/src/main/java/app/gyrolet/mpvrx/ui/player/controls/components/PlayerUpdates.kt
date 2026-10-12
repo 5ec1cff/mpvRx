@@ -26,6 +26,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,35 +38,86 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.roundedfilled.Replay
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.Capsule
 import `is`.xyz.mpv.Utils
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
+import org.koin.compose.koinInject
 
-private val tabularFigures = "tnum"
 private val compactSpeedIndicatorWidth = 32.dp
 
+/** Equal-width digits where the font supports them. */
+fun TextStyle.withTabularDigits(): TextStyle = copy(fontFeatureSettings = "tnum")
+
+// Signs and separators that locale-formatted numbers may use: ASCII/Unicode minus, plus, Arabic separators.
+private const val NUMERIC_PUNCTUATION = "+-\u2212.,\u066B\u066C"
+
+/** Wording without numbers: "Zoom: 95%" and "Zoom: −100%" share a key, a different message does not. */
+private fun numericWidthKey(text: String): String =
+  text.filterNot {
+    it.isDigit() || it in NUMERIC_PUNCTUATION || Character.getType(it) == Character.FORMAT.toInt()
+  }
+
+/**
+ * Shared anti-jitter sizing for every live-number indicator on the player. While the wording of [text]
+ * stays the same the element can grow but never shrink, so digits with different glyph widths cannot
+ * make it jitter; new wording lets it fit its content again.
+ */
 @Composable
-private fun rememberPlayerUpdateOffset(): androidx.compose.ui.unit.Dp {
+fun Modifier.stableNumericWidth(text: String): Modifier {
+  // Layout-only memory: not snapshot state, so widening never triggers recomposition.
+  val widestPx = remember(numericWidthKey(text)) { intArrayOf(0) }
+  return layout { measurable, constraints ->
+    val minWidth = maxOf(constraints.minWidth, widestPx[0]).coerceAtMost(constraints.maxWidth)
+    val placeable = measurable.measure(constraints.copy(minWidth = minWidth))
+    widestPx[0] = maxOf(widestPx[0], placeable.width)
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+  }
+}
+
+@Composable
+private fun rememberPlayerUpdateOffset(): State<androidx.compose.ui.unit.Dp> {
   val activity = LocalActivity.current as? PlayerActivity
   val playerViewModel =
     remember(activity) {
@@ -95,37 +147,87 @@ private fun rememberPlayerUpdateOffset(): androidx.compose.ui.unit.Dp {
     targetValue = targetOffset,
     animationSpec = spring(),
     label = "player_update_controls_offset",
-  ).value
+  )
 }
 
+/** Shared container for every player pill; [stableWidthText] keeps it from jittering as numbers change. */
 @Composable
 fun PlayerUpdate(
   modifier: Modifier = Modifier,
+  stableWidthText: String = "",
   content: @Composable () -> Unit = {},
 ) {
   val controlsOffset = rememberPlayerUpdateOffset()
+  val backdrop = LocalKyantPlayerBackdrop.current
+  val glassSettings = rememberLiquidGlassSettings()
+  val preferences = koinInject<AppearancePreferences>()
+  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val reducedMotion = AppMotion.shouldReduceMotion()
+  val renderGlass = glassEnabled && backdrop != null
+  // Capture composable-context colors before entering DrawScope lambdas
+  val pillColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f)
+  val contentColor = MaterialTheme.colorScheme.onSurface
 
-  Surface(
-    shape = RoundedCornerShape(100.dp),
-    color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-    contentColor = MaterialTheme.colorScheme.onSurface,
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-    border =
-      BorderStroke(
-        1.dp,
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-      ),
-    modifier =
-      modifier
-        .offset(y = controlsOffset)
-        .animateContentSize(),
-  ) {
+  val glassModifier =
+    if (renderGlass) {
+      Modifier
+        .graphicsLayer { clip = false }
+        .drawBackdrop(
+          backdrop = checkNotNull(backdrop),
+          shape = { Capsule() },
+          effects = {
+            liquidGlassEffects(
+              glassSettings,
+              blurRadius = 8.dp.toPx(),
+              refractionHeight = 14.dp.toPx(),
+              refractionAmount = 22.dp.toPx(),
+              vibrant = true,
+              refractionEnabled = !reducedMotion,
+            )
+          },
+          highlight = {
+            glassSettings.highlight(
+              Highlight.Ambient.copy(alpha = if (reducedMotion) 0.28f else 0.52f),
+            )
+          },
+          shadow = {
+            glassSettings.shadow(
+              Shadow(radius = 8.dp, color = Color.Black.copy(alpha = 0.16f)),
+            )
+          },
+          innerShadow = {
+            glassSettings.innerShadow(
+              InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.14f)),
+            )
+          },
+          onDrawSurface = {
+            drawRect(glassSettings.surfaceColor(pillColor))
+          },
+        )
+    } else {
+      Modifier
+        .shadow(8.dp, Capsule())
+        .clip(Capsule())
+        .background(pillColor)
+    }
+
+  CompositionLocalProvider(LocalContentColor provides contentColor) {
     Box(
-      modifier = Modifier.padding(vertical = 4.dp, horizontal = 10.dp),
-      contentAlignment = Alignment.Center,
+      modifier =
+        modifier
+          .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
+          .animateContentSize()
+          .then(glassModifier),
     ) {
-      content()
+      Box(
+        modifier =
+          Modifier
+            .stableNumericWidth(stableWidthText)
+            .padding(vertical = 4.dp, horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+      ) {
+        content()
+      }
     }
   }
 }
@@ -135,14 +237,13 @@ fun TextPlayerUpdate(
   text: String,
   modifier: Modifier = Modifier,
 ) {
-  val stableTextStyle = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = tabularFigures)
-  PlayerUpdate(modifier) {
+  PlayerUpdate(modifier, stableWidthText = text) {
     Text(
       text = text,
       fontWeight = FontWeight.Bold,
       textAlign = TextAlign.Center,
       color = MaterialTheme.colorScheme.onSurface,
-      style = stableTextStyle,
+      style = MaterialTheme.typography.bodyMedium.withTabularDigits(),
     )
   }
 }
@@ -201,7 +302,7 @@ fun CompactSpeedIndicator(
           text = targetSpeed,
           fontWeight = FontWeight.ExtraBold,
           textAlign = TextAlign.Center,
-          style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = tabularFigures),
+          style = MaterialTheme.typography.bodyMedium.withTabularDigits(),
           color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
@@ -209,7 +310,7 @@ fun CompactSpeedIndicator(
           fontWeight = FontWeight.Bold,
           textAlign = TextAlign.Center,
           modifier = Modifier.padding(start = 1.dp),
-          style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = tabularFigures),
+          style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
         )
       }
@@ -327,8 +428,8 @@ fun SeekPlayerUpdate(
   seekDelta: String,
   modifier: Modifier = Modifier,
 ) {
-  val stableTextStyle = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = tabularFigures)
-  PlayerUpdate(modifier) {
+  val stableTextStyle = MaterialTheme.typography.bodyMedium.withTabularDigits()
+  PlayerUpdate(modifier, stableWidthText = "$currentTime $seekDelta") {
     Row(
       verticalAlignment = Alignment.CenterVertically,
     ) {

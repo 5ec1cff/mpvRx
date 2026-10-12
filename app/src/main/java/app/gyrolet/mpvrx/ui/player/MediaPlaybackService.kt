@@ -29,6 +29,7 @@ import android.media.AudioManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.SystemClock
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
@@ -42,6 +43,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.media.MediaBrowserServiceCompat
 import androidx.media.session.MediaButtonReceiver
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.database.entities.PlaybackStateEntity
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
@@ -66,6 +68,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -105,10 +108,12 @@ class MediaPlaybackService :
     const val ACTION_NOTIFICATION_PREVIOUS = "app.gyrolet.mpvrx.action.NOTIFICATION_PREVIOUS"
     const val ACTION_NOTIFICATION_PLAY_PAUSE = "app.gyrolet.mpvrx.action.NOTIFICATION_PLAY_PAUSE"
     const val ACTION_NOTIFICATION_NEXT = "app.gyrolet.mpvrx.action.NOTIFICATION_NEXT"
+    const val ACTION_NOTIFICATION_SHUFFLE = "app.gyrolet.mpvrx.action.NOTIFICATION_SHUFFLE"
     const val ACTION_NOTIFICATION_FAVORITE = "app.gyrolet.mpvrx.action.NOTIFICATION_FAVORITE"
     const val ACTION_NOTIFICATION_MEDIA_FAVORITE = "app.gyrolet.mpvrx.action.NOTIFICATION_MEDIA_FAVORITE"
     const val ACTION_NOTIFICATION_CLOSE = "app.gyrolet.mpvrx.action.NOTIFICATION_CLOSE"
     const val ACTION_NOTIFICATION_STOP = "app.gyrolet.mpvrx.action.NOTIFICATION_STOP"
+    const val EXTRA_EXTERNAL_DISPLAY_ACTIVE = "external_display_active"
 
     @Volatile
     internal var thumbnail: Bitmap? = null
@@ -167,6 +172,10 @@ class MediaPlaybackService :
 
     internal fun takeAudioOwnershipForDetachedPlayback(): Boolean = activeInstance?.takeAudioOwnership() == true
 
+    internal fun setExternalDisplayActive(active: Boolean) {
+      activeInstance?.updateExternalDisplayWakeLock(active)
+    }
+
     /**
      * Marks that playback is being handed back to a foreground Activity (e.g. reopening the
      * player from the Mini Player / playback notification). Release the service-owned focus
@@ -197,6 +206,13 @@ class MediaPlaybackService :
         service.stopPlaybackAndService(force = true)
       } else {
         PlaybackSession.stop(clearQueue = true)
+      }
+    }
+
+    internal fun stopExternalDisplayBackground() {
+      activeInstance?.let { service ->
+        service.stopForegroundNotification()
+        service.stopSelf()
       }
     }
 
@@ -267,6 +283,7 @@ class MediaPlaybackService :
   @Volatile private var mpvAccessReleased = false
   @Volatile private var isCurrentFavorite = false
   private var usesAudioBackgroundPlayback = false
+  private var externalDisplayWakeLock: PowerManager.WakeLock? = null
   private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
 
   // Mutated from the framework's audio-focus callback thread as well as serviceScope and the
@@ -284,6 +301,7 @@ class MediaPlaybackService :
 
   @Volatile private var volumeBeforeDuck: Double? = null
   private var noisyReceiverRegistered = false
+  private var playbackObserversStarted = false
   @Volatile
   private var foregroundReady = false
   private val audioFocusChangeListener =
@@ -338,6 +356,20 @@ class MediaPlaybackService :
 
   fun isForegroundReady(): Boolean = foregroundReady
 
+  private fun updateExternalDisplayWakeLock(active: Boolean) {
+    if (active) {
+      if (externalDisplayWakeLock?.isHeld != true) {
+        externalDisplayWakeLock =
+          (getSystemService(POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG:external-display")
+            .apply { acquire() }
+      }
+    } else {
+      externalDisplayWakeLock?.let { if (it.isHeld) it.release() }
+      externalDisplayWakeLock = null
+    }
+  }
+
   private fun deactivateMediaSession() {
     foregroundReady = false
     if (::mediaSession.isInitialized) mediaSession.isActive = false
@@ -354,8 +386,12 @@ class MediaPlaybackService :
 
     // Ensure notification channel exists before starting foreground service
     createNotificationChannel(this)
+  }
 
-    setupMediaSession()
+  private fun startPlaybackObservers() {
+    if (playbackObserversStarted) return
+    playbackObserversStarted = true
+
     ContextCompat.registerReceiver(
       this,
       noisyReceiver,
@@ -366,11 +402,19 @@ class MediaPlaybackService :
 
     serviceScope.launch {
       combine(
-        audioPreferences.backgroundPlayback.changes(),
+        PlaybackSession.videoBackgroundPlaybackEnabled,
         audioPreferences.audioBackgroundPlayback.changes(),
-      ) { videoEnabled, audioEnabled ->
-        if (usesAudioBackgroundPlayback) audioEnabled else videoEnabled
-      }.drop(1).collect { enabled ->
+        PlaybackSession.state,
+      ) { _, audioEnabled, playbackState ->
+        when {
+          playbackState.currentItem?.audiobook != null -> true
+          playbackState.currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.AUDIO -> audioEnabled
+          playbackState.currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.VIDEO ->
+            audioPreferences.getVideoBackgroundPlayback(PlaybackSession.videoBackgroundPlaybackId(playbackState))
+          usesAudioBackgroundPlayback -> audioEnabled
+          else -> audioPreferences.getVideoBackgroundPlayback(PlaybackSession.videoBackgroundPlaybackId(playbackState))
+        }
+      }.distinctUntilChanged().drop(1).collect { enabled ->
         if (!enabled) {
           Log.d(TAG, "Background playback disabled; stopping service")
           stopDetachedPlaybackIfNeeded()
@@ -403,7 +447,7 @@ class MediaPlaybackService :
       PlaybackSession.addObserver(this)
       PlaybackSession.observeProperty("pause", MPVLib.MpvFormat.MPV_FORMAT_FLAG)
       PlaybackSession.observeProperty("media-title", MPVLib.MpvFormat.MPV_FORMAT_STRING)
-      PlaybackSession.observeProperty("metadata/artist", MPVLib.MpvFormat.MPV_FORMAT_STRING)
+      PlaybackSession.observeProperty("metadata/by-key/artist", MPVLib.MpvFormat.MPV_FORMAT_STRING)
       PlaybackSession.observeProperty("time-pos", MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)
       PlaybackSession.observeProperty("duration", MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)
       PlaybackSession.observeProperty("speed", MPVLib.MpvFormat.MPV_FORMAT_DOUBLE)
@@ -415,8 +459,10 @@ class MediaPlaybackService :
     }
   }
 
-  override fun onBind(intent: Intent): IBinder? =
-    if (intent.action == MediaBrowserServiceCompat.SERVICE_INTERFACE) super.onBind(intent) else binder
+  override fun onBind(intent: Intent): IBinder? {
+    setupMediaSession()
+    return if (intent.action == MediaBrowserServiceCompat.SERVICE_INTERFACE) super.onBind(intent) else binder
+  }
 
   @SuppressLint("ForegroundServiceType")
   override fun onStartCommand(
@@ -429,7 +475,7 @@ class MediaPlaybackService :
     // MediaButtonReceiver launches us with startForegroundService(). Android 16 enforces the
     // promotion deadline even when there is no live playback session and this start will be
     // stopped immediately, so no validation or action branch may run before this call.
-    if (!startForegroundNotification()) {
+    if (!foregroundReady && !startForegroundNotification(useStartupNotification = true)) {
       stopSelf(startId)
       return START_NOT_STICKY
     }
@@ -440,6 +486,9 @@ class MediaPlaybackService :
       stopSelf(startId)
       return START_NOT_STICKY
     }
+
+    setupMediaSession()
+    startPlaybackObservers()
 
     // Handle media button events
     intent?.let {
@@ -454,6 +503,14 @@ class MediaPlaybackService :
         }
         ACTION_NOTIFICATION_NEXT -> {
           playNextFromSession()
+          if (foregroundReady) return START_NOT_STICKY
+        }
+        ACTION_NOTIFICATION_SHUFFLE -> {
+          if (canHandleTransportAction()) {
+            val queueState = PlaybackSession.queue.value
+            PlaybackSession.setShuffleEnabled(!queueState.shuffleEnabled)
+            refreshTransportControls()
+          }
           if (foregroundReady) return START_NOT_STICKY
         }
         ACTION_NOTIFICATION_FAVORITE -> {
@@ -474,6 +531,9 @@ class MediaPlaybackService :
       }
 
       val title = it.getStringExtra("media_title")
+      if (it.hasExtra(EXTRA_EXTERNAL_DISPLAY_ACTIVE)) {
+        updateExternalDisplayWakeLock(it.getBooleanExtra(EXTRA_EXTERNAL_DISPLAY_ACTIVE, false))
+      }
       val artist = it.getStringExtra("media_artist")
       val uri = it.getStringExtra("media_uri")
       val identifier = it.getStringExtra("media_identifier")
@@ -499,7 +559,7 @@ class MediaPlaybackService :
     // Fallback: Read current state from MPV if not provided via intent
     if (mediaTitle.isBlank()) {
       mediaTitle = FileTypeUtils.stripExtension(PlaybackSession.getPropertyString("media-title") ?: "")
-      mediaArtist = PlaybackSession.getPropertyString("metadata/artist") ?: ""
+      mediaArtist = PlaybackSession.getPropertyString("metadata/by-key/artist") ?: ""
     }
 
     paused = PlaybackSession.getPropertyBoolean("pause") == true
@@ -553,7 +613,7 @@ class MediaPlaybackService :
   }
 
   @SuppressLint("ForegroundServiceType")
-  private fun startForegroundNotification(): Boolean =
+  private fun startForegroundNotification(useStartupNotification: Boolean = false): Boolean =
     try {
       val type =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -561,7 +621,8 @@ class MediaPlaybackService :
         } else {
           0
         }
-      ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
+      val notification = if (useStartupNotification) buildStartupNotification() else buildNotification()
+      ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
       true
     } catch (error: Exception) {
       Log.e(TAG, "Error starting foreground service", error)
@@ -701,24 +762,6 @@ class MediaPlaybackService :
     PlaybackSession.playPrevious()?.let(::applySessionItem) ?: refreshTransportControls()
   }
 
-  private fun handleMediaPreviousAction() {
-    when (gesturePreferences.mediaPreviousGesture.get()) {
-      SingleActionGesture.Seek -> seekByConfiguredInterval(direction = -1)
-      SingleActionGesture.PlayPause -> togglePlaybackFromNotification()
-      SingleActionGesture.Custom -> PlaybackSession.command("keypress", CustomKeyCodes.MediaPrevious.keyCode)
-      SingleActionGesture.None -> Unit
-    }
-  }
-
-  private fun handleMediaNextAction() {
-    when (gesturePreferences.mediaNextGesture.get()) {
-      SingleActionGesture.Seek -> seekByConfiguredInterval(direction = 1)
-      SingleActionGesture.PlayPause -> togglePlaybackFromNotification()
-      SingleActionGesture.Custom -> PlaybackSession.command("keypress", CustomKeyCodes.MediaNext.keyCode)
-      SingleActionGesture.None -> Unit
-    }
-  }
-
   private fun handleMediaPlayAction(shouldPlay: Boolean) {
     when (gesturePreferences.mediaPlayGesture.get()) {
       SingleActionGesture.PlayPause -> {
@@ -731,18 +774,6 @@ class MediaPlaybackService :
       SingleActionGesture.None,
       -> Unit
     }
-  }
-
-  private fun seekByConfiguredInterval(direction: Int) {
-    val seconds = gesturePreferences.doubleTapToSeekDuration.get() * direction
-    val seekMode =
-      if (playerPreferences.usePreciseSeeking.get()) {
-        "relative+exact"
-      } else {
-        "relative+keyframes"
-      }
-    PlaybackSession.command("seek", seconds.toString(), seekMode)
-    refreshTransportControls()
   }
 
   private fun applySessionItem(item: PlaybackItem) {
@@ -957,6 +988,7 @@ class MediaPlaybackService :
   private fun refreshTransportControls() {
     updateMediaSessionPlaybackState()
     updateNotification()
+    MediaPlayerWidget.requestUpdate(this)
   }
 
   private fun togglePlaybackFromNotification() {
@@ -999,8 +1031,10 @@ class MediaPlaybackService :
 
   private fun handleDetachedEndOfFile() {
     if (activityForeground || PlaybackSession.state.value.surfaceAttached || !foregroundReady) return
+    if (AudiobookPlayback.handleEndOfFile()) return
     val queueState = PlaybackSession.queue.value
-    val autoplay = if (notificationIsAudio) playerPreferences.autoplayNextAudio.get() else playerPreferences.autoplayNextVideo.get()
+    val autoplay = queueState.currentItem?.audiobook != null ||
+      if (notificationIsAudio) playerPreferences.autoplayNextAudio.get() else playerPreferences.autoplayNextVideo.get()
     when {
       queueState.repeatMode == RepeatMode.ONE -> {
         PlaybackSession.command("seek", "0", "absolute")
@@ -1030,6 +1064,7 @@ class MediaPlaybackService :
   }
 
   private fun setupMediaSession() {
+    if (::mediaSession.isInitialized) return
     mediaSession =
       MediaSessionCompat(this, TAG).apply {
         setCallback(
@@ -1125,7 +1160,7 @@ class MediaPlaybackService :
   private fun useProgressNotification(): Boolean = currentNotificationStyle() == NotificationStyle.Progress
 
   /**
-   * A ProgressStyle notification and an active MediaSession are two independent System UI
+  * A ProgressStyle notification and an active MediaSession are two independent System UI
    * surfaces on Android 16. Publishing both makes one selected notification preference appear as
    * two playback cards. Media Controls owns the MediaSession surface; Progress with Chapters owns
    * only the foreground notification and keeps its transport actions on explicit PendingIntents.
@@ -1248,8 +1283,24 @@ class MediaPlaybackService :
 
   // ==================== Notification Builders ====================
 
+  private fun buildStartupNotification(): Notification =
+    NotificationCompat
+      .Builder(this, NOTIFICATION_CHANNEL_ID)
+      .setContentTitle(getString(R.string.notification_channel_name))
+      .setSmallIcon(R.drawable.ic_launcher_monochrome)
+      .setOnlyAlertOnce(true)
+      .setOngoing(true)
+      .setSilent(true)
+      .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
+      .setPriority(NotificationCompat.PRIORITY_LOW)
+      .build()
+
   private fun buildNotification(): Notification =
-    if (useProgressNotification()) buildModernNotification() else buildLegacyNotification()
+    if (Build.VERSION.SDK_INT >= 36 && useProgressNotification()) {
+      buildModernNotification()
+    } else {
+      buildLegacyNotification()
+    }
 
   private fun buildContentIntent(): PendingIntent {
     val currentItem = PlaybackSession.queue.value.currentItem
@@ -1278,7 +1329,14 @@ class MediaPlaybackService :
         putExtra("internal_launch", true)
         putExtra("is_audio", isAudio)
         putExtra("media_library_audio", isAudio)
-        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        currentItem?.audiobook?.let { book ->
+          putExtra(AudiobookPlayback.EXTRA_BOOK_ID, book.bookId)
+          putExtra(AudiobookPlayback.EXTRA_TRACK_ID, book.trackId)
+        }
+        flags =
+          Intent.FLAG_ACTIVITY_SINGLE_TOP or
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+            Intent.FLAG_ACTIVITY_NEW_TASK
       }
 
     return PendingIntent.getActivity(
@@ -1383,7 +1441,12 @@ class MediaPlaybackService :
   private fun playbackTimeText(): String {
     val positionSeconds = sanitizedPositionMs() / 1000.0
     val durationSeconds = sanitizedDurationMs() / 1000.0
-    return "${formatSeconds(positionSeconds)} / ${formatSeconds(durationSeconds)}"
+    if (durationSeconds <= 0.0) return formatSeconds(positionSeconds)
+    return getString(
+      R.string.notification_playback_progress,
+      formatSeconds(positionSeconds),
+      formatSeconds((durationSeconds - positionSeconds).coerceAtLeast(0.0)),
+    )
   }
 
   private fun refreshNotificationPalette() {
@@ -1429,41 +1492,36 @@ class MediaPlaybackService :
    * This style uses explicit notification actions instead of also advertising a MediaSession,
    * which would make System UI render a second playback card.
    */
+  @androidx.annotation.RequiresApi(36)
   private fun buildModernNotification(): Notification {
     val (maximum, position) = notificationProgress()
-    val style = NotificationCompat.ProgressStyle().setStyledByProgress(false)
-
+    val title = mediaTitle.ifBlank { getString(R.string.player_unknown_video) }
+    val timeline = playbackTimeText()
+    val chapterText = if (chapters.isEmpty()) chapterContentText() else "${chapterLabel()}: ${chapterContentText()}"
+    val isDark =
+      resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+        android.content.res.Configuration.UI_MODE_NIGHT_YES
+    val progressColor = getColor(if (isDark) android.R.color.system_accent1_200 else android.R.color.system_accent1_600)
+    val style = NotificationCompat.ProgressStyle().setStyledByProgress(true)
     if (maximum <= 0) {
-      style.addProgressSegment(
-        NotificationCompat.ProgressStyle
-          .Segment(100)
-          .setColor(accentColor),
-      )
+      style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(100).setColor(progressColor))
       style.setProgressIndeterminate(true)
     } else {
-      val chapterBoundaries =
+      val boundaries =
         buildList {
           add(0)
-          if (maximum > 1) {
-            chapters.forEach { chapter ->
-              chapter.time
-                .takeIf { it.isFinite() && it > 0f }
-                ?.let { time -> add(time.toInt().coerceIn(1, maximum - 1)) }
-            }
+          chapters.forEach { chapter ->
+            chapter.time
+              .takeIf { it.isFinite() && it >= 1f && it < maximum }
+              ?.let { add(it.toInt()) }
           }
           add(maximum)
         }.distinct().sorted()
-
-      chapterBoundaries.zipWithNext().forEach { (start, end) ->
-        val color =
-          when {
-            end <= position -> accentColorDone
-            start <= position -> accentColor
-            else -> accentColorDim
-          }
-        style.addProgressSegment(
-          NotificationCompat.ProgressStyle.Segment(end - start).setColor(color),
-        )
+      boundaries.zipWithNext().forEach { (start, end) ->
+        style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(end - start).setColor(progressColor))
+        if (start > 0) {
+          style.addProgressPoint(NotificationCompat.ProgressStyle.Point(start).setColor(progressColor))
+        }
       }
       style.setProgress(position)
     }
@@ -1472,14 +1530,14 @@ class MediaPlaybackService :
       NotificationCompat
         .Builder(this, NOTIFICATION_CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_launcher_monochrome)
-        .setContentTitle(mediaTitle.ifBlank { getString(R.string.player_unknown_video) })
-        .setContentText(chapterContentText())
-        .setSubText(chapterLabel())
-        .setLargeIcon(thumbnail)
+        .setContentTitle(title)
+        .setContentText(timeline)
+        .setSubText(chapterText)
+        .setLargeIcon(thumbnail?.takeUnless { it.isRecycled })
         .setContentIntent(buildContentIntent())
         .setDeleteIntent(buildTransportIntent(ACTION_NOTIFICATION_STOP, 1005))
         .setOngoing(!paused)
-        .setRequestPromotedOngoing(!BuildConfig.IS_PLAY_STORE_BUILD)
+        .setRequestPromotedOngoing(!BuildConfig.IS_PLAY_STORE_BUILD && !paused)
         .setAutoCancel(false)
         .setSilent(true)
         .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
@@ -1488,23 +1546,16 @@ class MediaPlaybackService :
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setOnlyAlertOnce(true)
+        .setShowWhen(false)
+        .setStyle(style)
         .addAction(prevAction())
         .addAction(playPauseAction())
         .addAction(nextAction())
         .addAction(favoriteAction())
         .addAction(stopAction())
-
-    // Set ProgressStyle — this sets the visual style to segmented progress
-    if (!paused && maximum > 0) {
-      val remainingMs = (sanitizedDurationMs() - sanitizedPositionMs()).coerceAtLeast(0L)
-      val adjustedRemainingMs = (remainingMs / playbackSpeed.coerceAtLeast(0.01f)).toLong()
-      builder.setWhen(System.currentTimeMillis() + adjustedRemainingMs)
-      builder.setShowWhen(true)
-    } else {
-      builder.setShowWhen(false)
+    if (maximum > 0) {
+      builder.setShortCriticalText("${position.toLong() * 100 / maximum}%")
     }
-    builder.setStyle(style)
-    builder.setShortCriticalText(formatSeconds(currentPositionSeconds))
 
     return builder.build()
   }
@@ -1652,7 +1703,7 @@ class MediaPlaybackService :
           }
         }
       }
-      "metadata/artist" -> {
+      "metadata/by-key/artist" -> {
         serviceScope.launch {
           if (mediaArtist == value) return@launch
           mediaArtist = value
@@ -1827,46 +1878,38 @@ class MediaPlaybackService :
   ): PlaybackStateSnapshot? {
     if (identifier.isBlank()) return null
 
-    return PlaybackStateSnapshot(
-      mediaIdentifier = identifier,
-      mediaTitle = mediaTitle.ifBlank { identifier },
-      currentPosition = readMpvIntSeconds("time-pos", currentPositionSeconds.toInt()),
-      duration = readMpvIntSeconds("duration", mediaDurationSeconds.toInt()),
-      isPositionRestorePending =
-        PlaybackSession.isPositionRestorePending(PlaybackSession.state.value.activeGeneration),
-      playbackSpeed = readMpvDouble("speed", oldState?.playbackSpeed ?: DEFAULT_PLAYBACK_STATE_SPEED),
-      videoZoom = readMpvDouble("video-zoom", oldState?.videoZoom?.toDouble() ?: 0.0).toFloat(),
-      sid = readMpvTrackId("sid", oldState?.sid ?: -1),
-      secondarySid = readMpvTrackId("secondary-sid", oldState?.secondarySid ?: -1),
-      subDelayMs =
-        (
-          readMpvDouble(
-            "sub-delay",
-            (oldState?.subDelay ?: 0) / PLAYBACK_STATE_MILLISECONDS_TO_SECONDS.toDouble(),
-          ) * PLAYBACK_STATE_MILLISECONDS_TO_SECONDS
-        ).toInt(),
-      subSpeed = readMpvDouble("sub-speed", oldState?.subSpeed ?: DEFAULT_PLAYBACK_STATE_SUB_SPEED),
-      aid = readMpvTrackId("aid", oldState?.aid ?: -1),
-      audioDelayMs =
-        (
-          readMpvDouble(
-            "audio-delay",
-            (oldState?.audioDelay ?: 0) / PLAYBACK_STATE_MILLISECONDS_TO_SECONDS.toDouble(),
-          ) * PLAYBACK_STATE_MILLISECONDS_TO_SECONDS
-        ).toInt(),
-      externalSubtitles = oldState?.externalSubtitles.orEmpty(),
-    )
+    return PlaybackSession.readLoadedPlaybackState(identifier) { position, duration ->
+      PlaybackStateSnapshot(
+        mediaIdentifier = identifier,
+        mediaTitle = mediaTitle.ifBlank { identifier },
+        currentPosition = position.toInt(),
+        duration = duration.toInt(),
+        isPositionRestorePending =
+          PlaybackSession.isPositionRestorePending(PlaybackSession.state.value.activeGeneration),
+        playbackSpeed = readMpvDouble("speed", oldState?.playbackSpeed ?: DEFAULT_PLAYBACK_STATE_SPEED),
+        videoZoom = PlaybackSession.videoZoom.value,
+        sid = readMpvTrackId("sid", oldState?.sid ?: -1),
+        secondarySid = readMpvTrackId("secondary-sid", oldState?.secondarySid ?: -1),
+        subDelayMs =
+          (
+            readMpvDouble(
+              "sub-delay",
+              (oldState?.subDelay ?: 0) / PLAYBACK_STATE_MILLISECONDS_TO_SECONDS.toDouble(),
+            ) * PLAYBACK_STATE_MILLISECONDS_TO_SECONDS
+          ).toInt(),
+        subSpeed = readMpvDouble("sub-speed", oldState?.subSpeed ?: DEFAULT_PLAYBACK_STATE_SUB_SPEED),
+        aid = readMpvTrackId("aid", oldState?.aid ?: -1),
+        audioDelayMs =
+          (
+            readMpvDouble(
+              "audio-delay",
+              (oldState?.audioDelay ?: 0) / PLAYBACK_STATE_MILLISECONDS_TO_SECONDS.toDouble(),
+            ) * PLAYBACK_STATE_MILLISECONDS_TO_SECONDS
+          ).toInt(),
+        externalSubtitles = oldState?.externalSubtitles.orEmpty(),
+      )
+    }
   }
-
-  private fun readMpvIntSeconds(
-    property: String,
-    fallback: Int,
-  ): Int =
-    runCatching {
-      PlaybackSession.getPropertyDouble(property)?.toInt()
-        ?: PlaybackSession.getPropertyInt(property)
-        ?: fallback
-    }.getOrDefault(fallback)
 
   private fun readMpvDouble(
     property: String,
@@ -1917,6 +1960,7 @@ class MediaPlaybackService :
     try {
       Log.d(TAG, "Service destroyed")
 
+      updateExternalDisplayWakeLock(false)
       releaseMpvAccessBeforeShutdown()
       foregroundReady = false
       abandonAudioOwnership()
@@ -1944,11 +1988,13 @@ class MediaPlaybackService :
         Log.e(TAG, "Error canceling notification", e)
       }
 
-      try {
-        mediaSession.isActive = false
-        mediaSession.release()
-      } catch (e: Exception) {
-        Log.e(TAG, "Error releasing media session", e)
+      if (::mediaSession.isInitialized) {
+        try {
+          mediaSession.isActive = false
+          mediaSession.release()
+        } catch (e: Exception) {
+          Log.e(TAG, "Error releasing media session", e)
+        }
       }
 
       thumbnail?.let {

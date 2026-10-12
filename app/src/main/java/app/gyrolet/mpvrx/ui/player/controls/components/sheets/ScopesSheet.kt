@@ -21,14 +21,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,13 +36,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
+import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
-import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.TrackNode
@@ -65,34 +63,22 @@ fun ScopesSheet(
   val state by viewModel.mediaScopesUiState.collectAsState()
   val tabs = MediaScopeTab.entries
 
-  PlayerSheet(onDismissRequest) {
+  PlayerSheet(
+    onDismissRequest,
+    title = stringResource(R.string.scopes_title),
+    actions = {
+      PlayerSheetAction(Icons.RoundedFilled.ZoomOutMap, stringResource(R.string.scopes_expand), {
+        viewModel.toggleMediaScopesExpanded()
+        onDismissRequest()
+      })
+      PlayerSheetAction(Icons.RoundedFilled.Close, stringResource(R.string.ui_close), onDismissRequest)
+    },
+  ) {
     Column(
-      modifier = modifier.fillMaxWidth().padding(MaterialTheme.spacing.medium),
+      modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+        .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.small),
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = stringResource(R.string.scopes_title),
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.weight(1f),
-        )
-        IconButton(
-          onClick = {
-            viewModel.toggleMediaScopesExpanded()
-            onDismissRequest()
-          },
-        ) {
-          Icon(Icons.RoundedFilled.ZoomOutMap, stringResource(R.string.scopes_expand))
-        }
-        IconButton(onClick = onDismissRequest) {
-          Icon(Icons.RoundedFilled.Close, stringResource(R.string.ui_close))
-        }
-      }
-
       SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         tabs.forEachIndexed { index, tab ->
           SegmentedButton(
@@ -123,9 +109,9 @@ fun ScopesSheet(
           style = MaterialTheme.typography.bodyLarge,
           modifier = Modifier.weight(1f),
         )
-        Switch(
+        IconSwitch(
           checked = state.overlayVisible,
-          onCheckedChange = viewModel::setMediaScopesOverlayVisible,
+          onCheckedChange = null,
         )
       }
 
@@ -154,6 +140,11 @@ fun ScopesSheet(
                   viewModel.setMediaScopesOverlayVisible(true)
                 },
                 label = { Text(getTrackTitle(track), maxLines = 1) },
+                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+          containerColor = playerSheetSelectionColor(false),
+          selectedContainerColor = playerSheetSelectionColor(true),
+          selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
               )
             }
           }
@@ -248,6 +239,11 @@ private fun ScopeOptionRow(
         selected = selected == value,
         onClick = { onSelect(value) },
         label = { Text(valueLabel(value)) },
+        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+          containerColor = playerSheetSelectionColor(false),
+          selectedContainerColor = playerSheetSelectionColor(true),
+          selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
       )
     }
   }

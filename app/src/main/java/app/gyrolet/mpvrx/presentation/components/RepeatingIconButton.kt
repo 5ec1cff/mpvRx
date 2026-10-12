@@ -22,10 +22,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
-import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -41,7 +39,6 @@ fun RepeatingIconButton(
   content: @Composable () -> Unit,
 ) {
   val currentClickListener by rememberUpdatedState(onClick)
-  val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
   var pressed by remember { mutableStateOf(false) }
 
   FilledTonalIconButton(
@@ -58,7 +55,7 @@ fun RepeatingIconButton(
 
           true
         },
-    onClick = { if (isTelevision) currentClickListener() },
+    onClick = { currentClickListener() },
     enabled = enabled,
     interactionSource = interactionSource,
     content = content,

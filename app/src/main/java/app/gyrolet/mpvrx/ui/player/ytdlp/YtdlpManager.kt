@@ -380,49 +380,129 @@ object YtdlpManager {
 
   suspend fun copyAssets(context: Context) =
     withContext(Dispatchers.IO) {
-      val ytdlDir = getYtdlDir(context)
-
-      // Clean up old potentially problematic scripts from multiple possible locations
-      listOf("youtube-dl", "youtube-dl.sh").forEach { name ->
-        File(context.filesDir, name).delete()
-        File(ytdlDir, name).delete()
+      installMutex.withLock {
+        runtimeAssetsPrepared = copyRuntimeAssets(context)
       }
-
-      // Files to copy from assets/ytdl/ to filesDir/ytdl/
-      val ytdlFiles = arrayOf("setup.py", "wrapper", "python313.zip")
-      for (name in ytdlFiles) {
-        copyAssetFile(context, "ytdl/$name", File(ytdlDir, name))
-      }
-
-      // cacert.pem goes to filesDir/
-      copyAssetFile(context, "cacert.pem", File(context.filesDir, "cacert.pem"))
-
-      // Set executable permission on wrapper (just in case it's used)
-      File(ytdlDir, "wrapper").setExecutable(true)
     }
+
+  private fun copyRuntimeAssets(context: Context, onLog: (String) -> Unit = {}): Boolean {
+    val ytdlDir = getYtdlDir(context)
+
+    // Clean up old potentially problematic scripts from multiple possible locations
+    listOf("youtube-dl", "youtube-dl.sh").forEach { name ->
+      File(context.filesDir, name).delete()
+      File(ytdlDir, name).delete()
+    }
+
+    // Files to copy from assets/ytdl/ to filesDir/ytdl/
+    val ytdlFiles = arrayOf("setup.py", "python313.zip")
+    var copied = true
+    for (name in ytdlFiles) {
+      copied = copyAssetFile(context, "ytdl/$name", File(ytdlDir, name), onLog) && copied
+    }
+
+    // cacert.pem goes to filesDir/
+    copied = copyAssetFile(context, "cacert.pem", File(context.filesDir, "cacert.pem"), onLog) && copied
+
+    copyAssetFile(context, "ytdl/wrapper", File(ytdlDir, "wrapper"), onLog)
+    // Set executable permission on wrapper (just in case it's used)
+    File(ytdlDir, "wrapper").setExecutable(true)
+    return copied
+  }
 
   private fun copyAssetFile(
     context: Context,
     assetPath: String,
     outFile: File,
+    onLog: (String) -> Unit,
   ): Boolean {
+    val temporaryFile = File(outFile.parentFile, "${outFile.name}.tmp")
     return try {
       context.assets.open(assetPath).use { input ->
-        val size = input.available().toLong()
-        if (outFile.exists() && outFile.length() == size) {
-          Log.v(TAG, "Skipping copy: $assetPath (exists same size)")
-          return true
+        FileOutputStream(temporaryFile).use { output ->
+          if (input.copyTo(output) == 0L) throw IOException("Bundled asset is empty: $assetPath")
+          output.fd.sync()
         }
-        FileOutputStream(outFile).use { output ->
-          input.copyTo(output)
-        }
+        if (!temporaryFile.renameTo(outFile)) throw IOException("Could not replace bundled asset: $assetPath")
         Log.d(TAG, "Copied asset: $assetPath")
         true
       }
     } catch (e: IOException) {
       Log.e(TAG, "Failed to copy asset: $assetPath", e)
+      onLog("$assetPath: ${e.message}\n")
       false
+    } finally {
+      temporaryFile.delete()
     }
+  }
+
+
+  /**
+   * ytdl_hook reads its executable path when libmpv starts built-in Lua scripts. A core may
+   * already exist for a local file when a web URL arrives, so these app-owned script options
+   * must be written before MPVLib.init(), not after the first failed YouTube load.
+   * Python/yt-dlp installation and network operations remain deferred to web playback.
+   */
+  fun configureMpvHookBeforeInit(context: Context) {
+    val ytdlBinaryPath = getExecutablePath(context)
+    val allFormats = "yes"
+    // Configure the bundled hook before MPVLib.init(), otherwise it caches an empty path.
+    // Keep a generated fallback for ytdl_hook. This file is app-owned compatibility state, not a
+    // user preference: mpv.conf ownership must never delete it or leave a stale bundled path
+    // behind. A genuinely hand-written hook file is preserved and the required bootstrap values
+    // are supplied independently through app-owned script options below.
+    try {
+      val scriptOptsDir = File(context.filesDir, "script-opts")
+      if (!scriptOptsDir.exists()) scriptOptsDir.mkdirs()
+      val ytdlConf = File(scriptOptsDir, "ytdl_hook.conf")
+      val existingContent = ytdlConf.takeIf(File::isFile)?.readText().orEmpty()
+      val generatedConfig =
+        existingContent.startsWith(GENERATED_HOOK_CONFIG_MARKER) ||
+          isLegacyGeneratedHookConfig(existingContent)
+
+      when {
+        existingContent.isNotBlank() && !generatedConfig -> Log.d(TAG, "Preserving user-supplied ytdl_hook.conf")
+        else -> {
+          val confLines =
+            buildList {
+              add(GENERATED_HOOK_CONFIG_MARKER)
+              add("ytdl_path=$ytdlBinaryPath")
+              add("all_formats=$allFormats")
+              add("force_all_formats=yes")
+              add("try_ytdl_first=yes")
+              add("exclude=$DIRECT_MEDIA_EXCLUDE")
+            }
+          val desiredContent = confLines.joinToString("\n", postfix = "\n")
+          if (existingContent != desiredContent) {
+            ytdlConf.writeText(desiredContent)
+            Log.d(TAG, "Updated generated ytdl_hook.conf at ${ytdlConf.absolutePath}")
+          }
+        }
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to create ytdl_hook.conf", e)
+    }
+
+    applyMpvHookOptions(context)
+  }
+
+  private fun applyMpvHookOptions(context: Context) {
+    val ytdlBinaryPath = getExecutablePath(context)
+
+    // These values are part of mpvRx's bundled bridge contract. They intentionally bypass
+    // preference ownership so a broad script-opts override cannot remove half of the integration.
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-ytdl_path=$ytdlBinaryPath")
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-all_formats=yes")
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-force_all_formats=yes")
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=yes")
+    // Skip yt-dlp for direct media/manifest URLs (.m3u8/.mpd/.mp4/.ts/...). Without this,
+    // ytdl_hook intercepts every http(s) URL and routes it through yt-dlp's generic
+    // extractor, which chokes on tokenized HLS/CDN links — so mpv never falls back to
+    // ffmpeg's native HLS demuxer and playback fails (while MX Player/VLC play it fine).
+    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-exclude=$DIRECT_MEDIA_EXCLUDE")
+    // Configure the executable before enabling a hook disabled by a user config. Keep it
+    // enabled between loads; a local file must not unload the built-in script.
+    PlaybackSession.setIntegrationOptionString("ytdl", "yes")
   }
 
   fun setupMpvOptions(
@@ -448,14 +528,11 @@ object YtdlpManager {
       Os.setenv("SSL_CERT_FILE", File(context.filesDir, "cacert.pem").absolutePath, true)
 
       // Add nativeLibDir to PATH so scripts can find our bridge if they search PATH
-      val currentPath = runCatching { Os.getenv("PATH") }.getOrNull()
-      val newPath = if (currentPath.isNullOrBlank()) nativeLibDir else "$nativeLibDir:$currentPath"
-      Os.setenv("PATH", newPath, true)
-
-      // Set LD_LIBRARY_PATH for the subprocess to find libpython.so's dependencies
-      val currentLd = runCatching { Os.getenv("LD_LIBRARY_PATH") }.getOrNull()
-      val newLd = if (currentLd.isNullOrBlank()) nativeLibDir else "$nativeLibDir:$currentLd"
-      Os.setenv("LD_LIBRARY_PATH", newLd, true)
+      // setupMpvOptions also runs for each web load; don't grow these lists indefinitely.
+      for (name in listOf("PATH", "LD_LIBRARY_PATH")) {
+        val existing = Os.getenv(name).orEmpty().split(':').filter { it.isNotEmpty() && it != nativeLibDir }
+        Os.setenv(name, (listOf(nativeLibDir) + existing).joinToString(":"), true)
+      }
 
       Log.d(TAG, "Environment variables set for ytdl bridge")
     } catch (e: Exception) {
@@ -482,61 +559,6 @@ object YtdlpManager {
       )
     val resolvedOptions = YtdlpOptionsBuilder.build(settings)
     val ua = ytdlPreferences.customUserAgent.get().ifBlank { YtdlpOptionsBuilder.DEFAULT_USER_AGENT }
-    // Keep mpv's delay-loaded all-format path enabled for every audio preference. Disabling it for
-    // the default Auto mode was a post-v1.4.1 regression: split video/audio URLs then depended on a
-    // single eagerly selected result and some supported sites failed before mpv could choose tracks.
-    val allFormats = "yes"
-
-    // Keep a generated fallback for ytdl_hook. This file is app-owned compatibility state, not a
-    // user preference: mpv.conf ownership must never delete it or leave a stale bundled path
-    // behind. A genuinely hand-written hook file is preserved and the required bootstrap values
-    // are supplied independently through app-owned script options below.
-    try {
-      val scriptOptsDir = File(context.filesDir, "script-opts")
-      if (!scriptOptsDir.exists()) scriptOptsDir.mkdirs()
-      val ytdlConf = File(scriptOptsDir, "ytdl_hook.conf")
-      val existingContent = ytdlConf.takeIf(File::isFile)?.readText().orEmpty()
-      val generatedConfig =
-        existingContent.startsWith(GENERATED_HOOK_CONFIG_MARKER) ||
-          isLegacyGeneratedHookConfig(existingContent)
-
-      when {
-        existingContent.isNotBlank() && !generatedConfig -> Log.d(TAG, "Preserving user-supplied ytdl_hook.conf")
-        else -> {
-          val confLines =
-            buildList {
-              add(GENERATED_HOOK_CONFIG_MARKER)
-              add("ytdl_path=$ytdlBinaryPath")
-              add("all_formats=$allFormats")
-              add("force_all_formats=yes")
-              add("try_ytdl_first=yes")
-              add("exclude=$DIRECT_MEDIA_EXCLUDE")
-            }
-          ytdlConf.writeText(confLines.joinToString("\n", postfix = "\n"))
-          Log.d(TAG, "Created generated ytdl_hook.conf at ${ytdlConf.absolutePath}")
-        }
-      }
-    } catch (e: Exception) {
-      Log.e(TAG, "Failed to create ytdl_hook.conf", e)
-    }
-
-    // Apply options to MPV core
-    PlaybackSession.setIntegrationOptionString("ytdl", "yes")
-    PlaybackSession.setIntegrationOptionString("ytdl-path", ytdlBinaryPath)
-
-    // These values are part of mpvRx's bundled bridge contract. They intentionally bypass
-    // preference ownership so a broad script-opts override cannot remove half of the integration.
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-path=$ytdlBinaryPath")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-ytdl_path=$ytdlBinaryPath")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-all_formats=$allFormats")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-force_all_formats=yes")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=yes")
-    // Skip yt-dlp for direct media/manifest URLs (.m3u8/.mpd/.mp4/.ts/...). Without this,
-    // ytdl_hook intercepts every http(s) URL and routes it through yt-dlp's generic
-    // extractor, which chokes on tokenized HLS/CDN links — so mpv never falls back to
-    // ffmpeg's native HLS demuxer and playback fails (while MX Player/VLC play it fine).
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-exclude=$DIRECT_MEDIA_EXCLUDE")
-
     // Always derive this from typed preferences so newly added format controls cannot
     // be shadowed by an older cached generated string.
     val ytdlFormat = resolvedOptions.format
@@ -550,7 +572,9 @@ object YtdlpManager {
     Log.d(TAG, "Setting ytdl-format to: $ytdlFormat")
     Log.d(TAG, "Setting ytdl-raw-options to: ${resolvedOptions.rawOptions}")
     PlaybackSession.setOptionString("ytdl-raw-options", resolvedOptions.rawOptions)
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-user_agent=\"$ua\"")
+    // mpv.conf is parsed during init and may replace script-opts. Refresh the bridge path
+    // before web loads as well; mp.options observes script-opts changes on the live hook.
+    applyMpvHookOptions(context)
 
     Log.d(TAG, "MPV ytdl options set. Binary: $ytdlBinaryPath")
   }
@@ -639,13 +663,7 @@ object YtdlpManager {
     onLog: (String) -> Unit,
   ): Boolean {
     if (!runtimeAssetsPrepared) {
-      copyAssets(context)
-      runtimeAssetsPrepared =
-        listOf(
-          File(getYtdlDir(context), "setup.py"),
-          File(getYtdlDir(context), "python313.zip"),
-          File(context.filesDir, "cacert.pem"),
-        ).all { file -> file.isFile && file.length() > 0L }
+      runtimeAssetsPrepared = copyRuntimeAssets(context, onLog)
     }
     if (!runtimeAssetsPrepared) onLog("Failed to prepare the bundled yt-dlp runtime assets.\n")
     return runtimeAssetsPrepared
@@ -818,7 +836,7 @@ object YtdlpManager {
       }
     }
 
-  private fun startPythonProcess(
+  internal fun startPythonProcess(
     command: List<String>,
     context: Context,
   ): Process {
@@ -834,7 +852,10 @@ object YtdlpManager {
     env.remove("YTDL_SCRIPT")
     env["YTDL_PYTHON"] = File(nativeLibDir, "libpython.so").absolutePath
     env["PYTHONHOME"] = ytdlDir
-    env["PYTHONPATH"] = "$ytdlDir/python313.zip"
+    env["PYTHONPATH"] = "$ytdlDir/python313.zip:$ytdlDir:$nativeLibDir"
+    env["HOME"] = context.filesDir.absolutePath
+    env["XDG_CACHE_HOME"] = context.cacheDir.absolutePath
+    env["TMPDIR"] = context.cacheDir.absolutePath
     env["SSL_CERT_FILE"] = File(context.filesDir, "cacert.pem").absolutePath
     env["LD_LIBRARY_PATH"] = nativeLibDir
     return processBuilder.start()

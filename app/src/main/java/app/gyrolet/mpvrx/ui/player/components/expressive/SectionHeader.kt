@@ -10,18 +10,24 @@
 package app.gyrolet.mpvrx.ui.player.components.expressive
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -30,6 +36,7 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 /**
  * Section header with optional leading icon, count badge, and expand toggle.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SectionHeader(
   title: String,
@@ -39,16 +46,17 @@ fun SectionHeader(
   isExpanded: Boolean = false,
   onClick: (() -> Unit)? = null,
 ) {
+  val actionLabel = stringResource(if (isExpanded) R.string.generic_collapse else R.string.generic_expand)
   val iconRotation by animateFloatAsState(
     targetValue = if (isExpanded) 180f else 0f,
-    animationSpec = AppMotion.Spatial.Expressive,
+    animationSpec = if (AppMotion.playerReducedMotion()) snap() else AppMotion.Spatial.Expressive,
     label = "SectionHeaderIconRotation",
   )
 
   Row(
     modifier =
       modifier
-        .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClickLabel = actionLabel, onClick = onClick) else Modifier)
         .padding(horizontal = 16.dp, vertical = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -63,9 +71,9 @@ fun SectionHeader(
 
     Text(
       text = title,
-      style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+      style = MaterialTheme.typography.labelLargeEmphasized,
       color = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.weight(1f),
+      modifier = Modifier.weight(1f).semantics { heading() },
     )
 
     count?.let {

@@ -5,6 +5,7 @@
 package app.gyrolet.mpvrx.ui.player
 
 import android.content.Context
+import android.util.LruCache
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.cos
@@ -21,6 +22,7 @@ data class AmbientSharedShaderConfig(
   val bezelDepth: Float,
   val vignetteStrength: Float,
   val opacity: Float,
+  val edgeBlend: Float = 0f,
 )
 
 data class AmbientGlowShaderSpec(
@@ -89,29 +91,42 @@ private fun spiralRadiusNorm(
   count: Int,
 ): Double = sqrt((index.toDouble() + 0.5) / count.toDouble())
 
+private data class TapCacheKey(
+  val samples: Int,
+  val maxRadius: Float,
+  val fadeCurve: Float,
+)
+
+/** In-memory cache for compiled GLSL tap tables to avoid repeated CPU trig and string formatting. */
+private val tapTableCache = LruCache<TapCacheKey, String>(16)
+
 private fun buildSpiralTapTable(
   name: String,
-  samples: Int,
-  thirdComponents: DoubleArray,
+  spec: AmbientGlowShaderSpec,
 ): String {
-  val count = samples.coerceAtLeast(1)
+  val key = TapCacheKey(spec.blurSamples, spec.maxRadius, spec.fadeCurve)
+  tapTableCache.get(key)?.let { return it }
+
+  val count = spec.blurSamples.coerceAtLeast(1)
+  val thirdComponents = glowTapWeights(spec)
+  val maxRadius = spec.maxRadius.toDouble()
+
   val taps =
     (0 until count).joinToString(",\n") { index ->
-      val radiusNorm = spiralRadiusNorm(index, count)
+      // Pre-scale by maxRadius on CPU so the GPU inner loop avoids tap.xy * MAX_RADIUS
+      val radiusScaled = spiralRadiusNorm(index, count) * maxRadius
       val theta = (index.toDouble() + 0.5) * GOLDEN_ANGLE
-      val x = cos(theta) * radiusNorm
-      val y = sin(theta) * radiusNorm
+      val x = cos(theta) * radiusScaled
+      val y = sin(theta) * radiusScaled
       "    vec3(${glslFloat(x)}, ${glslFloat(y)}, ${glslFloat(thirdComponents[index])})"
     }
-  return "const vec3 $name[$count] = vec3[$count](\n$taps\n);"
+  val table = "const vec3 $name[$count] = vec3[$count](\n$taps\n);"
+  tapTableCache.put(key, table)
+  return table
 }
 
 /**
- * Glow distance falloff, precomputed per tap on the CPU. This used to be a
- * `pow()` evaluated per tap per ambient pixel on the GPU; the inputs (tap
- * radius, max radius, fade curve) are all compile-time constants of the
- * shader, so baking it into the tap table removes BLUR_SAMPLES transcendental
- * ops per pixel — a real win on mobile GPUs.
+ * Glow distance falloff, precomputed per tap on the CPU.
  */
 private fun glowTapWeights(spec: AmbientGlowShaderSpec): DoubleArray {
   val count = spec.blurSamples.coerceAtLeast(1)
@@ -123,22 +138,27 @@ private fun glowTapWeights(spec: AmbientGlowShaderSpec): DoubleArray {
   }
 }
 
-/** Helper functions shared by both ambient shader styles. */
+/**
+ * Common GLSL helpers using mediump (FP16) where safe on mobile GPUs.
+ * Uses Jorge Jimenez's Interleaved Gradient Noise (IGN) for cache-coherent,
+ * zero-trig screen-space dither.
+ */
 private val GLSL_COMMON_HELPERS =
   """
-float rand(vec2 seed) {
-    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+mediump float ign(highp vec2 p) {
+    mediump vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+    return fract(magic.z * fract(dot(p, magic.xy)));
 }
 
-float luma(vec3 rgb) {
+mediump float luma(mediump vec3 rgb) {
     return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-vec3 adjust_saturation(vec3 rgb, float amount) {
+mediump vec3 adjust_saturation(mediump vec3 rgb, mediump float amount) {
     return mix(vec3(luma(rgb)), rgb, amount);
 }
 
-vec3 apply_warmth(vec3 rgb, float amount) {
+mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
     rgb.r = clamp(rgb.r + amount * 0.060, 0.0, 1.0);
     rgb.g = clamp(rgb.g + amount * 0.025, 0.0, 1.0);
     rgb.b = clamp(rgb.b - amount * 0.080, 0.0, 1.0);
@@ -148,53 +168,69 @@ vec3 apply_warmth(vec3 rgb, float amount) {
 
 /**
  * Start of hook(): remaps screen UV back to video UV and returns the untouched
- * video pixel for everything inside the video rect. Only ambient-area pixels
- * run the per-style blur below this block.
+ * video pixel outside the optional inner edge band.
  */
 private val GLSL_VIDEO_PROLOGUE =
   """
-    vec2 uv = HOOKED_pos;
-    vec2 video_uv = (uv - 0.5) * vec2(SCALE_X, SCALE_Y) + 0.5;
+    highp vec2 uv = HOOKED_pos;
+    highp vec2 video_uv = (uv - 0.5) * vec2(SCALE_X, SCALE_Y) + 0.5;
 
     // Stay half a texel inside the decoded frame when sampling the video edge.
-    // Sampling exactly at 0/1 can pull in the texture border on some GPU/MPV paths,
-    // which shows up as a one-pixel black seam between the video and ambient fill.
-    vec2 half_texel = vec2(0.5) / HOOKED_size;
-    vec2 safe_min = half_texel;
-    vec2 safe_max = vec2(1.0) - half_texel;
+    highp vec2 half_texel = vec2(0.5) / HOOKED_size;
+    highp vec2 safe_min = half_texel;
+    highp vec2 safe_max = vec2(1.0) - half_texel;
 
-    if (video_uv.x >= 0.0 && video_uv.x <= 1.0 &&
-        video_uv.y >= 0.0 && video_uv.y <= 1.0) {
+    bool inside_video = video_uv.x >= 0.0 && video_uv.x <= 1.0 &&
+              video_uv.y >= 0.0 && video_uv.y <= 1.0;
+    mediump float video_weight = 0.0;
+    if (inside_video) {
+      highp vec2 video_size = HOOKED_size / vec2(SCALE_X, SCALE_Y);
+      mediump float blend_width = EDGE_BLEND * min(video_size.x, video_size.y);
+      mediump float inside_dist = blend_width;
+      if (SCALE_X > 1.0) {
+        inside_dist = min(inside_dist, min(video_uv.x, 1.0 - video_uv.x) * video_size.x);
+      }
+      if (SCALE_Y > 1.0) {
+        inside_dist = min(inside_dist, min(video_uv.y, 1.0 - video_uv.y) * video_size.y);
+      }
+      if (EDGE_BLEND <= 0.0 || inside_dist >= blend_width) {
         return HOOKED_tex(clamp(video_uv, safe_min, safe_max));
+      }
+      video_weight = smoothstep(0.0, blend_width, inside_dist);
     }
 
-    vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
-    float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
+    highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
+    mediump float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
 
-    float jitter = rand(uv * HOOKED_size) * (PI * 2.0);
-    float jitter_s = sin(jitter);
-    float jitter_c = cos(jitter);
-    vec2 aspect_fix = vec2(HOOKED_size.y / HOOKED_size.x, 1.0);
+    // Interleaved Gradient Noise jitter: avoids rand() sin() overhead and improves GPU cache hits
+    mediump float jitter = ign(uv * HOOKED_size) * 6.2831853;
+    mediump float jitter_s = sin(jitter);
+    mediump float jitter_c = cos(jitter);
+    mediump float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    mediump float jitter_c_aspect = jitter_c * aspect_x;
+    mediump float jitter_s_aspect = jitter_s * aspect_x;
   """.trimIndent().prependIndent("    ")
 
-/** End of hook(): vignette, opacity, and the optional bezel blend. */
+/** End of hook(): vignette, opacity, and the optional edge and bezel blends. */
 private val GLSL_AMBIENT_EPILOGUE =
   """
-    float vig_r = length(uv - 0.5) * 2.0;
+    mediump float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
 
-    vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
+    mediump vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
 
-    // A zero bezel means a hard, gap-free handoff from video to ambience.
-    // The old max(BEZEL_DEPTH, 0.001) fallback forced a tiny transition even
-    // when bezel depth was disabled, which can become a visible ~1 px line.
-    if (BEZEL_DEPTH <= 0.0) {
-        return ambient_out;
+    if (inside_video) {
+      return mix(ambient_out, HOOKED_tex(clamp(video_uv, safe_min, safe_max)), video_weight);
     }
 
-    vec2 outside_dist = max(max(-video_uv, video_uv - vec2(1.0)), vec2(0.0));
-    float dist_to_edge = max(outside_dist.x, outside_dist.y);
-    float bezel_alpha = smoothstep(0.0, BEZEL_DEPTH, dist_to_edge);
+    // A zero bezel means a hard, gap-free handoff from video to ambience.
+    if (BEZEL_DEPTH <= 0.0) {
+      return ambient_out;
+    }
+
+    highp vec2 outside_dist = max(max(-video_uv, video_uv - vec2(1.0)), vec2(0.0));
+    mediump float dist_to_edge = max(outside_dist.x, outside_dist.y);
+    mediump float bezel_alpha = smoothstep(0.0, BEZEL_DEPTH, dist_to_edge);
 
     vec4 edge_pixel = HOOKED_tex(edge_origin);
     return mix(edge_pixel, ambient_out, bezel_alpha);
@@ -204,54 +240,68 @@ object AmbientShaderBuilder {
   fun build(
     @Suppress("UNUSED_PARAMETER") context: Context,
     spec: AmbientGlowShaderSpec,
-  ): String =
-    """
+  ): String {
+    val invRadiusScale = 3.0 / spec.maxRadius.toDouble().coerceAtLeast(0.001)
+
+    return """
 //!HOOK OUTPUT
 //!BIND HOOKED
 //!DESC True Ambient Mode (Glow)
 
-#define BLUR_SAMPLES     ${spec.blurSamples}
-#define MAX_RADIUS       ${spec.maxRadius}
-#define GLOW_INTENSITY   ${spec.glowIntensity}
-#define SAT_BOOST        ${spec.satBoost}
-#define BEZEL_DEPTH      ${spec.shared.bezelDepth}
-#define VIGNETTE_STR     ${spec.shared.vignetteStrength}
-#define WARMTH           ${spec.warmth}
-#define OPACITY          ${spec.shared.opacity}
-#define SCALE_X          ${spec.context.scaleX}
-#define SCALE_Y          ${spec.context.scaleY}
+#ifdef GL_ES
+precision mediump float;
+precision highp int;
+#else
+#define mediump
+#define highp
+#define lowp
+#endif
 
-const float PI = 3.14159265358979;
-// tap.xy = unit-disc offset; tap.z = precomputed distance falloff (fade curve baked in).
-${buildSpiralTapTable("GLOW_TAPS", spec.blurSamples, glowTapWeights(spec))}
+#define BLUR_SAMPLES     ${spec.blurSamples}
+#define MAX_RADIUS       ${glslFloat(spec.maxRadius.toDouble())}
+#define INV_RADIUS_SCALE ${glslFloat(invRadiusScale)}
+#define GLOW_INTENSITY   ${glslFloat(spec.glowIntensity.toDouble())}
+#define SAT_BOOST        ${glslFloat(spec.satBoost.toDouble())}
+#define BEZEL_DEPTH      ${glslFloat(spec.shared.bezelDepth.toDouble())}
+#define EDGE_BLEND       ${glslFloat(spec.shared.edgeBlend.toDouble())}
+#define VIGNETTE_STR     ${glslFloat(spec.shared.vignetteStrength.toDouble())}
+#define WARMTH           ${glslFloat(spec.warmth.toDouble())}
+#define OPACITY          ${glslFloat(spec.shared.opacity.toDouble())}
+#define SCALE_X          ${glslFloat(spec.context.scaleX)}
+#define SCALE_Y          ${glslFloat(spec.context.scaleY)}
+
+// tap.xy = pre-scaled offset by maxRadius; tap.z = precomputed distance falloff.
+${buildSpiralTapTable("GLOW_TAPS", spec)}
 
 $GLSL_COMMON_HELPERS
 
 vec4 hook() {
 $GLSL_VIDEO_PROLOGUE
 
-    float edge_fade = exp(-edge_dist * (3.0 / max(MAX_RADIUS, 0.001)));
+    // Rational falloff curve: replaces expensive exp() with cheap ALU operations
+    mediump float d = edge_dist * INV_RADIUS_SCALE;
+    mediump float edge_fade = 1.0 / (1.0 + d * (1.0 + d * 0.5));
 
-    vec3 acc_color = vec3(0.0);
-    float acc_weight = 0.0;
+    mediump vec3 acc_color = vec3(0.0);
+    mediump float acc_weight = 0.0;
 
     for (int i = 0; i < BLUR_SAMPLES; i++) {
         vec3 tap = GLOW_TAPS[i];
-        vec2 base_offset = tap.xy * MAX_RADIUS;
 
-        vec2 offset = vec2(
-            base_offset.x * jitter_c - base_offset.y * jitter_s,
-            base_offset.x * jitter_s + base_offset.y * jitter_c
-        ) * aspect_fix;
-        vec3 sample_rgb = HOOKED_tex(clamp(edge_origin + offset, safe_min, safe_max)).rgb;
+        // tap.xy is already pre-scaled by maxRadius; aspect_x is folded into jitter_aspect
+        highp vec2 offset = vec2(
+            tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
+            tap.x * jitter_s + tap.y * jitter_c
+        );
+        mediump vec3 sample_rgb = HOOKED_tex(clamp(edge_origin + offset, safe_min, safe_max)).rgb;
 
-        float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
+        mediump float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
 
         acc_color += sample_rgb * weight;
         acc_weight += weight;
     }
 
-    vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
+    mediump vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
     ambient_rgb = adjust_saturation(ambient_rgb, SAT_BOOST);
     ambient_rgb = apply_warmth(ambient_rgb, WARMTH);
     ambient_rgb *= edge_fade;
@@ -259,4 +309,5 @@ $GLSL_VIDEO_PROLOGUE
 $GLSL_AMBIENT_EPILOGUE
 }
     """.trimIndent()
+  }
 }

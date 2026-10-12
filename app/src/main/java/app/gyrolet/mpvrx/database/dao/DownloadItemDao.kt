@@ -28,9 +28,6 @@ interface DownloadItemDao {
   @Query("SELECT * FROM download_items WHERE id = :id LIMIT 1")
   suspend fun findById(id: Long): DownloadItemEntity?
 
-  @Query("SELECT * FROM download_items WHERE systemDownloadId = :systemDownloadId LIMIT 1")
-  suspend fun findBySystemDownloadId(systemDownloadId: Long): DownloadItemEntity?
-
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun insert(entity: DownloadItemEntity): Long
 

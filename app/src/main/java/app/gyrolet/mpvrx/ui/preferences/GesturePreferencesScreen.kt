@@ -15,16 +15,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,21 +41,17 @@ import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
-import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.CustomKeyCodes
 import app.gyrolet.mpvrx.ui.player.SingleActionGesture
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.toFixed
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.FooterPreference
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SliderPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -77,30 +70,13 @@ object GesturePreferencesScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_gesture),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(R.string.pref_gesture),
+          onBack = { backstack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(GesturePreferencesScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -120,6 +96,43 @@ object GesturePreferencesScreen : Screen {
           }
           item {
             PreferenceCard {
+              val hapticFeedbackEnabled by preferences.hapticFeedbackEnabled.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_haptic_feedback_title),
+                value = hapticFeedbackEnabled,
+                onValueChange = preferences.hapticFeedbackEnabled::set,
+                title = { Text(stringResource(R.string.pref_haptic_feedback_title)) },
+                summary = { Text(stringResource(R.string.pref_haptic_feedback_summary)) },
+              )
+              PreferenceDivider()
+
+              me.zhanghai.compose.preference.Preference(
+                title = { Text(stringResource(R.string.pref_video_swipe_title)) },
+                onClick = { backstack.add(VideoSwipePreferencesScreen) },
+                modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_title),
+              )
+              PreferenceDivider()
+
+              val nestedTabSwipesEnabled by preferences.nestedTabSwipesEnabled.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_nested_tab_swipes_title),
+                value = nestedTabSwipesEnabled,
+                onValueChange = preferences.nestedTabSwipesEnabled::set,
+                title = { Text(stringResource(R.string.pref_nested_tab_swipes_title)) },
+                summary = { Text(stringResource(R.string.pref_nested_tab_swipes_summary)) },
+              )
+              PreferenceDivider()
+
+              val confirmBackToExit by preferences.confirmBackToExit.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_confirm_back_to_exit_title),
+                value = confirmBackToExit,
+                onValueChange = preferences.confirmBackToExit::set,
+                title = { Text(stringResource(R.string.pref_confirm_back_to_exit_title)) },
+                summary = { Text(stringResource(R.string.pref_confirm_back_to_exit_summary)) },
+              )
+              PreferenceDivider()
+
               val brightnessGesture by playerPreferences.brightnessGesture.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_brightness),
@@ -196,6 +209,19 @@ object GesturePreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              val showSeekbarDuringHorizontalSeeking by
+                preferences.showSeekbarDuringHorizontalSeeking.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_show_seekbar_horizontal_title),
+                value = showSeekbarDuringHorizontalSeeking,
+                onValueChange = preferences.showSeekbarDuringHorizontalSeeking::set,
+                title = { Text(stringResource(R.string.pref_gesture_show_seekbar_horizontal_title)) },
+                summary = { Text(stringResource(R.string.pref_gesture_show_seekbar_horizontal_summary)) },
+                enabled = horizontalSwipeToSeek,
+              )
+
+              PreferenceDivider()
+
               val enableCenterSwipeUpGesture by preferences.enableCenterSwipeUpGesture.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_enable_center_swipe_up_gesture),
@@ -207,6 +233,7 @@ object GesturePreferencesScreen : Screen {
               PreferenceDivider()
 
               val horizontalSwipeSensitivity by playerPreferences.horizontalSwipeSensitivity.collectAsState()
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_horizontal_swipe_sensitivity),
                 value = horizontalSwipeSensitivity,
@@ -229,11 +256,13 @@ object GesturePreferencesScreen : Screen {
                 onSliderValueChange = { playerPreferences.horizontalSwipeSensitivity.set(it.toFixed(3)) },
                 sliderValue = horizontalSwipeSensitivity,
               )
+              }
 
               PreferenceDivider()
 
               val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
               val holdSpeedSliderValue = snapHoldSpeedBoost(holdForMultipleSpeed)
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_hold_for_multiple_speed),
                 value = holdSpeedSliderValue,
@@ -253,6 +282,7 @@ object GesturePreferencesScreen : Screen {
                 onSliderValueChange = { playerPreferences.holdForMultipleSpeed.set(snapHoldSpeedBoost(it).toFixed(2)) },
                 sliderValue = holdSpeedSliderValue,
               )
+              }
             }
           }
 
@@ -267,6 +297,7 @@ object GesturePreferencesScreen : Screen {
               val predefinedValues = listOf(3, 5, 10, 15, 20, 25, 30)
               val isCustomValue = !predefinedValues.contains(doubleTapSeekDuration)
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_player_double_tap_seek_duration),
                 value = if (isCustomValue) -1 else doubleTapSeekDuration,
@@ -299,6 +330,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -346,6 +378,7 @@ object GesturePreferencesScreen : Screen {
               val doubleTapSeekAreaWidth by preferences.doubleTapSeekAreaWidth.collectAsState()
               val seekAreaValues = listOf(20, 25, 30, 35, 40, 45)
 
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_double_tap_seek_area_width_title),
                 value = doubleTapSeekAreaWidth,
@@ -360,10 +393,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_left_title),
                 value = leftDoubleTap,
@@ -378,10 +413,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val centerDoubleTap by preferences.centerSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_center_title),
                 value = centerDoubleTap,
@@ -408,10 +445,12 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
               val rightDoubleTap by preferences.rightSingleActionGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_double_tap_right_title),
                 value = rightDoubleTap,
@@ -426,6 +465,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -470,6 +510,7 @@ object GesturePreferencesScreen : Screen {
                   CustomKeyCodes.DoubleTapCenter,
                   CustomKeyCodes.DoubleTapRight,
                 ).map { it.keyCode }.toImmutableList()
+              ExpressivePreferenceItem {
               FooterPreference(
                 summary = {
                   var annotatedString =
@@ -497,6 +538,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 
@@ -507,23 +549,39 @@ object GesturePreferencesScreen : Screen {
           item {
             PreferenceCard {
               val mediaPreviousGesture by preferences.mediaPreviousGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_previous),
                 value = mediaPreviousGesture,
                 onValueChange = { preferences.mediaPreviousGesture.set(it) },
                 values = SingleActionGesture.entries,
-                valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
+                valueToText = {
+                  AnnotatedString(
+                    resources.getString(
+                      if (it == SingleActionGesture.Seek) R.string.pref_gesture_media_previous else it.titleRes,
+                    ),
+                  )
+                },
                 title = { Text(text = stringResource(R.string.pref_gesture_media_previous)) },
                 summary = {
                   Text(
-                    text = stringResource(mediaPreviousGesture.titleRes),
+                    text =
+                      stringResource(
+                        if (mediaPreviousGesture == SingleActionGesture.Seek) {
+                          R.string.pref_gesture_media_previous
+                        } else {
+                          mediaPreviousGesture.titleRes
+                        },
+                      ),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val mediaPlayGesture by preferences.mediaPlayGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_play),
                 value = mediaPlayGesture,
@@ -543,23 +601,39 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val mediaNextGesture by preferences.mediaNextGesture.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_media_next),
                 value = mediaNextGesture,
                 onValueChange = { preferences.mediaNextGesture.set(it) },
                 values = SingleActionGesture.entries,
-                valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
+                valueToText = {
+                  AnnotatedString(
+                    resources.getString(
+                      if (it == SingleActionGesture.Seek) R.string.pref_gesture_media_next else it.titleRes,
+                    ),
+                  )
+                },
                 title = { Text(text = stringResource(R.string.pref_gesture_media_next)) },
                 summary = {
                   Text(
-                    text = stringResource(mediaNextGesture.titleRes),
+                    text =
+                      stringResource(
+                        if (mediaNextGesture == SingleActionGesture.Seek) {
+                          R.string.pref_gesture_media_next
+                        } else {
+                          mediaNextGesture.titleRes
+                        },
+                      ),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
               )
+              }
 
               val mediaKeyCodes =
                 listOf(
@@ -567,6 +641,7 @@ object GesturePreferencesScreen : Screen {
                   CustomKeyCodes.MediaPlay,
                   CustomKeyCodes.MediaNext,
                 ).map { it.keyCode }.toImmutableList()
+              ExpressivePreferenceItem {
               FooterPreference(
                 summary = {
                   var annotatedString =
@@ -594,6 +669,7 @@ object GesturePreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 

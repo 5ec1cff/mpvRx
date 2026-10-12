@@ -86,7 +86,6 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import app.gyrolet.mpvrx.ui.update.UpdateViewModel
@@ -146,27 +145,10 @@ object AboutScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              modifier = Modifier.settingsSearchTarget(R.string.pref_about_title),
-              text = stringResource(id = R.string.pref_about_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  imageVector = Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(id = R.string.pref_about_title),
+          onBack = { backstack.popSafely() },
+          titleModifier = Modifier.settingsSearchTarget(R.string.pref_about_title),
         )
       },
     ) { paddingValues ->
@@ -226,8 +208,13 @@ object AboutScreen : Screen {
                     modifier = Modifier.matchParentSize(),
                     factory = { ctx ->
                       ImageView(ctx).apply {
-                        setImageResource(R.mipmap.ic_launcher)
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        setImageResource(LauncherIconManager.current(ctx).preview)
                       }
+                    },
+                    update = { view ->
+                      val selectedPreview = LauncherIconManager.current(view.context).preview
+                      view.setImageResource(selectedPreview)
                     },
                   )
                 }
@@ -653,8 +640,6 @@ object AboutScreen : Screen {
           }
         }
 
-        AboutContributorsSection(githubRepoUrl = githubRepoUrl)
-
         Spacer(Modifier.height(12.dp))
       }
     }
@@ -896,6 +881,13 @@ private val OPEN_SOURCE_LIBRARIES =
       url = "https://developer.android.com/jetpack/androidx/releases/compose-material3",
     ),
     OpenSourceLibrary(
+      name = "Kmp-Vibrate",
+      artifact = "io.github.jmseb3:vibrate",
+      descriptionRes = R.string.oss_kmp_vibrate_description,
+      license = "Apache-2.0",
+      url = "https://github.com/jmseb3/Kmp-Vibrate",
+    ),
+    OpenSourceLibrary(
       name = "Navigation 3",
       artifact = "androidx.navigation3:navigation3-runtime",
       descriptionRes = R.string.oss_navigation_3_description,
@@ -994,13 +986,6 @@ private val OPEN_SOURCE_LIBRARIES =
       url = "https://github.com/zhanghai/ComposePreference",
     ),
     OpenSourceLibrary(
-      name = "LazyColumnScrollbar",
-      artifact = "com.github.nanihadesuka:LazyColumnScrollbar",
-      descriptionRes = R.string.oss_lazycolumnscrollbar_description,
-      license = "Apache-2.0",
-      url = "https://github.com/Nanihadesuka/LazyColumnScrollbar",
-    ),
-    OpenSourceLibrary(
       name = "Reorderable",
       artifact = "sh.calvin.reorderable:reorderable",
       descriptionRes = R.string.oss_reorderable_description,
@@ -1076,13 +1061,6 @@ private val OPEN_SOURCE_LIBRARIES =
       descriptionRes = R.string.oss_androidx_palette_description,
       license = "Apache-2.0",
       url = "https://developer.android.com/jetpack/androidx/releases/palette",
-    ),
-    OpenSourceLibrary(
-      name = "AndroidX Preference",
-      artifact = "androidx.preference:preference-ktx",
-      descriptionRes = R.string.oss_androidx_preference_description,
-      license = "Apache-2.0",
-      url = "https://developer.android.com/jetpack/androidx/releases/preference",
     ),
     OpenSourceLibrary(
       name = "AndroidX Profile Installer",
@@ -1188,5 +1166,68 @@ private val OPEN_SOURCE_LIBRARIES =
       descriptionRes = R.string.oss_quickjs_ng_description,
       license = "MIT",
       url = "https://github.com/quickjs-ng/quickjs",
+    ),
+    OpenSourceLibrary(
+      name = "Haze",
+      artifact = "dev.chrisbanes.haze:haze-blur",
+      descriptionRes = R.string.oss_haze_description,
+      license = "Apache-2.0",
+      url = "https://github.com/chrisbanes/haze",
+    ),
+    OpenSourceLibrary(
+      name = "Backdrop",
+      artifact = "io.github.kyant0:backdrop",
+      descriptionRes = R.string.oss_backdrop_description,
+      license = "Apache-2.0",
+      url = "https://github.com/Kyant0/AndroidLiquidGlass",
+    ),
+    OpenSourceLibrary(
+      name = "Telephoto",
+      artifact = "me.saket.telephoto:zoomable",
+      descriptionRes = R.string.oss_telephoto_description,
+      license = "Apache-2.0",
+      url = "https://github.com/saket/telephoto",
+    ),
+    OpenSourceLibrary(
+      name = "AndroidX Lifecycle",
+      artifact = "androidx.lifecycle:lifecycle-runtime-compose",
+      descriptionRes = R.string.oss_androidx_lifecycle_description,
+      license = "Apache-2.0",
+      url = "https://developer.android.com/jetpack/androidx/releases/lifecycle",
+    ),
+    OpenSourceLibrary(
+      name = "LeakCanary",
+      artifact = "com.squareup.leakcanary:leakcanary-android",
+      descriptionRes = R.string.oss_leakcanary_description,
+      license = "Apache-2.0",
+      url = "https://github.com/square/leakcanary",
+    ),
+    OpenSourceLibrary(
+      name = "Python",
+      artifact = "libpython / python313.zip",
+      descriptionRes = R.string.oss_python_description,
+      license = "PSF-2.0",
+      url = "https://www.python.org/",
+    ),
+    OpenSourceLibrary(
+      name = "yt-dlp",
+      artifact = "yt-dlp",
+      descriptionRes = R.string.oss_ytdlp_description,
+      license = "Unlicense",
+      url = "https://github.com/yt-dlp/yt-dlp",
+    ),
+    OpenSourceLibrary(
+      name = "Anime4K",
+      artifact = "Anime4K GLSL shaders",
+      descriptionRes = R.string.oss_anime4k_description,
+      license = "MIT",
+      url = "https://github.com/bloc97/Anime4K",
+    ),
+    OpenSourceLibrary(
+      name = "HDR Toys",
+      artifact = "hdr-toys GLSL shaders",
+      descriptionRes = R.string.oss_hdr_toys_description,
+      license = "MIT",
+      url = "https://github.com/natural-harmonia-gropius/hdr-toys",
     ),
   ).sortedBy { library -> library.name.lowercase(Locale.ROOT) }

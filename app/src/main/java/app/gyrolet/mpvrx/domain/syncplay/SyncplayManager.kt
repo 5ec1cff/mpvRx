@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.domain.syncplay
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -31,6 +32,7 @@ data class SyncplayState(
   val users: List<String> = emptyList(),
   val error: String? = null,
   val connectionFailed: Boolean = false,
+  val connectionFailure: SyncplayConnectionFailure? = null,
 )
 
 class SyncplayManager(
@@ -38,7 +40,8 @@ class SyncplayManager(
 ) {
   private val client = SyncplayClient()
   private val credentialsStore = SyncplayCredentialsStore(context.applicationContext)
-  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO.limitedParallelism(1))
+  // Session changes and UI actions share one dispatcher. Socket operations switch to IO in the client.
+  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
   private val _state = MutableStateFlow(SyncplayState())
   val state: StateFlow<SyncplayState> = _state.asStateFlow()
@@ -49,10 +52,12 @@ class SyncplayManager(
   var fileInfoProvider: (() -> SyncplayFile?)? = null
 
   private var pingJob: Job? = null
+  private var connectJob: Job? = null
+  private var handshakeJob: Job? = null
   private var listenJob: Job? = null
   private var messageCollectorJob: Job? = null
   private var backgroundDisconnectJob: Job? = null
-  private var sessionGeneration = 0L
+  @Volatile private var sessionGeneration = 0L
   private var loggedIn = false
   private var lastLocalPlaybackState = SyncplayPlaybackState(position = 0.0, paused = true)
   private var lastLocalFile: SyncplayFile? = null
@@ -74,12 +79,13 @@ class SyncplayManager(
     password: String?,
   ) {
     if (_state.value.isConnecting) return
+    val endpoint = runCatching { SyncplayEndpoint.parse(host, port) }.getOrNull() ?: return
     val credentials =
       SyncplayCredentials(
-        host = host,
-        port = port,
-        username = username,
-        room = room,
+        host = endpoint.host,
+        port = endpoint.port,
+        username = username.trim(),
+        room = room.trim(),
         password = password.orEmpty(),
       )
     if (!credentials.isValid) return
@@ -90,34 +96,36 @@ class SyncplayManager(
 
   private fun connect(credentials: SyncplayCredentials) {
     val (host, port, username, room, password) = credentials
+    stopSession()
+    val connectionGeneration = sessionGeneration
     _state.value = SyncplayState(isConnecting = true, room = room, username = username)
-    scope.launch {
-      stopSession()
-      val connectionGeneration = sessionGeneration
-
-      val success = client.connect(host, port)
-      if (!success) {
-        _state.value = SyncplayState(connectionFailed = true)
+    connectJob = scope.launch {
+      val result = client.connect(host, port)
+      if (sessionGeneration != connectionGeneration) return@launch
+      if (result.isFailure) {
+        failConnection(SyncplayConnectionFailure.from(result.exceptionOrNull()!!))
         return@launch
       }
 
-      _state.value = SyncplayState(isConnected = true, room = room, username = username)
-
       messageCollectorJob =
-        scope.launch {
-          client.messages.collect { handleMessage(it) }
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+          client.messages.collect { if (sessionGeneration == connectionGeneration) handleMessage(it) }
         }
       listenJob =
         scope.launch {
-          client.listen()
+          val listening = client.listen()
           if (sessionGeneration == connectionGeneration) {
-            loggedIn = false
-            pingJob?.cancel()
-            _state.value = _state.value.copy(isConnected = false)
+            failConnection(listening.exceptionOrNull()?.let(SyncplayConnectionFailure::from) ?: SyncplayConnectionFailure.CLOSED)
           }
         }
+      handshakeJob = scope.launch {
+        delay(10_000)
+        if (sessionGeneration == connectionGeneration && !loggedIn) {
+          failConnection(SyncplayConnectionFailure.HANDSHAKE_TIMEOUT)
+        }
+      }
 
-      client.sendMessage(
+      val sent = client.sendMessage(
         SyncplayMessage(
           hello =
             HelloMessage(
@@ -130,6 +138,7 @@ class SyncplayManager(
             ),
         ),
       )
+      if (!sent && sessionGeneration == connectionGeneration) failConnection(SyncplayConnectionFailure.NETWORK)
     }
   }
 
@@ -193,6 +202,7 @@ class SyncplayManager(
             users = emptyList(),
             error = null,
             connectionFailed = false,
+            connectionFailure = null,
           )
       }
   }
@@ -218,12 +228,21 @@ class SyncplayManager(
     }
 
     message.hello?.let { hello ->
+      if (hello.username.isNullOrBlank() || hello.room?.name.isNullOrBlank() ||
+        (hello.realversion.isNullOrBlank() && hello.version.isNullOrBlank())
+      ) {
+        failConnection(SyncplayConnectionFailure.PROTOCOL)
+        return
+      }
+      handshakeJob?.cancel()
+      handshakeJob = null
       loggedIn = true
       val acceptedUsername = hello.username ?: _state.value.username
       val acceptedRoom = hello.room?.name ?: _state.value.room
       _state.value =
         _state.value.copy(
           isConnected = true,
+          isConnecting = false,
           username = acceptedUsername,
           room = acceptedRoom,
           users = (_state.value.users + listOfNotNull(acceptedUsername)).distinct(),
@@ -286,13 +305,25 @@ class SyncplayManager(
     _state.value = SyncplayState(error = error)
   }
 
+  private fun failConnection(failure: SyncplayConnectionFailure) {
+    stopSession()
+    _state.value = _state.value.copy(
+      isConnected = false, isConnecting = false, users = emptyList(),
+      connectionFailed = true, connectionFailure = failure,
+    )
+  }
+
   private fun stopSession() {
     sessionGeneration += 1
     loggedIn = false
+    connectJob?.cancel()
+    handshakeJob?.cancel()
     pingJob?.cancel()
     listenJob?.cancel()
     messageCollectorJob?.cancel()
     pingJob = null
+    connectJob = null
+    handshakeJob = null
     listenJob = null
     messageCollectorJob = null
     clientIgnoringOnTheFly = 0

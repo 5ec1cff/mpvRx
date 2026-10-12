@@ -16,21 +16,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.SliderColors
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -48,7 +47,7 @@ fun TintedSliderItem(
   enabled: Boolean = true,
   icon: @Composable () -> Unit = {},
 ) {
-  val haptic = LocalHapticFeedback.current
+  val haptics = rememberAdjustmentHaptics(min.toFloat(), max.toFloat(), (max - min - 1).coerceAtLeast(0))
 
   Row(
     modifier =
@@ -66,20 +65,7 @@ fun TintedSliderItem(
       modifier = Modifier.weight(1f),
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = label,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-        Text(
-          text = valueText,
-          style = MaterialTheme.typography.bodyMedium,
-        )
-      }
+      SliderItemHeader(label = label, valueText = valueText)
 
       TintedSlider(
         value = value.toFloat(),
@@ -87,10 +73,16 @@ fun TintedSliderItem(
           val newValue = it.roundToInt()
           if (newValue != value) {
             onChange(newValue)
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            haptics.move(value.toFloat(), newValue.toFloat())
           }
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .semantics {
+              contentDescription = label
+              stateDescription = valueText
+            },
         valueRange = min.toFloat()..max.toFloat(),
         steps = (max - min - 1).coerceAtLeast(0),
         tint = tint,
@@ -117,7 +109,7 @@ fun TintedSlider(
     onValueChange = onValueChange,
     modifier =
       modifier.tvFocusHighlight(
-        RoundedCornerShape(12.dp),
+        MaterialTheme.shapes.medium,
         enabled = enabled,
         focusedScale = 1.01f,
       ),

@@ -9,10 +9,14 @@
 
 package app.gyrolet.mpvrx.ui.browser.dialogs
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -24,16 +28,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -42,7 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
@@ -55,17 +58,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -82,9 +92,11 @@ fun SortDialog(
   icons: List<AppIcon>,
   getLabelForType: (String, Boolean) -> Pair<String, String>,
   modifier: Modifier = Modifier,
+  mediaTypeToggles: List<VisibilityToggle> = emptyList(),
   visibilityToggles: List<VisibilityToggle> = emptyList(),
   viewModeSelector: MultiViewModeSelector? = null,
   layoutModeSelector: ViewModeSelector? = null,
+  manualGridToggle: VisibilityToggle? = null,
   folderGridColumnSelector: GridColumnSelector? = null,
   videoGridColumnSelector: GridColumnSelector? = null,
   showSortOptions: Boolean = true,
@@ -93,29 +105,34 @@ fun SortDialog(
 ) {
   if (!isOpen) return
 
+  val haptics = rememberAppHaptics()
   var isFieldsExpanded by rememberSaveable { mutableStateOf(false) }
 
   val (ascLabel, descLabel) = getLabelForType(sortType, sortOrderAsc)
 
-  AlertDialog(
+  AppPickerSheet(
     onDismissRequest = onDismiss,
-    title = {
-      Text(
-        text = title,
-        style = MaterialTheme.typography.titleLarge,
-      )
+    title = title,
+    actions = {
+      TextButton(onClick = onDismiss) {
+        Text(
+          text =
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_done),
+        )
+      }
     },
-    text = {
+    modifier = modifier,
+  ) {
       Column {
         HorizontalDivider()
         Column(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .verticalScroll(rememberScrollState()),
+          modifier = Modifier.fillMaxWidth(),
         ) {
           if (showSortOptions) {
-            DialogSectionTitle(text = "Sort by")
+            DialogSectionTitle(
+              text = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_sort_by),
+            )
             SortTypeSelector(
               sortType = sortType,
               onSortTypeChange = onSortTypeChange,
@@ -142,7 +159,13 @@ fun SortDialog(
               viewModeSelector.options.forEachIndexed { index, option ->
                 SegmentedButton(
                   selected = option.isSelected,
-                  onClick = { if (enableViewModeOptions) option.onClick() },
+                  onClick = {
+                    if (enableViewModeOptions && !option.isSelected) {
+                      option.onClick()
+                      haptics.selection(true)
+                    }
+                  },
+                  enabled = enableViewModeOptions,
                   shape = SegmentedButtonDefaults.itemShape(index = index, count = viewModeSelector.options.size),
                   colors = themedSegmentedButtonColors(),
                 ) {
@@ -155,68 +178,119 @@ fun SortDialog(
           if (layoutModeSelector != null) {
             HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
             DialogSectionTitle(text = layoutModeSelector.label)
+            // A page with three layouts owns its own selection, so the third option decides whether
+            // the middle one is the one showing; with only two the flag still describes both.
+            val thirdSelected = layoutModeSelector.thirdOption?.isSelected == true
+            val isFirstSelected = layoutModeSelector.isFirstOptionSelected && !thirdSelected
+            val options =
+              buildList {
+                add(
+                  ViewModeOption(
+                    label = layoutModeSelector.firstOptionLabel,
+                    icon = layoutModeSelector.firstOptionIcon,
+                    isSelected = isFirstSelected,
+                    onClick = { layoutModeSelector.onViewModeChange(true) },
+                  ),
+                )
+                add(
+                  ViewModeOption(
+                    label = layoutModeSelector.secondOptionLabel,
+                    icon = layoutModeSelector.secondOptionIcon,
+                    isSelected = !layoutModeSelector.isFirstOptionSelected && !thirdSelected,
+                    onClick = { layoutModeSelector.onViewModeChange(false) },
+                  ),
+                )
+                layoutModeSelector.thirdOption?.let(::add)
+              }
             SingleChoiceSegmentedButtonRow(
               modifier = Modifier.fillMaxWidth(),
             ) {
-              val isFirstSelected = layoutModeSelector.isFirstOptionSelected
-              SegmentedButton(
-                selected = isFirstSelected,
-                onClick = { if (enableLayoutModeOptions) layoutModeSelector.onViewModeChange(true) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                colors = themedSegmentedButtonColors(),
-                icon = {
-                  Icon(
-                    imageVector = layoutModeSelector.firstOptionIcon,
-                    contentDescription = layoutModeSelector.firstOptionLabel,
-                    modifier = Modifier.size(16.dp),
-                  )
-                },
-              ) {
-                Text(text = layoutModeSelector.firstOptionLabel)
-              }
-              SegmentedButton(
-                selected = !isFirstSelected,
-                onClick = { if (enableLayoutModeOptions) layoutModeSelector.onViewModeChange(false) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                colors = themedSegmentedButtonColors(),
-                icon = {
-                  Icon(
-                    imageVector = layoutModeSelector.secondOptionIcon,
-                    contentDescription = layoutModeSelector.secondOptionLabel,
-                    modifier = Modifier.size(16.dp),
-                  )
-                },
-              ) {
-                Text(text = layoutModeSelector.secondOptionLabel)
-              }
-            }
-            if (layoutModeSelector.checkboxLabel != null && layoutModeSelector.onCheckboxChange != null) {
-              Spacer(modifier = Modifier.height(4.dp))
-              Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                  Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable {
-                      if (enableLayoutModeOptions) {
-                        layoutModeSelector.onCheckboxChange.invoke(!layoutModeSelector.isCheckboxChecked)
-                      }
-                    }.padding(vertical = 2.dp),
-              ) {
-                Checkbox(
-                  checked = layoutModeSelector.isCheckboxChecked,
-                  onCheckedChange = { checked ->
-                    if (enableLayoutModeOptions) {
-                      layoutModeSelector.onCheckboxChange.invoke(checked)
+              options.forEachIndexed { index, option ->
+                SegmentedButton(
+                  selected = option.isSelected,
+                  onClick = {
+                    if (enableLayoutModeOptions && !option.isSelected) {
+                      option.onClick()
+                      haptics.selection(true)
                     }
                   },
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                  text = layoutModeSelector.checkboxLabel,
-                  style = MaterialTheme.typography.bodyMedium,
-                )
+                  enabled = enableLayoutModeOptions,
+                  shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                  colors = themedSegmentedButtonColors(),
+                  icon = {
+                    Icon(
+                      imageVector = option.icon,
+                      contentDescription = option.label,
+                      modifier = Modifier.size(16.dp),
+                    )
+                  },
+                ) {
+                  Text(text = option.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+              }
+            }
+            val showSeparateLayout = layoutModeSelector.checkboxLabel != null && layoutModeSelector.onCheckboxChange != null
+            val showManualGrid = manualGridToggle != null && !isFirstSelected
+            if (showSeparateLayout || showManualGrid) {
+              Spacer(modifier = Modifier.height(4.dp))
+              Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                if (layoutModeSelector.checkboxLabel != null && layoutModeSelector.onCheckboxChange != null) {
+                  Row(
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp))
+                      .toggleable(
+                        value = layoutModeSelector.isCheckboxChecked,
+                        enabled = enableLayoutModeOptions,
+                        role = androidx.compose.ui.semantics.Role.Checkbox,
+                        onValueChange = { checked ->
+                          layoutModeSelector.onCheckboxChange.invoke(checked)
+                          haptics.selection(checked)
+                        },
+                      ),
+                    // Without this the label sits flush against the checkbox's own padding and reads
+                    // as one glued block.
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                  ) {
+                    RoundedCheckbox(
+                      checked = layoutModeSelector.isCheckboxChecked,
+                      onCheckedChange = null,
+                      enabled = enableLayoutModeOptions,
+                    )
+                    Text(
+                      text = layoutModeSelector.checkboxLabel,
+                      modifier = Modifier.weight(1f),
+                      style = MaterialTheme.typography.bodyMedium,
+                    )
+                  }
+                }
+                if (manualGridToggle != null && showManualGrid) {
+                  val isEnabled = enableLayoutModeOptions && manualGridToggle.enabled
+                  Row(
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp))
+                      .toggleable(
+                        value = manualGridToggle.checked,
+                        enabled = isEnabled,
+                        role = androidx.compose.ui.semantics.Role.Checkbox,
+                        onValueChange = { checked ->
+                          manualGridToggle.onCheckedChange(checked)
+                          haptics.selection(checked)
+                        },
+                      ),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                  ) {
+                    RoundedCheckbox(checked = manualGridToggle.checked, onCheckedChange = null, enabled = isEnabled)
+                    Text(
+                      text = manualGridToggle.label,
+                      modifier = Modifier.weight(1f),
+                      style = MaterialTheme.typography.bodyMedium,
+                    )
+                  }
+                }
               }
             }
           }
@@ -226,20 +300,31 @@ fun SortDialog(
             videoGridColumnSelector = videoGridColumnSelector,
           )
 
+          if (mediaTypeToggles.isNotEmpty()) {
+            HorizontalDivider(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+            DialogSectionTitle(
+              text = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_media_types),
+            )
+            ToggleChipRow(mediaTypeToggles)
+          }
+
           if (visibilityToggles.isNotEmpty()) {
-            HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
+            HorizontalDivider(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             Column(
               modifier =
                 Modifier
                   .fillMaxWidth()
-                  .animateContentSize(animationSpec = tween(durationMillis = 250)),
+                  .animateContentSize(
+                    animationSpec = AppMotion.spatial(tween(durationMillis = 250), snap()),
+                  ),
             ) {
               Row(
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { isFieldsExpanded = !isFieldsExpanded }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
               ) {
@@ -251,64 +336,26 @@ fun SortDialog(
                 )
                 Icon(
                   imageVector = if (isFieldsExpanded) Icons.RoundedFilled.KeyboardArrowUp else Icons.RoundedFilled.KeyboardArrowDown,
-                  contentDescription = if (isFieldsExpanded) "Collapse" else "Expand",
+                  contentDescription =
+                    androidx.compose.ui.res.stringResource(
+                      if (isFieldsExpanded) {
+                        app.gyrolet.mpvrx.R.string.generic_collapse
+                      } else {
+                        app.gyrolet.mpvrx.R.string.generic_expand
+                      },
+                    ),
                   tint = MaterialTheme.colorScheme.onSurfaceVariant,
                   modifier = Modifier.size(20.dp),
                 )
               }
               if (isFieldsExpanded) {
-                FlowRow(
-                  modifier =
-                    Modifier
-                      .fillMaxWidth()
-                      .wrapContentHeight(align = Alignment.Top),
-                  horizontalArrangement = Arrangement.spacedBy(6.dp),
-                  verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                  visibilityToggles.forEach { toggle ->
-                    FilterChip(
-                      selected = toggle.checked,
-                      onClick = { toggle.onCheckedChange(!toggle.checked) },
-                      label = { Text(text = toggle.label) },
-                      border =
-                        FilterChipDefaults.filterChipBorder(
-                          enabled = true,
-                          selected = toggle.checked,
-                          selectedBorderWidth = 1.dp,
-                          selectedBorderColor = MaterialTheme.colorScheme.primary,
-                        ),
-                    )
-                  }
-                }
+                ToggleChipRow(visibilityToggles)
               }
             }
           }
         }
       }
-    },
-    confirmButton = {
-      TextButton(onClick = onDismiss) {
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.ui_done),
-        )
-      }
-    },
-    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-    tonalElevation = 6.dp,
-    shape = MaterialTheme.shapes.extraLarge,
-    modifier =
-      modifier
-        .widthIn(max = 500.dp)
-        .fillMaxWidth(0.88f),
-    properties =
-      DialogProperties(
-        usePlatformDefaultWidth = false,
-        dismissOnBackPress = true,
-        dismissOnClickOutside = true,
-      ),
-  )
+    }
 }
 
 @Composable
@@ -319,16 +366,30 @@ private fun SortTypeSelector(
   icons: List<AppIcon>,
   modifier: Modifier = Modifier,
 ) {
+  val haptics = rememberAppHaptics()
+  val initialFocusRequester = rememberTvInitialFocusRequester(types.isNotEmpty(), requestKey = sortType)
   Row(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusGroup()
+        .selectableGroup()
         .horizontalScroll(rememberScrollState()),
     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     types.forEachIndexed { index, type ->
       val selected = sortType == type
+      val containerColor by animateColorAsState(
+        targetValue =
+          if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+          } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+          },
+        animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+        label = "sortSelectionColor",
+      )
       Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -339,15 +400,18 @@ private fun SortTypeSelector(
             Modifier
               .size(64.dp)
               .clip(AppShapeScale.large)
-              .background(
-                color =
-                  if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                  } else {
-                    MaterialTheme.colorScheme.surfaceContainerHighest
-                  },
-              ).clickable(
-                onClick = { onSortTypeChange(type) },
+              .background(containerColor)
+              .then(if (selected) Modifier.tvInitialFocus(initialFocusRequester) else Modifier)
+              .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.04f)
+              .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = {
+                  if (!selected) {
+                    onSortTypeChange(type)
+                    haptics.selection(true)
+                  }
+                },
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
               ),
@@ -389,6 +453,7 @@ private fun SortOrderSelector(
   descLabel: String,
   modifier: Modifier = Modifier,
 ) {
+  val haptics = rememberAppHaptics()
   val options = listOf(ascLabel, descLabel)
   val selectedIndex = if (sortOrderAsc) 0 else 1
 
@@ -398,7 +463,12 @@ private fun SortOrderSelector(
     options.forEachIndexed { index, label ->
       SegmentedButton(
         selected = index == selectedIndex,
-        onClick = { onSortOrderChange(index == 0) },
+        onClick = {
+          if (index != selectedIndex) {
+            onSortOrderChange(index == 0)
+            haptics.selection(true)
+          }
+        },
         shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
         colors = themedSegmentedButtonColors(),
         icon = {
@@ -431,6 +501,35 @@ private fun DialogSectionTitle(text: String) {
   )
 }
 
+/** Shared by the Media Types and Fields groups so the two chip rows cannot drift apart. */
+@Composable
+private fun ToggleChipRow(toggles: List<VisibilityToggle>) {
+  FlowRow(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .wrapContentHeight(align = Alignment.Top),
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    toggles.forEach { toggle ->
+      FilterChip(
+        selected = toggle.checked,
+        onClick = { toggle.onCheckedChange(!toggle.checked) },
+        enabled = toggle.enabled,
+        label = { Text(text = toggle.label) },
+        border =
+          FilterChipDefaults.filterChipBorder(
+            enabled = toggle.enabled,
+            selected = toggle.checked,
+            selectedBorderWidth = 1.dp,
+            selectedBorderColor = MaterialTheme.colorScheme.primary,
+          ),
+      )
+    }
+  }
+}
+
 @Composable
 private fun GridColumnsNextSection(
   folderGridColumnSelector: GridColumnSelector?,
@@ -438,7 +537,7 @@ private fun GridColumnsNextSection(
 ) {
   if (folderGridColumnSelector == null && videoGridColumnSelector == null) return
 
-  val haptic = LocalHapticFeedback.current
+  val haptic = rememberAppHaptics()
 
   HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
 
@@ -474,12 +573,12 @@ private fun GridColumnsNextSection(
             val newValue = it.roundToInt()
             if (newValue != folderGridColumnSelector.currentValue) {
               folderGridColumnSelector.onValueChange(newValue)
-              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              haptic.tick()
             }
           },
           valueRange = folderGridColumnSelector.valueRange,
           steps = folderGridColumnSelector.steps,
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth().tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.01f),
         )
       }
 
@@ -509,12 +608,12 @@ private fun GridColumnsNextSection(
             val newValue = it.roundToInt()
             if (newValue != videoGridColumnSelector.currentValue) {
               videoGridColumnSelector.onValueChange(newValue)
-              haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+              haptic.tick()
             }
           },
           valueRange = videoGridColumnSelector.valueRange,
           steps = videoGridColumnSelector.steps,
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth().tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.01f),
         )
       }
     }
@@ -539,13 +638,69 @@ private fun GridColumnsNextSection(
         val newValue = it.roundToInt()
         if (newValue != selector.currentValue) {
           selector.onValueChange(newValue)
-          haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+          haptic.tick()
         }
       },
       valueRange = selector.valueRange,
       steps = selector.steps,
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier.fillMaxWidth().tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.01f),
     )
+  }
+}
+
+@Composable
+private fun RoundedCheckbox(
+  checked: Boolean,
+  onCheckedChange: ((Boolean) -> Unit)?,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+) {
+  val checkColor = MaterialTheme.colorScheme.primary
+  val uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+  val disabledAlpha = 0.38f
+
+  val animatedBgColor by animateColorAsState(
+    targetValue = if (checked) checkColor else Color.Transparent,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "checkboxBg",
+  )
+  val animatedBorderColor by animateColorAsState(
+    targetValue = if (checked) checkColor else uncheckedBorderColor,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "checkboxBorder",
+  )
+
+  val interactionModifier = if (onCheckedChange != null) {
+    Modifier.clickable(
+      enabled = enabled,
+      role = Role.Checkbox,
+      onClick = { onCheckedChange(!checked) },
+    )
+  } else {
+    Modifier
+  }
+
+  Box(
+    modifier =
+      modifier
+        .padding(8.dp)
+        .size(20.dp)
+        .graphicsLayer {
+          if (!enabled) alpha = disabledAlpha
+        }
+        .background(animatedBgColor, CircleShape)
+        .border(2.dp, animatedBorderColor, CircleShape)
+        .then(interactionModifier),
+    contentAlignment = Alignment.Center,
+  ) {
+    if (checked) {
+      Icon(
+        imageVector = Icons.RoundedFilled.Check,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onPrimary,
+        modifier = Modifier.size(13.dp),
+      )
+    }
   }
 }
 
@@ -553,6 +708,7 @@ data class VisibilityToggle(
   val label: String,
   val checked: Boolean,
   val onCheckedChange: (Boolean) -> Unit,
+  val enabled: Boolean = true,
 )
 
 data class ViewModeOption(
@@ -578,6 +734,11 @@ data class ViewModeSelector(
   val checkboxLabel: String? = null,
   val isCheckboxChecked: Boolean = false,
   val onCheckboxChange: ((Boolean) -> Unit)? = null,
+  /**
+   * A third choice, for pages that have one — the snapshots' mosaic. When it is present it owns the
+   * selection state: the caller passes [isFirstOptionSelected] = false and marks this one selected.
+   */
+  val thirdOption: ViewModeOption? = null,
 )
 
 data class GridColumnSelector(

@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import app.gyrolet.mpvrx.network.awaitResponse
 import app.gyrolet.mpvrx.ui.player.resolveLocalPath
@@ -160,17 +161,24 @@ object M3UParser {
   ): M3UParseResult =
     withContext(Dispatchers.IO) {
       try {
-        // Identity-only resolution never detaches an fd, but recovers the parent directory for
-        // relative entries in primary-storage document URIs.
-        val sourceUrl = uri.resolveLocalPath(context) ?: uri.toString()
+        val sourceUrl =
+          if (uri.authority == "com.android.externalstorage.documents" && DocumentsContract.isTreeUri(uri)) {
+            uri.toString()
+          } else {
+            uri.resolveLocalPath(context) ?: uri.toString()
+          }
+        val localFile = if (uri.scheme == "file") uri.path?.let(::File) else null
         val rawFilename =
-          context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
-          } ?: uri.lastPathSegment
+          localFile?.name ?: runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+              val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+              if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
+            }
+          }.getOrNull() ?: uri.lastPathSegment
             ?: "Local M3U Playlist"
         val playlistName = cleanPlaylistName(decode(rawFilename), "Local M3U Playlist")
-        val stream = context.contentResolver.openInputStream(uri) ?: return@withContext error("Failed to open file")
+        val stream = localFile?.inputStream() ?: context.contentResolver.openInputStream(uri)
+          ?: return@withContext error("Failed to open file")
 
         parseFromStream(stream, sourceUrl, playlistName)
       } catch (error: CancellationException) {
@@ -234,9 +242,6 @@ object M3UParser {
     } catch (_: Exception) {
       error("Failed to parse playlist content")
     }
-
-  fun isLikelyHlsMediaManifest(content: String): Boolean =
-    content.lineSequence().any { rawLine -> normalizeLine(rawLine).startsWith("#EXT-X-", ignoreCase = true) }
 
   fun shouldPlayHlsDirectly(result: M3UParseResult): Boolean =
     result is M3UParseResult.Error && result.message == HLS_ERROR
@@ -310,7 +315,7 @@ object M3UParser {
                 duration = pending.duration,
                 tvgId = pending.tvgId,
                 tvgName = pending.tvgName,
-                tvgLogo = pending.tvgLogo?.let(::stripUriUserInfo),
+                tvgLogo = pending.tvgLogo?.let { resolveMediaUrl(sourceUrl, it) },
                 groupTitle = pending.groupTitle,
                 licenseType = pending.licenseType,
                 licenseKey = pending.licenseKey?.let(::stripUriUserInfo),
@@ -394,8 +399,7 @@ object M3UParser {
     if (parsedEntry?.isAbsolute == true) {
       return normalizeLocalMediaReference(stripUriUserInfo(resource) + optionSuffix)
     }
-    if (File(resource).isAbsolute) return normalizeLocalMediaReference(resource + optionSuffix)
-    val source = sourceUrl ?: return stripUriUserInfo(resource) + optionSuffix
+    val source = sourceUrl ?: return normalizeLocalMediaReference(stripUriUserInfo(resource) + optionSuffix)
     val parsedSource = parseUriLeniently(source)
 
     if (parsedSource?.scheme.equals("http", true) || parsedSource?.scheme.equals("https", true)) {
@@ -406,6 +410,22 @@ object M3UParser {
           ?.resolve(".")
           ?.resolve(resource)
       if (resolved != null) return resolved.newBuilder().username("").password("").build().toString() + optionSuffix
+    }
+
+    if (File(resource).isAbsolute) return normalizeLocalMediaReference(resource + optionSuffix)
+    if (parsedSource?.scheme == "content" && parsedSource.authority == "com.android.externalstorage.documents") {
+      val sourceUri = Uri.parse(source)
+      if (DocumentsContract.isTreeUri(sourceUri)) {
+        val documentId = DocumentsContract.getDocumentId(sourceUri)
+        val parent = documentId.substringAfter(':').substringBeforeLast('/', "")
+        val child = Uri.decode(resource)
+        val relativePath = (if (parent.isBlank()) File(child) else File(parent, child)).normalize().invariantSeparatorsPath
+        if (relativePath == ".." || relativePath.startsWith("../")) return ""
+        return DocumentsContract.buildDocumentUriUsingTree(
+          sourceUri,
+          "${documentId.substringBefore(':')}:$relativePath",
+        ).toString() + optionSuffix
+      }
     }
 
     if (parsedSource != null && (parsedSource.isAbsolute || parsedSource.rawAuthority != null)) {

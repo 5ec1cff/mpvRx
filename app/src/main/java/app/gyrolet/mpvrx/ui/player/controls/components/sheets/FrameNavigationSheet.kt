@@ -13,14 +13,10 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,10 +27,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -42,7 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Surface
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import androidx.compose.material3.Text
@@ -62,27 +60,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.domain.framecapture.FolderWriteResult
+import app.gyrolet.mpvrx.domain.framecapture.FrameCapture
+import app.gyrolet.mpvrx.domain.framecapture.FrameCaptureRepository
+import app.gyrolet.mpvrx.domain.framecapture.SnapshotImageLoader
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.framecapture.SnapshotFolderRow
+import app.gyrolet.mpvrx.ui.framecapture.dialogs.SnapshotFolderNameDialog
+import app.gyrolet.mpvrx.ui.framecapture.dialogs.SnapshotMoveTargetDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.screenshot.FrameCaptureUnavailableException
 import app.gyrolet.mpvrx.ui.player.screenshot.ScreenshotSaver
 import app.gyrolet.mpvrx.ui.player.screenshot.ScreenshotSettings
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -107,14 +115,100 @@ fun FrameNavigationSheet(
   val context = LocalContext.current
   val coroutineScope = rememberCoroutineScope()
   var isSnapshotLoading by remember { mutableStateOf(false) }
+  var isSaveSnapshotLoading by remember { mutableStateOf(false) }
   var isFrameStepping by remember { mutableStateOf(false) }
   var pendingFrameSteps by remember { mutableIntStateOf(0) }
   var frameStepJob by remember { mutableStateOf<Job?>(null) }
+  var saveFolderDialogOpen by remember { mutableStateOf(false) }
+  var saveFolderNameDialogOpen by remember { mutableStateOf(false) }
+  var saveFolderNameError by remember { mutableStateOf<String?>(null) }
+  var snapshotFolders by remember { mutableStateOf<List<SnapshotFolderRow>>(emptyList()) }
   val playerPreferences: PlayerPreferences = koinInject()
+  val frameCaptureRepository: FrameCaptureRepository = koinInject()
   val includeSubtitlesPrefState by playerPreferences.includeSubtitlesInSnapshot.collectAsState()
   var includeSubtitlesInSnapshot by remember { mutableStateOf(includeSubtitlesPrefState) }
   LaunchedEffect(includeSubtitlesPrefState) {
     includeSubtitlesInSnapshot = includeSubtitlesPrefState
+  }
+
+  /**
+   * Captures the frame and records it against [targetFolderId], or the snapshot library's root when
+   * that is null. Split out of the button's callback because the save dialog, the "new folder" path
+   * and the abort path all end up here with a different destination.
+   */
+  fun saveSnapshotTo(targetFolderId: Long?) {
+    coroutineScope.launch {
+      isSaveSnapshotLoading = true
+      try {
+        playerPreferences.lastSnapshotFolderId.set(targetFolderId ?: PlayerPreferences.NO_SNAPSHOT_FOLDER)
+        val result =
+          withContext(Dispatchers.IO) {
+            ScreenshotSaver.saveLosslessToGallery(
+              context = context,
+              includeSubtitles = includeSubtitlesInSnapshot,
+            )
+          }
+        result
+          .onSuccess { saved ->
+            val positionSeconds = PlaybackSession.getPropertyDouble("time-pos") ?: 0.0
+            val videoUri = PlaybackSession.persistableSourceUri()
+            // Read from the file rather than from mpv: the saved PNG is what the mosaic tiles by,
+            // and mpv's own width/height is the decoder's frame, before any rotation.
+            val dimensions =
+              withContext(Dispatchers.IO) {
+                SnapshotImageLoader.readDimensions(
+                  context = context,
+                  imageUri = saved.uri?.toString(),
+                  imagePath = saved.file?.absolutePath,
+                )
+              }
+            val written =
+              runCatching {
+                withContext(Dispatchers.IO) {
+                  frameCaptureRepository.record(
+                    FrameCapture(
+                      id = 0L,
+                      imageUri = saved.uri?.toString(),
+                      imagePath = saved.file?.absolutePath,
+                      videoUri = videoUri,
+                      videoPath = videoUri.takeIf { it.startsWith("/") },
+                      videoTitle =
+                        PlaybackSession.getPropertyString("media-title")
+                          ?: PlaybackSession.getPropertyString("filename")
+                          ?: videoUri.substringAfterLast('/'),
+                      positionMs = (positionSeconds * 1000.0).toLong().coerceAtLeast(0L),
+                      capturedAt = System.currentTimeMillis(),
+                      folderId = targetFolderId,
+                      imageWidth = dimensions?.width,
+                      imageHeight = dimensions?.height,
+                    ),
+                  )
+                }
+              }.isSuccess
+
+            val message =
+              if (written) {
+                context.getString(R.string.snapshot_saved)
+              } else {
+                context.getString(R.string.snapshot_database_write_failed)
+              }
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+          }.onFailure { error ->
+            val failureMessage =
+              if (error is FrameCaptureUnavailableException) {
+                context.getString(R.string.snapshot_no_frame)
+              } else {
+                context.getString(
+                  R.string.toast_failed_to_save_snapshot,
+                  error.message ?: context.getString(R.string.generic_unknown_error),
+                )
+              }
+            Toast.makeText(context, failureMessage, Toast.LENGTH_LONG).show()
+          }
+      } finally {
+        isSaveSnapshotLoading = false
+      }
+    }
   }
 
   // Use rememberUpdatedState for lambda parameters used in effects
@@ -257,6 +351,21 @@ fun FrameNavigationSheet(
         }
       }
     },
+    onSaveSnapshot = {
+      coroutineScope.launch {
+        // Read the folder list once, before the dialog opens: this is a one-shot choice, not a view
+        // that has to stay live. The picker shows names only, so the count is a placeholder rather
+        // than something worth joining the whole capture list for.
+        snapshotFolders =
+          withContext(Dispatchers.IO) {
+            frameCaptureRepository.observeFolders().first().map { folder ->
+              SnapshotFolderRow(id = folder.id, name = folder.name, captureCount = 0)
+            }
+          }
+        saveFolderDialogOpen = true
+      }
+    },
+    isSaveSnapshotLoading = isSaveSnapshotLoading,
     onSeekToFrame = { targetFrame, finished ->
       frameStepJob?.cancel()
       pendingFrameSteps = 0
@@ -272,6 +381,58 @@ fun FrameNavigationSheet(
     onDismissRequest = onDismissRequest,
     modifier = modifier,
   )
+
+  if (saveFolderDialogOpen) {
+    SnapshotMoveTargetDialog(
+      folders = snapshotFolders,
+      confirmLabel = stringResource(R.string.ui_save),
+      preselectedFolderId =
+        playerPreferences.lastSnapshotFolderId.get()
+          .takeIf { it != PlayerPreferences.NO_SNAPSHOT_FOLDER }
+          // A folder deleted since the last save drops out, so the dialog falls back to the root
+          // instead of pointing at a folder that no longer exists.
+          ?.takeIf { id -> snapshotFolders.any { it.id == id } },
+      onConfirm = { targetFolderId ->
+        saveFolderDialogOpen = false
+        saveSnapshotTo(targetFolderId)
+      },
+      onCreateFolder = {
+        saveFolderDialogOpen = false
+        saveFolderNameError = null
+        saveFolderNameDialogOpen = true
+      },
+      onDismiss = { saveFolderDialogOpen = false },
+    )
+  }
+
+  if (saveFolderNameDialogOpen) {
+    SnapshotFolderNameDialog(
+      title = stringResource(R.string.snapshot_create_folder_title),
+      initialName = "",
+      errorMessage = saveFolderNameError,
+      confirmLabel = stringResource(R.string.snapshot_folder_create),
+      onConfirm = { name ->
+        saveFolderNameError = null
+        coroutineScope.launch {
+          when (val result = withContext(Dispatchers.IO) { frameCaptureRepository.createFolder(name) }) {
+            is FolderWriteResult.Ok -> {
+              saveFolderNameDialogOpen = false
+              // The folder was made for this capture, so the capture goes straight into it.
+              saveSnapshotTo(result.id)
+            }
+            FolderWriteResult.BlankName ->
+              saveFolderNameError = context.getString(R.string.snapshot_folder_name_blank)
+            FolderWriteResult.DuplicateName ->
+              saveFolderNameError = context.getString(R.string.snapshot_folder_name_taken)
+          }
+        }
+      },
+      onDismiss = {
+        saveFolderNameDialogOpen = false
+        saveFolderNameError = null
+      },
+    )
+  }
 }
 
 @Composable
@@ -283,11 +444,13 @@ private fun FrameReviewOverlay(
   position: Float,
   isPaused: Boolean,
   isSnapshotLoading: Boolean,
+  isSaveSnapshotLoading: Boolean,
   isFrameStepping: Boolean,
   includeSubtitles: Boolean,
   onFrameSteps: (Int) -> Unit,
   onPlayPause: () -> Unit,
   onSnapshot: () -> Unit,
+  onSaveSnapshot: () -> Unit,
   onSeekToFrame: (Int, Boolean) -> Unit,
   onIncludeSubtitlesChanged: (Boolean) -> Unit,
   onDismissRequest: () -> Unit,
@@ -296,10 +459,13 @@ private fun FrameReviewOverlay(
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
   val density = LocalDensity.current
-  val haptic = LocalHapticFeedback.current
+  val haptic = rememberAppHaptics()
   val pixelsPerFrame = with(density) { FrameSwipeDistancePerFrame.toPx() }
   var accumulatedDrag by remember { mutableFloatStateOf(0f) }
   var requestedFrameDelta by remember { mutableIntStateOf(0) }
+  var frameDeltaVisible by remember { mutableStateOf(false) }
+  var frameDeltaRevision by remember { mutableIntStateOf(0) }
+  var sliderStartFrame by remember { mutableIntStateOf(0) }
   var isScrubbing by remember { mutableStateOf(false) }
   var userSliderFrame by remember { mutableIntStateOf(0) }
   var settlingFrame by remember { mutableStateOf<Int?>(null) }
@@ -331,6 +497,19 @@ private fun FrameReviewOverlay(
       settlingFrame = null
     }
   }
+  LaunchedEffect(frameDeltaRevision, isScrubbing, isFrameStepping, isSeeking) {
+    if (!isScrubbing && !isFrameStepping && !isSeeking) {
+      delay(1_500L)
+      frameDeltaVisible = false
+    }
+  }
+
+  fun showFrameDelta(delta: Int) {
+    requestedFrameDelta = delta
+    frameDeltaVisible = delta != 0
+    frameDeltaRevision++
+  }
+
   BackHandler(onBack = onDismissRequest)
 
   Box(
@@ -346,6 +525,7 @@ private fun FrameReviewOverlay(
               onDragStart = {
                 accumulatedDrag = 0f
                 requestedFrameDelta = 0
+                frameDeltaVisible = false
                 isScrubbing = true
               },
               onDragCancel = {
@@ -362,9 +542,9 @@ private fun FrameReviewOverlay(
                 val steps = (accumulatedDrag / pixelsPerFrame).toInt()
                 if (steps != 0) {
                   accumulatedDrag -= steps * pixelsPerFrame
-                  requestedFrameDelta += steps
+                  showFrameDelta(requestedFrameDelta + steps)
                   settlingFrame = null
-                  haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                  haptic.tick()
                   onFrameSteps(steps)
                 }
               },
@@ -394,10 +574,8 @@ private fun FrameReviewOverlay(
       }
       Spacer(Modifier.weight(1f))
       Surface(
-        modifier =
-          Modifier
-            .size(48.dp)
-            .clickable(onClick = onDismissRequest),
+        onClick = onDismissRequest,
+        modifier = Modifier.size(48.dp),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -407,45 +585,6 @@ private fun FrameReviewOverlay(
             Icons.RoundedFilled.Close,
             stringResource(R.string.generic_cancel),
             modifier = Modifier.size(24.dp),
-          )
-        }
-      }
-    }
-
-    AnimatedVisibility(
-      visible = isScrubbing || (isFrameStepping && requestedFrameDelta != 0),
-      modifier = Modifier.align(Alignment.Center),
-      enter = fadeIn() + scaleIn(initialScale = 0.9f),
-      exit = fadeOut() + scaleOut(targetScale = 0.9f),
-    ) {
-      Surface(
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.9f),
-        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-        tonalElevation = 6.dp,
-      ) {
-        Column(
-          modifier = Modifier.padding(horizontal = 24.dp, vertical = 14.dp),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-          Text(
-            text = String.format(Locale.US, "%+d", requestedFrameDelta),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-          )
-          Text(
-            text =
-              if (totalFrames > 0) {
-                "${stringResource(R.string.ui_frame)} $displayedFrame / $totalFrames"
-              } else {
-                "${stringResource(R.string.ui_frame)} $displayedFrame"
-              },
-            style = MaterialTheme.typography.bodyMedium,
-          )
-          Text(
-            text = displayedTimestamp,
-            style = MaterialTheme.typography.labelMedium,
           )
         }
       }
@@ -489,26 +628,31 @@ private fun FrameReviewOverlay(
                 currentFrame = displayedFrame,
                 totalFrames = totalFrames,
                 timestamp = displayedTimestamp,
+                frameDelta = requestedFrameDelta,
+                showFrameDelta = frameDeltaVisible,
+                modifier = Modifier.weight(1f),
               )
-              Spacer(Modifier.weight(1f))
               ControlButtons(
                 onPreviousFrame = {
                   settlingFrame = null
-                  requestedFrameDelta = 0
+                  showFrameDelta(if (actualFrame > 0) -1 else 0)
                   onFrameSteps(-1)
                 },
                 onPlayPause = {
                   settlingFrame = null
+                  frameDeltaVisible = false
                   onPlayPause()
                 },
                 isPaused = isPaused,
                 onNextFrame = {
                   settlingFrame = null
-                  requestedFrameDelta = 0
+                  showFrameDelta(if (actualFrame < lastFrame) 1 else 0)
                   onFrameSteps(1)
                 },
                 onSnapshot = onSnapshot,
+                onSaveSnapshot = onSaveSnapshot,
                 isSnapshotLoading = isSnapshotLoading,
+                isSaveSnapshotLoading = isSaveSnapshotLoading,
                 buttonColors = frameReviewButtonColors(),
               )
               IncludeSubsToggle(
@@ -526,6 +670,8 @@ private fun FrameReviewOverlay(
                 currentFrame = displayedFrame,
                 totalFrames = totalFrames,
                 timestamp = displayedTimestamp,
+                frameDelta = requestedFrameDelta,
+                showFrameDelta = frameDeltaVisible,
               )
               IncludeSubsToggle(
                 includeSubs = includeSubtitles,
@@ -539,21 +685,24 @@ private fun FrameReviewOverlay(
                 ControlButtons(
                   onPreviousFrame = {
                     settlingFrame = null
-                    requestedFrameDelta = 0
+                    showFrameDelta(if (actualFrame > 0) -1 else 0)
                     onFrameSteps(-1)
                   },
                   onPlayPause = {
                     settlingFrame = null
+                    frameDeltaVisible = false
                     onPlayPause()
                   },
                   isPaused = isPaused,
                   onNextFrame = {
                     settlingFrame = null
-                    requestedFrameDelta = 0
+                    showFrameDelta(if (actualFrame < lastFrame) 1 else 0)
                     onFrameSteps(1)
                   },
                   onSnapshot = onSnapshot,
+                  onSaveSnapshot = onSaveSnapshot,
                   isSnapshotLoading = isSnapshotLoading,
+                  isSaveSnapshotLoading = isSaveSnapshotLoading,
                   buttonColors = frameReviewButtonColors(),
                 )
               }
@@ -567,11 +716,15 @@ private fun FrameReviewOverlay(
             val targetFrame = newValue.roundToInt().coerceIn(0, lastFrame)
             val targetChanged = !isSeeking || targetFrame != userSliderFrame
             if (!isSeeking) {
+              sliderStartFrame = displayedFrame
               isSeeking = true
               settlingFrame = null
             }
             userSliderFrame = targetFrame
-            if (targetChanged) onSeekToFrame(targetFrame, false)
+            if (targetChanged) {
+              showFrameDelta(targetFrame - sliderStartFrame)
+              onSeekToFrame(targetFrame, false)
+            }
           },
           onValueChangeFinished = {
             if (!isSeeking) return@Slider
@@ -580,13 +733,13 @@ private fun FrameReviewOverlay(
             onSeekToFrame(userSliderFrame, true)
           },
           valueRange = 0f..lastFrame.coerceAtLeast(1).toFloat(),
-          enabled = totalFrames > 1 && duration > 0.0 && !isSnapshotLoading,
+          enabled = totalFrames > 1 && duration > 0.0 && !isSnapshotLoading && !isSaveSnapshotLoading,
           modifier =
             Modifier
               .fillMaxWidth()
               .tvFocusHighlight(
                 MaterialTheme.shapes.small,
-                enabled = totalFrames > 1 && duration > 0.0 && !isSnapshotLoading,
+                enabled = totalFrames > 1 && duration > 0.0 && !isSnapshotLoading && !isSaveSnapshotLoading,
               ),
         )
       }
@@ -624,8 +777,12 @@ private fun FrameInfoDisplay(
   currentFrame: Int,
   totalFrames: Int,
   timestamp: String,
+  frameDelta: Int,
+  showFrameDelta: Boolean,
+  modifier: Modifier = Modifier,
 ) {
   Column(
+    modifier = modifier,
     verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
   ) {
     Row(
@@ -648,7 +805,27 @@ private fun FrameInfoDisplay(
           },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false),
       )
+      Box(Modifier.width(64.dp).heightIn(min = 24.dp), contentAlignment = Alignment.CenterStart) {
+        androidx.compose.animation.AnimatedVisibility(visible = showFrameDelta, enter = fadeIn(), exit = fadeOut()) {
+          val darkSurface = MaterialTheme.colorScheme.surfaceContainerHigh.luminance() < 0.5f
+          Text(
+            text = String.format(Locale.US, "%+d", frameDelta),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (frameDelta > 0) {
+              if (darkSurface) Color(0xFF81C784) else Color(0xFF1B5E20)
+            } else {
+              if (darkSurface) Color(0xFFEF9A9A) else Color(0xFFB71C1C)
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
+      }
     }
     Row(
       horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
@@ -665,6 +842,9 @@ private fun FrameInfoDisplay(
         text = timestamp,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false),
       )
     }
   }
@@ -677,7 +857,9 @@ private fun ControlButtons(
   isPaused: Boolean,
   onNextFrame: () -> Unit,
   onSnapshot: () -> Unit,
+  onSaveSnapshot: () -> Unit,
   isSnapshotLoading: Boolean,
+  isSaveSnapshotLoading: Boolean,
   buttonColors: androidx.compose.material3.ButtonColors,
 ) {
   Row(
@@ -729,7 +911,7 @@ private fun ControlButtons(
     Button(
       onClick = onSnapshot,
       modifier = Modifier.size(56.dp),
-      enabled = !isSnapshotLoading,
+      enabled = !isSnapshotLoading && !isSaveSnapshotLoading,
       colors = buttonColors,
       contentPadding = PaddingValues(0.dp),
     ) {
@@ -743,6 +925,28 @@ private fun ControlButtons(
         Icon(
           Icons.RoundedFilled.Aperture,
           contentDescription = stringResource(R.string.ui_take_screenshot),
+          modifier = Modifier.size(32.dp),
+        )
+      }
+    }
+
+    Button(
+      onClick = onSaveSnapshot,
+      modifier = Modifier.size(56.dp),
+      enabled = !isSnapshotLoading && !isSaveSnapshotLoading,
+      colors = buttonColors,
+      contentPadding = PaddingValues(0.dp),
+    ) {
+      if (isSaveSnapshotLoading) {
+        CircularProgressIndicator(
+          modifier = Modifier.size(32.dp),
+          strokeWidth = 2.dp,
+          color = MaterialTheme.colorScheme.onPrimary,
+        )
+      } else {
+        Icon(
+          Icons.RoundedFilled.Bookmarks,
+          contentDescription = stringResource(R.string.snapshot_save_button),
           modifier = Modifier.size(32.dp),
         )
       }

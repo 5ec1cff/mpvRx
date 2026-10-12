@@ -24,21 +24,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -51,7 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
 import androidx.compose.ui.window.DialogProperties
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.anime4k.Anime4KManager
@@ -61,7 +58,6 @@ import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.anime4k.Anime4KUiState
-import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.spacing
 import org.koin.compose.koinInject
 
@@ -96,9 +92,9 @@ fun MoreSheet(
       modifier =
         Modifier
           .fillMaxWidth()
-          .padding(MaterialTheme.spacing.medium)
-          .verticalScroll(rememberScrollState()),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+          .verticalScroll(rememberScrollState())
+          .padding(horizontal = 20.dp, vertical = 8.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -106,12 +102,10 @@ fun MoreSheet(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = stringResource(id = R.string.player_sheets_more_title),
-          style = MaterialTheme.typography.headlineMedium,
+          text = stringResource(R.string.player_sheets_more_title),
+          style = MaterialTheme.typography.titleLarge,
         )
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
           var isSleepTimerDialogShown by remember { mutableStateOf(false) }
           TextButton(onClick = { isSleepTimerDialogShown = true }) {
             Row(
@@ -257,7 +251,7 @@ fun MoreSheet(
                   if (statisticsPage in 1..5) PlaybackSession.command("script-binding", "stats/display-stats-toggle")
                   // Enable console only if it is not already open
                   if (!isConsoleOpen) {
-                    PlaybackSession.command("script-message-to", "console", "enable")
+                    PlaybackSession.command("script-binding", "console/enable")
                   }
                 }
                 else -> {
@@ -271,6 +265,11 @@ fun MoreSheet(
             },
             selected = statisticsPage == page,
             leadingIcon = null,
+            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
           )
         }
       }
@@ -304,6 +303,11 @@ fun MoreSheet(
               selected = anime4KUiState.selectedMode == mode.name,
               enabled = anime4KEnabled && (anime4KUiState.allowHighRes || mode == Anime4KManager.Mode.OFF),
               leadingIcon = null,
+              colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
               onClick = { onAnime4KModeSelected(mode) },
             )
           }
@@ -323,52 +327,39 @@ fun TimePickerDialog(
   modifier: Modifier = Modifier,
   remainingTime: Int = 0,
 ) {
-  Dialog(
+  val state = rememberTimePickerState(
+    remainingTime / 3600,
+    (remainingTime % 3600) / 60,
+    is24Hour = true,
+  )
+
+  AppAlertDialog(
     onDismissRequest = onDismissRequest,
+    modifier = modifier.widthIn(max = 360.dp),
     properties = DialogProperties(usePlatformDefaultWidth = false),
-  ) {
-    Surface(
-      shape = AppShapeScale.extraLarge,
-      color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      tonalElevation = 6.dp,
-      modifier =
-        modifier
-          .width(360.dp)
-          .padding(MaterialTheme.spacing.medium),
-    ) {
+    title = {
       Column(
-        modifier =
-          Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(
+          text = stringResource(R.string.timer_title), // "Sleep Timer"
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+          text = stringResource(R.string.timer_picker_enter_timer),
+          style = MaterialTheme.typography.headlineSmall,
+          color = MaterialTheme.colorScheme.onSurface,
+        )
+      }
+    },
+    text = {
+      Column(
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
       ) {
-        // Header
-        Column(
-          horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.fillMaxWidth(),
-        ) {
-          Text(
-            text = stringResource(R.string.timer_title), // "Sleep Timer"
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-          Spacer(Modifier.height(8.dp))
-          Text(
-            text = stringResource(R.string.timer_picker_enter_timer),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-          )
-        }
-
-        val state =
-          rememberTimePickerState(
-            remainingTime / 3600,
-            (remainingTime % 3600) / 60,
-            is24Hour = true,
-          )
-
         TimeInput(state = state)
 
         // Quick Presets
@@ -396,71 +387,37 @@ fun TimePickerDialog(
                 },
                 label = { Text(stringResource(R.string.generic_minutes_short, minutes)) },
                 leadingIcon = null,
+                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = playerSheetSelectionColor(false),
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
               )
             }
           }
         }
-
-        // Actions
-        Row(
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-          modifier = Modifier.fillMaxWidth(),
-        ) {
-          TextButton(onClick = {
-            onTimeSelect(0)
-            onDismissRequest()
-          }) {
-            Text(stringResource(id = R.string.generic_reset))
-          }
-          Spacer(Modifier.weight(1f))
-          Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-          ) {
-            TextButton(onClick = onDismissRequest) {
-              Text(stringResource(id = R.string.generic_cancel))
-            }
-            Button(
-              onClick = {
-                onTimeSelect(state.hour * 3600 + state.minute * 60)
-                onDismissRequest()
-              },
-            ) {
-              Text(stringResource(id = R.string.generic_ok))
-            }
-          }
-        }
       }
-    }
-  }
-}
-
-@Composable
-fun SectionHeaderWithInfo(
-  title: String,
-  onInfoClick: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  Row(
-    modifier = modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.Start,
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-      text = title,
-      style = MaterialTheme.typography.titleMedium,
-      color = MaterialTheme.colorScheme.primary,
-    )
-    Spacer(modifier = Modifier.width(8.dp))
-    IconButton(onClick = onInfoClick, modifier = Modifier.size(24.dp)) {
-      Icon(
-        imageVector = Icons.RoundedFilled.Info,
-        contentDescription =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.info),
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.size(16.dp),
-      )
-    }
-  }
+    },
+    dismissButton = {
+      TextButton(onClick = {
+        onTimeSelect(0)
+        onDismissRequest()
+      }) {
+        Text(stringResource(id = R.string.generic_reset))
+      }
+      TextButton(onClick = onDismissRequest) {
+        Text(stringResource(id = R.string.generic_cancel))
+      }
+    },
+    confirmButton = {
+      TextButton(
+        onClick = {
+          onTimeSelect(state.hour * 3600 + state.minute * 60)
+          onDismissRequest()
+        },
+      ) {
+        Text(stringResource(id = R.string.generic_ok))
+      }
+    },
+  )
 }

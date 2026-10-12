@@ -29,13 +29,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,14 +57,10 @@ import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import java.util.Locale
 import kotlin.math.abs
-
-private data class CastBitrateOption(
-  val label: String,
-  val bitrate: Int,
-)
 
 @Composable
 fun CastRemoteControllerScreen(
@@ -74,8 +70,7 @@ fun CastRemoteControllerScreen(
   onStopCasting: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  var showSpeedDialog by remember { mutableStateOf(false) }
-  var showBitrateDialog by remember { mutableStateOf(false) }
+  var showSpeedDialog by rememberSaveable { mutableStateOf(false) }
 
   Box(
     modifier =
@@ -155,10 +150,7 @@ fun CastRemoteControllerScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        CastOptionsRow(
-          onShowSpeed = { showSpeedDialog = true },
-          onShowBitrate = { showBitrateDialog = true },
-        )
+        CastOptionsRow(onShowSpeed = { showSpeedDialog = true })
       }
 
       Spacer(modifier = Modifier.height(16.dp))
@@ -175,13 +167,6 @@ fun CastRemoteControllerScreen(
     )
   }
 
-  if (showBitrateDialog) {
-    CastBitrateDialog(
-      castState = castState,
-      controller = controller,
-      onDismiss = { showBitrateDialog = false },
-    )
-  }
 }
 
 @Composable
@@ -293,7 +278,6 @@ private fun CastPlaybackControls(
 @Composable
 private fun CastOptionsRow(
   onShowSpeed: () -> Unit,
-  onShowBitrate: () -> Unit,
 ) {
   Row(
     modifier =
@@ -304,8 +288,11 @@ private fun CastOptionsRow(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    CastOptionButton(icon = Icons.RoundedFilled.Speed, label = "Speed", onClick = onShowSpeed)
-    CastOptionButton(icon = Icons.RoundedFilled.Settings, label = "Quality", onClick = onShowBitrate)
+    CastOptionButton(
+      icon = Icons.RoundedFilled.Speed,
+      label = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.cast_playback_speed),
+      onClick = onShowSpeed,
+    )
   }
 }
 
@@ -392,10 +379,15 @@ private fun CastSpeedDialog(
 ) {
   val speeds = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
 
-  AlertDialog(
+  AppPickerSheet(
     onDismissRequest = onDismiss,
-    title = { Text("Playback Speed") },
-    text = {
+    title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.cast_playback_speed),
+    actions = {
+      TextButton(onClick = onDismiss) {
+        Text(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.generic_cancel))
+      }
+    },
+  ) {
       Column {
         speeds.forEach { speed ->
           val isSelected = speed == currentSpeed
@@ -419,55 +411,7 @@ private fun CastSpeedDialog(
           }
         }
       }
-    },
-    confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-  )
-}
-
-@Composable
-private fun CastBitrateDialog(
-  castState: CastSessionState,
-  controller: CastPlaybackController,
-  onDismiss: () -> Unit,
-) {
-  val bitrateOptions =
-    listOf(
-      CastBitrateOption("Auto", 0),
-      CastBitrateOption("4K (50 Mbps)", 50_000_000),
-      CastBitrateOption("4K (25 Mbps)", 25_000_000),
-      CastBitrateOption("1080p (16 Mbps)", 16_000_000),
-      CastBitrateOption("1080p (8 Mbps)", 8_000_000),
-      CastBitrateOption("720p (4 Mbps)", 4_000_000),
-    )
-
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("Quality / Bitrate") },
-    text = {
-      Column {
-        bitrateOptions.forEach { option ->
-          val isSelected = option.bitrate == 0
-          Row(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .clickable { onDismiss() }
-                .padding(vertical = 12.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            RadioButton(
-              selected = isSelected,
-              onClick = null,
-              colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(text = option.label, color = MaterialTheme.colorScheme.onSurface)
-          }
-        }
-      }
-    },
-    confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-  )
+  }
 }
 
 private fun formatCastTime(timeMs: Long): String {

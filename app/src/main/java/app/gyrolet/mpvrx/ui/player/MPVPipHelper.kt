@@ -132,12 +132,30 @@ class MPVPipHelper(
       }.build()
 
   private fun getVideoAspectRatio(): Rational? {
-    val width = PlaybackSession.getPropertyInt("video-out-params/dw") ?: 0
-    val height = PlaybackSession.getPropertyInt("video-out-params/dh") ?: 0
+    val playback = PlaybackSession.state.value
+    if (
+      activity.isFinishing || activity.isDestroyed || isAudioPlayer() || !isVideoLoaded() ||
+      !playback.surfaceAttached ||
+      playback.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
+    ) return null
 
-    if (width == 0 || height == 0) return null
+    // video-out-params/dw and dh are valid mpv properties, but they disappear as soon as the
+    // video output is detached. Prefer the already-observed source metadata so PiP layout
+    // updates during exit/foreground transitions never poll an unavailable VO property.
+    val width = PlaybackSession.propInt["video-params/w"].value ?: return null
+    val height = PlaybackSession.propInt["video-params/h"].value ?: return null
+    if (width <= 0 || height <= 0) return null
 
-    return Rational(width, height).takeIf { it.toFloat() in 0.5f..2.39f }
+    val sourceAspect = PlaybackSession.propDouble["video-params/aspect"].value
+      ?.takeIf { it.isFinite() && it > 0.0 }
+      ?: (width.toDouble() / height.toDouble())
+    val rotation = (PlaybackSession.getPropertyInt("video-params/rotate") ?: 0).mod(360)
+    val displayedAspect = if (rotation == 90 || rotation == 270) 1.0 / sourceAspect else sourceAspect
+    if (!displayedAspect.isFinite() || displayedAspect !in 0.5..2.39) return null
+
+    // Android accepts integer Rational only; retaining 1/10000 aspect precision avoids
+    // passing distorted ratios to PiP for anamorphic or rotated content.
+    return Rational((displayedAspect * 10_000).toInt().coerceAtLeast(1), 10_000)
   }
 
   private fun calculateSourceRect(aspectRatio: Rational): Rect? {

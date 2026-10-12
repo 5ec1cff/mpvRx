@@ -9,22 +9,23 @@
 
 package app.gyrolet.mpvrx.presentation.components
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,13 +36,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.spacing
 
-@SuppressLint("UnrememberedMutableState")
 @Composable
 fun ExpandableCard(
   isExpanded: Boolean,
@@ -66,9 +70,15 @@ fun ExpandableCard(
     ),
   content: @Composable () -> Unit,
 ) {
-  val rotationState by animateFloatAsState(if (isExpanded) 0f else 180f, label = "card_rotation")
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val actionLabel = stringResource(if (isExpanded) R.string.generic_collapse else R.string.generic_expand)
+  val rotationState by animateFloatAsState(
+    targetValue = if (isExpanded) 0f else 180f,
+    animationSpec = if (reduceMotion) snap() else AppMotion.Spatial.ExpressiveFast,
+    label = "card_rotation",
+  )
   Card(
-    modifier = modifier.animateContentSize(),
+    modifier = modifier.animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring),
     colors = colors,
     shape = shape,
     border = border,
@@ -77,26 +87,29 @@ fun ExpandableCard(
     Row(
       modifier =
         Modifier
-          .clickable(onClick = { onExpand(!isExpanded) })
+          .fillMaxWidth()
+          .heightIn(min = 48.dp)
+          .clickable(role = Role.Button, onClickLabel = actionLabel, onClick = { onExpand(!isExpanded) })
           .padding(
-            start = MaterialTheme.spacing.medium,
-            top = MaterialTheme.spacing.medium,
-            end = MaterialTheme.spacing.extraSmall,
+            horizontal = MaterialTheme.spacing.medium,
+            vertical = MaterialTheme.spacing.smaller,
           ),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      title(isExpanded)
-      Spacer(Modifier.weight(1f))
-      IconButton(
-        modifier = Modifier.rotate(rotationState),
-        onClick = { onExpand(!isExpanded) },
-      ) {
-        Icon(Icons.RoundedFilled.ArrowDropDown, null)
+      Box(Modifier.weight(1f)) {
+        ProvideTextStyle(MaterialTheme.typography.titleMedium) {
+          title(isExpanded)
+        }
       }
+      Icon(
+        Icons.RoundedFilled.ArrowDropDown,
+        contentDescription = null,
+        modifier = Modifier.padding(start = MaterialTheme.spacing.small).size(24.dp).rotate(rotationState),
+      )
     }
     Box(
       Modifier
-        .animateContentSize()
+        .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring)
         .padding(
           start = MaterialTheme.spacing.medium,
           end = MaterialTheme.spacing.medium,

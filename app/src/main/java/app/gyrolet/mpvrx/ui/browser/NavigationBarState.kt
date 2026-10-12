@@ -57,7 +57,13 @@ object NavigationBarState {
   var navbarWidth: Dp by mutableStateOf(320.dp)
 
   // Shared portrait clearances for the floating browser layers.
-  val navigationBarClearance: Dp = 88.dp
+  // The capsule height changes when labels collapse/expand and with font scaling.
+  // Measure the real pill so the mini-player never touches its glass/glow.
+  var navigationPillHeight: Dp by mutableStateOf(68.dp)
+    internal set
+
+  val navigationBarClearance: Dp
+    get() = maxOf(88.dp, navigationPillHeight + 20.dp)
   val selectionBarClearance: Dp = 100.dp
 
   // Vertical space the mini player needs to clear from the bottom of the screen in

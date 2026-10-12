@@ -9,8 +9,11 @@
 
 package app.gyrolet.mpvrx.ui.browser.cards
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,19 +29,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.domain.network.NetworkFile
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
+import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import org.koin.compose.koinInject
 
@@ -55,53 +62,52 @@ fun NetworkFolderCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   isGridMode: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val browserPreferences = koinInject<BrowserPreferences>()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
+  val interactionSource = remember { MutableInteractionSource() }
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
+  val selectionColor = animatedSelectionColor(isSelected)
 
   Card(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-        .clip(AppShapeScale.large)
+        .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+        .clip(cardShape)
+                .semantics { selected = isSelected }
+        .tvContextMenu(onLongClick)
         .combinedClickable(
+          interactionSource = interactionSource,
+          indication = LocalIndication.current,
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-    shape = AppShapeScale.large,
+    shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
-      if (isSelected) {
-        Box(
-          modifier =
-            Modifier
-              .matchParentSize()
-              .padding(2.dp)
-              .clip(AppShapeScale.large)
-              .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
-        )
-      }
+      Box(
+        modifier = Modifier.matchParentSize().clip(cardShape).background(selectionColor),
+      )
 
       if (isGridMode) {
         Column(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(12.dp),
+              .padding(horizontal = 4.dp, vertical = 6.dp),
           horizontalAlignment = if (centerGridTitles) Alignment.CenterHorizontally else Alignment.Start,
         ) {
         Box(
           modifier =
             Modifier
               .fillMaxWidth()
-              .aspectRatio(1f)
-              .clip(AppShapeScale.medium)
-              .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+              .aspectRatio(20f / 17f),
           contentAlignment = Alignment.Center,
         ) {
           Icon(
@@ -109,11 +115,11 @@ fun NetworkFolderCard(
             contentDescription =
               androidx.compose.ui.res
                 .stringResource(app.gyrolet.mpvrx.R.string.ui_folder),
-            modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.matchParentSize(),
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
           )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
           file.name,
           style = MaterialTheme.typography.titleMedium,
@@ -129,15 +135,13 @@ fun NetworkFolderCard(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(16.dp),
+              .padding(horizontal = 8.dp, vertical = 2.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
         Box(
           modifier =
             Modifier
-              .size(64.dp)
-              .clip(AppShapeScale.medium)
-              .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+              .size(72.dp),
           contentAlignment = Alignment.Center,
         ) {
           Icon(
@@ -145,11 +149,11 @@ fun NetworkFolderCard(
             contentDescription =
               androidx.compose.ui.res
                 .stringResource(app.gyrolet.mpvrx.R.string.ui_folder),
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.matchParentSize(),
+            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
           )
         }
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column(
           modifier = Modifier.weight(1f),
         ) {
@@ -163,6 +167,7 @@ fun NetworkFolderCard(
           }
         }
       }
+      SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
     }
   }
 }

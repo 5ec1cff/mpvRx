@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -49,7 +50,14 @@ fun RemoteImage(
   contentDescription: String?,
   modifier: Modifier = Modifier,
   contentScale: ContentScale = ContentScale.Fit,
+  alignment: Alignment = Alignment.Center,
   alpha: Float = 1f,
+  /**
+   * Optional max age of the on-disk copy. When set, a cached file older than this is re-downloaded
+   * (the stale copy is still used if the network fails). `null` keeps the default behaviour of
+   * trusting the disk cache indefinitely.
+   */
+  cacheTtlMs: Long? = null,
 ) {
   val context = LocalContext.current
   val client = koinInject<OkHttpClient>()
@@ -57,7 +65,7 @@ fun RemoteImage(
 
   LaunchedEffect(url) {
     if (bitmap == null) {
-      bitmap = RemoteImageLoader.load(context, client, url)
+      bitmap = RemoteImageLoader.load(context, client, url, cacheTtlMs)
     }
   }
 
@@ -68,6 +76,7 @@ fun RemoteImage(
       contentDescription = contentDescription,
       modifier = modifier,
       contentScale = contentScale,
+      alignment = alignment,
       alpha = alpha,
     )
   }
@@ -100,6 +109,7 @@ internal object RemoteImageLoader {
     context: Context,
     client: OkHttpClient,
     url: String,
+    cacheTtlMs: Long? = null,
   ): Bitmap? {
     if (url.isBlank()) return null
     getFromMemory(url)?.let { return it }
@@ -111,7 +121,7 @@ internal object RemoteImageLoader {
 
     val candidate =
       loaderScope.async(start = CoroutineStart.LAZY) {
-        loadUncoalesced(context, client, url).also { result ->
+        loadUncoalesced(context, client, url, cacheTtlMs).also { result ->
           if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
             if (result == null) failedAt[url] = SystemClock.elapsedRealtime() else failedAt.remove(url)
           }
@@ -131,6 +141,7 @@ internal object RemoteImageLoader {
     context: Context,
     client: OkHttpClient,
     url: String,
+    cacheTtlMs: Long? = null,
   ): Bitmap? {
     getFromMemory(url)?.let { return it }
 
@@ -159,32 +170,54 @@ internal object RemoteImageLoader {
 
     val cacheDirectory = File(context.cacheDir, CACHE_DIRECTORY).apply { mkdirs() }
     val cacheFile = File(cacheDirectory, hash(url))
-    decodeSampled(cacheFile)?.let { bitmap ->
-      synchronized(memoryCache) { memoryCache.put(url, bitmap) }
-      return bitmap
+    val cacheIsFresh =
+      cacheTtlMs == null || System.currentTimeMillis() - cacheFile.lastModified() < cacheTtlMs
+    if (cacheIsFresh) {
+      decodeSampled(cacheFile)?.let { bitmap ->
+        synchronized(memoryCache) { memoryCache.put(url, bitmap) }
+        return bitmap
+      }
     }
 
     val host = httpUrl.host
+    val token = httpUrl.queryParameter("token")
     val request =
       runCatching {
         Request
           .Builder()
           .url(httpUrl)
           .header("User-Agent", "Mozilla/5.0 (Android) mpvRx")
-          .apply { if (host.isNotBlank()) header("Referer", "https://$host") }
+          .apply {
+            if (!token.isNullOrBlank()) {
+              header("Authorization", "Bearer $token")
+            }
+          }
           .build()
       }.getOrNull() ?: return null
 
-    return runCatching {
-      client.newCall(request).awaitResponse().use { response ->
-        if (!response.isSuccessful) return@use null
-        val bytes = response.body.bytes()
-        FileOutputStream(cacheFile).use { it.write(bytes) }
-        decodeSampled(cacheFile)?.also { bitmap ->
-          synchronized(memoryCache) { memoryCache.put(url, bitmap) }
+    val downloaded =
+      runCatching {
+        client.newCall(request).awaitResponse().use { response ->
+          if (!response.isSuccessful) return@use null
+          val bytes = response.body.bytes()
+          // Write to a temp file first so a failed download never destroys a usable stale copy.
+          val tempFile = File(cacheDirectory, "${cacheFile.name}.tmp")
+          FileOutputStream(tempFile).use { it.write(bytes) }
+          if (!tempFile.renameTo(cacheFile)) {
+            tempFile.copyTo(cacheFile, overwrite = true)
+            tempFile.delete()
+          }
+          decodeSampled(cacheFile)?.also { bitmap ->
+            synchronized(memoryCache) { memoryCache.put(url, bitmap) }
+          }
         }
-      }
-    }.getOrNull()
+      }.getOrNull()
+    if (downloaded != null || cacheIsFresh) return downloaded
+
+    // Offline or the host failed: an expired avatar is better than an empty circle.
+    return decodeSampled(cacheFile)?.also { bitmap ->
+      synchronized(memoryCache) { memoryCache.put(url, bitmap) }
+    }
   }
 
   private fun decodeSampled(
@@ -216,21 +249,22 @@ internal object RemoteImageLoader {
 
   private fun decodeSampled(file: File): Bitmap? {
     if (!file.isFile || file.length() <= 0L) return null
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    BitmapFactory.decodeFile(file.absolutePath, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    return runCatching {
+      val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+      BitmapFactory.decodeFile(file.absolutePath, bounds)
+      if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
-    var sampleSize = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= MAX_IMAGE_DIMENSION) {
-      sampleSize *= 2
-    }
-    return BitmapFactory.decodeFile(
-      file.absolutePath,
-      BitmapFactory.Options().apply {
-        inSampleSize = sampleSize
-        inPreferredConfig = Bitmap.Config.RGB_565
-      },
-    )
+      var sampleSize = 1
+      while (maxOf(bounds.outWidth, bounds.outHeight) / (sampleSize * 2) >= MAX_IMAGE_DIMENSION) {
+        sampleSize *= 2
+      }
+      BitmapFactory.decodeFile(
+        file.absolutePath,
+        BitmapFactory.Options().apply {
+          inSampleSize = sampleSize
+        },
+      )
+    }.getOrNull()
   }
 
   private fun hash(value: String): String =

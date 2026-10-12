@@ -9,25 +9,34 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
-import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.TrackNode
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 
 @Composable
 fun VideoQualitySheet(
@@ -36,62 +45,54 @@ fun VideoQualitySheet(
   onDownload: ((TrackNode) -> Unit)? = null,
   onDismissRequest: () -> Unit,
 ) {
-  PlayerSheet(onDismissRequest) {
+  PlayerSheet(onDismissRequest, title = stringResource(R.string.player_video_quality)) {
+    val haptics = rememberAppHaptics()
     Column(modifier = Modifier.fillMaxWidth()) {
-      Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+      LazyColumn(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
-        Icon(
-          imageVector = Icons.RoundedFilled.Hd,
-          contentDescription = stringResource(R.string.player_video_quality_button),
-          modifier = Modifier.size(24.dp),
-          tint = MaterialTheme.colorScheme.primary,
-        )
-        Column {
-          Text(
-            text = stringResource(R.string.player_video_quality),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
+        itemsIndexed(tracks, key = { _, track -> track.id }) { index, track ->
+          val containerColor by animateColorAsState(
+            targetValue =
+              playerSheetSelectionColor(track.isSelected),
+            animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+            label = "videoQualitySelection",
           )
-          Text(
-            text = stringResource(R.string.player_video_quality_summary),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
-      }
-
-      LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-        items(tracks, key = TrackNode::id) { track ->
-          Row(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
+          val shape =
+            rememberConnectedShape(
+              index = index,
+              itemCount = tracks.size,
+              layout = ConnectedLayout.Vertical,
+            )
+          Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = shape,
+            color = containerColor,
+            tonalElevation = if (track.isSelected) 1.dp else 0.dp,
           ) {
             Row(
+              verticalAlignment = Alignment.CenterVertically,
               modifier =
                 Modifier
-                  .weight(1f)
-                  .clickable {
+                  .fillMaxWidth()
+                  .heightIn(min = 64.dp)
+                  .selectable(selected = track.isSelected, role = Role.RadioButton) {
                     onSelect(track)
+                    if (!track.isSelected) haptics.selection(true)
                     onDismissRequest()
-                  }.padding(vertical = 6.dp),
-              verticalAlignment = Alignment.CenterVertically,
+                  }.padding(start = 16.dp, end = if (onDownload == null) 16.dp else 4.dp, top = 10.dp, bottom = 10.dp),
             ) {
               RadioButton(
                 selected = track.isSelected,
                 onClick = null,
               )
               Spacer(Modifier.width(12.dp))
-              Column(modifier = Modifier.weight(1f)) {
+              Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                   text = qualityLabel(track),
                   style = MaterialTheme.typography.bodyLarge,
-                  fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Medium,
+                  fontWeight = if (track.isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 )
                 qualityDetails(track)?.let { details ->
                   Text(
@@ -101,13 +102,11 @@ fun VideoQualitySheet(
                   )
                 }
               }
-            }
-            if (onDownload != null) {
-              IconButton(onClick = { onDownload(track) }) {
-                Icon(
-                  imageVector = Icons.RoundedFilled.Download,
-                  contentDescription = stringResource(R.string.downloads_download),
-                  tint = MaterialTheme.colorScheme.primary,
+              if (onDownload != null) {
+                PlayerSheetAction(
+                  Icons.RoundedFilled.Download,
+                  stringResource(R.string.downloads_download),
+                  { onDownload(track) },
                 )
               }
             }
@@ -157,7 +156,13 @@ private fun qualityDetails(track: TrackNode): String? {
           "${bitsPerSecond / 1_000L} kbps"
         }
       }
-  return listOfNotNull(track.ytdlFormatId?.let { "#$it" }, dimensions, codec, bitrate)
+  return listOfNotNull(
+    track.ytdlFormatId?.let { "#$it" } ?: "#${track.id}",
+    track.effectiveTitle?.takeUnless { it == qualityLabel(track) },
+    dimensions,
+    codec,
+    bitrate,
+  ).distinct()
     .joinToString(" • ")
     .takeIf(String::isNotBlank)
 }

@@ -25,10 +25,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -53,10 +50,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,10 +65,12 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
-import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.controlColor
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 
 @Composable
 internal fun PlayerControlDrawer(
@@ -83,6 +81,7 @@ internal fun PlayerControlDrawer(
   onPanelVisibilityChanged: (Boolean) -> Unit,
   renderButton: @Composable (PlayerButton) -> Unit,
 ) {
+  val reducedMotion = AppMotion.playerReducedMotion()
   val clickEvent = LocalPlayerButtonsClickEvent.current
   val openPanel = {
     if (controlsVisible && buttons.isNotEmpty() && !panelVisible) {
@@ -98,11 +97,31 @@ internal fun PlayerControlDrawer(
       visible = controlsVisible && buttons.isNotEmpty() && !panelVisible,
       modifier = Modifier.align(Alignment.CenterEnd),
       enter =
-        fadeIn(animationSpec = tween(160)) +
-          slideInHorizontally(animationSpec = tween(180)) { it / 2 },
+        if (reducedMotion) {
+          fadeIn(animationSpec = tween(90))
+        } else {
+          fadeIn(animationSpec = AppMotion.Effect.Alpha) +
+            slideInHorizontally(
+              animationSpec =
+                spring(
+                  dampingRatio = AppMotion.Spatial.Expressive.dampingRatio,
+                  stiffness = AppMotion.Spatial.Expressive.stiffness,
+                ),
+            ) { it / 2 }
+        },
       exit =
-        fadeOut(animationSpec = tween(140)) +
-          slideOutHorizontally(animationSpec = tween(160)) { it / 2 },
+        if (reducedMotion) {
+          fadeOut(animationSpec = tween(70))
+        } else {
+          fadeOut(animationSpec = AppMotion.Effect.Alpha) +
+            slideOutHorizontally(
+              animationSpec =
+                spring(
+                  dampingRatio = AppMotion.Spatial.Standard.dampingRatio,
+                  stiffness = AppMotion.Spatial.Standard.stiffness,
+                ),
+            ) { it / 2 }
+        },
     ) {
       PlayerControlEdgeHandle(
         enabled = controlsVisible,
@@ -114,13 +133,31 @@ internal fun PlayerControlDrawer(
       visible = panelVisible,
       modifier = Modifier.fillMaxSize(),
       enter =
-        fadeIn(animationSpec = tween(180)) +
-          slideInHorizontally(
-            animationSpec = spring(dampingRatio = 0.88f, stiffness = 520f),
-          ) { it / 3 },
+        if (reducedMotion) {
+          fadeIn(animationSpec = tween(90))
+        } else {
+          fadeIn(animationSpec = AppMotion.Effect.Alpha) +
+            slideInHorizontally(
+              animationSpec =
+                spring(
+                  dampingRatio = AppMotion.Spatial.Expressive.dampingRatio,
+                  stiffness = AppMotion.Spatial.Expressive.stiffness,
+                ),
+            ) { it / 3 }
+        },
       exit =
-        fadeOut(animationSpec = tween(140)) +
-          slideOutHorizontally(animationSpec = tween(180)) { it / 3 },
+        if (reducedMotion) {
+          fadeOut(animationSpec = tween(70))
+        } else {
+          fadeOut(animationSpec = AppMotion.Effect.Alpha) +
+            slideOutHorizontally(
+              animationSpec =
+                spring(
+                  dampingRatio = AppMotion.Spatial.Standard.dampingRatio,
+                  stiffness = AppMotion.Spatial.Standard.stiffness,
+                ),
+            ) { it / 3 }
+        },
     ) {
       PlayerControlPanel(
         buttons = buttons,
@@ -139,7 +176,7 @@ private fun PlayerControlEdgeHandle(
   modifier: Modifier = Modifier,
 ) {
   val density = LocalDensity.current
-  val haptic = LocalHapticFeedback.current
+  val haptic = rememberAppHaptics()
   val interactionSource = remember { MutableInteractionSource() }
   val thresholdPx = with(density) { EdgePullThreshold.toPx() }
   val maxPullPx = with(density) { EdgePullMaximum.toPx() }
@@ -189,7 +226,7 @@ private fun PlayerControlEdgeHandle(
                   (pullDistancePx + directedDelta * resistance).coerceIn(0f, maxPullPx)
                 if (!thresholdReached && pullDistancePx >= thresholdPx) {
                   thresholdReached = true
-                  haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                  haptic.tick()
                   onOpen()
                 } else if (thresholdReached && pullDistancePx < thresholdPx * 0.82f) {
                   thresholdReached = false
@@ -222,7 +259,6 @@ private fun PlayerControlEdgeHandle(
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerControlPanel(
   buttons: List<PlayerButton>,
@@ -236,7 +272,7 @@ private fun PlayerControlPanel(
   DraggablePanel(
     modifier = Modifier.fillMaxSize(),
     header = { PlayerControlPanelHeader(onDismissRequest) },
-    shape = RoundedCornerShape(24.dp),
+    shape = MaterialTheme.shapes.extraLargeIncreased,
     containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
     tonalElevation = 2.dp,
     shadowElevation = 10.dp,
@@ -272,8 +308,8 @@ private fun PlayerControlPanelHeader(onDismissRequest: () -> Unit) {
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(
-      text = stringResource(R.string.player_sheets_more_title),
-      style = MaterialTheme.typography.titleLarge,
+      text = stringResource(R.string.pref_player_controls_drawer_title),
+      style = MaterialTheme.typography.headlineSmall,
       fontWeight = FontWeight.SemiBold,
       modifier = Modifier.weight(1f),
     )
@@ -286,40 +322,40 @@ private fun PlayerControlPanelHeader(onDismissRequest: () -> Unit) {
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlayerControlPanelContent(
   buttons: List<PlayerButton>,
   activeButtons: Set<PlayerButton>,
   renderButton: @Composable (PlayerButton) -> Unit,
 ) {
-  BoxWithConstraints(
-    modifier =
-      Modifier
-        .fillMaxWidth()
-        .padding(start = 14.dp, end = 14.dp, bottom = 20.dp),
+  // A weighted 3-column grid never wraps because of density, font scale, or icon sizes.
+  // Fixed rows preserve control order; the final row never stretches missing cells.
+  val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+  val tileHeight = ((screenHeight - 148.dp) / 3f).coerceIn(68.dp, 104.dp)
+
+  Column(
+    modifier = Modifier.fillMaxWidth()
+      .padding(start = 14.dp, end = 14.dp, bottom = 20.dp)
+      .tvFocusGroup(),
+    verticalArrangement = Arrangement.spacedBy(PanelTileSpacing),
   ) {
-    // Floor to whole pixels: Dp rounding at some densities made 3 tiles + gaps
-    // exceed the row width, wrapping the grid to 2 columns (issue #590).
-    val density = LocalDensity.current
-    val tileWidth =
-      with(density) {
-        val availablePx = (maxWidth - PanelTileSpacing * (PanelColumnCount - 1)).toPx()
-        kotlin.math.floor(availablePx / PanelColumnCount).toDp()
-      }
-    FlowRow(
-      modifier = Modifier.fillMaxWidth().tvFocusGroup(),
-      horizontalArrangement = Arrangement.spacedBy(PanelTileSpacing),
-      verticalArrangement = Arrangement.spacedBy(PanelTileSpacing),
-      maxItemsInEachRow = PanelColumnCount,
-    ) {
-      buttons.forEach { button ->
-        PlayerControlTile(
-          button = button,
-          active = button in activeButtons,
-          renderButton = renderButton,
-          modifier = Modifier.width(tileWidth),
-        )
+    buttons.chunked(PanelColumnCount).forEach { rowButtons ->
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(PanelTileSpacing),
+      ) {
+        rowButtons.forEach { button ->
+          PlayerControlTile(
+            button = button,
+            active = button in activeButtons,
+            renderButton = renderButton,
+            tileHeight = tileHeight,
+            modifier = Modifier.weight(1f),
+          )
+        }
+        repeat(PanelColumnCount - rowButtons.size) {
+          Spacer(Modifier.weight(1f))
+        }
       }
     }
   }
@@ -330,8 +366,10 @@ private fun PlayerControlTile(
   button: PlayerButton,
   active: Boolean,
   renderButton: @Composable (PlayerButton) -> Unit,
+  tileHeight: androidx.compose.ui.unit.Dp,
   modifier: Modifier = Modifier,
 ) {
+  val compact = tileHeight < 88.dp
   val containerColor by
     animateColorAsState(
       targetValue =
@@ -359,7 +397,7 @@ private fun PlayerControlTile(
     modifier =
       modifier
         .tvFocusHighlight(RoundedCornerShape(18.dp), focusedScale = 1.02f)
-        .height(104.dp),
+        .height(tileHeight),
     shape = RoundedCornerShape(18.dp),
     color = containerColor,
     contentColor = contentColor,
@@ -369,26 +407,26 @@ private fun PlayerControlTile(
       modifier =
         Modifier
           .fillMaxSize()
-          .padding(horizontal = 6.dp, vertical = 8.dp),
+          .padding(horizontal = 2.dp, vertical = if (compact) 2.dp else 8.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.Center,
     ) {
       Box(
         modifier =
           Modifier
-            .size(56.dp)
+            .size(if (compact) 44.dp else 56.dp)
             .graphicsLayer {
-              scaleX = PanelIconScale
-              scaleY = PanelIconScale
+              scaleX = if (compact) 1f else PanelIconScale
+              scaleY = if (compact) 1f else PanelIconScale
             },
         contentAlignment = Alignment.Center,
       ) {
         renderButton(button)
       }
-      Spacer(Modifier.height(4.dp))
+      Spacer(Modifier.height(if (compact) 0.dp else 4.dp))
       Text(
         text = getPlayerButtonLabel(button),
-        maxLines = 2,
+        maxLines = if (compact) 1 else 2,
         overflow = TextOverflow.Ellipsis,
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.labelSmall,

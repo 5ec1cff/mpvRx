@@ -10,6 +10,9 @@
 package app.gyrolet.mpvrx.repository.ai
 
 import kotlinx.coroutines.CancellationException
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 data class AiGenerationOptions(
   val maxTokens: Int = 200,
@@ -49,3 +52,30 @@ internal suspend inline fun <T> runCatchingCancellable(crossinline block: suspen
   } catch (error: Exception) {
     Result.failure(error)
   }
+
+/** Timeouts for chat/completion endpoints. */
+internal fun OkHttpClient.withAiChatTimeouts(): OkHttpClient =
+  newBuilder()
+    .connectTimeout(60, TimeUnit.SECONDS)
+    .readTimeout(120, TimeUnit.SECONDS)
+    .writeTimeout(60, TimeUnit.SECONDS)
+    .build()
+
+/** Longer read/write timeouts for audio uploads to transcription endpoints. */
+internal fun OkHttpClient.withAiUploadTimeouts(): OkHttpClient =
+  newBuilder()
+    .connectTimeout(60, TimeUnit.SECONDS)
+    .readTimeout(180, TimeUnit.SECONDS)
+    .writeTimeout(180, TimeUnit.SECONDS)
+    .build()
+
+internal fun bearerGetRequest(
+  url: String,
+  apiKey: String,
+): Request =
+  Request
+    .Builder()
+    .url(url)
+    .header("Authorization", "Bearer $apiKey")
+    .get()
+    .build()

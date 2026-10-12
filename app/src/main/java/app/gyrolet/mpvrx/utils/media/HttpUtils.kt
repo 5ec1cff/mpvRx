@@ -80,6 +80,75 @@ object HttpUtils {
     return host.contains("youtube.com") || host == "youtu.be"
   }
 
+  /**
+   * Returns true if [url] belongs to a known music-streaming platform.
+   *
+   * Covers:
+   *  • YouTube Music (music.youtube.com — watch, playlist, browse, channel)
+   *  • SoundCloud (soundcloud.com)
+   *  • Bandcamp (*.bandcamp.com)
+   *  • Audiomack (audiomack.com)
+   *  • Spotify (open.spotify.com)
+   *  • Apple Music (music.apple.com)
+   *  • Amazon Music (music.amazon.*)
+   *  • Deezer (deezer.com, www.deezer.com)
+   *  • Tidal (tidal.com, listen.tidal.com)
+   */
+  fun isMusicStreamingUrl(url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    val host = runCatching { Uri.parse(url).host?.lowercase().orEmpty() }.getOrElse { return false }
+    return isMusicStreamingHost(host)
+  }
+
+  fun isMusicStreamingUrl(uri: Uri?): Boolean {
+    if (uri == null) return false
+    val host = uri.host?.lowercase().orEmpty()
+    return isMusicStreamingHost(host)
+  }
+
+  private fun isMusicStreamingHost(host: String): Boolean = when {
+    // YouTube Music — any path (watch, playlist, browse, channel, album)
+    host == "music.youtube.com" -> true
+    // SoundCloud
+    host == "soundcloud.com" || host == "www.soundcloud.com" ||
+      host == "on.soundcloud.com" || host == "m.soundcloud.com" -> true
+    // Bandcamp — covers artist subdomains (artist.bandcamp.com) and bandcamp.com itself
+    host == "bandcamp.com" || host.endsWith(".bandcamp.com") -> true
+    // Audiomack
+    host == "audiomack.com" || host == "www.audiomack.com" -> true
+    // Spotify
+    host == "open.spotify.com" || host == "spotify.com" || host == "www.spotify.com" -> true
+    // Apple Music
+    host == "music.apple.com" -> true
+    // Amazon Music (music.amazon.com, music.amazon.in, music.amazon.co.uk, etc.)
+    host == "music.amazon.com" || (host.startsWith("music.amazon.")) -> true
+    // Deezer
+    host == "deezer.com" || host == "www.deezer.com" || host == "deezer.page.link" -> true
+    // Tidal
+    host == "tidal.com" || host == "www.tidal.com" || host == "listen.tidal.com" -> true
+    else -> false
+  }
+
+  /**
+   * Fetches a thumbnail URL for a music-streaming link.
+   *
+   * YouTube / YouTube Music: resolved via the public oEmbed endpoint.
+   * Other platforms return null (no free thumbnail API).
+   */
+  suspend fun fetchMusicStreamingArtwork(url: String): String? =
+    withContext(Dispatchers.IO) {
+      try {
+        val uri = Uri.parse(url)
+        if (isYouTubeUrl(uri)) {
+          return@withContext fetchYouTubeMetadata(url)?.thumbnailUrl
+        }
+        null
+      } catch (e: Exception) {
+        Log.w(TAG, "Failed to fetch music streaming artwork for $url: ${e.message}")
+        null
+      }
+    }
+
   fun extractYouTubeVideoId(uri: Uri?): String? {
     if (uri == null) return null
     val host = uri.host?.lowercase().orEmpty()

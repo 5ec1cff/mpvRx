@@ -13,14 +13,14 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
+import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withContext
+import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Lazy metadata retrieval system
@@ -31,24 +31,6 @@ import java.io.File
  */
 object MetadataRetrieval {
   private const val TAG = "MetadataRetrieval"
-
-  /**
-   * Checks if any metadata-dependent chips are enabled
-   * If all chips are disabled, we can skip metadata extraction entirely
-   */
-  fun isMetadataNeeded(browserPreferences: BrowserPreferences): Boolean {
-    // Video card chips
-    val needsVideoMetadata =
-      browserPreferences.showResolutionChip.get() ||
-        browserPreferences.showFramerateInResolution.get() ||
-        browserPreferences.showSubtitleIndicator.get() ||
-        browserPreferences.showCodecSupportIndicator.get()
-
-    // Folder card chips
-    val needsFolderMetadata = browserPreferences.showTotalDurationChip.get()
-
-    return needsVideoMetadata || needsFolderMetadata
-  }
 
   /**
    * Checks if video-specific metadata is needed
@@ -66,71 +48,6 @@ object MetadataRetrieval {
     browserPreferences.showTotalDurationChip.get()
 
   /**
-   * Enriches a video with metadata only if needed
-   * Returns the video with metadata populated, or the original if metadata is disabled
-   */
-  suspend fun enrichVideoIfNeeded(
-    context: Context,
-    video: Video,
-    browserPreferences: BrowserPreferences,
-    metadataCache: VideoMetadataCacheRepository,
-  ): Video =
-    withContext(Dispatchers.IO) {
-      // If metadata chips are disabled, return video as-is
-      if (!isVideoMetadataNeeded(browserPreferences)) {
-        return@withContext video
-      }
-
-      val needsVideoCodec = browserPreferences.showCodecSupportIndicator.get() && !video.isAudio
-
-      // If video already has metadata (including FPS and subtitle info), return as-is
-      if (video.width > 0 &&
-        video.height > 0 &&
-        video.duration > 0 &&
-        video.fps > 0f &&
-        video.subtitleCodec.isNotEmpty() &&
-        (!needsVideoCodec || video.videoCodec.isNotBlank())
-      ) {
-        return@withContext video
-      }
-
-      // Extract metadata
-      try {
-        val file = File(video.path)
-        if (!file.exists()) {
-          return@withContext video
-        }
-
-        val metadata =
-          metadataCache.getOrExtractMetadata(
-            file = file,
-            uri = video.uri,
-            displayName = video.displayName,
-            includeVideoCodec = needsVideoCodec,
-          )
-        if (metadata != null) {
-          video.copy(
-            duration = metadata.durationMs,
-            durationFormatted = formatDuration(metadata.durationMs),
-            width = metadata.width,
-            height = metadata.height,
-            fps = metadata.fps,
-            resolution = formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
-            hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-            subtitleCodec = metadata.subtitleCodec,
-            videoCodec = metadata.videoCodec,
-            videoCodecMimeType = metadata.videoCodecMimeType,
-          )
-        } else {
-          video
-        }
-      } catch (e: Exception) {
-        Log.e(TAG, "Error enriching video metadata: ${video.displayName}", e)
-        video
-      }
-    }
-
-  /**
    * Enriches a list of videos with metadata only if needed
    * Processes in batches for better performance
    */
@@ -141,8 +58,8 @@ object MetadataRetrieval {
     metadataCache: VideoMetadataCacheRepository,
   ): List<Video> =
     withContext(Dispatchers.IO) {
-      // If metadata chips are disabled, return videos as-is
-      if (!isVideoMetadataNeeded(browserPreferences)) {
+      val metadataChipsEnabled = isVideoMetadataNeeded(browserPreferences)
+      if (!metadataChipsEnabled) {
         return@withContext videos
       }
 
@@ -151,12 +68,19 @@ object MetadataRetrieval {
       // So we need to extract metadata if FPS or subtitle info is missing
       val videosNeedingMetadata =
         videos.filter { video ->
+          if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return@filter false
           val needsVideoCodec = browserPreferences.showCodecSupportIndicator.get() && !video.isAudio
-          video.width == 0 ||
-            video.height == 0 ||
-            video.duration == 0L ||
-            video.fps == 0f ||
-            video.subtitleCodec.isEmpty() ||
+          val needsResolution =
+            browserPreferences.showResolutionChip.get() && !video.isAudio &&
+              (video.width == 0 || video.height == 0)
+          val needsFramerate =
+            browserPreferences.showFramerateInResolution.get() && !video.isAudio && video.fps == 0f
+          val needsSubtitleInfo =
+            browserPreferences.showSubtitleIndicator.get() && !video.isAudio && video.subtitleCodec.isEmpty()
+
+          needsResolution ||
+            needsFramerate ||
+            needsSubtitleInfo ||
             (needsVideoCodec && video.videoCodec.isBlank())
         }
 
@@ -166,28 +90,11 @@ object MetadataRetrieval {
 
       Log.d(TAG, "Enriching ${videosNeedingMetadata.size} videos with metadata")
 
-      // Prepare batch extraction
-      val fileTriples =
-        videosNeedingMetadata.mapNotNull { video ->
-          val file = File(video.path)
-          if (file.exists()) {
-            Triple(file, video.uri, video.displayName)
-          } else {
-            null
-          }
-        }
-
-      // Batch extract metadata
-      val videoCodecPaths =
-        if (browserPreferences.showCodecSupportIndicator.get()) {
-          videosNeedingMetadata.filterNot { it.isAudio }.mapTo(mutableSetOf()) { it.path }
-        } else {
-          emptySet()
-        }
       val metadataMap =
-        metadataCache.getOrExtractMetadataBatch(
-          files = fileTriples,
-          videoCodecPaths = videoCodecPaths,
+        extractMetadataByVideoPath(
+          videos = videosNeedingMetadata,
+          metadataCache = metadataCache,
+          includeVideoCodec = browserPreferences.showCodecSupportIndicator.get(),
         )
 
       // Update videos with metadata
@@ -200,7 +107,7 @@ object MetadataRetrieval {
             width = metadata.width,
             height = metadata.height,
             fps = metadata.fps,
-            resolution = formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
+            resolution = VideoScanUtils.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
             hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
             subtitleCodec = metadata.subtitleCodec,
             videoCodec = metadata.videoCodec,
@@ -212,77 +119,33 @@ object MetadataRetrieval {
       }
     }
 
-  /**
-   * Enriches videos progressively with metadata
-   * Emits videos as they are processed, allowing UI to update incrementally
-   */
-  fun enrichVideosProgressively(
-    context: Context,
+  private suspend fun extractMetadataByVideoPath(
     videos: List<Video>,
-    browserPreferences: BrowserPreferences,
     metadataCache: VideoMetadataCacheRepository,
-  ): Flow<Video> =
-    flow {
-      // If metadata chips are disabled, emit all videos as-is
-      if (!isVideoMetadataNeeded(browserPreferences)) {
-        videos.forEach { emit(it) }
-        return@flow
+    includeVideoCodec: Boolean,
+  ): Map<String, MediaInfoOps.VideoMetadata> {
+    val metadataByVideoPath = mutableMapOf<String, MediaInfoOps.VideoMetadata>()
+    val localFiles =
+      videos.mapNotNull { video ->
+        if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return@mapNotNull null
+        File(video.path).takeIf(File::isFile)?.let { file -> video to file }
       }
 
-      // Process each video
-      for (video in videos) {
-        val needsVideoCodec = browserPreferences.showCodecSupportIndicator.get() && !video.isAudio
-        // If video already has metadata (including FPS and subtitle info), emit as-is
-        if (video.width > 0 &&
-          video.height > 0 &&
-          video.duration > 0 &&
-          video.fps > 0f &&
-          video.subtitleCodec.isNotEmpty() &&
-          (!needsVideoCodec || video.videoCodec.isNotBlank())
-        ) {
-          emit(video)
-          continue
-        }
-
-        // Extract metadata
-        try {
-          val file = File(video.path)
-          if (!file.exists()) {
-            emit(video)
-            continue
-          }
-
-          val metadata =
-            metadataCache.getOrExtractMetadata(
-              file = file,
-              uri = video.uri,
-              displayName = video.displayName,
-              includeVideoCodec = needsVideoCodec,
-            )
-          if (metadata != null) {
-            emit(
-              video.copy(
-                duration = metadata.durationMs,
-                durationFormatted = formatDuration(metadata.durationMs),
-                width = metadata.width,
-                height = metadata.height,
-                fps = metadata.fps,
-                resolution = formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
-                hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-                subtitleCodec = metadata.subtitleCodec,
-                videoCodec = metadata.videoCodec,
-                videoCodecMimeType = metadata.videoCodecMimeType,
-              ),
-            )
-          } else {
-            emit(video)
-          }
-        } catch (e: Exception) {
-          Log.e(TAG, "Error enriching video metadata: ${video.displayName}", e)
-          emit(video)
-        }
-      }
+    val localMetadata =
+      metadataCache.getOrExtractMetadataBatch(
+        files = localFiles.map { (video, file) -> Triple(file, video.uri, video.displayName) },
+        videoCodecPaths =
+          localFiles
+            .asSequence()
+            .filter { (video, _) -> includeVideoCodec && !video.isAudio }
+            .mapTo(mutableSetOf()) { (_, file) -> file.absolutePath },
+      )
+    localFiles.forEach { (video, file) ->
+      localMetadata[file.absolutePath]?.let { metadata -> metadataByVideoPath[video.path] = metadata }
     }
+
+    return metadataByVideoPath
+  }
 
   /**
    * Enriches a folder with metadata only if needed
@@ -307,6 +170,10 @@ object MetadataRetrieval {
 
       // Extract metadata for all videos in folder
       try {
+        if (ZipArchiveMedia.isBrowserPath(folder.path)) {
+          return@withContext folder
+        }
+
         val directory = File(folder.path)
         if (!directory.exists() || !directory.isDirectory) {
           return@withContext folder
@@ -428,34 +295,4 @@ object MetadataRetrieval {
     }
   }
 
-  private fun formatResolutionWithFps(
-    width: Int,
-    height: Int,
-    fps: Float,
-  ): String {
-    val baseResolution = formatResolution(width, height)
-    if (baseResolution == "--" || fps <= 0f) return baseResolution
-
-    val fpsFormatted = fps.toInt().toString()
-    return "$baseResolution@$fpsFormatted"
-  }
-
-  private fun formatResolution(
-    width: Int,
-    height: Int,
-  ): String {
-    if (width <= 0 || height <= 0) return "--"
-
-    return when {
-      width >= 7680 || height >= 4320 -> "4320p"
-      width >= 3840 || height >= 2160 -> "2160p"
-      width >= 2560 || height >= 1440 -> "1440p"
-      width >= 1920 || height >= 1080 -> "1080p"
-      width >= 1280 || height >= 720 -> "720p"
-      width >= 854 || height >= 480 -> "480p"
-      width >= 640 || height >= 360 -> "360p"
-      width >= 426 || height >= 240 -> "240p"
-      else -> "${height}p"
-    }
-  }
 }

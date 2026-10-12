@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.gyrolet.mpvrx.database.entities.PlaybackStateEntity
 import app.gyrolet.mpvrx.domain.media.model.Video
+import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
@@ -24,6 +25,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
+import app.gyrolet.mpvrx.utils.media.PlaybackStateOps
 import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -84,7 +86,7 @@ internal fun buildVideoWithPlaybackInfo(
     video = video,
     timeRemaining = playbackState?.timeRemaining?.toLong(),
     progressPercentage = progressValue?.takeIf { it in 0.01f..0.99f },
-    isOldAndUnplayed = !isWatched && isWithinNewLabelWindow,
+    isOldAndUnplayed = !isWatched && (playbackState?.newLabelOverride ?: isWithinNewLabelWindow),
     isWatched = isWatched,
   )
 }
@@ -176,7 +178,7 @@ class VideoListViewModel(
     FolderViewScanner.clearCache()
 
     // Trigger media scan before loading to ensure MediaStore is up-to-date
-    triggerMediaScan()
+    if (!ZipArchiveMedia.isBrowserPath(bucketId)) triggerMediaScan()
 
     loadVideos(forceFileSystemCheck = true)
   }
@@ -196,9 +198,10 @@ class VideoListViewModel(
           videoList = videoList.filter { it.isAudio }
         }
 
-        // Enrich with metadata only if chips are enabled
-        if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
-          Log.d(tag, "Metadata chips enabled, enriching ${videoList.size} videos")
+        // ZIP entries need basic metadata even when optional metadata chips are disabled.
+        val archiveFolder = ZipArchiveMedia.isBrowserPath(bucketId)
+        if (archiveFolder || MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+          Log.d(tag, "Enriching ${videoList.size} videos with metadata")
           videoList =
             MetadataRetrieval.enrichVideosIfNeeded(
               context = getApplication(),
@@ -207,7 +210,7 @@ class VideoListViewModel(
               metadataCache = metadataCache,
             )
         } else {
-          Log.d(tag, "Metadata chips disabled, skipping metadata extraction")
+          Log.d(tag, "Metadata extraction not required")
         }
 
         // Check if folder became empty after having videos
@@ -222,7 +225,7 @@ class VideoListViewModel(
         // Update previous count
         previousVideoCount = videoList.size
 
-        if (videoList.isEmpty()) {
+        if (videoList.isEmpty() && !archiveFolder) {
           Log.d(tag, "No videos found for bucket $bucketId - attempting media rescan")
           triggerMediaScan()
           delay(1000)
@@ -278,20 +281,6 @@ class VideoListViewModel(
   fun setVideosWereDeletedOrMoved() {
     _videosWereDeletedOrMoved.value = true
   }
-
-  /**
-   * PlayerActivity persists new playback rows with PlaybackIdentity.forUri(...). Older app
-   * versions used the display filename. Read the v2 key first and retain legacy fallbacks so
-   * existing histories continue to work without a destructive database migration.
-   */
-  private suspend fun findPlaybackState(video: Video): PlaybackStateEntity? {
-    for (identifier in videoPlaybackIdentifiers(video)) {
-      playbackStateRepository.getVideoDataByTitle(identifier)?.let { return it }
-    }
-    return null
-  }
-
-  private fun canonicalPlaybackIdentifier(video: Video): String = PlaybackIdentity.forLocalPath(video.path)
 
   private suspend fun loadPlaybackInfo(videos: List<Video>) {
     val playbackByIdentifier = playbackStateRepository.getAllPlaybackStates().associateBy { it.mediaTitle }
@@ -368,19 +357,8 @@ class VideoListViewModel(
     }
 
     viewModelScope.launch(Dispatchers.IO) {
-      val durationSeconds = (video.duration / 1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
-      val canonicalIdentifier = canonicalPlaybackIdentifier(video)
       runCatching {
-        val existing = findPlaybackState(video)
-        playbackStateRepository.upsert(
-          (existing ?: emptyPlaybackState(video, durationSeconds)).copy(
-            mediaTitle = canonicalIdentifier,
-            lastPosition = 0,
-            timeRemaining = if (watched) 0 else durationSeconds,
-            hasBeenWatched = watched,
-          ),
-        )
-        PlaybackStateEvents.notifyChanged(canonicalIdentifier)
+        PlaybackStateOps.setWatched(video, watched)
       }.onFailure { error ->
         Log.e(tag, "Failed to update watched state for ${video.displayName}", error)
         loadPlaybackInfo(_videos.value)
@@ -388,25 +366,8 @@ class VideoListViewModel(
     }
   }
 
-  private fun emptyPlaybackState(
-    video: Video,
-    durationSeconds: Int,
-  ): PlaybackStateEntity =
-    PlaybackStateEntity(
-      mediaTitle = canonicalPlaybackIdentifier(video),
-      lastPosition = 0,
-      playbackSpeed = 1.0,
-      sid = -1,
-      secondarySid = -1,
-      subDelay = 0,
-      subSpeed = 1.0,
-      aid = -1,
-      audioDelay = 0,
-      timeRemaining = durationSeconds,
-      hasBeenWatched = false,
-    )
-
   private fun triggerMediaScan() {
+    if (ZipArchiveMedia.isBrowserPath(bucketId)) return
     try {
       // Trigger a targeted media scan for the specific folder
       val folder = File(bucketId)

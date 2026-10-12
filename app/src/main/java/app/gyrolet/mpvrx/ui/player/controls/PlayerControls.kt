@@ -84,6 +84,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -98,14 +99,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -113,6 +113,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -122,6 +123,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
 import app.gyrolet.mpvrx.preferences.AiPreferences
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
@@ -138,8 +140,11 @@ import app.gyrolet.mpvrx.ui.player.Panels
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerUpdates
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
+import app.gyrolet.mpvrx.ui.player.MPVView
 import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.VideoOpenAnimationOverlay
+import app.gyrolet.mpvrx.ui.player.components.VideoGlassBackdropSource
+import app.gyrolet.mpvrx.ui.player.components.rememberVideoGlassSource
 import app.gyrolet.mpvrx.ui.player.buildControlsEnterH
 import app.gyrolet.mpvrx.ui.player.buildControlsEnterV
 import app.gyrolet.mpvrx.ui.player.buildControlsExitH
@@ -157,8 +162,6 @@ import app.gyrolet.mpvrx.ui.player.controls.components.SeekPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarWithTimers
 import app.gyrolet.mpvrx.ui.player.controls.components.TextPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.VolumeSlider
-import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonBorderColor
-import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContainerColor
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberBufferingState
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
@@ -177,6 +180,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
+import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsContainer
+import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -199,6 +207,7 @@ fun <T> playerControlsEnterAnimationSpec(durationMillis: Int = 100): FiniteAnima
 fun PlayerControls(
   viewModel: PlayerViewModel,
   onBackPress: () -> Unit,
+  videoSurface: MPVView? = null,
   modifier: Modifier = Modifier,
 ) {
   val spacing = MaterialTheme.spacing
@@ -209,17 +218,24 @@ fun PlayerControls(
   val aiEnabled by aiPreferences.enabled.collectAsState()
   val realtimeSubsEnabled by aiPreferences.realtimeSubsEnabled.collectAsState()
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
+  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
   val forceDarkButtonBackground by appearancePreferences.forceDarkPlayerButtonsBackground.collectAsState()
   val portraitPlaybackControlsPosition by
     appearancePreferences.portraitPlaybackControlsPosition.collectAsState()
   val playerPreferences = koinInject<PlayerPreferences>()
+  val gesturePreferences = koinInject<GesturePreferences>()
+  val reduceMotion by playerPreferences.reduceMotion.collectAsState()
   val audioPreferences = koinInject<AudioPreferences>()
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
   val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
   val showControlsDrawer by playerPreferences.showControlsDrawer.collectAsState()
   val interactionSource = remember { MutableInteractionSource() }
   val controlsShown by viewModel.controlsShown.collectAsState()
+  val controlsInteractionEpoch by viewModel.controlsInteractionEpoch.collectAsState()
   val tvPlayFocusRequester = rememberTvInitialFocusRequester(enabled = controlsShown)
+  val overlaysFollowVideoZoom by playerPreferences.overlaysFollowVideoZoom.collectAsState()
+  val videoPanX by viewModel.videoPanX.collectAsState()
+  val videoPanY by viewModel.videoPanY.collectAsState()
   val statisticsPage by advancedPreferences.enabledStatisticsPage.collectAsState()
   val areControlsLocked by viewModel.areControlsLocked.collectAsState()
   val seekBarShown by viewModel.seekBarShown.collectAsState()
@@ -246,6 +262,7 @@ fun PlayerControls(
   val doubleTapSeekAmount = seekState.amount
   val showDoubleTapOvals by playerPreferences.showDoubleTapOvals.collectAsState()
   val showSeekTime by playerPreferences.showSeekTimeWhileSeeking.collectAsState()
+  val showSeekbarDuringHorizontalSeeking by gesturePreferences.showSeekbarDuringHorizontalSeeking.collectAsState()
   val showBufferedRange by playerPreferences.showBufferedRange.collectAsState()
   val showChapterIndicators by playerPreferences.showChapterIndicators.collectAsState()
   val torrentState by viewModel.torrentState.collectAsState()
@@ -276,6 +293,7 @@ fun PlayerControls(
       Modifier
     }
   var isSeeking by remember { mutableStateOf(false) }
+  var wasPlayerAlreadyPaused by remember { mutableStateOf(false) }
   val mpvSeeking by PlaybackSession.propBoolean["seeking"].collectAsState()
   val isPlayerSeeking = isSeeking || (mpvSeeking ?: false)
   val showBufferingIndicator =
@@ -298,7 +316,6 @@ fun PlayerControls(
   }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
   val seekText = seekState.text
-  val currentChapter by PlaybackSession.propInt["chapter"].collectAsState()
   val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
   val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
   val decoder = remember(activeDecoder, configuredDecoder) {
@@ -308,13 +325,16 @@ fun PlayerControls(
     abs((playbackSpeed ?: 1f) - 1f) > 0.001f
   }
   val playerTimeToDisappear by playerPreferences.playerTimeToDisappear.collectAsState()
-  val chapters by viewModel.chapters.collectAsState(persistentListOf())
+  val chapters by viewModel.playbackChapters.collectAsState(persistentListOf())
+  val chapterPositionState = viewModel.precisePosition.collectAsState()
+  val currentChapter by remember(chapters) {
+    androidx.compose.runtime.derivedStateOf { chapters.indexOfLast { it.start <= chapterPositionState.value }.takeIf { it >= 0 } }
+  }
   val skipSegments by viewModel.skipSegments.collectAsState(persistentListOf())
   val currentSkippableSegment by viewModel.currentSkippableSegment.collectAsState()
   val showSkipChipAuto by viewModel.showSkipChipAuto.collectAsState()
   val playlistMode by playerPreferences.playlistMode.collectAsState()
   val playlistItems by viewModel.playlistItems.collectAsState()
-  val haptic = LocalHapticFeedback.current
 
   val customButtons by viewModel.customButtons.collectAsState()
   val showVideoQualitySelector by viewModel.showVideoQualitySelector.collectAsState()
@@ -327,7 +347,10 @@ fun PlayerControls(
   val transformState by viewModel.transformState.collectAsState()
   val isHdrOutputEnabled by viewModel.isHdrScreenOutputEnabled.collectAsState()
   val isAmbientEnabled by viewModel.isAmbientEnabled.collectAsState()
-  val backgroundPlaybackEnabled by audioPreferences.backgroundPlayback.collectAsState()
+  val isPostProcessingEnabled by viewModel.isPostProcessingEnabled.collectAsState()
+  val backgroundPlaybackEnabled by PlaybackSession.videoBackgroundPlaybackEnabled.collectAsState(
+    initial = PlaybackSession.isVideoBackgroundPlaybackEnabled(),
+  )
 
   val onOpenSheet: (Sheets) -> Unit = remember(viewModel) {
     {
@@ -358,11 +381,20 @@ fun PlayerControls(
   val currentPlaybackItem = playbackQueue.currentItem
   val useAudioPlayer =
     when (currentPlaybackItem?.declaredMediaKind()) {
+      null -> activity?.isCurrentMediaKnownAudio() == true
       DeclaredPlaybackMediaKind.VIDEO -> false
       DeclaredPlaybackMediaKind.AUDIO -> true
-      else -> isAudioOnly || activity?.isCurrentMediaKnownAudio() == true
+      DeclaredPlaybackMediaKind.UNKNOWN -> isAudioOnly || activity?.isCurrentMediaKnownAudio() == true
     }
   if (useAudioPlayer) {
+    val audioBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsState()
+    val audioPosition by viewModel.precisePosition.collectAsState()
+    val audioTimelinePosition = currentPlaybackItem?.audiobook?.let { info ->
+      audioBook?.takeIf { it.book.id == info.bookId }?.positionInBook(info.trackId, (audioPosition * 1000).toLong())?.div(1000f)
+    } ?: audioPosition
+    val audioChapterIndex = chapters.indexOfLast {
+      it.start <= audioTimelinePosition
+    }
     val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsState()
     val queuedTitle =
       playbackQueue.currentItem?.title?.takeIf { playbackQueue.isExplicitQueue && it.isNotBlank() }
@@ -380,6 +412,8 @@ fun PlayerControls(
     val speedPresets by playerPreferences.speedPresets.collectAsState()
     val sortedSpeedPresets = remember(speedPresets) { speedPresets.map { it.toFloat() }.sorted() }
 
+    // Only sheets and panels sample this layer; the controls would otherwise sample themselves.
+    val audioBackdrop = rememberLayerBackdrop()
     Box(modifier = modifier.fillMaxSize()) {
       AudioPlayerControls(
         viewModel = viewModel,
@@ -387,8 +421,12 @@ fun PlayerControls(
         onBackPress = onBackPress,
         onOpenSheet = onOpenSheet,
         onOpenPanel = onOpenPanel,
+        modifier = if (enableLiquidGlass) Modifier.layerBackdrop(audioBackdrop) else Modifier,
       )
 
+      CompositionLocalProvider(
+        LocalKyantPlayerBackdrop provides audioBackdrop.takeIf { enableLiquidGlass },
+      ) {
       PlayerSheets(
         viewModel = viewModel,
         sheetShown = sheetShown,
@@ -401,23 +439,27 @@ fun PlayerControls(
         audioTracks = audioTracks.toImmutableList(),
         onAddAudio = viewModel::addAudio,
         onSelectAudio = viewModel::selectAudioTrack,
-        chapter = chapters.getOrNull(currentChapter ?: 0),
+        chapter = chapters.getOrNull(audioChapterIndex),
         chapters = chapters.toImmutableList(),
         onSeekToChapter = {
-          PlaybackSession.setPropertyInt("chapter", it)
-          viewModel.unpause()
+          chapters.getOrNull(it)?.let(viewModel::seekToPlaybackChapter)
         },
         decoder = decoder,
         onUpdateDecoder = { PlaybackSession.setPropertyString("hwdec", it.value) },
         speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),
-        onSpeedChange = { PlaybackSession.setPropertyFloat("speed", it.toFixed(2)) },
+        onSpeedChange = {
+          if (currentPlaybackItem?.audiobook != null) app.gyrolet.mpvrx.ui.player.AudiobookPlayback.setSpeed(it.toFixed(2))
+          else PlaybackSession.setPropertyFloat("speed", it.toFixed(2))
+        },
         onMakeDefaultSpeed = { playerPreferences.defaultSpeed.set(it.toFixed(2)) },
         onAddSpeedPreset = { playerPreferences.speedPresets += it.toFixed(2).toString() },
         onRemoveSpeedPreset = { playerPreferences.speedPresets -= it.toFixed(2).toString() },
         onResetSpeedPresets = playerPreferences.speedPresets::delete,
         speedPresets = sortedSpeedPresets,
         onResetDefaultSpeed = {
-          PlaybackSession.setPropertyFloat("speed", playerPreferences.defaultSpeed.deleteAndGet().toFixed(2))
+          val speed = playerPreferences.defaultSpeed.deleteAndGet().toFixed(2)
+          if (currentPlaybackItem?.audiobook != null) app.gyrolet.mpvrx.ui.player.AudiobookPlayback.setSpeed(speed)
+          else PlaybackSession.setPropertyFloat("speed", speed)
         },
         sleepTimerTimeRemaining = sleepTimerTimeRemaining,
         onStartSleepTimer = viewModel::startTimer,
@@ -432,13 +474,22 @@ fun PlayerControls(
         viewModel = viewModel,
         onDismissRequest = { onOpenPanel(Panels.None) },
       )
+      }
     }
     return
   }
 
   val playerActivity = LocalActivity.current as PlayerActivity
   val configuration = LocalConfiguration.current
-  val isPortrait = remember(configuration.orientation) { configuration.orientation == ORIENTATION_PORTRAIT }
+  var playerBounds by remember { mutableStateOf(IntSize.Zero) }
+  val isPortrait =
+    remember(configuration.orientation, playerBounds) {
+      if (playerBounds != IntSize.Zero) {
+        playerBounds.width < playerBounds.height
+      } else {
+        configuration.orientation == ORIENTATION_PORTRAIT
+      }
+    }
   val aspect by viewModel.videoAspect.collectAsState()
   val currentZoom by viewModel.videoZoom.collectAsState()
   val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsState()
@@ -490,9 +541,6 @@ fun PlayerControls(
     ) {
       allPlayerButtons.filter { button ->
         when (button) {
-          PlayerButton.BOOKMARKS_CHAPTERS,
-          PlayerButton.CURRENT_CHAPTER,
-          -> chapters.isNotEmpty()
           PlayerButton.PICTURE_IN_PICTURE -> !isAudioOnly
           PlayerButton.VIDEO_QUALITY -> showVideoQualitySelector
           PlayerButton.SHUFFLE -> hasPlaylistSupport
@@ -521,10 +569,14 @@ fun PlayerControls(
   val isBrightnessSliderShown by viewModel.isBrightnessSliderShown.collectAsState()
   val isVolumeSliderShown by viewModel.isVolumeSliderShown.collectAsState()
   val areSlidersShown = isBrightnessSliderShown || isVolumeSliderShown
+  val gestureSeekUpdate by viewModel.playerUpdate.collectAsState()
+  // Swipe-seek pauses playback internally; the auto-hide timer should still run through it.
+  val isPlayingForAutoHide = paused == false || gestureSeekUpdate is PlayerUpdates.HorizontalSeek
 
   LaunchedEffect(
     controlsShown,
-    paused,
+    controlsInteractionEpoch,
+    isPlayingForAutoHide,
     isSeeking,
     resetControlsTimestamp,
     areControlsLocked,
@@ -535,7 +587,7 @@ fun PlayerControls(
     if (!isTelevision &&
       !isAudioOnly &&
       controlsShown &&
-      paused == false &&
+      isPlayingForAutoHide &&
       !isSeeking &&
       !(showControlsDrawer && isPlayerDrawerShown)
     ) {
@@ -560,6 +612,19 @@ fun PlayerControls(
     label = "controls_transparent_overlay",
   )
 
+  // Vignette behind the top and bottom bars. Fades with the bars instead of sliding, so it stays
+  // anchored to the frame edges whatever animation style the bars themselves use.
+  val edgeVignetteAlpha by animateFloatAsState(
+    if (controlsShown && !areControlsLocked) 1f else 0f,
+    animationSpec =
+      if (controlsShown && !areControlsLocked) {
+        playerControlsEnterAnimationSpec((100 * animSpeed).toInt().coerceAtLeast(30))
+      } else {
+        playerControlsExitAnimationSpec((300 * animSpeed).toInt().coerceAtLeast(50))
+      },
+    label = "controls_edge_vignette",
+  )
+
   GestureHandler(
     viewModel = viewModel,
     interactionSource = interactionSource,
@@ -573,14 +638,51 @@ fun PlayerControls(
 
   DoubleTapToSeekOvals(doubleTapSeekAmount, seekText, showDoubleTapOvals, showSeekTime, showSeekTime, interactionSource)
 
-  Box(
-    modifier = modifier.fillMaxSize().clipToBounds(),
+  val glassSource = rememberVideoGlassSource(videoSurface)
+  // Map the real TextureView GPU layer into the controls' window coordinates. All consumers
+  // share the same live layer; no snapshots, sampling cadence, or per-frame recomposition.
+  val currentGlassSource by rememberUpdatedState(glassSource)
+  val recordVideo: ContentDrawScope.() -> Unit = remember { { with(currentGlassSource) { drawVideo() } } }
+  val videoBackdrop = rememberLayerBackdrop(onDraw = recordVideo)
+  val playerKyantBackdrop = if (enableLiquidGlass && glassSource.scene != null) videoBackdrop else null
+
+  CompositionLocalProvider(
+    LocalKyantPlayerBackdrop provides playerKyantBackdrop,
+    LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
+    LocalHidePlayerButtonsBackground provides hideBackground,
   ) {
+    PlayerControlsContentTheme {
+      Box(
+        modifier =
+          modifier
+            .fillMaxSize()
+            .clipToBounds()
+            .onSizeChanged { playerBounds = it },
+      ) {
     VideoOpenAnimationOverlay(
       style = videoOpenAnim,
       speedMultiplier = animSpeed,
       animationState = videoOpenAnimState,
     )
+    if (enableLiquidGlass) {
+      VideoGlassBackdropSource(glassSource, videoBackdrop)
+      Box(
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .background(
+              Brush.verticalGradient(
+                listOf(
+                  Color.Black,
+                  Color.Transparent,
+                  Color.Transparent,
+                  Color.Black,
+                ),
+              ),
+              alpha = transparentOverlay,
+            ),
+      )
+    }
     if (brightness < 0) {
       Box(
         modifier =
@@ -592,17 +694,30 @@ fun PlayerControls(
       )
     }
     if (statisticsPage == 6) {
-      CustomStatsPageSixOverlay(
-        viewModel = viewModel,
-        modifier =
-          Modifier
-            .align(Alignment.TopStart)
-            .windowInsetsPadding(
-              WindowInsets.safeDrawing.only(
-                WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
-              ),
-            ).padding(top = 16.dp, start = 14.dp),
-      )
+      // Mirror the SurfaceView transform so page 6 stays on the video like mpv's own stats pages.
+      Box(
+        Modifier.fillMaxSize().graphicsLayer {
+          if (overlaysFollowVideoZoom) {
+            val zoomScale = app.gyrolet.mpvrx.ui.player.videoZoomMultiplier(currentZoom)
+            scaleX = zoomScale
+            scaleY = zoomScale
+            translationX = videoPanX
+            translationY = videoPanY
+          }
+        },
+      ) {
+        CustomStatsPageSixOverlay(
+          viewModel = viewModel,
+          modifier =
+            Modifier
+              .align(Alignment.TopStart)
+              .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(
+                  WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
+                ),
+              ).padding(top = 16.dp, start = 14.dp),
+        )
+      }
     }
 
     MediaScopesOverlay(
@@ -612,13 +727,14 @@ fun PlayerControls(
       modifier = Modifier.fillMaxSize(),
     )
 
-    CompositionLocalProvider(
-      LocalRippleConfiguration provides playerRippleConfiguration,
-      LocalPlayerButtonsClickEvent provides { resetControlsTimestamp = System.currentTimeMillis() },
-      LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
-      LocalHidePlayerButtonsBackground provides hideBackground,
-      LocalContentColor provides Color.White,
-    ) {
+        CompositionLocalProvider(
+          LocalRippleConfiguration provides playerRippleConfiguration,
+          LocalPlayerButtonsClickEvent provides { resetControlsTimestamp = System.currentTimeMillis() },
+          LocalKyantPlayerBackdrop provides playerKyantBackdrop,
+          LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
+          LocalHidePlayerButtonsBackground provides hideBackground,
+          LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+        ) {
       CompositionLocalProvider(
         LocalLayoutDirection provides LayoutDirection.Ltr,
       ) {
@@ -634,8 +750,12 @@ fun PlayerControls(
               .fillMaxSize()
               .onSizeChanged { controlsLayoutHeightPx = it.height }
               .drawBehind {
-                if (transparentOverlay > 0f) {
+                if (reduceMotion && transparentOverlay > 0f) {
                   drawRect(FullScreenScrimBrush, alpha = transparentOverlay)
+                }
+                // Only while the bars are up, and only at the edges, so the frame stays clean.
+                if (edgeVignetteAlpha > 0f) {
+                  drawRect(ControlsEdgeVignetteBrush, alpha = edgeVignetteAlpha)
                 }
               }.then(safeAreaInsetModifier)
               .then(navigationBarBottomInsetModifier),
@@ -659,7 +779,6 @@ fun PlayerControls(
           // Overlay visibility — Group 1
           val showVolumeGestureOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
           val showBrightnessGestureOverlay by playerPreferences.showBrightnessGestureOverlay.collectAsState()
-          val reduceMotion by playerPreferences.reduceMotion.collectAsState()
           val controlsAnimStyle by playerPreferences.controlsAnimStyle.collectAsState()
           val enterMs = (100 * animSpeed).toInt().coerceAtLeast(30)
           val exitMs = (300 * animSpeed).toInt().coerceAtLeast(50)
@@ -785,6 +904,7 @@ fun PlayerControls(
 
           val holdForMultipleSpeed by playerPreferences.holdForMultipleSpeed.collectAsState()
           val currentPlayerUpdate by viewModel.playerUpdate.collectAsState()
+          val isHorizontalSeekActive = currentPlayerUpdate is PlayerUpdates.HorizontalSeek
           val isTranslatingSub by viewModel.isTranslatingSub.collectAsState()
           val translationProgress by viewModel.translationProgress.collectAsState()
           val translationStatus by viewModel.translationStatus.collectAsState()
@@ -858,14 +978,18 @@ fun PlayerControls(
             modifier =
               Modifier
                 .then(
-                  if (showSystemStatusBar) {
+                  if (showSystemStatusBar && (!isPortrait || !controlsShown || areControlsLocked)) {
                     Modifier.windowInsetsPadding(WindowInsets.statusBars)
                   } else {
                     Modifier
                   },
                 ).constrainAs(playerUpdates) {
                   linkTo(parent.start, parent.end)
-                  top.linkTo(parent.top, if (isPortrait) 104.dp else 64.dp)
+                  if (isPortrait && controlsShown && !areControlsLocked) {
+                    top.linkTo(topLeftControls.bottom, spacing.medium)
+                  } else {
+                    top.linkTo(parent.top, if (isPortrait) 104.dp else 64.dp)
+                  }
                 },
           ) {
             when (currentPlayerUpdate) {
@@ -919,31 +1043,22 @@ fun PlayerControls(
                 TextPlayerUpdate(displayText)
               }
               is PlayerUpdates.ShowText ->
-                TextPlayerUpdate(
-                  (currentPlayerUpdate as PlayerUpdates.ShowText).value,
-                  modifier = Modifier.widthIn(min = 120.dp),
-                )
+                TextPlayerUpdate((currentPlayerUpdate as PlayerUpdates.ShowText).value)
 
               is PlayerUpdates.ProviderStatusText ->
-                TextPlayerUpdate(
-                  (currentPlayerUpdate as PlayerUpdates.ProviderStatusText).value,
-                  modifier = Modifier.widthIn(min = 120.dp),
-                )
+                TextPlayerUpdate((currentPlayerUpdate as PlayerUpdates.ProviderStatusText).value)
 
               is PlayerUpdates.VideoZoom -> {
                 val zoomPercentage = (videoZoom * 100).toInt()
-                TextPlayerUpdate(
-                  text = String.format("Zoom:%3d%%", zoomPercentage),
-                  modifier = Modifier.widthIn(min = 112.dp),
-                )
+                TextPlayerUpdate(String.format("Zoom: %d%%", zoomPercentage))
               }
 
               is PlayerUpdates.SubtitleZoom -> {
-                val scaleVal = (currentPlayerUpdate as PlayerUpdates.SubtitleZoom).scale
-                TextPlayerUpdate(
-                  text = String.format("Sub: %.2fx", scaleVal),
-                  modifier = Modifier.widthIn(min = 112.dp),
+                val zoomUpdate = currentPlayerUpdate as PlayerUpdates.SubtitleZoom
+                val label = stringResource(
+                  if (zoomUpdate.secondary) R.string.player_sheets_secondary_sub_scale else R.string.player_sheets_sub_primary_scale,
                 )
+                TextPlayerUpdate(String.format("%s: %.2fx", label, zoomUpdate.scale))
               }
 
               is PlayerUpdates.HorizontalSeek -> {
@@ -951,7 +1066,6 @@ fun PlayerControls(
                 SeekPlayerUpdate(
                   currentTime = seekUpdate.currentTime,
                   seekDelta = "[${seekUpdate.seekDelta}]",
-                  modifier = Modifier.widthIn(min = 168.dp),
                 )
               }
 
@@ -1092,44 +1206,23 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState()),
+                  .horizontalScroll(rememberScrollState())
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               leftCustomButtons.forEach { button ->
                 key(button.id) {
-                  val buttonInteractionSource = remember { MutableInteractionSource() }
-                  Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-                    modifier =
-                      Modifier
-                        .clip(CircleShape)
-                        .combinedClickable(
-                          interactionSource = buttonInteractionSource,
-                          indication = ripple(),
-                          onClick = {
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButton(button.id)
-                          },
-                          onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButtonLongPress(button.id)
-                          },
-                        ),
-                  ) {
-                    Text(
-                      text = button.label,
-                      modifier =
-                        Modifier
-                          .padding(horizontal = 12.dp, vertical = 6.dp)
-                          .basicMarquee(),
-                      style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                      maxLines = 1,
-                      softWrap = false,
-                    )
-                  }
+                  CustomControlButton(
+                    label = button.label,
+                    liquidGlass = enableLiquidGlass,
+                    onClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButton(button.id)
+                    },
+                    onLongClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButtonLongPress(button.id)
+                    },
+                  )
                 }
               }
             }
@@ -1156,44 +1249,23 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState(), reverseScrolling = true),
+                  .horizontalScroll(rememberScrollState(), reverseScrolling = true)
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               rightCustomButtons.forEach { button ->
                 key(button.id) {
-                  val buttonInteractionSource = remember { MutableInteractionSource() }
-                  Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-                    modifier =
-                      Modifier
-                        .clip(CircleShape)
-                        .combinedClickable(
-                          interactionSource = buttonInteractionSource,
-                          indication = ripple(),
-                          onClick = {
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButton(button.id)
-                          },
-                          onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButtonLongPress(button.id)
-                          },
-                        ),
-                  ) {
-                    Text(
-                      text = button.label,
-                      modifier =
-                        Modifier
-                          .padding(horizontal = 12.dp, vertical = 6.dp)
-                          .basicMarquee(),
-                      style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                      maxLines = 1,
-                      softWrap = false,
-                    )
-                  }
+                  CustomControlButton(
+                    label = button.label,
+                    liquidGlass = enableLiquidGlass,
+                    onClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButton(button.id)
+                    },
+                    onLongClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButtonLongPress(button.id)
+                    },
+                  )
                 }
               }
             }
@@ -1221,44 +1293,23 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState()),
+                  .horizontalScroll(rememberScrollState())
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               customButtons.forEach { button ->
                 key(button.id) {
-                  val buttonInteractionSource = remember { MutableInteractionSource() }
-                  Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-                    modifier =
-                      Modifier
-                        .clip(CircleShape)
-                        .combinedClickable(
-                          interactionSource = buttonInteractionSource,
-                          indication = ripple(),
-                          onClick = {
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButton(button.id)
-                          },
-                          onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            resetControlsTimestamp = System.currentTimeMillis()
-                            viewModel.callCustomButtonLongPress(button.id)
-                          },
-                        ),
-                  ) {
-                    Text(
-                      text = button.label,
-                      modifier =
-                        Modifier
-                          .padding(horizontal = 12.dp, vertical = 6.dp)
-                          .basicMarquee(),
-                      style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                      maxLines = 1,
-                      softWrap = false,
-                    )
-                  }
+                  CustomControlButton(
+                    label = button.label,
+                    liquidGlass = enableLiquidGlass,
+                    onClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButton(button.id)
+                    },
+                    onLongClick = {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.callCustomButtonLongPress(button.id)
+                    },
+                  )
                 }
               }
             }
@@ -1336,24 +1387,41 @@ is PlayerUpdates.FrameInfo -> {
                 blue = segmentColor.blue * 0.72f,
                 alpha = 0.96f,
               )
-            Surface(
-              shape = RoundedCornerShape(999.dp),
-              color = segmentSurfaceColor,
-              border = BorderStroke(1.5.dp, segmentBorderColor),
-              modifier =
-                Modifier
-                  .clip(RoundedCornerShape(999.dp))
-                  .clickable {
-                    resetControlsTimestamp = System.currentTimeMillis()
-                    viewModel.skipActiveSegment()
-                  },
-            ) {
-              Text(
-                text = segment.label,
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                color = segmentColor.copy(alpha = 1f),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-              )
+            if (enableLiquidGlass) {
+              LiquidPillButton(
+                onClick = {
+                  resetControlsTimestamp = System.currentTimeMillis()
+                  viewModel.skipActiveSegment()
+                },
+                horizontalPadding = 16.dp,
+                height = 40.dp,
+              ) {
+                Text(
+                  text = segment.label,
+                  style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                  color = segmentColor.copy(alpha = 1f),
+                )
+              }
+            } else {
+              Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = segmentSurfaceColor,
+                border = BorderStroke(1.5.dp, segmentBorderColor),
+                modifier =
+                  Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .clickable {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.skipActiveSegment()
+                    },
+              ) {
+                Text(
+                  text = segment.label,
+                  style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                  color = segmentColor.copy(alpha = 1f),
+                  modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+              }
             }
           }
 
@@ -1401,15 +1469,12 @@ is PlayerUpdates.FrameInfo -> {
                     "Buffering (${String.format(java.util.Locale.ROOT, "%.1f", cacheSeconds)}s)"
                   else -> stringResource(R.string.ui_buffering)
                 }
-              Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-              ) {
-                Row(
-                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(6.dp),
+              if (enableLiquidGlass) {
+                LiquidPillButton(
+                  onClick = {},
+                  isInteractive = false,
+                  horizontalPadding = 12.dp,
+                  height = 32.dp,
                 ) {
                   Box(
                     modifier =
@@ -1423,7 +1488,34 @@ is PlayerUpdates.FrameInfo -> {
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
                   )
+                }
+              } else {
+                Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                  border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                ) {
+                  Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                  ) {
+                    Box(
+                      modifier =
+                        Modifier
+                          .size(6.dp)
+                          .clip(CircleShape)
+                          .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Text(
+                      text = bufferText,
+                      style = MaterialTheme.typography.labelMedium,
+                      color = MaterialTheme.colorScheme.onPrimaryContainer,
+                      fontWeight = FontWeight.SemiBold,
+                    )
+                  }
                 }
               }
             }
@@ -1456,41 +1548,34 @@ is PlayerUpdates.FrameInfo -> {
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically,
               ) {
-                Surface(
+                AdaptiveControlsContainer(
+                  onClick = {
+                    if (viewModel.hasPrevious()) {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.playPrevious()
+                    }
+                  },
                   modifier =
                     Modifier
                       .size(56.dp)
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasPrevious())
-                      .clip(CircleShape)
-                      .clickable(
-                        enabled = viewModel.hasPrevious(),
-                        onClick = {
-                          resetControlsTimestamp = System.currentTimeMillis()
-                          if (viewModel.hasPrevious()) viewModel.playPrevious()
-                        },
-                      ).then(
-                        if (hideBackground) {
+                      .then(
+                        if (hideBackground && !enableLiquidGlass) {
                           Modifier.background(brush = buttonShadow, shape = CircleShape)
                         } else {
                           Modifier
                         },
                       ),
-                  shape = CircleShape,
                   color =
-                    if (!hideBackground) {
-                      playerButtonContainerColor()
+                    if (viewModel.hasPrevious()) {
+                      if (hideBackground) controlColor else playerButtonContentColor()
                     } else {
-                      Color.Transparent
+                      (if (hideBackground) controlColor else playerButtonContentColor()).copy(alpha = 0.38f)
                     },
-                  contentColor = playerButtonContentColor(),
-                  tonalElevation = 0.dp,
-                  shadowElevation = 0.dp,
-                  border =
-                    if (!hideBackground) {
-                      BorderStroke(1.dp, playerButtonBorderColor())
-                    } else {
-                      null
-                    },
+                  isInteractive = viewModel.hasPrevious(),
+                  hideBackground = hideBackground,
+                  buttonSize = 56.dp,
+                  horizontalPadding = 0.dp,
                 ) {
                   Icon(
                     imageVector = Icons.RoundedFilled.SkipPrevious,
@@ -1498,16 +1583,7 @@ is PlayerUpdates.FrameInfo -> {
                       androidx.compose.ui.res.stringResource(
                         app.gyrolet.mpvrx.R.string.pref_gesture_media_previous,
                       ),
-                    tint =
-                      if (viewModel.hasPrevious()) {
-                        if (hideBackground) controlColor else playerButtonContentColor()
-                      } else {
-                        if (hideBackground) {
-                          controlColor.copy(alpha = 0.38f)
-                        } else {
-                          playerButtonContentColor().copy(alpha = 0.38f)
-                        }
-                      },
+                    tint = LocalContentColor.current,
                     modifier =
                       Modifier
                         .fillMaxSize()
@@ -1515,40 +1591,27 @@ is PlayerUpdates.FrameInfo -> {
                   )
                 }
 
-                Surface(
+                AdaptiveControlsContainer(
+                  onClick = {
+                    resetControlsTimestamp = System.currentTimeMillis()
+                    viewModel.pauseUnpause()
+                  },
                   modifier =
-                  Modifier
-                    .size(64.dp)
-                    .tvInitialFocus(tvPlayFocusRequester)
-                    .tvFocusHighlight(CircleShape)
-                    .clip(CircleShape)
-                    .clickable(interaction, ripple(), onClick = {
-                        resetControlsTimestamp = System.currentTimeMillis()
-                        viewModel.pauseUnpause()
-                      })
+                    Modifier
+                      .size(64.dp)
+                      .tvInitialFocus(tvPlayFocusRequester)
+                      .tvFocusHighlight(CircleShape)
                       .then(
-                        if (hideBackground) {
+                        if (hideBackground && !enableLiquidGlass) {
                           Modifier.background(brush = buttonShadow, shape = CircleShape)
                         } else {
                           Modifier
                         },
                       ),
-                  shape = CircleShape,
-                  color =
-                    if (!hideBackground) {
-                      playerButtonContainerColor()
-                    } else {
-                      Color.Transparent
-                    },
-                  contentColor = if (hideBackground) controlColor else playerButtonContentColor(),
-                  tonalElevation = 0.dp,
-                  shadowElevation = 0.dp,
-                  border =
-                    if (!hideBackground) {
-                      BorderStroke(1.dp, playerButtonBorderColor())
-                    } else {
-                      null
-                    },
+                  color = if (hideBackground) controlColor else playerButtonContentColor(),
+                  hideBackground = hideBackground,
+                  buttonSize = 64.dp,
+                  horizontalPadding = 0.dp,
                 ) {
                   AnimatedPlayPauseIcon(
                     isPlaying = paused == false,
@@ -1560,41 +1623,34 @@ is PlayerUpdates.FrameInfo -> {
                   )
                 }
 
-                Surface(
+                AdaptiveControlsContainer(
+                  onClick = {
+                    if (viewModel.hasNext()) {
+                      resetControlsTimestamp = System.currentTimeMillis()
+                      viewModel.playNext()
+                    }
+                  },
                   modifier =
                     Modifier
                       .size(56.dp)
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasNext())
-                      .clip(CircleShape)
-                      .clickable(
-                        enabled = viewModel.hasNext(),
-                        onClick = {
-                          resetControlsTimestamp = System.currentTimeMillis()
-                          if (viewModel.hasNext()) viewModel.playNext()
-                        },
-                      ).then(
-                        if (hideBackground) {
+                      .then(
+                        if (hideBackground && !enableLiquidGlass) {
                           Modifier.background(brush = buttonShadow, shape = CircleShape)
                         } else {
                           Modifier
                         },
                       ),
-                  shape = CircleShape,
                   color =
-                    if (!hideBackground) {
-                      playerButtonContainerColor()
+                    if (viewModel.hasNext()) {
+                      if (hideBackground) controlColor else playerButtonContentColor()
                     } else {
-                      Color.Transparent
+                      (if (hideBackground) controlColor else playerButtonContentColor()).copy(alpha = 0.38f)
                     },
-                  contentColor = playerButtonContentColor(),
-                  tonalElevation = 0.dp,
-                  shadowElevation = 0.dp,
-                  border =
-                    if (!hideBackground) {
-                      BorderStroke(1.dp, playerButtonBorderColor())
-                    } else {
-                      null
-                    },
+                  isInteractive = viewModel.hasNext(),
+                  hideBackground = hideBackground,
+                  buttonSize = 56.dp,
+                  horizontalPadding = 0.dp,
                 ) {
                   Icon(
                     imageVector = Icons.RoundedFilled.SkipNext,
@@ -1602,16 +1658,7 @@ is PlayerUpdates.FrameInfo -> {
                       androidx.compose.ui.res.stringResource(
                         app.gyrolet.mpvrx.R.string.pref_gesture_media_next,
                       ),
-                    tint =
-                      if (viewModel.hasNext()) {
-                        if (hideBackground) controlColor else playerButtonContentColor()
-                      } else {
-                        if (hideBackground) {
-                          controlColor.copy(alpha = 0.38f)
-                        } else {
-                          playerButtonContentColor().copy(alpha = 0.38f)
-                        }
-                      },
+                    tint = LocalContentColor.current,
                     modifier =
                       Modifier
                         .fillMaxSize()
@@ -1620,40 +1667,27 @@ is PlayerUpdates.FrameInfo -> {
                 }
               }
             } else {
-              Surface(
+              AdaptiveControlsContainer(
+                onClick = {
+                  resetControlsTimestamp = System.currentTimeMillis()
+                  viewModel.pauseUnpause()
+                },
                 modifier =
                   Modifier
                     .size(64.dp)
                     .tvInitialFocus(tvPlayFocusRequester)
                     .tvFocusHighlight(CircleShape)
-                    .clip(CircleShape)
-                    .clickable(interaction, ripple(), onClick = {
-                      resetControlsTimestamp = System.currentTimeMillis()
-                      viewModel.pauseUnpause()
-                    })
                     .then(
-                      if (hideBackground) {
+                      if (hideBackground && !enableLiquidGlass) {
                         Modifier.background(brush = buttonShadow, shape = CircleShape)
                       } else {
                         Modifier
                       },
                     ),
-                shape = CircleShape,
-                color =
-                  if (!hideBackground) {
-                    playerButtonContainerColor()
-                  } else {
-                    Color.Transparent
-                  },
-                contentColor = if (hideBackground) controlColor else playerButtonContentColor(),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-                border =
-                  if (!hideBackground) {
-                    BorderStroke(1.dp, playerButtonBorderColor())
-                  } else {
-                    null
-                  },
+                color = if (hideBackground) controlColor else playerButtonContentColor(),
+                hideBackground = hideBackground,
+                buttonSize = 64.dp,
+                horizontalPadding = 0.dp,
               ) {
                 AnimatedPlayPauseIcon(
                   isPlaying = paused == false,
@@ -1668,7 +1702,12 @@ is PlayerUpdates.FrameInfo -> {
           }
 
           AnimatedVisibility(
-            visible = (controlsShown || (!isPortrait && seekBarShown)) && !areControlsLocked,
+            visible =
+              // Keep the seekbar visible with normal player controls. Only the hidden-controls
+              // horizontal seek gesture is governed by the user preference.
+              (controlsShown ||
+                if (isHorizontalSeekActive) showSeekbarDuringHorizontalSeeking else seekBarShown) &&
+                !areControlsLocked,
             enter = buildControlsEnterV(controlsAnimStyle, reduceMotion, enterMs) { it },
             exit = buildControlsExitV(controlsAnimStyle, reduceMotion, exitMs) { it },
             modifier =
@@ -1719,17 +1758,31 @@ is PlayerUpdates.FrameInfo -> {
             SeekbarWithTimers(
               position = displayedSeekbarPosition,
               committedPosition = precisePosition,
+              externalScrubbing = isHorizontalSeekActive,
               duration = seekbarDuration,
               remaining = effectiveRemaining,
               onValueChange = {
+                if (!isSeeking) {
+                  // First drag frame - pause playback
+                  wasPlayerAlreadyPaused = paused ?: false
+                  if (!wasPlayerAlreadyPaused) {
+                    viewModel.pause()
+                  }
+                }
                 isSeeking = true
                 resetControlsTimestamp = System.currentTimeMillis()
+                // Live preview only during scrub; the final seek is emitted once on release.
                 viewModel.seekPreviewTo(it)
               },
               onValueChangeFinished = { targetPosition ->
                 isSeeking = false
                 resetControlsTimestamp = System.currentTimeMillis()
-                viewModel.seekTo(targetPosition.toInt(), fast = false)
+                // Finalize the release position with the normal seek mode.
+                viewModel.seekTo(targetPosition.toInt())
+                // Unpause if it wasn't paused before seeking
+                if (!wasPlayerAlreadyPaused) {
+                  viewModel.unpause()
+                }
                 viewModel.showControls()
               },
               timersInverted = Pair(false, invertDuration),
@@ -2002,11 +2055,10 @@ is PlayerUpdates.FrameInfo -> {
       audioTracks = audioTracks.toImmutableList(),
       onAddAudio = viewModel::addAudio,
       onSelectAudio = viewModel::selectAudioTrack,
-      chapter = chapters.getOrNull(currentChapter ?: 0),
+      chapter = currentChapter?.let(chapters::getOrNull),
       chapters = chapters.toImmutableList(),
       onSeekToChapter = {
-        PlaybackSession.setPropertyInt("chapter", it)
-        viewModel.unpause()
+        chapters.getOrNull(it)?.let(viewModel::seekToPlaybackChapter)
       },
       decoder = decoder,
       onUpdateDecoder = { PlaybackSession.setPropertyString("hwdec", it.value) },
@@ -2046,6 +2098,7 @@ val activePlayerDrawerButtons =
         abLoopB,
         isHdrOutputEnabled,
         isAmbientEnabled,
+        isPostProcessingEnabled,
         backgroundPlaybackEnabled,
         statisticsPage,
         mediaScopesState.overlayVisible,
@@ -2060,6 +2113,7 @@ val activePlayerDrawerButtons =
           if (abLoopA != null || abLoopB != null) add(PlayerButton.AB_LOOP)
           if (isHdrOutputEnabled) add(PlayerButton.HDR_MODE)
           if (isAmbientEnabled) add(PlayerButton.AMBIENT_MODE)
+          if (isPostProcessingEnabled) add(PlayerButton.POST_PROCESSING)
           if (backgroundPlaybackEnabled) add(PlayerButton.BACKGROUND_PLAYBACK)
           if (statisticsPage == 6) add(PlayerButton.TIME_NETWORK)
           if (mediaScopesState.overlayVisible) add(PlayerButton.SCOPES)
@@ -2102,6 +2156,8 @@ val activePlayerDrawerButtons =
             )
           },
         )
+      }
+        }
       }
     }
   }
@@ -2210,8 +2266,8 @@ private fun CustomStatsPageSixOverlay(
             ?: PlaybackSession.getPropertyString("vo")
             ?: "--"
         }.getOrDefault("--")
-      val videoCodec = runCatching { PlaybackSession.getPropertyString("video-codec") ?: "--" }.getOrDefault("--")
-      val audioCodec = runCatching { PlaybackSession.getPropertyString("audio-codec-name") ?: "--" }.getOrDefault("--")
+      val videoCodec = runCatching { PlaybackSession.getPropertyString("current-tracks/video/codec") ?: "--" }.getOrDefault("--")
+      val audioCodec = runCatching { PlaybackSession.getPropertyString("current-tracks/audio/codec") ?: "--" }.getOrDefault("--")
 
       val currentCpuMs = runCatching { android.os.Process.getElapsedCpuTime() }.getOrDefault(lastCpuMs)
       val currentTimeMs = android.os.SystemClock.elapsedRealtime()
@@ -2597,6 +2653,23 @@ private val FullScreenScrimBrush =
     Pair(1f, Color.Black),
   )
 
+/**
+ * Subtle edge vignette for the control bars: darkening confined to the top and bottom of the
+ * frame so white controls stay legible over bright footage without dimming the whole picture.
+ */
+private val ControlsEdgeVignetteBrush =
+  Brush.verticalGradient(
+    0.00f to Color.Black.copy(alpha = 0.55f),
+    0.06f to Color.Black.copy(alpha = 0.38f),
+    0.14f to Color.Black.copy(alpha = 0.18f),
+    0.22f to Color.Transparent,
+    0.62f to Color.Transparent,
+    0.74f to Color.Black.copy(alpha = 0.16f),
+    0.86f to Color.Black.copy(alpha = 0.36f),
+    0.95f to Color.Black.copy(alpha = 0.52f),
+    1.00f to Color.Black.copy(alpha = 0.58f),
+  )
+
 private val PlaySkipButtonShadowBrush =
   Brush.radialGradient(
     0.0f to Color.Black.copy(alpha = 0.3f),
@@ -2638,5 +2711,59 @@ private fun OutlinedLabeled(
       text = annotated,
       style = labelStyle,
     )
+  }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CustomControlButton(
+  label: String,
+  liquidGlass: Boolean,
+  onClick: () -> Unit,
+  onLongClick: () -> Unit,
+) {
+  if (liquidGlass) {
+    LiquidPillButton(
+      onClick = onClick,
+      onLongClick = onLongClick,
+      height = 36.dp,
+      horizontalPadding = 12.dp,
+    ) {
+      Text(
+        text = label,
+        modifier = Modifier.basicMarquee(),
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        maxLines = 1,
+        softWrap = false,
+      )
+    }
+  } else {
+    val buttonInteractionSource = remember { MutableInteractionSource() }
+    Surface(
+      shape = CircleShape,
+      color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+      modifier =
+        Modifier
+          .clip(CircleShape)
+          .combinedClickable(
+            interactionSource = buttonInteractionSource,
+            indication = ripple(),
+            onClick = onClick,
+            onLongClick = onLongClick,
+          ),
+    ) {
+      Text(
+        text = label,
+        modifier =
+          Modifier
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .basicMarquee(),
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+        maxLines = 1,
+        softWrap = false,
+      )
+    }
   }
 }

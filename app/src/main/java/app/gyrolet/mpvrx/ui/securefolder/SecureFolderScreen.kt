@@ -22,10 +22,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.DropdownMenu
+import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -54,7 +55,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.database.entities.SecureMediaEntity
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
@@ -208,7 +208,7 @@ data object SecureFolderScreen : Screen {
               width = metadata?.width ?: 0,
               height = metadata?.height ?: 0,
               fps = metadata?.fps ?: 0f,
-              resolution = metadata?.let { formatResolutionWithFps(it.width, it.height, it.fps) } ?: "--",
+              resolution = metadata?.let { VideoScanUtils.formatResolutionWithFps(it.width, it.height, it.fps) } ?: "--",
               isAudio = entity.mimeType.startsWith("audio/"),
             )
         }
@@ -232,7 +232,6 @@ data object SecureFolderScreen : Screen {
     var changeSecurityQuestionOpen by remember { mutableStateOf(false) }
     var hideEntryPointConfirmOpen by remember { mutableStateOf(false) }
     var sortDialogOpen by rememberSaveable { mutableStateOf(false) }
-    var isScrollbarDragging by remember { mutableStateOf(false) }
 
     LaunchedEffect(operationResult) {
       operationResult?.let {
@@ -393,24 +392,28 @@ data object SecureFolderScreen : Screen {
             val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
             val videoGridColumnsPref = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
             val contentHorizontalPadding = 8.dp
-            val itemSpacing = 4.dp
+            val itemSpacing = 2.dp
             val usableWidth = maxWidth - (contentHorizontalPadding * 2) - itemSpacing
+            val videoMinWidth = 130.dp
+            val dynamicVideos = (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
             val videoGridColumns =
               if (manualGridColumnsEnabled) {
-                videoGridColumnsPref.coerceAtLeast(1)
+                val maxSafeVideos = maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
+                videoGridColumnsPref.coerceIn(1, maxSafeVideos)
               } else {
-                val videoMinWidth = 130.dp
-                (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
+                dynamicVideos
               }
 
             val thumbWidthDp =
               if (mediaLayoutMode == MediaLayoutMode.GRID) {
-                (usableWidth / videoGridColumns)
+                val cellWidth =
+                  (maxWidth - contentHorizontalPadding * 2 - itemSpacing * (videoGridColumns - 1)) / videoGridColumns
+                (cellWidth - 8.dp).coerceAtLeast(1.dp)
               } else {
                 128.dp
               }
             val thumbWidthPx = with(density) { thumbWidthDp.roundToPx() }
-            val aspect = 16f / 9f
+            val aspect = if (mediaLayoutMode == MediaLayoutMode.GRID) 16f / 10f else 16f / 9f
             val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
 
             val hasEnoughItems = sortedSecureMediaVideos.size > 10
@@ -432,8 +435,8 @@ data object SecureFolderScreen : Screen {
                   columns = GridCells.Fixed(videoGridColumns),
                   state = gridState,
                   contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 16.dp),
-                  horizontalArrangement = Arrangement.spacedBy(4.dp),
-                  verticalArrangement = Arrangement.spacedBy(4.dp),
+                  horizontalArrangement = Arrangement.spacedBy(2.dp),
+                  verticalArrangement = Arrangement.spacedBy(2.dp),
                   modifier = Modifier.fillMaxSize(),
                 ) {
                   items(sortedSecureMediaVideos, key = { it.first.id }) { (entity, video) ->
@@ -470,7 +473,6 @@ data object SecureFolderScreen : Screen {
                       thumbnailWidthPx = thumbWidthPx,
                       thumbnailHeightPx = thumbHeightPx,
                       allowThumbnailGeneration = true,
-                      allowThumbnailLoading = !isScrollbarDragging,
                       uiConfig = videoCardUiConfig,
                     )
                   }
@@ -482,7 +484,6 @@ data object SecureFolderScreen : Screen {
                     dragLabelProvider = { index ->
                       fastScrollGlyph(sortedSecureMediaVideos.getOrNull(index)?.second?.displayName)
                     },
-                    onDragStateChanged = { isDragging -> isScrollbarDragging = isDragging },
                     modifier =
                       Modifier
                         .align(Alignment.CenterEnd)
@@ -529,7 +530,6 @@ data object SecureFolderScreen : Screen {
                       },
                       isGridMode = false,
                       allowThumbnailGeneration = true,
-                      allowThumbnailLoading = !isScrollbarDragging,
                       uiConfig = videoCardUiConfig,
                     )
                   }
@@ -541,7 +541,6 @@ data object SecureFolderScreen : Screen {
                     dragLabelProvider = { index ->
                       fastScrollGlyph(sortedSecureMediaVideos.getOrNull(index)?.second?.displayName)
                     },
-                    onDragStateChanged = { isDragging -> isScrollbarDragging = isDragging },
                     modifier =
                       Modifier
                         .align(Alignment.CenterEnd)
@@ -653,19 +652,7 @@ private fun formatResolution(
   width: Int,
   height: Int,
 ): String {
-  if (width <= 0 || height <= 0) return "--"
-
-  return when {
-    width >= 7680 || height >= 4320 -> "4320p"
-    width >= 3840 || height >= 2160 -> "2160p"
-    width >= 2560 || height >= 1440 -> "1440p"
-    width >= 1920 || height >= 1080 -> "1080p"
-    width >= 1280 || height >= 720 -> "720p"
-    width >= 854 || height >= 480 -> "480p"
-    width >= 640 || height >= 360 -> "360p"
-    width >= 426 || height >= 240 -> "240p"
-    else -> "${height}p"
-  }
+  return VideoScanUtils.formatResolution(width, height)
 }
 
 private fun formatResolutionWithFps(
@@ -673,10 +660,7 @@ private fun formatResolutionWithFps(
   height: Int,
   fps: Float,
 ): String {
-  val baseResolution = formatResolution(width, height)
-  if (baseResolution == "--" || fps <= 0f) return baseResolution
-
-  return "$baseResolution@${fps.toInt()}"
+  return VideoScanUtils.formatResolutionWithFps(width, height, fps)
 }
 
 

@@ -25,18 +25,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,11 +48,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddXtreamPlaylistDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.utils.media.SharedUrlExtractor
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,21 +63,62 @@ fun PlaylistActionSheet(
   onDismiss: () -> Unit,
   onCreatePlaylist: suspend (String) -> Long,
   onCreateM3UPlaylistFromFile: suspend (Uri) -> Result<Long>,
+  onCreateZipPlaylist: suspend (Uri) -> Result<Long>,
   onCreateM3UPlaylist: suspend (String, String?) -> Result<Long>,
   onCreateXtreamPlaylist: suspend (String, String, String) -> Result<Long>,
   context: android.content.Context,
   modifier: Modifier = Modifier,
+  savedXtreamServerUrls: List<String> = emptyList(),
 ) {
   var showCreateDialog by remember { mutableStateOf(false) }
   var showM3UDialog by remember { mutableStateOf(false) }
   var showXtreamDialog by remember { mutableStateOf(false) }
+  val zipScope = rememberCoroutineScope()
+  var zipImportJob by remember { mutableStateOf<Job?>(null) }
+  var isImportingZip by remember { mutableStateOf(false) }
+  val zipPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    if (uri != null && !isImportingZip) {
+      isImportingZip = true
+      zipImportJob = zipScope.launch {
+        try {
+          onCreateZipPlaylist(uri).onSuccess {
+            android.widget.Toast.makeText(context, app.gyrolet.mpvrx.R.string.playlist_zip_import_success, android.widget.Toast.LENGTH_SHORT).show()
+            onDismiss()
+          }.onFailure {
+            android.widget.Toast.makeText(context, app.gyrolet.mpvrx.R.string.playlist_zip_import_failed, android.widget.Toast.LENGTH_LONG).show()
+          }
+        } finally {
+          isImportingZip = false
+        }
+      }
+    }
+  }
+  val folderPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+    if (uri != null) {
+      runCatching {
+        context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }.onSuccess {
+        app.gyrolet.mpvrx.utils.media.MediaLibraryEvents.notifyChanged()
+        onDismiss()
+      }.onFailure { error ->
+        android.widget.Toast.makeText(
+          context,
+          context.getString(app.gyrolet.mpvrx.R.string.playlist_local_access_failed, error.localizedMessage.orEmpty()),
+          android.widget.Toast.LENGTH_LONG,
+        ).show()
+      }
+    }
+  }
 
   if (!isOpen) return
 
   val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
 
   ModalBottomSheet(
-    onDismissRequest = onDismiss,
+    onDismissRequest = {
+      zipImportJob?.cancel()
+      onDismiss()
+    },
     sheetState = sheetState,
     dragHandle = { BottomSheetDefaults.DragHandle() },
     modifier = modifier,
@@ -100,6 +142,27 @@ fun PlaylistActionSheet(
       )
 
       Spacer(modifier = Modifier.height(4.dp))
+
+      Card(
+        onClick = { zipPickerLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/x-zip", "application/octet-stream")) },
+        enabled = !isImportingZip,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(16.dp),
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(Icons.RoundedFilled.FolderZip, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+          Text(
+            text = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_add_zip),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+          )
+        }
+        if (isImportingZip) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+      }
 
       // Action cards
       Card(
@@ -227,6 +290,26 @@ fun PlaylistActionSheet(
         }
       }
 
+      Card(
+        onClick = { folderPickerLauncher.launch(null) },
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(16.dp),
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(Icons.RoundedFilled.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+          Text(
+            text = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_add_local_folder),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f),
+          )
+        }
+      }
+
       Spacer(modifier = Modifier.height(8.dp))
     }
   }
@@ -236,24 +319,21 @@ fun PlaylistActionSheet(
     var playlistName by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-    Dialog(onDismissRequest = { showCreateDialog = false }) {
-      Card(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
+    AppAlertDialog(
+      onDismissRequest = { showCreateDialog = false },
+      title = {
+        Text(
+          text =
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_create_playlist),
+          style = MaterialTheme.typography.headlineSmall,
+        )
+      },
+      text = {
         Column(
-          modifier = Modifier.padding(24.dp),
+          modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-            text =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.ui_create_playlist),
-            style = MaterialTheme.typography.headlineSmall,
-          )
           OutlinedTextField(
             value = playlistName,
             onValueChange = { playlistName = it },
@@ -266,56 +346,54 @@ fun PlaylistActionSheet(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
           )
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-          ) {
-            TextButton(
-              onClick = { showCreateDialog = false },
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-              )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-              onClick = {
-                if (playlistName.isNotBlank()) {
-                  coroutineScope.launch {
-                    try {
-                      onCreatePlaylist(playlistName.trim())
-                      android.widget.Toast
-                        .makeText(
-                          context,
-                          context.getString(app.gyrolet.mpvrx.R.string.ui_playlist_created_successfully),
-                          android.widget.Toast.LENGTH_SHORT,
-                        ).show()
-                      showCreateDialog = false
-                    } catch (e: Exception) {
-                      android.widget.Toast
-                        .makeText(
-                          context,
-                          "Failed to create playlist: ${e.message}",
-                          android.widget.Toast.LENGTH_LONG,
-                        ).show()
-                    }
-                  }
-                }
-              },
-              enabled = playlistName.isNotBlank(),
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_create),
-              )
-            }
-          }
         }
-      }
-    }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showCreateDialog = false },
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          )
+        }
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            if (playlistName.isNotBlank()) {
+              coroutineScope.launch {
+                try {
+                  onCreatePlaylist(playlistName.trim())
+                  android.widget.Toast
+                    .makeText(
+                      context,
+                      context.getString(app.gyrolet.mpvrx.R.string.ui_playlist_created_successfully),
+                      android.widget.Toast.LENGTH_SHORT,
+                    ).show()
+                  showCreateDialog = false
+                } catch (e: Exception) {
+                  android.widget.Toast
+                    .makeText(
+                      context,
+                      "Failed to create playlist: ${e.message}",
+                      android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                }
+              }
+            }
+          },
+          enabled = playlistName.isNotBlank(),
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_create),
+          )
+        }
+      },
+    )
   }
 
   // M3U Playlist Dialog
@@ -328,9 +406,19 @@ fun PlaylistActionSheet(
     // File picker launcher
     val filePickerLauncher =
       rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
+        contract = ActivityResultContracts.OpenDocument(),
       ) { uri: Uri? ->
         uri?.let {
+          val permissionGranted = runCatching {
+            context.contentResolver.takePersistableUriPermission(it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          }.onFailure { error ->
+            android.widget.Toast.makeText(
+              context,
+              context.getString(app.gyrolet.mpvrx.R.string.playlist_local_access_failed, error.localizedMessage.orEmpty()),
+              android.widget.Toast.LENGTH_LONG,
+            ).show()
+          }.isSuccess
+          if (!permissionGranted) return@rememberLauncherForActivityResult
           isLoading = true
           coroutineScope.launch {
             val result = onCreateM3UPlaylistFromFile(it)
@@ -357,25 +445,21 @@ fun PlaylistActionSheet(
         }
       }
 
-    Dialog(onDismissRequest = { showM3UDialog = false }) {
-      Card(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
+    AppAlertDialog(
+      onDismissRequest = { showM3UDialog = false },
+      title = {
+        Text(
+          text =
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.playlist_add_remote_title),
+          style = MaterialTheme.typography.headlineSmall,
+        )
+      },
+      text = {
         Column(
-          modifier = Modifier.padding(24.dp),
+          modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-            text =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.playlist_add_remote_title),
-            style = MaterialTheme.typography.headlineSmall,
-          )
-
           Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
               value = playlistUrl,
@@ -434,7 +518,7 @@ fun PlaylistActionSheet(
             // Local file picker button
             OutlinedButton(
               onClick = {
-                filePickerLauncher.launch("*/*")
+              filePickerLauncher.launch(arrayOf("*/*"))
               },
               enabled = !isLoading,
               modifier = Modifier.fillMaxWidth(),
@@ -462,73 +546,71 @@ fun PlaylistActionSheet(
               }
             }
           }
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-          ) {
-            TextButton(
-              onClick = { showM3UDialog = false },
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-              )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-              onClick = {
-                val normalizedPlaylistUrl = SharedUrlExtractor.normalizeInput(playlistUrl)
-                if (normalizedPlaylistUrl.isNotBlank()) {
-                  isLoading = true
-                  coroutineScope.launch {
-                    val result =
-                      onCreateM3UPlaylist(
-                        normalizedPlaylistUrl,
-                        playlistUserAgent.trim().takeIf { it.isNotEmpty() },
-                      )
-                    result
-                      .onSuccess {
-                        android.widget.Toast
-                          .makeText(
-                            context,
-                            context.getString(app.gyrolet.mpvrx.R.string.playlist_import_success),
-                            android.widget.Toast.LENGTH_SHORT,
-                          ).show()
-                        showM3UDialog = false
-                        onDismiss()
-                      }.onFailure { error ->
-                        android.widget.Toast
-                          .makeText(
-                            context,
-                            context.getString(
-                              app.gyrolet.mpvrx.R.string.playlist_import_error,
-                              error.message ?: context.getString(app.gyrolet.mpvrx.R.string.generic_unknown_error),
-                            ),
-                            android.widget.Toast.LENGTH_LONG,
-                          ).show()
-                      }
-                    isLoading = false
-                  }
-                }
-              },
-              enabled = playlistUrl.isNotBlank() && !isLoading,
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_add_from_url),
-              )
-            }
-          }
         }
-      }
-    }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showM3UDialog = false },
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          )
+        }
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            val normalizedPlaylistUrl = SharedUrlExtractor.normalizeInput(playlistUrl)
+            if (normalizedPlaylistUrl.isNotBlank()) {
+              isLoading = true
+              coroutineScope.launch {
+                val result =
+                  onCreateM3UPlaylist(
+                    normalizedPlaylistUrl,
+                    playlistUserAgent.trim().takeIf { it.isNotEmpty() },
+                  )
+                result
+                  .onSuccess {
+                    android.widget.Toast
+                      .makeText(
+                        context,
+                        context.getString(app.gyrolet.mpvrx.R.string.playlist_import_success),
+                        android.widget.Toast.LENGTH_SHORT,
+                      ).show()
+                    showM3UDialog = false
+                    onDismiss()
+                  }.onFailure { error ->
+                    android.widget.Toast
+                      .makeText(
+                        context,
+                        context.getString(
+                          app.gyrolet.mpvrx.R.string.playlist_import_error,
+                          error.message ?: context.getString(app.gyrolet.mpvrx.R.string.generic_unknown_error),
+                        ),
+                        android.widget.Toast.LENGTH_LONG,
+                      ).show()
+                  }
+                isLoading = false
+              }
+            }
+          },
+          enabled = playlistUrl.isNotBlank() && !isLoading,
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_add_from_url),
+          )
+        }
+      },
+    )
   }
 
   AddXtreamPlaylistDialog(
     isOpen = showXtreamDialog,
+    savedServerUrls = savedXtreamServerUrls,
     onDismiss = { showXtreamDialog = false },
     onImported = {
       showXtreamDialog = false

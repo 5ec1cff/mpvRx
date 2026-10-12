@@ -16,6 +16,7 @@ import app.gyrolet.mpvrx.ui.player.AmbientStyle
 import app.gyrolet.mpvrx.ui.player.ControlsAnimationStyle
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
 import app.gyrolet.mpvrx.ui.player.PlayerOrientation
+import app.gyrolet.mpvrx.ui.player.PostProcessingPreset
 import app.gyrolet.mpvrx.ui.player.RepeatMode
 import app.gyrolet.mpvrx.ui.player.ResumePlaybackMode
 import app.gyrolet.mpvrx.ui.player.VideoAspect
@@ -31,6 +32,7 @@ enum class IntroSegmentProvider(
   ANI_SKIP("AniSkip (Anime)", "aniskip"),
   ANIME_SKIP("Anime Skip", "animeskip"),
   HYBRID("Hybrid (Fastest)", "hybrid"),
+  SKIP_DB("SkipDB", "skipdb"),
 }
 
 enum class PlayerClockFormat(
@@ -46,6 +48,7 @@ class PlayerPreferences(
 ) {
   val orientation = preferenceStore.getEnum("player_orientation", PlayerOrientation.Video)
   val resumePlaybackMode = preferenceStore.getEnum("resume_playback_mode", ResumePlaybackMode.Always)
+  val minimumResumeDurationSeconds = preferenceStore.getInt("resume_minimum_video_duration_seconds", 100)
   val invertDuration = preferenceStore.getBoolean("invert_duration")
   val holdForMultipleSpeed = preferenceStore.getFloat("hold_for_multiple_speed", 2f)
   val showDoubleTapOvals = preferenceStore.getBoolean("show_double_tap_ovals", true)
@@ -91,10 +94,18 @@ class PlayerPreferences(
   val playerTimeToDisappear = preferenceStore.getInt("player_time_to_disappear", 4000)
   val clockFormat = preferenceStore.getEnum("player_clock_format", PlayerClockFormat.SYSTEM)
 
+  /** Subtitles and the statistics OSD (pages 1-6) scale together with video zoom. */
+  val overlaysFollowVideoZoom = preferenceStore.getBoolean("overlays_follow_video_zoom", false)
   val defaultVideoZoom = preferenceStore.getFloat("default_video_zoom", 0f)
   val panAndZoomEnabled = preferenceStore.getBoolean("pan_and_zoom_enabled", false)
 
   val includeSubtitlesInSnapshot = preferenceStore.getBoolean("include_subtitles_in_snapshot", false)
+
+  /**
+   * The folder the snapshot save dialog pre-selects. [NO_SNAPSHOT_FOLDER] means "none chosen yet",
+   * which the dialog shows as the snapshot root.
+   */
+  val lastSnapshotFolderId = preferenceStore.getLong("last_snapshot_folder_id", NO_SNAPSHOT_FOLDER)
   val screenshotFormat = preferenceStore.getEnum("screenshot_format", ScreenshotFormat.PNG)
   val screenshotTemplate = preferenceStore.getString("screenshot_template", "mpv_snapshot_%Y%m%d_%H%M%S")
   val screenshotQuality = preferenceStore.getInt("screenshot_quality", 90)
@@ -136,6 +147,7 @@ class PlayerPreferences(
   val enableVideoMiniPlayer = DependentBooleanPreference(storedEnableVideoMiniPlayer, videoBackgroundPlayback)
 
   val keepScreenOnWhenPaused = preferenceStore.getBoolean("keep_screen_on_when_paused", false)
+  val externalDisplayProjection = preferenceStore.getBoolean("external_display_projection", true)
   val autoplayAfterScreenUnlock = preferenceStore.getBoolean("autoplay_after_screen_unlock", false)
   val enableMediaInfoIntent = preferenceStore.getBoolean("enable_mediainfo_intent", true)
   val enableWebStreamLinkIntents = preferenceStore.getBoolean("enable_web_stream_link_intents", true)
@@ -153,8 +165,112 @@ class PlayerPreferences(
   val ambientWarmth = preferenceStore.getFloat("ambient_warmth", 0.0f)
   val ambientFadeCurve = preferenceStore.getFloat("ambient_fade_curve", 1.5f)
   val ambientOpacity = preferenceStore.getFloat("ambient_opacity", 1.0f)
+  val ambientGlowEdgeBlend = preferenceStore.getFloat("ambient_glow_edge_blend", 0.005f)
+  val ambientYouTubeEdgeBlend = preferenceStore.getFloat("ambient_youtube_edge_blend", 0.005f)
   val isAmbientEnabled = preferenceStore.getBoolean("ambient_enabled", false)
   val ambientBatterySaver = preferenceStore.getBoolean("ambient_battery_saver", false)
+
+  // Post-Processing
+  val isPostProcessingEnabled = preferenceStore.getBoolean("pp_enabled", false)
+  val postProcessingPreset = preferenceStore.getEnum("pp_preset", PostProcessingPreset.None)
+  // NaturalColors
+  val ppNaturalLuma = preferenceStore.getFloat("pp_natural_luma", 1.2f)
+  val ppNaturalChroma = preferenceStore.getFloat("pp_natural_chroma", 1.2f)
+  // Levels
+  val ppLevelsInputBlack = preferenceStore.getFloat("pp_levels_input_black", 0.0f)
+  val ppLevelsInputWhite = preferenceStore.getFloat("pp_levels_input_white", 1.0f)
+  val ppLevelsGamma = preferenceStore.getFloat("pp_levels_gamma", 1.0f)
+  val ppLevelsOutputBlack = preferenceStore.getFloat("pp_levels_output_black", 0.0f)
+  val ppLevelsOutputWhite = preferenceStore.getFloat("pp_levels_output_white", 1.0f)
+  // Sharpen
+  val ppSharpenAmount = preferenceStore.getFloat("pp_sharpen_amount", 0.6f)
+  // Bloom
+  val ppBloomRadius = preferenceStore.getFloat("pp_bloom_radius", 1.0f)
+  val ppBloomAmount = preferenceStore.getFloat("pp_bloom_amount", 0.6f)
+  // ColorGrade
+  val ppCgSaturation = preferenceStore.getFloat("pp_cg_saturation", 1.0f)
+  val ppCgBrightness = preferenceStore.getFloat("pp_cg_brightness", 1.0f)
+  val ppCgContrast = preferenceStore.getFloat("pp_cg_contrast", 1.0f)
+  val ppCgGamma = preferenceStore.getFloat("pp_cg_gamma", 1.0f)
+  // Denoise
+  val ppDenoiseStrength = preferenceStore.getFloat("pp_denoise_strength", 0.1f)
+  val ppDenoiseRadius = preferenceStore.getFloat("pp_denoise_radius", 1.0f)
+  val ppDenoiseCurve = preferenceStore.getFloat("pp_denoise_curve", 1.0f)
+  // CelShading
+  val ppCelBands = preferenceStore.getFloat("pp_cel_bands", 4.0f)
+  val ppCelBandContrast = preferenceStore.getFloat("pp_cel_band_contrast", 0.5f)
+  val ppCelBandEdge = preferenceStore.getFloat("pp_cel_band_edge", 0.15f)
+  val ppCelDetail = preferenceStore.getFloat("pp_cel_detail", 0.6f)
+  val ppCelOutlineStrength = preferenceStore.getFloat("pp_cel_outline_strength", 0.8f)
+  val ppCelOutlineThreshold = preferenceStore.getFloat("pp_cel_outline_threshold", 0.18f)
+  val ppCelSaturation = preferenceStore.getFloat("pp_cel_saturation", 1.25f)
+  // FilmicCurve
+  val ppFilmicExposure = preferenceStore.getFloat("pp_filmic_exposure", 1.0f)
+  val ppFilmicToe = preferenceStore.getFloat("pp_filmic_toe", 1.2f)
+  val ppFilmicShoulder = preferenceStore.getFloat("pp_filmic_shoulder", 1.2f)
+  val ppFilmicAmount = preferenceStore.getFloat("pp_filmic_amount", 0.7f)
+  // Blur
+  val ppBlurRadius = preferenceStore.getFloat("pp_blur_radius", 4.0f)
+  val ppBlurStrength = preferenceStore.getFloat("pp_blur_strength", 1.0f)
+  val ppBlurFocusSize = preferenceStore.getFloat("pp_blur_focus_size", 0.0f)
+  val ppBlurFocusSoftness = preferenceStore.getFloat("pp_blur_focus_softness", 0.4f)
+  // Cartoon
+  val ppCartoonEdgeStrength = preferenceStore.getFloat("pp_cartoon_edge_strength", 0.5f)
+  val ppCartoonLevels = preferenceStore.getFloat("pp_cartoon_levels", 4.0f)
+  // CartoonSoft
+  val ppCartoonSoftEdgeStrength = preferenceStore.getFloat("pp_cartoon_soft_edge_strength", 0.45f)
+  val ppCartoonSoftShadowGuard = preferenceStore.getFloat("pp_cartoon_soft_shadow_guard", 0.8f)
+  val ppCartoonSoftLevels = preferenceStore.getFloat("pp_cartoon_soft_levels", 6.0f)
+  val ppCartoonSoftSmoothing = preferenceStore.getFloat("pp_cartoon_soft_smoothing", 0.75f)
+  val ppCartoonSoftSaturation = preferenceStore.getFloat("pp_cartoon_soft_saturation", 1.15f)
+  // ChromaticAberration
+  val ppCaStrength = preferenceStore.getFloat("pp_ca_strength", 1.5f)
+  val ppCaFalloff = preferenceStore.getFloat("pp_ca_falloff", 2.0f)
+  // Deband
+  val ppDebandThreshold = preferenceStore.getFloat("pp_deband_threshold", 0.012f)
+  val ppDebandRadius = preferenceStore.getFloat("pp_deband_radius", 8.0f)
+  val ppDebandGrain = preferenceStore.getFloat("pp_deband_grain", 0.004f)
+  // FilmGrain
+  val ppGrainIntensity = preferenceStore.getFloat("pp_grain_intensity", 0.03f)
+  val ppGrainSize = preferenceStore.getFloat("pp_grain_size", 1.0f)
+  val ppGrainColored = preferenceStore.getFloat("pp_grain_colored", 0.0f)
+  // LensDistortion
+  val ppLensDistortion = preferenceStore.getFloat("pp_lens_distortion", 0.1f)
+  val ppLensZoom = preferenceStore.getFloat("pp_lens_zoom", 1.0f)
+  // MotionBlur
+  val ppMotionLength = preferenceStore.getFloat("pp_motion_length", 5.0f)
+  val ppMotionZoom = preferenceStore.getFloat("pp_motion_zoom", 1.0f)
+  val ppMotionPan = preferenceStore.getFloat("pp_motion_pan", 0.0f)
+  val ppMotionAngle = preferenceStore.getFloat("pp_motion_angle", 0.0f)
+  val ppMotionSpin = preferenceStore.getFloat("pp_motion_spin", 0.0f)
+  // Reflections
+  val ppReflHorizon = preferenceStore.getFloat("pp_refl_horizon", 0.55f)
+  val ppReflAmount = preferenceStore.getFloat("pp_refl_amount", 0.35f)
+  val ppReflFalloff = preferenceStore.getFloat("pp_refl_falloff", 1.2f)
+  val ppReflPerspective = preferenceStore.getFloat("pp_refl_perspective", 1.0f)
+  val ppReflRipple = preferenceStore.getFloat("pp_refl_ripple", 0.0f)
+  val ppReflRippleSpeed = preferenceStore.getFloat("pp_refl_ripple_speed", 1.0f)
+  // Scanlines
+  val ppScanlinesDensity = preferenceStore.getFloat("pp_scanlines_density", 340.0f)
+  val ppScanlinesIntensity = preferenceStore.getFloat("pp_scanlines_intensity", 0.5f)
+  val ppScanlinesTint = preferenceStore.getFloat("pp_scanlines_tint", 1.0f)
+  // SplitToning
+  val ppSplitShadowHue = preferenceStore.getFloat("pp_split_shadow_hue", 210.0f)
+  val ppSplitShadowStrength = preferenceStore.getFloat("pp_split_shadow_strength", 0.0f)
+  val ppSplitHighlightHue = preferenceStore.getFloat("pp_split_highlight_hue", 45.0f)
+  val ppSplitHighlightStrength = preferenceStore.getFloat("pp_split_highlight_strength", 0.0f)
+  val ppSplitBalance = preferenceStore.getFloat("pp_split_balance", 0.0f)
+  // Vignette
+  val ppVignetteStrength = preferenceStore.getFloat("pp_vignette_strength", 0.6f)
+  val ppVignetteAspect = preferenceStore.getFloat("pp_vignette_aspect", 1.0f)
+  // WhiteBalance
+  val ppWbTemperature = preferenceStore.getFloat("pp_wb_temperature", 0.0f)
+  val ppWbTint = preferenceStore.getFloat("pp_wb_tint", 0.0f)
+  // CRT
+  val ppCrtDensity = preferenceStore.getFloat("pp_crt_density", 272.0f)
+  val ppCrtRollSpeed = preferenceStore.getFloat("pp_crt_roll_speed", 1.0f)
+  val ppCrtBleed = preferenceStore.getFloat("pp_crt_bleed", 1.0f)
+
 
   /** Show the vertical volume pill while swiping for volume. */
   val showVolumeGestureOverlay = preferenceStore.getBoolean("show_volume_gesture_overlay", true)
@@ -196,4 +312,9 @@ class PlayerPreferences(
 
   /** Animation duration multiplier (0.5 = twice as fast, 2.0 = twice as slow). */
   val animationSpeed = preferenceStore.getFloat("animation_speed", 1.0f)
+
+  companion object {
+    /** Sentinel for `lastSnapshotFolderId`; folder ids start at 1, so it cannot be a real folder. */
+    const val NO_SNAPSHOT_FOLDER = -1L
+  }
 }

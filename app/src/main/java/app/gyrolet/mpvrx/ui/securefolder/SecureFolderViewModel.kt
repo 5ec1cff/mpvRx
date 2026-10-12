@@ -214,10 +214,6 @@ class SecureFolderViewModel(
     preferences.isBiometricEnabled.set(enabled)
   }
 
-  fun verifyBiometricPin(pin: String): Boolean {
-    return verifyPin(pin)
-  }
-
   /** Toggles whether the "Secure Folder" entry point is hidden from the Preferences screen. */
   fun toggleEntryPointHidden() {
     preferences.isEntryPointHidden.set(!preferences.isEntryPointHidden.get())

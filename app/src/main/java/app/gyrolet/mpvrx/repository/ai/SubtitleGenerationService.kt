@@ -18,14 +18,12 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 data class SubtitleGenerationProgress(
   val progress: Float,
@@ -215,12 +213,7 @@ class SubtitleGenerationService(
     withContext(Dispatchers.IO) {
       runCatchingCancellable {
         val apiClient =
-          okHttpClient
-            .newBuilder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(180, TimeUnit.SECONDS)
-            .writeTimeout(180, TimeUnit.SECONDS)
-            .build()
+          okHttpClient.withAiUploadTimeouts()
 
         val bodyBuilder =
           MultipartBody
@@ -312,13 +305,4 @@ class SubtitleGenerationService(
   }
 
   private fun formatVttTime(ms: Long): String = formatSrtTime(ms).replace(',', '.')
-}
-
-private fun audioMediaType(file: File): okhttp3.MediaType {
-  val ext = file.name.substringAfterLast('.', "").lowercase()
-  return when (ext) {
-    "wav" -> "audio/wav".toMediaType()
-    "webm" -> "audio/webm".toMediaType()
-    else -> "audio/mp4".toMediaType()
-  }
 }

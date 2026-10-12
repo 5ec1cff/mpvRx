@@ -43,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import app.gyrolet.mpvrx.database.repository.NetworkStreamEntryRepository
 import app.gyrolet.mpvrx.domain.torrent.isTorrentSource
 import app.gyrolet.mpvrx.domain.torrent.normalizeTorrentSource
@@ -101,12 +100,24 @@ fun PlayLinkSheet(
           val firstEntry = extractedPlaylist?.entries?.firstOrNull()
           val selectedSource = firstEntry?.url ?: playableSource
           val selectedName = firstEntry?.title ?: MediaInfoParser.parseStreamTitle(playableSource)
+          val selectedUri = runCatching { android.net.Uri.parse(selectedSource) }.getOrNull()
+          val artworkUrl =
+            firstEntry?.thumbnailUrl
+              ?: if (
+                app.gyrolet.mpvrx.utils.media.HttpUtils.isMusicStreamingUrl(selectedUri) ||
+                  app.gyrolet.mpvrx.utils.media.HttpUtils.isYouTubeUrl(selectedUri)
+              ) {
+                app.gyrolet.mpvrx.utils.media.HttpUtils.fetchMusicStreamingArtwork(selectedSource)
+              } else {
+                null
+              }
           if (!isTorrentSource(selectedSource)) {
             try {
               RecentlyPlayedOps.addRecentlyPlayed(
                 filePath = selectedSource,
                 fileName = selectedName,
                 launchSource = "play_link",
+                artworkUrl = artworkUrl,
               )
               streamEntryRepository.saveNormalEntry(
                 canonicalSourceUri = selectedSource,
@@ -115,7 +126,7 @@ fun PlayLinkSheet(
                 backdropUrl = firstEntry?.thumbnailUrl,
               )
 
-              val uri = runCatching { android.net.Uri.parse(selectedSource) }.getOrNull()
+              val uri = selectedUri
               if (firstEntry == null && app.gyrolet.mpvrx.utils.media.HttpUtils.isYouTubeUrl(uri)) {
                 val ytMeta = app.gyrolet.mpvrx.utils.media.HttpUtils.fetchYouTubeMetadata(playableSource)
                 if (ytMeta != null && ytMeta.title.isNotBlank()) {

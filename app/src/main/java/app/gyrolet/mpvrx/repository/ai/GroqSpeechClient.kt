@@ -22,7 +22,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class GroqSpeechClient(
   private val client: OkHttpClient,
@@ -34,12 +33,7 @@ class GroqSpeechClient(
   }
 
   private val apiClient: OkHttpClient =
-    client
-      .newBuilder()
-      .connectTimeout(60, TimeUnit.SECONDS)
-      .readTimeout(180, TimeUnit.SECONDS)
-      .writeTimeout(180, TimeUnit.SECONDS)
-      .build()
+    client.withAiUploadTimeouts()
 
   override suspend fun transcribe(
     apiKey: String,

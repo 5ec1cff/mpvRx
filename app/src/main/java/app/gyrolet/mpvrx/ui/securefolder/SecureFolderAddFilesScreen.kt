@@ -25,7 +25,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -85,11 +84,8 @@ data object SecureFolderAddFilesScreen : Screen {
     val secureFolderPreferences = koinInject<SecureFolderPreferences>()
     val browserPreferences = koinInject<BrowserPreferences>()
     val videoCardUiConfig = rememberVideoCardUiConfig()
+    val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
     val videoListState = rememberLazyListState()
-    val isVideoListScrolling by
-      remember(videoListState) {
-        derivedStateOf { videoListState.isScrollInProgress }
-      }
 
     // Folder list step (mirrors FolderListScreen's browsing + sort)
     val folderListViewModel: FolderListViewModel =
@@ -241,6 +237,7 @@ data object SecureFolderAddFilesScreen : Screen {
               FolderCard(
                 folder = videoFolder,
                 onClick = { selectedFolder = videoFolder },
+                onThumbClick = { selectedFolder = videoFolder },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
               )
             }
@@ -269,8 +266,8 @@ data object SecureFolderAddFilesScreen : Screen {
               onClick = { selectionManager?.toggle(video) },
               onThumbClick = { selectionManager?.toggle(video) },
               onLongClick = { selectionManager?.handleLongClick(video) },
-              allowThumbnailLoading = !isVideoListScrolling,
               uiConfig = videoCardUiConfig,
+              showSubtitleIndicator = showSubtitleIndicator,
               modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             )
           }
@@ -286,6 +283,9 @@ data object SecureFolderAddFilesScreen : Screen {
         sortOrder = folderSortOrder,
         onSortTypeChange = { browserPreferences.folderSortType.set(it) },
         onSortOrderChange = { browserPreferences.folderSortOrder.set(it) },
+        embeddedAlbumView = true,
+        pickerMode = true,
+        fixedLayoutMode = app.gyrolet.mpvrx.preferences.MediaLayoutMode.LIST,
       )
     } else {
       VideoSortDialog(
@@ -295,6 +295,9 @@ data object SecureFolderAddFilesScreen : Screen {
         sortOrder = videoSortOrder,
         onSortTypeChange = { browserPreferences.videoSortType.set(it) },
         onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
+        enableViewModeOptions = false,
+        pickerMode = true,
+        fixedLayoutMode = app.gyrolet.mpvrx.preferences.MediaLayoutMode.LIST,
       )
     }
 

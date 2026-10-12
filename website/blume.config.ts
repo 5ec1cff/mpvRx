@@ -6,7 +6,7 @@ export default defineConfig({
     "A focused Android media player powered by mpv, with deep playback controls, libraries, streaming, subtitles, and scripting.",
   logo: {
     href: "/",
-    image: "/images/icon.png",
+    image: "/images/icon.svg",
     text: "mpvRx",
   },
   banner: {

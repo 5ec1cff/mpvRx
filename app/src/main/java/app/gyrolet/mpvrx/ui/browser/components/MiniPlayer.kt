@@ -15,10 +15,14 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.text.format.DateUtils
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -29,6 +33,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,8 +51,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -66,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -73,13 +79,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.ui.player.EmbeddedMotionArtwork
+import app.gyrolet.mpvrx.ui.player.MotionArtworkImage
+import app.gyrolet.mpvrx.ui.player.rememberMotionArtworkDrawable
+import app.gyrolet.mpvrx.presentation.components.LiquidGlassStyle
+import app.gyrolet.mpvrx.presentation.components.LiquidGlassSurface
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
@@ -90,9 +101,14 @@ import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
+import app.gyrolet.mpvrx.ui.player.PlayerArtworkDestination
+import app.gyrolet.mpvrx.ui.player.PlayerArtworkTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
+import app.gyrolet.mpvrx.ui.player.playerArtworkAnchor
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -147,10 +163,25 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     NavigationBarState.isMiniPlayerVisible = isMediaActive
   }
 
+  val reduceMotion = AppMotion.shouldReduceMotion()
   AnimatedVisibility(
     visible = isMediaActive,
-    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    enter = if (reduceMotion) {
+      fadeIn(animationSpec = tween(120))
+    } else {
+      slideInVertically(
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        initialOffsetY = { it / 2 },
+      ) + fadeIn(animationSpec = tween(240))
+    },
+    exit = if (reduceMotion) {
+      fadeOut(animationSpec = tween(120))
+    } else {
+      slideOutVertically(
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        targetOffsetY = { it / 2 },
+      ) + fadeOut(animationSpec = tween(200))
+    },
     modifier = modifier,
   ) {
     MiniPlayerContent(
@@ -163,6 +194,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MiniPlayerContent(
   context: Context,
@@ -183,8 +215,19 @@ private fun MiniPlayerContent(
   val videoHeight by PlaybackSession.propLong["video-params/h"].collectAsStateWithLifecycle()
 
   val isPlaying = paused == false
+  val activeBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsStateWithLifecycle()
+  val audiobook = activeBook?.takeIf { it.book.id == currentItem?.audiobook?.bookId }
+  val isAudiobook = currentItem?.audiobook != null
+
+  val bookOffsetSec = currentItem?.audiobook?.let { audiobook?.positionInBook(it.trackId, 0) }?.div(1000f) ?: 0f
+  val currentPosSec = positionState.value?.toFloat() ?: 0f
+  val totalPosSec = if (audiobook != null) (bookOffsetSec + currentPosSec).coerceIn(0f, audiobook.durationMs / 1000f) else currentPosSec
+  val totalDurSec = if (audiobook != null && audiobook.durationMs > 0) audiobook.durationMs / 1000f else (duration?.toFloat() ?: 0f)
+  val progressFraction = if (totalDurSec > 0f) (totalPosSec / totalDurSec).coerceIn(0f, 1f) else 0f
+
   val title =
-    queueState.currentItem?.title?.takeIf { queueState.isExplicitQueue && it.isNotBlank() }
+    audiobook?.book?.title
+      ?: queueState.currentItem?.title?.takeIf { queueState.isExplicitQueue && it.isNotBlank() }
       ?: rawMediaTitle?.takeIf { it.isNotBlank() }
       ?: currentItem?.title?.takeIf { it.isNotBlank() }
       ?: "Media Track"
@@ -203,19 +246,34 @@ private fun MiniPlayerContent(
   val coverArtPath =
     currentItem?.originalUri?.takeIf { it.isNotBlank() }
       ?: currentItem?.playableUri?.takeIf { it.isNotBlank() }
-  val coverArt =
-    rememberMiniPlayerCoverArt(
+  val effectiveArtworkUri = currentItem?.artworkUri
+    ?: audiobook?.book?.coverUri?.takeIf { it.isNotBlank() }
+  val artwork =
+    rememberMiniPlayerArtwork(
       pathOrUri = if (isAudioOnlyItem) coverArtPath else null,
-      artworkUri = if (isAudioOnlyItem) currentItem?.artworkUri else null,
+      artworkUri = if (isAudioOnlyItem) effectiveArtworkUri else null,
     )
+  val coverArt = artwork?.bitmap
 
   val coroutineScope = rememberCoroutineScope()
   var offsetX by remember { mutableFloatStateOf(0f) }
+  // Keep one artwork handoff per tap burst, without scheduling a recomposition.
+  val lastExpandAtMs = remember { longArrayOf(0L) }
+  LaunchedEffect(currentItem?.stableId) { offsetX = 0f }
+  val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
   val density = LocalDensity.current
   val dismissThresholdPx = with(density) { 100.dp.toPx() }
+  val expandThresholdPx = with(density) { 48.dp.toPx() }
 
-  val launchPlayer = remember(context) {
-    {
+  val launchPlayer = remember(context, isAudioOnlyItem) {
+    launch@{
+      val now = android.os.SystemClock.elapsedRealtime()
+      if (now - lastExpandAtMs[0] < 650L) return@launch
+      lastExpandAtMs[0] = now
+      val animateArtwork = isAudioOnlyItem && PlayerArtworkTransitions.begin(
+        PlayerArtworkDestination.FULL,
+        PlaybackSession.state.value.currentItem?.stableId,
+      )
       val intent = Intent(context, PlayerActivity::class.java).apply {
         action = MediaPlaybackService.ACTION_OPEN_PLAYER
         putExtra("is_audio", isAudioOnlyItem)
@@ -224,13 +282,10 @@ private fun MiniPlayerContent(
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
       }
       context.startActivity(intent)
-      if (context is Activity) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-          context.overrideActivityTransition(Activity.OVERRIDE_TRANSITION_OPEN, R.anim.slide_in_up, 0)
-        } else {
-          @Suppress("DEPRECATION")
-          context.overridePendingTransition(R.anim.slide_in_up, 0)
-        }
+      if (context is Activity && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val enterAnimation = if (animateArtwork) 0 else R.anim.slide_in_up
+        @Suppress("DEPRECATION")
+        context.overridePendingTransition(enterAnimation, 0)
       }
     }
   }
@@ -244,10 +299,28 @@ private fun MiniPlayerContent(
       )
     }
   }
+  val miniPlayerShape = AppShapeScale.largeIncreased
+  val reduceMotion = AppMotion.playerReducedMotion()
 
-  Surface(
+  LiquidGlassSurface(
     modifier = Modifier
       .offset { IntOffset(offsetX.roundToInt(), 0) }
+      .clip(miniPlayerShape)
+      .pointerInput(launchPlayer, expandThresholdPx) {
+        var verticalDrag = 0f
+        detectVerticalDragGestures(
+          onDragStart = { verticalDrag = 0f },
+          onDragCancel = { verticalDrag = 0f },
+          onDragEnd = {
+            if (verticalDrag < -expandThresholdPx) launchPlayer()
+            verticalDrag = 0f
+          },
+          onVerticalDrag = { change, amount ->
+            change.consume()
+            verticalDrag = (verticalDrag + amount).coerceAtMost(0f)
+          },
+        )
+      }
       .pointerInput(Unit) {
         detectHorizontalDragGestures(
           onDragEnd = {
@@ -273,13 +346,13 @@ private fun MiniPlayerContent(
           },
         )
       }
-      .clip(RoundedCornerShape(20.dp))
       .clickable { launchPlayer() },
-    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-    tonalElevation = 8.dp,
-    shadowElevation = 10.dp,
+    shape = miniPlayerShape,
+    style = LiquidGlassStyle.MiniPlayer,
+    glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
+    fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
   ) {
-    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val progressColor = MaterialTheme.colorScheme.primary
 
     if (isVideoMode) {
       // Calculate aspect ratio for video surface container
@@ -359,15 +432,15 @@ private fun MiniPlayerContent(
           key(currentItem?.stableId ?: currentItem?.originalUri) {
             Text(
               text = title,
-              style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+              style = MaterialTheme.typography.bodyMediumEmphasized,
               color = MaterialTheme.colorScheme.onSurface,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.basicMarquee(),
+              modifier = if (reduceMotion) Modifier else Modifier.basicMarquee(),
             )
           }
           Text(
-            text = if (isPlaying) "Playing Video" else "Paused",
+            text = stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -381,22 +454,25 @@ private fun MiniPlayerContent(
         ) {
           IconButton(
             onClick = {
-              context.startService(
+              actionHaptics.selection(true)
+             context.startService(
                 Intent(context, MediaPlaybackService::class.java).setAction(
                   MediaPlaybackService.ACTION_NOTIFICATION_PLAY_PAUSE,
                 ),
               )
             },
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(48.dp),
           ) {
             AnimatedContent(
               targetState = isPlaying,
-              transitionSpec = { fadeIn() togetherWith fadeOut() },
+              transitionSpec = {
+                if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
+              },
               label = "mini_video_play_pause",
             ) { playing ->
               Icon(
                 imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-                contentDescription = null,
+                contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(26.dp),
               )
@@ -404,12 +480,12 @@ private fun MiniPlayerContent(
           }
 
           IconButton(
-            onClick = { dismissPlayer() },
-            modifier = Modifier.size(32.dp),
+            onClick = { actionHaptics.confirm(); dismissPlayer() },
+            modifier = Modifier.size(48.dp),
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Close,
-              contentDescription = null,
+              contentDescription = stringResource(R.string.ui_close),
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.size(18.dp),
             )
@@ -422,14 +498,22 @@ private fun MiniPlayerContent(
         modifier = Modifier
           .fillMaxWidth()
           .drawBehind {
-            val dur = duration?.toFloat() ?: 0f
-            val pos = positionState.value?.toFloat() ?: 0f
-            val progressFraction = if (dur > 0f) (pos / dur).coerceIn(0f, 1f) else 0f
             if (progressFraction > 0f) {
+              val playedWidth = size.width * progressFraction
               drawRect(
-                color = primaryContainerColor.copy(alpha = 0.35f),
+                color = progressColor.copy(alpha = 0.22f),
                 size = Size(
-                  width = size.width * progressFraction,
+                  width = playedWidth,
+                  height = size.height,
+                ),
+              )
+              // Blur and vibrancy wash out a flat fill, so mark the played boundary explicitly.
+              val edgeWidth = 2.dp.toPx().coerceAtMost(playedWidth)
+              drawRect(
+                color = progressColor.copy(alpha = 0.85f),
+                topLeft = Offset(x = playedWidth - edgeWidth, y = 0f),
+                size = Size(
+                  width = edgeWidth,
                   height = size.height,
                 ),
               )
@@ -442,12 +526,20 @@ private fun MiniPlayerContent(
         Box(
           modifier = Modifier
             .size(48.dp)
+            .playerArtworkAnchor(PlayerArtworkDestination.MINI, currentItem?.stableId, coverArt, 10.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
           contentAlignment = Alignment.Center,
         ) {
           val artworkImageBitmap = remember(coverArt) { coverArt?.asImageBitmap() }
-          if (artworkImageBitmap != null) {
+          val animatedDrawable = rememberMotionArtworkDrawable(artwork?.motionArtwork)
+          if (animatedDrawable != null) {
+            MotionArtworkImage(
+              drawable = animatedDrawable,
+              isPlaying = isPlaying,
+              modifier = Modifier.fillMaxSize(),
+            )
+          } else if (artworkImageBitmap != null) {
             Image(
               bitmap = artworkImageBitmap,
               contentDescription = null,
@@ -471,21 +563,32 @@ private fun MiniPlayerContent(
           modifier = Modifier.weight(1f),
           verticalArrangement = Arrangement.Center,
         ) {
-          key(currentItem?.stableId ?: currentItem?.originalUri) {
+          key(currentItem?.stableId ?: currentItem?.originalUri ?: audiobook?.book?.id) {
             Text(
               text = title,
-              style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+              style = MaterialTheme.typography.bodyMediumEmphasized,
               color = MaterialTheme.colorScheme.onSurface,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.basicMarquee(),
+              modifier = if (reduceMotion) Modifier else Modifier.basicMarquee(),
             )
           }
+          val statusText = when {
+            audiobook != null -> {
+              val author = audiobook.book.author.takeIf { it.isNotBlank() }
+              val durText = DateUtils.formatElapsedTime(audiobook.durationMs / 1000)
+              val posText = DateUtils.formatElapsedTime(totalPosSec.toLong())
+              val timeInfo = "$posText / $durText"
+              if (author != null) "$author • $timeInfo" else timeInfo
+            }
+            else -> stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused)
+          }
           Text(
-            text = if (isPlaying) "Playing" else "Paused",
+            text = statusText,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
           )
         }
 
@@ -494,22 +597,25 @@ private fun MiniPlayerContent(
         // Play / Pause Action Button
         IconButton(
           onClick = {
-            context.startService(
+            actionHaptics.selection(true)
+             context.startService(
               Intent(context, MediaPlaybackService::class.java).setAction(
                 MediaPlaybackService.ACTION_NOTIFICATION_PLAY_PAUSE,
               ),
             )
           },
-          modifier = Modifier.size(36.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           AnimatedContent(
             targetState = isPlaying,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = {
+              if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
+            },
             label = "mini_play_pause",
           ) { playing ->
             Icon(
               imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-              contentDescription = null,
+              contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
               tint = MaterialTheme.colorScheme.onSurface,
               modifier = Modifier.size(26.dp),
             )
@@ -519,17 +625,18 @@ private fun MiniPlayerContent(
         // Next Track Action Button
         IconButton(
           onClick = {
-            context.startService(
+            actionHaptics.tick()
+             context.startService(
               Intent(context, MediaPlaybackService::class.java).setAction(
                 MediaPlaybackService.ACTION_NOTIFICATION_NEXT,
               ),
             )
           },
-          modifier = Modifier.size(36.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.SkipNext,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.pref_gesture_media_next),
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp),
           )
@@ -537,12 +644,12 @@ private fun MiniPlayerContent(
 
         // Close Action Button
         IconButton(
-          onClick = { dismissPlayer() },
-          modifier = Modifier.size(32.dp),
+          onClick = { actionHaptics.confirm(); dismissPlayer() },
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Close,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.ui_close),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp),
           )
@@ -552,25 +659,33 @@ private fun MiniPlayerContent(
   }
 }
 
-/**
- * Extracts embedded album art for the current track so the mini player can show a
- * square cover instead of a bare icon. Returns null when no artwork is available.
- */
+private data class MiniPlayerArtwork(
+  val bitmap: Bitmap?,
+  val motionArtwork: ByteArray? = null,
+)
+
+/** Only the current audio mini-player decodes motion frames; notifications remain static. */
 @Composable
-private fun rememberMiniPlayerCoverArt(
+private fun rememberMiniPlayerArtwork(
   pathOrUri: String?,
   artworkUri: String?,
-): Bitmap? {
+): MiniPlayerArtwork? {
   val context = LocalContext.current
-  var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+  var artwork by remember(pathOrUri, artworkUri) { mutableStateOf<MiniPlayerArtwork?>(null) }
+
   LaunchedEffect(pathOrUri, artworkUri) {
-    if (pathOrUri.isNullOrBlank()) {
-      bitmap = null
+    if (pathOrUri.isNullOrBlank() && artworkUri.isNullOrBlank()) {
+      artwork = null
       return@LaunchedEffect
     }
-    withContext(Dispatchers.IO) {
+    artwork = withContext(Dispatchers.IO) {
       runCatching {
-        EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)?.let { return@runCatching it }
+        if (!artworkUri.isNullOrBlank()) {
+          EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)?.let {
+            return@runCatching MiniPlayerArtwork(bitmap = it)
+          }
+        }
+        if (pathOrUri.isNullOrBlank()) return@runCatching null
         val cleanPath =
           when {
             pathOrUri.startsWith("file://", ignoreCase = true) -> Uri.parse(pathOrUri).path
@@ -584,16 +699,16 @@ private fun rememberMiniPlayerCoverArt(
           } else {
             retriever.setDataSource(context, Uri.parse(pathOrUri))
           }
-          EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath, retriever)
+          val pictureBytes = retriever.embeddedPicture
+          MiniPlayerArtwork(
+            bitmap = EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath, retriever, pictureBytes),
+            motionArtwork = EmbeddedMotionArtwork.animatedBytes(pictureBytes),
+          )
         } finally {
           runCatching { retriever.release() }
         }
-      }.onSuccess { loaded ->
-        bitmap = loaded
-      }.onFailure {
-        bitmap = null
-      }
+      }.getOrNull()
     }
   }
-  return bitmap
+  return artwork
 }

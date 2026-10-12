@@ -16,6 +16,14 @@ import app.gyrolet.mpvrx.ui.player.controls.components.LocalForceDarkPlayerButto
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 
+internal object PlayerButtonAlpha {
+  const val CONTAINER = 0.55f
+  const val BORDER = 0.4f
+  const val DISABLED_CONTENT = 0.38f
+  const val GLASS_CONTAINER = 0.32f
+  const val SELECTED_GLASS_CONTAINER = 0.22f
+}
+
 /**
  * Carries the background visibility choice through every player-button implementation.
  *
@@ -34,9 +42,9 @@ internal fun PlayerButtonTheme(
   )
 }
 
-/** Applies the selected dark app palette only to the contents of one player button. */
+/** Applies the selected dark app palette to the complete player-control layer. */
 @Composable
-internal fun PlayerButtonContentTheme(content: @Composable () -> Unit) {
+internal fun PlayerControlsContentTheme(content: @Composable () -> Unit) {
   val useDarkPalette =
     LocalForceDarkPlayerButtonsBackground.current && !LocalHidePlayerButtonsBackground.current
   val darkColors = LocalDarkAppColorScheme.current
@@ -51,4 +59,9 @@ internal fun PlayerButtonContentTheme(content: @Composable () -> Unit) {
     shapes = MaterialTheme.shapes,
     content = content,
   )
+}
+
+@Composable
+internal fun PlayerButtonContentTheme(content: @Composable () -> Unit) {
+  PlayerControlsContentTheme(content)
 }

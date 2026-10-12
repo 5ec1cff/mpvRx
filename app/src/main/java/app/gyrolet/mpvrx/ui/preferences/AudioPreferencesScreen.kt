@@ -26,11 +26,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RangeSlider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -60,21 +59,19 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.SliderPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.koin.compose.koinInject
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -102,30 +99,13 @@ object AudioPreferencesScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_audio),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(R.string.pref_audio),
+          onBack = { backstack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(AudioPreferencesScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -206,17 +186,14 @@ object AudioPreferencesScreen : Screen {
                   color = MaterialTheme.colorScheme.outline,
                   style = MaterialTheme.typography.bodyMedium,
                 )
-                RangeSlider(
+                Slider(
                   value =
                     minimumAudioDurationSeconds
                       .toFloat()
-                      .coerceIn(0f, maxMinimumDurationSeconds)..maxMinimumDurationSeconds,
-                  onValueChange = { selectedRange ->
-                    // The left thumb is the lower bound; there is intentionally no upper limit.
-                    // Music reacts live via the preference flow. Files/Folders are refreshed once
-                    // the drag finishes so storage is not rescanned for every intermediate step.
+                      .coerceIn(0f, maxMinimumDurationSeconds),
+                  onValueChange = { minimumSeconds ->
                     browserPreferences.minimumAudioDurationSeconds.set(
-                      selectedRange.start.toInt().coerceIn(0, maxMinimumDurationSeconds.toInt()),
+                      minimumSeconds.toInt().coerceIn(0, maxMinimumDurationSeconds.toInt()),
                     )
                   },
                   onValueChangeFinished = { MediaLibraryEvents.notifyChanged() },
@@ -240,11 +217,11 @@ object AudioPreferencesScreen : Screen {
               PreferenceDivider()
               val enabledMusicTabs by preferences.enabledMusicTabs.collectAsState()
               val musicTabOrder by preferences.musicTabOrder.collectAsState()
-              val musicTabsSummary = remember(enabledMusicTabs, musicTabOrder) {
+              val musicTabsSummary = remember(enabledMusicTabs, musicTabOrder, resources) {
                 val tabMap = MusicTab.entries.associateBy { it.name }
                 val orderedTabs = (musicTabOrder.mapNotNull { tabMap[it] } + (MusicTab.entries - musicTabOrder.mapNotNull { tabMap[it] }.toSet())).distinct()
-                val names = orderedTabs.filter { it.name in enabledMusicTabs }.map { it.title }
-                if (names.isEmpty()) "Songs" else names.joinToString(", ")
+                val names = orderedTabs.filter { it.name in enabledMusicTabs }.map { resources.getString(it.titleRes) }
+                if (names.isEmpty()) resources.getString(R.string.ui_songs) else names.joinToString(", ")
               }
 
               Column(
@@ -269,17 +246,19 @@ object AudioPreferencesScreen : Screen {
               PreferenceDivider()
               val mediaServerPreferences = koinInject<MediaServerPreferences>()
               val musicSourceProvider by mediaServerPreferences.musicSourceProvider.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_music_player_switch_title),
                 value = musicSourceProvider,
                 onValueChange = { mediaServerPreferences.musicSourceProvider.set(it) },
-                values = listOf(MusicSourceProvider.LOCAL, MusicSourceProvider.JELLYFIN, MusicSourceProvider.NAVIDROME),
+                values = listOf(MusicSourceProvider.LOCAL, MusicSourceProvider.JELLYFIN, MusicSourceProvider.NAVIDROME, MusicSourceProvider.AUDIOBOOKS),
                 valueToText = { source ->
                   AnnotatedString(
                     when (source) {
                       MusicSourceProvider.LOCAL -> context.getString(R.string.music_source_local)
                       MusicSourceProvider.JELLYFIN -> context.getString(R.string.music_source_jellyfin)
                       MusicSourceProvider.NAVIDROME -> context.getString(R.string.music_source_navidrome)
+                      MusicSourceProvider.AUDIOBOOKS -> context.getString(R.string.audiobooks_title)
                     },
                   )
                 },
@@ -291,11 +270,13 @@ object AudioPreferencesScreen : Screen {
                         MusicSourceProvider.LOCAL -> stringResource(R.string.music_source_local)
                         MusicSourceProvider.JELLYFIN -> stringResource(R.string.music_source_jellyfin)
                         MusicSourceProvider.NAVIDROME -> stringResource(R.string.music_source_navidrome)
+                        MusicSourceProvider.AUDIOBOOKS -> stringResource(R.string.audiobooks_title)
                       },
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
               )
+              }
             }
           }
 
@@ -306,6 +287,7 @@ object AudioPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val audioVisualizerStyle by preferences.audioVisualizerStyle.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_visualizer_style_title),
                 value = audioVisualizerStyle,
@@ -352,9 +334,11 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
               val audioOrientation by preferences.audioOrientation.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
                 value = audioOrientation,
@@ -369,6 +353,7 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val audioAmbientMode by preferences.audioAmbientMode.collectAsState()
@@ -409,6 +394,7 @@ object AudioPreferencesScreen : Screen {
           item {
             PreferenceCard {
               val preferredLanguages by preferences.preferredLanguages.collectAsState()
+              ExpressivePreferenceItem {
               TextFieldPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_preferred_languages),
                 value = preferredLanguages,
@@ -446,6 +432,7 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
               val audioPitchCorrection by preferences.audioPitchCorrection.collectAsState()
@@ -555,6 +542,7 @@ object AudioPreferencesScreen : Screen {
 
               PreferenceDivider()
               val audioChannel by preferences.audioChannels.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_channels),
                 value = audioChannel,
@@ -570,9 +558,11 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val volumeBoostCap by preferences.volumeBoostCap.collectAsState()
+              ExpressivePreferenceItem {
               SliderPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_volume_boost_cap),
                 value = volumeBoostCap.toFloat(),
@@ -592,6 +582,30 @@ object AudioPreferencesScreen : Screen {
                 },
                 onSliderValueChange = { preferences.volumeBoostCap.set(it.toInt()) },
                 sliderValue = volumeBoostCap.toFloat(),
+              )
+              }
+
+              PreferenceDivider()
+              Text(
+                text = stringResource(R.string.pref_lyrics_sources_category),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+              )
+
+              val autoFetchLyricsOnline by preferences.lyricsAutoFetchOnline.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_auto_fetch_online),
+                value = autoFetchLyricsOnline,
+                onValueChange = preferences.lyricsAutoFetchOnline::set,
+                title = { Text(stringResource(R.string.pref_lyrics_auto_fetch_online)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_lyrics_auto_fetch_online_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
               )
 
               PreferenceDivider()
@@ -619,6 +633,7 @@ object AudioPreferencesScreen : Screen {
 
               PreferenceDivider()
               val lyricsTargetLanguage by preferences.lyricsTargetLanguage.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_target_language),
                 value = lyricsTargetLanguage,
@@ -633,9 +648,11 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
               val lyricsDisplayMode by preferences.lyricsTranslationDisplayMode.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_display_mode),
                 value = lyricsDisplayMode,
@@ -650,6 +667,36 @@ object AudioPreferencesScreen : Screen {
                   )
                 },
               )
+              }
+
+              PreferenceDivider()
+              val paxsenixApiKey by preferences.paxsenixApiKey.collectAsState()
+              ExpressivePreferenceItem {
+              TextFieldPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_paxsenix_api_key),
+                value = paxsenixApiKey,
+                onValueChange = { preferences.paxsenixApiKey.set(it) },
+                textToValue = { it.trim() },
+                title = { Text(stringResource(R.string.pref_paxsenix_api_key)) },
+                summary = {
+                  Text(
+                    text = paxsenixApiKey.ifBlank { stringResource(R.string.pref_paxsenix_api_key_summary) },
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+                textField = { value, onValueChange, _ ->
+                  Column {
+                    Text(stringResource(R.string.pref_paxsenix_api_key_dialog_desc))
+                    TextField(
+                      value = value,
+                      onValueChange = onValueChange,
+                      modifier = Modifier.fillMaxWidth(),
+                      singleLine = true,
+                    )
+                  }
+                },
+              )
+              }
             }
           }
         }
@@ -699,7 +746,7 @@ object AudioPreferencesScreen : Screen {
                   },
                 )
                 Text(
-                  text = tab.title,
+                  text = stringResource(tab.titleRes),
                   style = MaterialTheme.typography.bodyLarge,
                   modifier = Modifier
                     .weight(1f)

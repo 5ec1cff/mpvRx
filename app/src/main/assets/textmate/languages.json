@@ -23,6 +23,12 @@
       "name": "input-conf",
       "scopeName": "source.mpv.input",
       "languageConfiguration": "textmate/inputconf/language-configuration.json"
+    },
+    {
+      "grammar": "textmate/xml/syntaxes/xml.tmLanguage.json",
+      "name": "xml",
+      "scopeName": "text.xml",
+      "languageConfiguration": "textmate/xml/language-configuration.json"
     }
   ]
 }

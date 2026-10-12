@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/media_widget_pill_root"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/media_widget_pill_height"
+        android:layout_gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/media_widget_pill_background"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/media_widget_pill_background"
+            android:contentDescription="@null"
+            android:scaleType="fitXY" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="10dp">
+
+            <ImageView
+                android:id="@+id/media_widget_pill_artwork"
+                android:layout_width="@dimen/media_widget_pill_art"
+                android:layout_height="@dimen/media_widget_pill_art"
+                android:background="@drawable/media_widget_pill_art_frame"
+                android:contentDescription="@null"
+                android:padding="2dp"
+                android:scaleType="fitXY" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/media_widget_pill_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="2dp"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/gflex_variable"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:text="@string/media_widget_empty"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/media_widget_pill_button"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/media_widget_pill_favorite"
+                        android:layout_width="@dimen/media_widget_pill_button"
+                        android:layout_height="@dimen/media_widget_pill_button"
+                        android:background="@drawable/media_widget_control_background_dark"
+                        android:contentDescription="@string/notification_add_to_favorites"
+                        android:padding="8dp"
+                        android:src="@drawable/media_widget_pill_heart" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/media_widget_pill_previous"
+                        android:layout_width="@dimen/media_widget_pill_button"
+                        android:layout_height="@dimen/media_widget_pill_button"
+                        android:background="@drawable/media_widget_control_background_dark"
+                        android:contentDescription="@string/pref_gesture_media_previous"
+                        android:padding="7dp"
+                        android:src="@drawable/media_widget_previous" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/media_widget_pill_play"
+                        android:layout_width="@dimen/media_widget_pill_button"
+                        android:layout_height="@dimen/media_widget_pill_button"
+                        android:background="@drawable/media_widget_control_background_dark"
+                        android:contentDescription="@string/ui_play"
+                        android:padding="7dp"
+                        android:src="@drawable/media_widget_play" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/media_widget_pill_next"
+                        android:layout_width="@dimen/media_widget_pill_button"
+                        android:layout_height="@dimen/media_widget_pill_button"
+                        android:background="@drawable/media_widget_control_background_dark"
+                        android:contentDescription="@string/pref_gesture_media_next"
+                        android:padding="7dp"
+                        android:src="@drawable/media_widget_next" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/media_widget_pill_shuffle"
+                        android:layout_width="@dimen/media_widget_pill_button"
+                        android:layout_height="@dimen/media_widget_pill_button"
+                        android:background="@drawable/media_widget_control_background_dark"
+                        android:contentDescription="@string/btn_label_shuffle"
+                        android:padding="7dp"
+                        android:src="@drawable/media_widget_pill_shuffle" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

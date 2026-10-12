@@ -21,6 +21,8 @@ import android.util.Log
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -36,6 +38,14 @@ import kotlin.math.pow
 object VideoScanUtils : KoinComponent {
   private const val TAG = "VideoScanUtils"
   private val metadataCache: VideoMetadataCacheRepository by inject()
+
+  /**
+   * Optional MediaStore per-video rotation column.
+   *
+   * Providers differ: some expose `rotation`, while newer Android/vendor providers reject it.
+   * The query retries without this column when the provider does not support it.
+   */
+  private const val VIDEO_ROTATION_COLUMN = "rotation"
 
   // Extensions where MediaStore duration is unreliable (returns 0)
   private val MEDIASTORE_DURATION_UNRELIABLE = setOf("ts", "mts", "m2ts")
@@ -73,6 +83,7 @@ object VideoScanUtils : KoinComponent {
           v.duration <= 0L && v.path.substringAfterLast('.').lowercase() in MEDIASTORE_DURATION_UNRELIABLE
         }
       for (key in zeroTsKeys) {
+        currentCoroutineContext().ensureActive()
         val v = videosMap[key] ?: continue
         try {
           val file = File(v.path)
@@ -85,6 +96,8 @@ object VideoScanUtils : KoinComponent {
                 durationFormatted = formatDuration(meta.durationMs),
               )
           }
+        } catch (error: kotlinx.coroutines.CancellationException) {
+          throw error
         } catch (_: Exception) {
         }
       }
@@ -105,13 +118,13 @@ object VideoScanUtils : KoinComponent {
   /**
    * Scan videos from MediaStore
    */
-  private fun scanVideosFromMediaStore(
+  private suspend fun scanVideosFromMediaStore(
     context: Context,
     folderPath: String,
     videosMap: MutableMap<String, Video>,
     noMediaPathFilter: NoMediaPathFilter,
   ) {
-    val projection =
+    val baseProjection =
       arrayOf(
         MediaStore.Video.Media._ID,
         MediaStore.Video.Media.DISPLAY_NAME,
@@ -124,6 +137,7 @@ object VideoScanUtils : KoinComponent {
         MediaStore.Video.Media.WIDTH,
         MediaStore.Video.Media.HEIGHT,
       )
+    val projectionWithRotation = baseProjection + VIDEO_ROTATION_COLUMN
 
     val normalizedFolderPath = normalizeStoragePath(folderPath) ?: return
     val normalizedFolderKey = storagePathKey(normalizedFolderPath) ?: return
@@ -131,14 +145,27 @@ object VideoScanUtils : KoinComponent {
     val selectionArgs = arrayOf("$normalizedFolderKey/%")
 
     try {
-      context.contentResolver
-        .query(
-          MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-          projection,
-          selection,
-          selectionArgs,
-          "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
-        )?.use { cursor ->
+      val cursor =
+        try {
+          context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projectionWithRotation,
+            selection,
+            selectionArgs,
+            "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
+          )
+        } catch (_: IllegalArgumentException) {
+          // Some Android MediaStore providers reject the optional rotation column.
+          // Retry without it so the entire folder scan is not discarded.
+          context.contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            baseProjection,
+            selection,
+            selectionArgs,
+            "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
+          )
+        }
+      cursor?.use { cursor ->
           val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
           val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
           val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
@@ -149,9 +176,11 @@ object VideoScanUtils : KoinComponent {
           val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
           val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
           val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
+          val rotationColumn = cursor.getColumnIndex(VIDEO_ROTATION_COLUMN)
 
           while (cursor.moveToNext()) {
-            val path = cursor.getString(dataColumn)
+            currentCoroutineContext().ensureActive()
+            val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
             val normalizedPath = normalizeStoragePath(path) ?: continue
 
@@ -162,7 +191,7 @@ object VideoScanUtils : KoinComponent {
             if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
 
             val id = cursor.getLong(idColumn)
-            val displayName = cursor.getString(nameColumn)
+            val displayName = cursor.getString(nameColumn)?.takeIf { it.isNotBlank() } ?: file.name
             val title = file.nameWithoutExtension
             val size = cursor.getLong(sizeColumn)
             val duration = cursor.getLong(durationColumn)
@@ -171,6 +200,7 @@ object VideoScanUtils : KoinComponent {
             val mimeType = cursor.getString(mimeTypeColumn) ?: "video/*"
             val width = cursor.getInt(widthColumn)
             val height = cursor.getInt(heightColumn)
+            val rotation = if (rotationColumn >= 0) cursor.getInt(rotationColumn) else 0
 
             val uri =
               Uri.withAppendedPath(
@@ -197,6 +227,7 @@ object VideoScanUtils : KoinComponent {
                 bucketDisplayName = leafStorageName(normalizedFolderPath),
                 width = width,
                 height = height,
+                rotation = rotation,
                 fps = 0f,
                 resolution = formatResolution(width, height),
                 hasEmbeddedSubtitles = false,
@@ -204,12 +235,14 @@ object VideoScanUtils : KoinComponent {
               )
           }
         }
+    } catch (error: kotlinx.coroutines.CancellationException) {
+      throw error
     } catch (e: Exception) {
       Log.e(TAG, "MediaStore video scan error", e)
     }
   }
 
-  private fun scanAudioFromMediaStore(
+  private suspend fun scanAudioFromMediaStore(
     context: Context,
     folderPath: String,
     videosMap: MutableMap<String, Video>,
@@ -252,10 +285,12 @@ object VideoScanUtils : KoinComponent {
           val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE)
 
           while (cursor.moveToNext()) {
-            val path = cursor.getString(dataColumn)
+            currentCoroutineContext().ensureActive()
+            val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
+            if (!file.isFile) continue
             if (!areEquivalentStoragePaths(file.parent, normalizedFolderPath)) continue
-            if (!file.exists() || noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
+            if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
             if (!FileTypeUtils.isAudioFile(file)) continue
             val duration = cursor.getLong(durationColumn)
             if (!options.includesAudioDuration(duration)) continue
@@ -290,6 +325,8 @@ object VideoScanUtils : KoinComponent {
               )
           }
         }
+    } catch (error: kotlinx.coroutines.CancellationException) {
+      throw error
     } catch (e: Exception) {
       Log.e(TAG, "MediaStore audio scan error", e)
     }
@@ -310,6 +347,7 @@ object VideoScanUtils : KoinComponent {
       val filesToProcess = mutableListOf<File>()
 
       for (file in files) {
+        currentCoroutineContext().ensureActive()
         if (!file.isFile) continue
         if (FileFilterUtils.shouldSkipFile(file, options, noMediaPathFilter)) continue
 
@@ -332,6 +370,7 @@ object VideoScanUtils : KoinComponent {
         )
 
       for (file in filesToProcess) {
+        currentCoroutineContext().ensureActive()
         try {
           val path = normalizeStoragePath(file.absolutePath) ?: continue
           val videoKey = mediaPathKey(path) ?: path
@@ -371,18 +410,22 @@ object VideoScanUtils : KoinComponent {
               subtitleCodec = cachedMetadata?.subtitleCodec ?: "",
               isAudio = isAudio,
             )
+        } catch (error: kotlinx.coroutines.CancellationException) {
+          throw error
         } catch (e: Exception) {
           Log.w(TAG, "Error processing file: ${file.absolutePath}", e)
         }
       }
+    } catch (error: kotlinx.coroutines.CancellationException) {
+      throw error
     } catch (e: Exception) {
       Log.e(TAG, "Filesystem video scan error", e)
     }
   }
 
-  // Formatting utilities
+  // Formatting utilities, shared with MediaFileRepository and MediaLibraryCache
 
-  private fun formatDuration(durationMs: Long): String {
+  internal fun formatDuration(durationMs: Long): String {
     if (durationMs <= 0) return "0s"
 
     val seconds = durationMs / 1000
@@ -397,7 +440,7 @@ object VideoScanUtils : KoinComponent {
     }
   }
 
-  private fun formatFileSize(bytes: Long): String {
+  internal fun formatFileSize(bytes: Long): String {
     if (bytes <= 0) return "0 B"
     val units = arrayOf("B", "KB", "MB", "GB", "TB")
     val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
@@ -409,23 +452,71 @@ object VideoScanUtils : KoinComponent {
     )
   }
 
-  private fun formatResolution(
+fun formatResolution(
     width: Int,
     height: Int,
-  ): String {
+): String {
     if (width <= 0 || height <= 0) return "--"
 
+    val longSide = maxOf(width, height)
+
+    // Scanline count, which is what the "p" suffix actually names. Height carries it,
+    // except for a tall frame, which is a landscape recording rotated for portrait
+    // playback and therefore keeps the class on its width instead. Frames that are only
+    // 4:3-ish (1440×1080, 960×1080) are not tall: they are anamorphic 1080 and still
+    // carry a full 1080 lines, which minOf/maxOf would otherwise report as the width.
+    val isRotatedPortrait = height > width && height.toLong() * 10 >= width.toLong() * 13
+    val scanlines = if (isRotatedPortrait) width else height
+
     return when {
-      width >= 7680 || height >= 4320 -> "4320p"
-      width >= 3840 || height >= 2160 -> "2160p"
-      width >= 2560 || height >= 1440 -> "1440p"
-      width >= 1920 || height >= 1080 -> "1080p"
-      width >= 1280 || height >= 720 -> "720p"
-      width >= 854 || height >= 480 -> "480p"
-      width >= 640 || height >= 360 -> "360p"
-      width >= 426 || height >= 240 -> "240p"
-      else -> "${height}p"
+        // 8K / 4320p class
+        longSide >= 7680 || scanlines >= 4320 -> "4320p"
+
+        // 4K / 2160p class
+        // Includes cinematic 4K such as 3840×1600
+        longSide >= 3840 || scanlines >= 2160 -> "2160p"
+
+        // QHD / 1440p class
+        // Includes ultrawide 3440×1440
+        scanlines >= 1440 -> "1440p"
+
+        // FHD / 1080p class
+        // A frame that still carries a full 1080 scanlines is 1080p however narrow it
+        // is. Anamorphic, 4:3 broadcast and pillarboxed frames (1440×1080, 1152×1080,
+        // 1280×1080) have a long side below 1920, so requiring the long side to reach
+        // 1920 demoted them to 720p.
+        scanlines >= 1000 -> "1080p"
+
+        // Cinematic letterboxing crops scanlines away instead of squeezing them
+        // (1920×800, 1920×816, 2560×600), so the long side has to decide here.
+        longSide >= 1920 && scanlines >= 750 -> "1080p"
+
+        // HD / 720p class
+        // Includes 1280×544, 1280×576, etc.
+        longSide >= 1280 && scanlines >= 500 -> "720p"
+
+        // 480p class
+        longSide >= 854 || scanlines >= 480 -> "480p"
+
+        // 360p class
+        longSide >= 640 || scanlines >= 360 -> "360p"
+
+        // 240p class
+        longSide >= 426 || scanlines >= 240 -> "240p"
+
+        // 144p / everything below 240p
+        else -> "144p"
     }
+}
+
+  fun formatResolutionWithFps(
+    width: Int,
+    height: Int,
+    fps: Float,
+  ): String {
+    val resolution = formatResolution(width, height)
+    if (resolution == "--" || !fps.isFinite() || fps <= 0f) return resolution
+    return "$resolution@${fps.toInt()}"
   }
 }
 
@@ -467,6 +558,7 @@ object FileTypeUtils {
     setOf(
       "mp3",
       "m4a",
+      "m4b",
       "aac",
       "flac",
       "ogg",
@@ -504,6 +596,11 @@ object FileTypeUtils {
       "truehd",
       "mid",
       "midi",
+    )
+
+  val IMAGE_EXTENSIONS =
+    setOf(
+      "jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif"
     )
 
   /**
@@ -640,14 +737,14 @@ object FileFilterUtils {
     options: MediaScanOptions = MediaScanOptions(),
     noMediaPathFilter: NoMediaPathFilter = NoMediaPathFilter(options),
   ): Boolean {
+    if (noMediaPathFilter.shouldExcludeDirectory(folder)) {
+      return true
+    }
+
     if (isAndroidDataAccessiblePath(folder)) {
       // Allow navigation/scanning into Android/data so app-specific video folders
       // can appear in both the folder list and filesystem browser.
       return folder.name.startsWith(".") && !options.includeNoMediaFolders
-    }
-
-    if (noMediaPathFilter.shouldExcludeDirectory(folder)) {
-      return true
     }
 
     val name = folder.name.lowercase()

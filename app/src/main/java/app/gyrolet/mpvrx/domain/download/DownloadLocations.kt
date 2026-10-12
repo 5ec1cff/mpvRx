@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.domain.download
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.preferences.DownloadPreferences
 import java.io.File
 
@@ -46,12 +47,41 @@ class DownloadLocations(
     if (!dir.isDirectory || !dir.canWrite()) return null
     preferences.downloadLocationTreeUri.set(treeUri.toString())
     preferences.downloadLocationPath.set(path)
+    preferences.downloadLocationChildName.set("")
+    return path
+  }
+
+  /** Use a writable child directory while retaining the persisted grant for its parent tree. */
+  fun prepareLocationUnderTree(
+    treeUri: Uri,
+    childName: String,
+  ): String? {
+    val root = DocumentFile.fromTreeUri(context, treeUri) ?: return null
+    val child = root.findFile(childName)?.takeIf { it.isDirectory }
+      ?: root.createDirectory(childName)
+      ?: return null
+    val rootPath = resolveTreeUriToPath(treeUri) ?: return null
+    val path = File(rootPath, child.name ?: childName).absolutePath
+    val dir = File(path)
+    if ((!dir.exists() && !dir.mkdirs()) || !dir.isDirectory || !dir.canWrite()) return null
+    return path
+  }
+
+  fun setLocationUnderTree(
+    treeUri: Uri,
+    childName: String,
+  ): String? {
+    val path = prepareLocationUnderTree(treeUri, childName) ?: return null
+    preferences.downloadLocationTreeUri.set(treeUri.toString())
+    preferences.downloadLocationPath.set(path)
+    preferences.downloadLocationChildName.set(childName)
     return path
   }
 
   fun clearCustomLocation() {
     preferences.downloadLocationTreeUri.set("")
     preferences.downloadLocationPath.set("")
+    preferences.downloadLocationChildName.set("")
   }
 
   fun linksDir(): File = subDir(root(), "Links")
@@ -80,9 +110,10 @@ class DownloadLocations(
     val treeUri = preferences.downloadLocationTreeUri.get()
     if (treeUri.isBlank()) return null
     val resolved = resolveTreeUriToPath(Uri.parse(treeUri)) ?: return null
-    val dir = File(resolved)
+    val childName = preferences.downloadLocationChildName.get()
+    val dir = if (childName.isBlank()) File(resolved) else File(resolved, childName)
     if (!dir.isDirectory || !dir.canWrite()) return null
-    preferences.downloadLocationPath.set(resolved)
+    preferences.downloadLocationPath.set(dir.absolutePath)
     return dir
   }
 

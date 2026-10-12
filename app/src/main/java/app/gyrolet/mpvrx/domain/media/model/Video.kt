@@ -30,6 +30,12 @@ data class Video(
   val bucketDisplayName: String,
   val width: Int,
   val height: Int,
+  /**
+   * Container rotation in degrees, not yet applied to [width]/[height]. Media library rows already
+   * carry this from MediaStore, so the player can pick the correct launch orientation before mpv has
+   * reported any geometry.
+   */
+  val rotation: Int = 0,
   val fps: Float,
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,
@@ -37,4 +43,5 @@ data class Video(
   val videoCodec: String = "",
   val videoCodecMimeType: String = "",
   val isAudio: Boolean = false,
+  val artworkUrl: String? = null,
 )

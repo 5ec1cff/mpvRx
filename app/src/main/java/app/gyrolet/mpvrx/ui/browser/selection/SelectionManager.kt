@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.media.model.Video
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ class SelectionManager<T, ID>(
   private val onDeleteItems: suspend (List<T>, Boolean) -> Pair<Int, Int>,
   private val onRenameItem: (suspend (T, String) -> Result<Unit>)?,
   private val onOperationComplete: () -> Unit,
+  private val onUserSelection: (Boolean) -> Unit = {},
 ) {
   var state by mutableStateOf(SelectionState<ID>())
     private set
@@ -58,6 +60,11 @@ class SelectionManager<T, ID>(
     state = state.toggle(getId(item))
   }
 
+  fun toggleFromUser(item: T) {
+    toggle(item)
+    onUserSelection(isSelected(item))
+  }
+
   /**
    * Select an item without toggling it off.
    */
@@ -69,14 +76,6 @@ class SelectionManager<T, ID>(
    * Perform range selection from the last selected item to the specified item
    */
   fun toggleRange(item: T) {
-    val allIds = items().map(getId)
-    state = state.selectRange(getId(item), allIds)
-  }
-
-  /**
-   * Add the range from the current anchor to this item.
-   */
-  fun selectRangeTo(item: T) {
     val allIds = items().map(getId)
     state = state.selectRange(getId(item), allIds)
   }
@@ -307,6 +306,7 @@ fun <T, ID> rememberSelectionManager(
 ): SelectionManager<T, ID> {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
+  val haptics by rememberUpdatedState(rememberAppHaptics())
   val latestItems by rememberUpdatedState(items)
   val latestGetId by rememberUpdatedState(getId)
   val latestOnDeleteItems by rememberUpdatedState(onDeleteItems)
@@ -331,6 +331,7 @@ fun <T, ID> rememberSelectionManager(
           null
         },
       onOperationComplete = { latestOnOperationComplete() },
+      onUserSelection = { selected -> haptics.selection(selected) },
     )
   }
 }

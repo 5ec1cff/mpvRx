@@ -23,7 +23,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 class OpenCodeClient(
   private val client: OkHttpClient,
@@ -38,12 +37,7 @@ class OpenCodeClient(
   private enum class Protocol { RESPONSES, ANTHROPIC, GOOGLE, CHAT_COMPLETIONS }
 
   private val apiClient =
-    client
-      .newBuilder()
-      .connectTimeout(60, TimeUnit.SECONDS)
-      .readTimeout(120, TimeUnit.SECONDS)
-      .writeTimeout(60, TimeUnit.SECONDS)
-      .build()
+    client.withAiChatTimeouts()
 
   override suspend fun fetchModels(apiKey: String): Result<List<AiModelInfo>> =
     withContext(Dispatchers.IO) {
@@ -51,12 +45,7 @@ class OpenCodeClient(
         val call =
           apiClient
             .newCall(
-              Request
-                .Builder()
-                .url("$BASE_URL/models")
-                .header("Authorization", "Bearer $apiKey")
-                .get()
-                .build(),
+              bearerGetRequest("$BASE_URL/models", apiKey),
             )
         call.awaitResponse().use { response ->
           val body = response.body.string()

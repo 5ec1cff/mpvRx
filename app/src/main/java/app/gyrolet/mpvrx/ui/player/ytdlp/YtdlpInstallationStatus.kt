@@ -7,21 +7,28 @@
  * (at your option) any later version.
  */
 
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+
 package app.gyrolet.mpvrx.ui.player.ytdlp
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 
 @Composable
 fun YtdlpInstallationStatus(
@@ -32,7 +39,7 @@ fun YtdlpInstallationStatus(
   val isInstalled = info?.isInstalled == true
   val version = info?.version
   val shortCommitHash = info?.shortCommitHash
-  val containerColor =
+  val targetContainerColor =
     when {
       info == null -> MaterialTheme.colorScheme.surfaceContainerHigh
       !isInstalled -> MaterialTheme.colorScheme.errorContainer
@@ -40,7 +47,7 @@ fun YtdlpInstallationStatus(
       info.channel == YtdlpReleaseChannel.MASTER -> MaterialTheme.colorScheme.secondaryContainer
       else -> MaterialTheme.colorScheme.primaryContainer
     }
-  val contentColor =
+  val targetContentColor =
     when {
       info == null -> MaterialTheme.colorScheme.onSurface
       !isInstalled -> MaterialTheme.colorScheme.onErrorContainer
@@ -48,6 +55,16 @@ fun YtdlpInstallationStatus(
       info.channel == YtdlpReleaseChannel.MASTER -> MaterialTheme.colorScheme.onSecondaryContainer
       else -> MaterialTheme.colorScheme.onPrimaryContainer
     }
+  val containerColor by animateColorAsState(
+    targetValue = targetContainerColor,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "ytdlpStatusContainer",
+  )
+  val contentColor by animateColorAsState(
+    targetValue = targetContentColor,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "ytdlpStatusContent",
+  )
   val title =
     when {
       info == null -> stringResource(R.string.ui_checking_yt_dlp)
@@ -72,7 +89,7 @@ fun YtdlpInstallationStatus(
 
   Surface(
     modifier = modifier.fillMaxWidth(),
-    shape = RoundedCornerShape(8.dp),
+    shape = AppShapeScale.extraLarge,
     color = containerColor,
     border = BorderStroke(1.dp, contentColor.copy(alpha = 0.18f)),
   ) {
@@ -82,7 +99,10 @@ fun YtdlpInstallationStatus(
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
       Box(
-        modifier = Modifier.size(40.dp),
+        modifier =
+          Modifier
+            .size(46.dp)
+            .background(contentColor.copy(alpha = 0.12f), CircleShape),
         contentAlignment = Alignment.Center,
       ) {
         if (isRunning) {
@@ -103,8 +123,7 @@ fun YtdlpInstallationStatus(
       Column(modifier = Modifier.weight(1f)) {
         Text(
           text = title,
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Bold,
+          style = MaterialTheme.typography.titleMediumEmphasized,
           color = contentColor,
         )
         Spacer(Modifier.height(2.dp))

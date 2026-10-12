@@ -2,6 +2,563 @@
 
 These notes are written in plain English and focus on what changed for real use.
 
+## Unreleased
+
+### Translations
+
+- **Ukrainian:** Added a complete Ukrainian translation, contributed by [@WATCHER-00](https://github.com/WATCHER-00). Every user-facing string and plural is covered, so the app now speaks Ukrainian alongside the existing locales.
+
+## 2.7.2 - Hotfixes - mpvlib 1.1.1, Track Badges, Pinned Videos, and Font Sharing
+
+### Highlights
+
+- Upgraded the standard and non-Vulkan mpv backends to mpvlib 1.1.1.
+- Pin individual videos to the top of their folder in both the folder and file-tree browsers, in list and grid layouts.
+- The lyrics source sheet now shows a clear status marker for every provider: currently showing, fetching, found, nothing found, failed, or not fetched yet.
+- Added visual track badges for audio and subtitle streams (Default, Forced, External, Descriptive, Mono, and Stereo).
+- Redesigned audio and subtitle selection rows to match the playlist sheet with vibrant gradient outlines and accent highlights.
+- Downloaded Google Fonts are now saved directly to mpv's font directory, making them immediately available for OSD and subtitles, and can be deleted from the font picker.
+- Added independent ambient edge-blending sliders for Glow and YouTube ambient lighting.
+- Cleaned up obsolete mpv configuration options and streamlined subtitle settings.
+- Clipped IconSwitch ripples to the pill shape to prevent press feedback from overflowing.
+
+### mpv Core and Playback
+
+- **mpvlib 1.1.1:** Upgraded the native mpv library for standard and non-Vulkan distributions.
+- **Option and property cleanup:** Dropped invalid or dead options (`vd-lavc-queue`, `http-allow-redirect`, `ytdl-path`), corrected dynamic property names, and ensured subtitle languages are passed via `sub-add`.
+- **Ambient edge blending:** Added independent edge-blending sliders for Glow and YouTube ambient lighting to smoothly feather illumination into video edges.
+
+### Library and Browsing
+
+- **Pinned videos:** Select one or more videos and use the pin action in the selection bar to keep them at the top of the folder, ahead of the chosen sort order. Pinned videos show a pin badge on their thumbnail; selecting only pinned videos switches the action to Unpin.
+
+### Lyrics
+
+- **Provider status markers:** Each lyrics source row now has a colored status chip on the right with an icon and label, and the Auto row shows which provider is currently supplying the lyrics.
+- **Failures told apart from misses:** Providers that time out or error are now reported as Failed instead of being treated as having no lyrics, and providers that answered empty during the automatic search are marked as Nothing found.
+
+### Subtitles, Audio, and Fonts
+
+- **Track badges:** Added clear badges indicating default, forced, external, descriptive, mono, and stereo tracks across audio and subtitle sheets.
+- **Track selection styling:** Unified audio and subtitle track rows with playlist-style active indicators, featuring a themed accent fill and gradient outline.
+- **Direct font sharing with mpv:** Downloaded Google Fonts are written directly to mpv's configuration fonts directory, enabling instant subtitle and OSD rendering without manual font mapping.
+- **Delete downloaded fonts:** Each downloaded font in the picker has a delete button on the right; deleting the active font falls back to the built-in Google Sans Flex.
+- **Streamlined subtitle preferences:** Reorganized typography cards and removed redundant secondary subtitle options for a cleaner settings experience.
+
+### User Interface and Interaction
+
+- **IconSwitch clipping:** Confined touch-interaction ripples to the rounded switch pill so press feedback stays strictly within bounds.
+- **Sheet refinements:** Polished layout, typography, and scrolling in the lyrics provider and Google Fonts picker sheets.
+
+### Fixes
+
+- **Seeking with controls shown:** Swipe seeking no longer hides the seekbar, bottom buttons, and custom Lua buttons while the full controls are visible; they now auto-hide after the normal timeout even mid-seek.
+- **Online subtitle search:** The search field can be edited again, and it stays above the keyboard while typing.
+- **Text input in player sheets:** Text fields inside player bottom sheets can take focus and receive keyboard input again.
+- **Bookmarks:** Bookmark names no longer accumulate past bookmark titles.
+- **Image viewer:** Pinch zoom now anchors inside the picture rather than the letterbox area.
+
+## 2.7.0 & 2.7.1 - Font Hotfix - Snapshots, Rich Lyrics, Smarter Browsing, and Playback Polish
+
+### App and Player Fonts
+
+- mpv now uses the app's bundled Google Sans Flex face for on-screen display text by default.
+- `osd-font` is part of mpv.conf ownership, so an explicitly delegated config value remains authoritative over the app default.
+- Appearance now offers one searchable App font picker with built-in Google Sans Flex, the Android system font, and downloadable families from Google Fonts.
+- Google Fonts metadata is cached, downloaded TTF files are validated before activation, and non-Latin text retains the Android system fallback.
+
+### Highlights
+
+- A new Snapshots library saves lossless frame captures, groups them into folders, supports sorting and bulk management, and can return directly to the captured moment in a video.
+- Network browsing now includes optional image browsing with a full-screen viewer, plus read-only ZIP navigation and direct playback without extracting an archive.
+- Regular playlists can mix local and network media, while local M3U and M3U8 playlists can be discovered and refreshed automatically across supported storage locations.
+- Lyrics gained sixteen online providers, ISRC-aware matching, provider search, stronger synchronized-result selection, and a compact active-line presentation below album art.
+- Right-to-left lyrics, optional forced left-to-right subtitle rendering, and independently adjustable secondary subtitles improve multilingual playback.
+- The responsive home-screen widget provides artwork, metadata, and transport controls; idle or missing-art states now show the centered music note logo inside a theme-colored circular halo that switches with the widget's light or dark theme.
+- Wallpaper presets, a realistic home preview, wallpaper-derived theme colors, app-wide UI scaling, and Liquid Glass surfaces expand appearance customization.
+- Player behavior is more predictable across rotation, Surface replacement, PiP, background playback, seeking, Android TV, and compact or landscape layouts.
+- Automatic configuration backups, restore-aware onboarding, watch statistics, bounded debug logs, and a redesigned crash-recovery screen improve resilience and diagnostics.
+
+### Snapshots, Images, and Archives
+
+#### Snapshot Library
+
+- **Save to Snapshots:** Capture a lossless PNG from the frame-navigation panel, store it in the system gallery, and record its source media and playback position.
+- **Dedicated library:** Enable a Snapshots navigation tab to browse captures in a photo grid, select multiple items, and remove saved records in bulk.
+- **Return to playback:** Open a snapshot and jump back to the exact source video and captured timestamp.
+- **Snapshot folders:** Create in-app folders, choose a destination while capturing, and organize snapshot records without moving or duplicating the gallery files themselves.
+- **Presentation fixes:** Added a folder mosaic layout and improved snapshot sorting, folder covers, wallpaper continuity, and photo-grid presentation.
+
+#### Network Images and ZIP Files
+
+- **Network image browsing:** Optionally show common image formats alongside folders and videos on WebDAV, SMB, FTP, and SFTP connections.
+- **Full-screen image viewer:** Open network images with swipe navigation, pinch zoom, and rotation controls.
+- **Clear media identity:** Image and video rows use type badges when both kinds are visible in one network folder.
+- **ZIP virtual folders:** Import readable ZIP archives as persistent read-only playlists, browse them as folder trees, and play supported media directly through mpv without extracting them first.
+- **Archive queues:** Next and Previous follow sibling media entries inside the archive, and ZIP folders can be opened from the browser action menu.
+- **Filename understanding:** Added GuessIt-based title and metadata inference with a fast Kotlin/Anitomy fallback when the Python parser is unavailable.
+
+### Playlists and Network Browsing
+
+#### Mixed-Source Playlists
+
+- Add WebDAV, SMB, FTP, and SFTP videos to regular playlists alongside local files.
+- Long-press a network file to add it directly to a playlist.
+- Show source, path, size, and connection badges for network entries; disconnected entries remain visible and become playable again when their connection is recreated.
+- Preserve stored queue order and item identity while allowing natural display sorting, source metadata, selection, bookmarks, and responsive list or grid layouts.
+- Added persistent Sort and View choices to playlist library, detail, and Add Videos screens, including manual-grid controls and full filename display.
+- Improved playlist reordering, grid toggles, landscape sizing, release-build playlist sheets, thumbnail selection, and subtitle indicators.
+
+#### Local IPTV Discovery
+
+- Automatically discover M3U and M3U8 files from readable internal storage, SD cards, USB volumes, MediaStore, and folders granted through Android's storage picker.
+- Refresh changed sources after media-index, storage-mount, permission, or manual scan events without blocking the interface.
+- Deduplicate canonical file and document locations, preserve playlist history, skip HLS segment manifests, and retain unavailable imported sources until the storage returns.
+- Use the first entry's IPTV logo or cached thumbnail as playlist artwork and resolve relative media and logo paths more reliably.
+
+#### Browser Reliability
+
+- Kept view and grid settings isolated to the browser where they were selected and refined file-picker layouts across orientations.
+- Improved resolution metadata loading, source formatting, media browsing, and optimistic folder removal.
+- Preserved the Movies filesystem fallback with cancellable, deduplicated traversal and routed shared text links through streaming-link handling.
+- Refined manual-grid controls and dual-pane scaling so cards remain usable at compact widths.
+
+### Music, Audiobooks, and Lyrics
+
+#### Audiobooks and Streaming Music
+
+- Fetch online cover art and metadata for local books and Audiobookshelf entries.
+- Moved Audiobooks into the compact music-source selector so books can be opened in place without a separate top-level header action.
+- Route supported music-streaming links to the audio-player interface and fetch their remote artwork when available.
+- Isolated artwork ownership and playback checkpoints so one music item cannot overwrite another item's presentation or progress.
+- Added a dual-mode equalizer with graphic and parametric controls, live curve visualization, and persistent audio settings.
+- Artwork swiping now follows the active queue across repeated gestures, shuffle order, and repeat-all wrapping.
+- Added fast scrolling to large music libraries and ordered album tracks naturally by disc and track number.
+- Improved Audiobookshelf and Seerr header actions, sizing, and layout.
+
+#### Lyrics
+
+- Added sixteen online providers behind one lyrics registry, with provider timeouts, priority ordering, and ISRC-based recording matching before lyric lookup.
+- Added provider search and a single source line above the scrubber; the same area shows the current lyric while the full lyrics view is closed.
+- Prefer word-timed lyrics, then line-synchronized lyrics, before plain text during automatic searches.
+- Search more aggressively for synchronized results and avoid settling prematurely for an unsynchronized response.
+- Cache successful provider-specific lyric results per track, including timing and translations, while explicit refresh still bypasses the cache.
+- Added an active lyric strip below album art and improved dual-pane lyrics, compact overflow following, source controls, and bottom-bar spacing.
+- Moved the audio-format badge between seek timers and balanced the surrounding audio controls.
+- Reset music subtabs cleanly when returning from another main tab.
+
+### Subtitles and Multilingual Text
+
+- Detect the strong direction of each karaoke line and reveal synchronized words from the correct edge for right-to-left scripts.
+- Added a translated **Force left-to-right subtitles** preference backed by mpv's bidirectional-text compatibility option, while respecting explicit mpv.conf ownership.
+- Added independent secondary-subtitle selection, scale, and vertical position controls.
+- Apply supported secondary subtitle properties consistently through player startup, live settings, reset behavior, and subtitle positioning.
+- Added navigation actions to file and folder pickers used for external subtitle selection.
+- Improved picker filtering so supported subtitle and audio files remain available while filename matches are prioritized through sorting.
+
+### Player, Playback, and Controls
+
+#### Playback Behavior
+
+- Added **Confirm before leaving playback**, which requires a second Back press after active sheets, panels, lock state, and TV controls have handled navigation.
+- Added a **Only for longer videos** resume mode with a configurable minimum duration while preserving existing Always, Ask, Never, and audiobook behavior.
+- Added a per-video **Remember** choice for background playback while retaining separate audio and audiobook behavior.
+- Exposed video-quality selection consistently across supported video sources and limited online stream selectors to sources that can use them.
+- Aligned precise and fast seeking behavior with mpvEx and repaired unresolved seek-state handling.
+- Preserved the demuxer cache across Android Surface loss so renderer handoffs no longer force unnecessary network rebuffering.
+- Avoided redundant zero-position seeks that could flush the decoder, briefly black out video, and restart first-time playback.
+- Horizontal swipe seeking now keeps the amount/time indicator without showing a duplicate seekbar.
+- Improved initial video orientation, notification-dismissal shutdown, PiP audio cleanup, and stopped-background-player handling.
+- Exposed the complete SMB path to Lua scripts instead of only the shortened display path.
+
+#### Layout and Interaction
+
+- Added app-wide UI scaling and preserved the selected scale across device rotation.
+- Restored the correct phone landscape layout instead of treating every rotated phone as a tablet; tablet detection now follows the stable smallest-width classification.
+- Refined player sheets, overlays, draggable panels, playlists, track rows, and preference pages for compact and landscape screens.
+- Fixed clipped or escaping pressed-state feedback on rounded cards, pills, track rows, mini-player surfaces, and frame-review controls.
+- Added Liquid Glass editing bars and strengthened floating navigation surfaces while preserving readable compatibility fallbacks.
+- Unified switches on Material's expressive 250 ms thumb morph with theme-safe check and close symbols.
+- Restored reliable Telegram-style theme reveals from browser-title taps after changing Appearance settings.
+- Improved the mini-player progress fill contrast and clipped its interaction feedback to the rounded container.
+- Kept player controls aligned under forced-dark playback and restored panel dragging and playlist sizing.
+
+#### Notifications and Android TV
+
+- Added ongoing-activity metadata for supported live-notification and Dynamic Island integrations.
+- Improved D-pad entry into player sheets and made the seekbar focusable and scrubbable on Android TV.
+- Avoided an R8 verification failure seen on strict ART implementations, including some Android TV and lower-end devices.
+
+### Widget, Navigation, and Pickers
+
+#### Home-Screen Widget
+
+- Added compact and wide home-screen widget layouts with full-bleed artwork, title and artist metadata, Previous, Play/Pause, and Next actions.
+- Follow the app's light, dark, AMOLED, dynamic, built-in, or custom color scheme and refresh when playback, queue, theme, or widget dimensions change.
+- Use Android 12 responsive size maps with portrait and landscape fallbacks on older supported Android versions.
+- Show the mpvRx launcher icon instead of a generic music or video glyph when no artwork is available.
+- Add a theme-accented circular halo behind the icon, with stronger emphasis while no media is playing and a subtler fallback during active playback.
+
+#### Responsive Selection and Navigation
+
+- Moved folder destinations into a bounded responsive bottom sheet that leaves room for actions on phones, tablets, and short landscape screens.
+- Unified app-owned file, folder, playlist, sort, view, option, AI-model, swipe-action, translation-language, subtitle-source, blacklist, audiobook-cover, and Cast-speed selectors on the same responsive sheet.
+- Preserve picker navigation through rotation, recover from invalid or unreadable paths, search with stable item keys, and let hardware Back move to the parent folder before dismissing.
+- Respect reduced-motion preferences by snapping sheets open while retaining normal Material motion otherwise.
+- Improved distant-tab transitions, optimistic folder removal, header actions, top-bar sizing, and responsive manual-grid controls.
+- Added a dedicated contributor Hall of Fame with highlighted contributor grids.
+
+### Jellyfin, Media Servers, and Downloads
+
+- Automatically enable the Jellyfin navigation tab after a server is added.
+- Added a transparent gradient Jellyfin header that transitions with scrolling and increased the hero carousel size.
+- Display Jellyfin title-logo artwork where available and refined technical metadata, title, and detail layouts.
+- Reflow technical details into a responsive selectable grid on compact screens.
+- Added a Hotstar-style clockwise circular progress indicator for Jellyfin downloads.
+- Improved add-server keyboard insets, shared sheet headers, and media-server action icons.
+- Simplified peer-to-peer streaming descriptions consistently across every supported language.
+
+### Backup, Statistics, Logs, and Recovery
+
+- Back up portable app settings automatically under the selected `Configuration/Backup` folder when the app moves to the background.
+- Deduplicate identical backups, retain the latest seven, and exclude device-local storage permissions from portable exports.
+- Onboarding can select a Configuration folder, restore its newest valid settings backup, and configure its `Downloads` child as the default download location.
+- Added watch statistics for real, active playback time with audio/video totals, sessions, a seven-day chart, top media, and reset support.
+- Added a configurable 1-10 MB debug-log budget with rolling UTF-8 byte limits across capture, sharing, and export.
+- Redesigned crash recovery with focused restart, diagnostics, copy/share, close, and conditional database-repair actions.
+
+### Appearance and Wallpaper
+
+- Added code-drawn Aurora, Sunset, Ocean, Midnight, Mist, and Blossom wallpaper presets alongside None and custom images.
+- Added a real home-screen preview using the app's top bar, folder cards, and navigation surface instead of an isolated wallpaper-only preview.
+- Added Fit/Fill presentation, preview locking, clearer Replace behavior, and a single Wallpaper card in Appearance settings.
+- Enriched Aurora, Ocean, Blossom, and Mist with layered scenery, depth, reflections, stars, light rays, bubbles, foliage, and petals.
+- Derive app theme colors from a selected custom wallpaper for a more coherent background and control palette.
+- Added Liquid Glass surfaces to the main navigation and mini-player while preserving compatible fallbacks.
+- Added progressive navigation blur and kept wallpaper rendering edge-to-edge without a stale light/dark startup flash.
+- Completed wallpaper labels and controls in every existing translation locale.
+
+### Build Compatibility and Releases
+
+#### Platform and Build Compatibility
+
+- Updated the standard and non-Vulkan mpv backends to mpvlib 1.0.10; the FongMi backend remains on its compatible 1.0.9 profile.
+- Enabled 16 KB ELF page alignment across native build configurations for newer Android devices.
+- Parallelized distribution builds and strengthened release signing, asset verification, and version-tag handling.
+- Preview and tagged pre-release APKs now retain the production application ID; only debug APKs use a package suffix.
+
+## Hellyeah !!! Version -> 2.6.0 - Audiobooks, Media Servers, Custom Themes, and Flexible Controls
+
+### Highlights
+
+- A dedicated audiobook library, shared audio-player controls, chapter navigation, listening progress, and Audiobookshelf integration.
+- Navidrome and Subsonic music-server support, alongside expanded Jellyfin and Seerr features.
+- Downloads for supported links and Jellyfin media, including selectable YouTube download quality.
+- Live subtitle generation, improvements to dual subtitles, and better subtitle editing workflows.
+- Custom light and dark themes, full-screen wallpapers, and portable theme backups with embedded Base64 images.
+- Configurable video, folder, and music-row swipe actions, adjustable edge-zone widths, and optional inner-tab swipes.
+- Expanded audio visualizers, professional media scopes, post-processing presets, and external-display projection.
+- Player lifecycle, network-request, library-refresh, accessibility, and Android TV improvements.
+
+### Audiobooks and Listening Progress
+
+#### Local Audiobook Library
+
+- **Dedicated library:** Browse books separately from songs with a unified top bar, search, sorting, list/grid views, covers, details, and metadata editing.
+- **Single-file and folder imports:** Import individual files, including M4B, or folders containing multiple tracks and disc subfolders. Track ordering keeps a book together instead of treating each file as an unrelated song.
+- **Book metadata:** Read supported embedded tags and sidecar metadata, including author/narrator information, covers, and chapters. Present the combined duration and listening position across the book's files.
+- **Resume and completion:** Save the current book, track, position, and finished state across file transitions, background playback, and reopening the player.
+- **Listening preferences:** Added book playback speed, configurable pause rewind, timed sleep, and end-of-chapter sleep behavior.
+- **Library separation:** Added an `.audiobook` folder marker and music-scanner integration so recognized audiobook folders do not also clutter the normal song library.
+- **Library removal:** Books can be removed from the audiobook library without treating that action as a request to delete their source media.
+
+#### Shared Player and Bookmarks
+
+- **One audio-player interface:** Books reuse the normal audio controls, seekbar, speed sheet, playlist, up-next presentation, gestures, and visualizers instead of opening an unrelated player layout.
+- **Whole-book navigation:** Display book-relative progress and seek across track boundaries while retaining pause state. Book queues preserve their established file order rather than applying song-style shuffle and repeat.
+- **Artwork and identity:** Show the book title, author/narrator, file titles, and cover artwork; portrait book covers use a fitted presentation instead of being forced into a cropped square.
+- **Shared bookmarks:** Added persistent playback bookmarks for videos, music, and audiobooks, with add, name, rename, delete, list, and seek actions.
+- **Bookmark controls:** Use the existing bookmark/chapter controls to open saved points and long-press to capture a named playback position, where the control is enabled.
+- **Combined chapters:** Merge native/book chapters and custom bookmarks in the displayed timeline and seekbar markers without replacing the native chapter data used by automatic skipping. Audiobook chapters and files have dedicated navigation tabs.
+- **Correct bookmark ownership:** Capture the actually loaded media identity and timestamp together so a queue transition cannot assign an outgoing position to the next item.
+- **Supplied book text:** Reuse the lyrics view for supported embedded/local text without automatically searching or translating through online song-lyrics services.
+
+#### Audiobookshelf
+
+- **Server management:** Add, edit, select, and remove Audiobookshelf connections, with username/password or API-token authentication and library selection.
+- **Remote browsing:** Browse and search server books with covers, book details, progress, sorting, and the audiobook list/grid presentation.
+- **Shared playback:** Map remote tracks and chapters into the existing audiobook player so remote books use the same timeline, resume, chapter, and listening controls.
+- **Progress synchronization:** Read server progress and synchronize listening position and finished state back to the server during playback and completion updates.
+- **Consistent details:** Consolidated local and remote book details and improved Audiobookshelf JSON parsing. Remote entries remain separate from the local-book list.
+
+### Music and Media Servers
+
+#### Navidrome and Subsonic
+
+- **New music-server support:** Connect to Navidrome and compatible Subsonic servers using the Subsonic REST API, including token/salt authentication and HTTPS connections.
+- **Library browsing:** Browse songs, albums, artists, playlists, and detail sheets through shared music components rather than a separate playback interface.
+- **Queues and favorites:** Improved server-backed queue operations and favorite synchronization for Navidrome and Jellyfin music.
+- **Independent presentation:** Preserve provider-specific music view and sort preferences.
+- **Music source selection:** Switch between local music and configured supported servers from the music interface. Hide redundant or unavailable source controls and show the correct subtabs for the selected provider.
+
+#### Jellyfin and Seerr
+
+- **Per-library home sections:** Show dynamic Latest sections for individual libraries, with fallback handling when a server does not return the expected grouped results.
+- **Series-aware browsing:** Group show entries as series with appropriate posters and season information, improve series filtering, and avoid duplicated recommendations and hero items.
+- **Smarter episode actions:** Resume an in-progress episode, continue with the next unwatched episode, or restart from the detail sheet instead of treating every series selection as the same first episode.
+- **Reliable watch state:** Corrected playback tracking timestamps, progress synchronization, and automatic refresh of watched/resume state.
+- **Richer detail sheets:** Show cast, directors, writers, and producers. Open a person's details and filmography from their credits.
+- **Detail presentation:** Refined hero year badges, title clipping, restart actions, and storyline expansion. Read more appears only when the text actually overflows.
+- **Separate browsing state:** Selecting Jellyfin music no longer takes over the main Jellyfin browser's home state; music subtabs remain available in the music-source view.
+- **Seerr request profiles:** Fetch Radarr/Sonarr quality profiles for requests and provide a profile picker instead of relying only on a server default.
+- **Correct availability:** Improved Seerr's disconnected presentation and the status of media that has been deleted from the library.
+- **Server settings:** Added a dedicated media-server settings experience with inline connections, profile avatars, and overflow actions.
+
+#### Music Browsing and Playback
+
+- **Track information:** Added audio-format and quality badges, playlist total duration, and immediate display of known track duration instead of waiting unnecessarily for playback.
+- **Artwork sizing:** Added configurable music-grid cover size and improved edge-to-edge artwork in playlist rows, responsive player artwork, and tablet portrait cover scaling.
+- **Scoped-storage discovery:** Restore songs whose MediaStore entries do not expose a usable direct filesystem path, using content URIs rather than discarding valid entries on Android 10 and later.
+- **Mini-player controls:** Added an option to switch songs from the background mini player.
+- **Queue interactions:** Refined playlist scrolling, reordering, selection, and playback actions, with more consistent favorites handling.
+- **Lyrics timing:** Recognize whole-second embedded LRC timestamps in the synchronized-lyrics view and improve multilingual text rendering.
+- **Less network work:** Limit automatic lyrics lookup to audio, avoid remote metadata-retriever probes, and deduplicate active requests.
+
+### Downloads, Streaming, and Playlists
+
+#### Download Manager
+
+- **Download queue:** Added a Downloads screen with queued items, progress, notifications, thumbnails, and pause/resume/cancel controls where supported by the download engine.
+- **Destination selection:** Choose a download folder through Android's storage picker and track downloads from the Network and Jellyfin entry points.
+- **Link downloads:** Download from the Play Link sheet and network recent entries. Direct files use the download queue, while supported HLS/DASH and extractor links use the yt-dlp foreground-service path; magnet links retain the torrent workflow.
+- **YouTube quality:** Added downloads from the selected quality/rendition, including pairing and merging separate video/audio streams and improved finalization of completed files.
+- **Responsive enqueueing:** Move download enqueue work off the UI path and improve progress, thumbnail, and completion handling.
+
+#### Jellyfin Offline Media
+
+- Download individual episodes, whole seasons, and complete series from the media details workflow.
+- Save supported external subtitles as sidecar files alongside downloaded video.
+- Show downloaded-state badges and prefer completed local downloads, with their subtitles, when playback is opened again.
+- Improved Jellyfin download handling alongside player lifecycle and wake-lock fixes.
+
+#### Connections and Playlist Sources
+
+- **Xtream Codes:** Added credential-based Xtream Codes playlist import alongside the existing playlist sources.
+- **Connection editor:** Replaced separate add/edit dialogs with a shared, keyboard-aware sheet, protocol-specific ports, validation, and appropriate anonymous/HTTPS controls.
+- **Password edits:** Preserve an existing connection password when the replacement field is left blank; provide an explicit clear-password action.
+- **URL handling:** Improved server URL resolution and protocol hints so connection setup better handles entered hostnames, URLs, schemes, and default ports.
+- **Accessible connection actions:** Keep connection menus and actions clear of the floating Add button.
+- **Recent torrents:** Save torrent source links in recent playback history.
+- **Resolved sources:** Analyze the actual resolved playlist source instead of applying metadata/analysis work to the wrong wrapper URL.
+- **Fewer repeated requests:** Avoid redundant remote loads and video-track reselection during surface handoffs, while retaining normal reconnect and replacement-load behavior.
+
+#### yt-dlp Installation
+
+- Restore compatible detection of existing installed yt-dlp files and keep the legacy shell wrapper optional during runtime preparation.
+- Validate a newly downloaded candidate with the bundled runtime before replacing the installed file; retain the previous installation if validation fails.
+- Serialize installation/update preparation and avoid duplicate operations.
+- Show selectable, bounded diagnostic output in yt-dlp Streaming settings when installation or updating fails instead of only leaving the app in a Not Installed state.
+
+### Player Controls and Playback
+
+#### Controls and Layout
+
+- **Optional controls drawer:** Added a setting to show or hide the controls drawer and standardized its heading as Controls drawer.
+- **Stable action grid:** Keep the drawer's three-column layout intact at different display densities and make the Cast icon inherit the same foreground colors as neighboring controls.
+- **Overlay indicators:** Keep indicators near the visible controls, then move them upward when controls hide. Use a slimmer pill and compact text-only hold-speed feedback.
+- **Locked playback:** Simplified unlocking and improved interactions with player controls and playlists.
+- **Consistent sheets:** Standardized drag handles, titles, section headers, metadata spacing, touch targets, navigation-bar insets, and scrolling across player sheets, including equalizer and audio-properties dialogs.
+- **Familiar tool placement:** Retained audio tools beside Add external audio, subtitle tools beside Add external subtitles, and the previous More action arrangement. External subtitle translate/remove controls remain directly accessible.
+- **Room for controls:** Let audio channel choices and aspect/post-processing options wrap, keep scopes scrollable, and remove unnecessarily restrictive height limits from ambience and post-processing sheets.
+- **Draggable panels:** Retained the 380 dp maximum width while improving safe-area padding, drag targets, available portrait height, scroll bounds, and horizontal positioning.
+- **Chapter availability:** Configured chapter/bookmark buttons remain visible but disabled when the combined chapter/bookmark list is empty.
+- **Portrait layout:** Refined header alignment, status indicators, audio controls, and artwork sizing without replacing the familiar audio/video control layout.
+
+#### Seeking and Playback State
+
+- **Resume modes:** Added Always, Ask, and Never. Ask begins at the start and offers the saved position in an actionable pill; resume/start-afresh feedback respects the resume-indicator preference.
+- **Fast double taps:** Keep non-precise seeking fast and handle requests near the end of a file without introducing unnecessary repeated seeks.
+- **Configured speed restoration:** Restore the user-selected default speed after a temporary hold-speed gesture rather than always forcing 1x.
+- **Gesture presentation:** Hide the bottom seekbar during horizontal gesture seeking when the main controls are hidden, and keep zoom/pan transformations synchronized with the player.
+- **Frame-review feedback:** Replace the large central frame-delta overlay with a signed value beside the bottom frame counter. Forward/backward changes use distinct colors and fade after interaction, while snapshots remain available.
+- **Initial orientation:** Honor requested rotation before the first layout and improve wake-lock and controls handling during playback transitions.
+- **Song-to-video handoff:** Prevent stale outgoing-song state from selecting the music interface or hiding the video surface while a new video is being prepared, addressing the active-playback recurrence of .
+- **Video startup:** Keep GPU video output disabled until an Android surface is attached, preserving the configured renderer and addressing the missing-surface failure reported in .
+
+#### Notifications and Skip Markers
+
+- Use Android's progress-notification style in place of the custom progress layout, with clearer chapter progress and artwork placement.
+- Improve notification updates, queue transitions, background-session ownership, and chapter progress reporting.
+- Added SkipDB to the skip-marker provider options and improved marker validation and merging.
+- Guard asynchronous intro lookups against media changes so a previous file's results cannot replace the current file's markers.
+- Hide manual skip pills when the corresponding automatic action is enabled: intro/recap follow auto-intro, and outro/credits/preview follow auto-outro. Preference changes also update paused playback without removing timeline markers.
+
+### Audio Visualizers and Video Processing
+
+#### Audio Visualization
+
+- **Wavy seekbar:** Added a configurable traveling wave for the played portion of the audio seekbar, with a dim remaining track, playhead dot, interactive seeking, and a smooth flattened pause state.
+- **Reactive ribbons:** Drive ribbons from low, mid, and high audio bands and current output volume, with beat pulses and improved thickness, speed, edge joining, and seekbar-color matching.
+- **Light and dark appearance:** Use transparent rendering and contrast-aware colors so visualizers blend with the current artwork/ambient background in both themes.
+- **Responsive stage:** Refined existing Blob, Galaxy, Cuboid, and Particle rendering, removed unnecessary insets, and preserved separate artwork/control sizing. The upper visualizer can extend behind the status bar.
+- **Paused rendering:** Fixed the frozen spectrum spike in the Blob visualizer and improved renderer/surface handling.
+- **Visualizer cleanup:** Removed the Musializer mode while retaining and refining the supported visualizers.
+
+#### Media Scopes
+
+- Added selected-audio-track multichannel waveform analysis and real-time luma, RGBY, and vectorscope views in the video player.
+- Added responsive scope overlays, keyboard access, and localized controls.
+- Expose analysis resolution and frame-rate settings so scope quality and processing cost can be adjusted for the device.
+
+#### Post-Processing
+
+- Added a dedicated post-processing player control and settings sheet with preset descriptions and expandable parameter controls.
+- Included Natural, Vivid, Anime, Clean, Cel Shaded, Cartoon, Cinematic, Dreamy, Retro, Bloom, Scanlines, White Balance, and Film styles, plus None. Some preset chains are ports of Eden effects.
+- Added 22 GLSL effects for combinations of sharpening, levels, color grading, denoising, cel/cartoon processing, bloom/blur, filmic tone, grain, debanding, lens effects, scanlines, split toning, vignette, and white balance.
+- Allow per-effect tuning through persistent sliders, with debounced live shader rebuilding and integration into mpv's shader chain across playback and PiP.
+- Updated HDR Toys tone-mapping and transfer-function shaders, including additional tone-mapping implementations.
+
+#### Crop, Ambient, and Decoding
+
+- Expanded automatic black-bar cropping to supported online playback through active-player analysis.
+- Avoid stale online crop-cache reuse and analyze resolved playlist sources correctly. Use a standard switch in the automatic-crop setting.
+- Center ambient video bounds, derive the ambient presentation from post-crop geometry, and refresh it when crop state changes.
+- Preserve ambient backgrounds during visualizer playback and improve surface handoff to external displays.
+- Restrict hardware-decoding requests to codecs reported as supported by the device.
+
+### Subtitles and Text
+
+#### Live Captions and AI Workflows
+
+- **Playback-time transcription:** Generate subtitles in short, overlapping audio chunks rather than waiting for the whole media file to finish processing.
+- **Seek-aware processing:** Cancel work for the old playback position when seeking and restart near the new position with bounded look-ahead, preventing obsolete captions from taking over the timeline.
+- **Translated captions:** Optionally translate generated cues into the selected language, with source-text fallback when translation fails.
+- **Speech providers:** Support the configured Groq, OpenAI, and OpenRouter speech-to-text paths. Keep model selections/catalogs per provider and refresh available model choices.
+- **Generation reliability:** Improve SRT generation, ordered cue merging, bounded retries, temporary-audio cleanup, cancellation, and displayed generation/translation progress.
+
+#### Tracks, Search, and Rendering
+
+- Group audio tracks by source and make track selection metadata easier to scan.
+- Move Primary/Secondary subtitle indicators to the trailing side beside external-track actions.
+- When Primary is unchecked while Secondary is selected, promote Secondary into Primary, clear the secondary slot, and apply primary positioning.
+- Preserve the familiar online-subtitle search controls and independently scrolling results while improving spacing.
+- Improve downloaded subtitle filenames and external-file handling.
+- Improve multilingual subtitle/lyrics rendering and default font fallback.
+- Write the supported shared subtitle font-size option instead of an unsupported secondary font-size property, while retaining separate supported secondary positioning and scaling.
+- Avoid unnecessary subtitle-text queries when no primary subtitle track is selected.
+
+### Custom Themes, Wallpapers, and Settings Backups
+
+#### Appearance Editors
+
+- Added custom-theme creation, selection, editing, and deletion.
+- Customize primary, secondary, tertiary, and background colors independently for light and dark appearance.
+- Added dedicated theme and wallpaper editor screens, with live previews rather than requiring manual color or image-file editing.
+- Added full-screen custom wallpapers with image selection, zoom, positioning, Fit/Fill behavior, blur up to 40 dp, and transparency controls.
+- Preserve wallpaper configuration across startup and retain adjustments when reopening the editor.
+- Improved custom-theme propagation, flatter folder presentation, and media-badge appearance.
+- Fix light-theme visibility of 4K/HDR overlays and watched-progress fills on dark artwork scrims.
+
+#### Portable Backups
+
+- Store newly saved wallpapers as Base64 PNG data in the app's existing wallpaper preference.
+- Include custom-theme colors, selected theme, wallpaper image, and wallpaper adjustments in settings exports.
+- Convert accessible legacy file/content wallpaper references into embedded image data when exporting or importing.
+- Keep large image data out of navigation state and avoid displaying encoded data as a filename.
+- Preserve supplementary Unicode characters and string-set contents in the new backup format.
+- Parse and validate imported preferences before applying them in one batch, preventing malformed XML or an invalid wallpaper from partially changing appearance settings.
+- Preserve support for older backup formats and report invalid values instead of silently replacing them with defaults.
+- Complete the XML snapshot before opening the export destination, preserve cancellation, and count imported network records only after insertion succeeds.
+- Preserve the exclusion of device-bound network passwords; imported connections require credentials to be entered again.
+
+### Library, Navigation, and Swipe Actions
+
+#### Browsing and Layout
+
+- **Adjustable grids:** Expose independent folder/video column controls in grid mode and give the network browser its own folder-column count rather than a fixed two-column layout.
+- **Consistent cards:** Refine list/grid gutters, metadata fields, title gaps, badges, and cell-relative artwork sizing across local and network browsing.
+- **Folder pinning:** Restore consistent pin/unpin behavior and improve folder sorting/presentation.
+- **Search:** Migrate inline and remaining custom search fields to Material 3 search controls, including settings, mpv help, codec capabilities, and torrent selection. Improve IME Search handling, focus, and keyboard opening in music/network screens.
+- **Stable navigation:** Retain the expanding navigation dock with stable slots, foreground-only interaction, and consistent transitions. Non-adjacent tab changes no longer animate through intermediate tabs, and Back returns through Home where appropriate.
+- **Event-driven refresh:** Remove unnecessary resume-triggered work, observe real media and permission changes, and prevent stale scans from replacing newer results.
+- **Folder NEW badges:** Keep one debounced, view-model-owned update path, cache folder membership for badge-only changes, and avoid recounts merely from returning to a tab. Cancelled work no longer replaces counts with temporary zeros.
+
+#### Item Swipe Actions
+
+- Added configurable left/right actions for supported local video, folder, and music rows.
+- Available actions include None, watched-state toggle, Add to Playlist, Play Next, Add to Queue, Delete, Mark New, Last Played, Finished, and Clear History.
+- Folder actions apply to the relevant media inside the folder, with confirmation and permission handling for destructive operations.
+- Music folder actions collect audio files, while video folder actions retain their video scope. Grid, multi-selection, and unsupported-source restrictions remain in place.
+- Preserve explicit New and cleared-history label state independently from automatic age/progress calculations.
+- Added independent left/right swipe-zone widths from 1% to 50%, with a 25% default.
+- Show each zone's actual percentage and proportional width in the settings preview.
+- Choosing None releases that zone for tab navigation and shows 0%, while remembering the width for re-enabling.
+- Capture only the enabled inward swipe from the appropriate physical edge; middle and outward gestures remain available to the tab pager.
+
+#### Inner Tabs
+
+- Enabled horizontal swiping between Music, Network, and Recents inner tabs.
+- Added a Swipe between inner tabs setting without changing tap navigation or the main navigation pager.
+
+### Android TV, External Displays, and Feedback
+
+#### TV and External Screens
+
+- Added partial Android TV support, including TV launcher metadata, D-pad focus handling, and remote-friendly onboarding, browsing, settings, and player controls.
+- Improved focus and navigation through constrained player controls and sheets; touch-only row swipe actions remain disabled on television devices.
+- Added configurable projection to Android presentation-capable external displays while retaining controls on the main device.
+- Improve external-surface ownership, attachment, removal, and recovery instead of treating display changes as unrelated playback sessions.
+
+#### Haptics and Motion
+
+- Integrated Kmp-Vibrate and expanded meaningful feedback for selection, drag/reorder, player gestures, speed/equalizer controls, sliders, and playlist actions.
+- Added a Haptic feedback preference and keep app/system opt-outs and device capabilities in control.
+- Use adjustment landmarks and throttling rather than generating unrestricted feedback for every small value change.
+- Refine selection indicators, action bars, playlist motion, player controls, and sheets using the shared Material motion policy and reduced-motion behavior.
+
+### Settings, Scripting, and Configuration
+
+- Organize network configuration and media-server management into their appropriate settings sections and remove the duplicated Autoplay next audio setting from Player settings.
+- Improve settings summaries and search targets for relocated or newly added options, including gestures and swipe-zone widths.
+- Cache mpv configuration for startup reuse and improve config/editor workflows.
+- Treat the script master switch, selected Lua/JavaScript files, and configured directory as part of the native runtime configuration.
+- Apply script disable/re-enable changes by rebuilding the player runtime with the current queue, position, and paused state, rather than leaving removed scripts running or loading duplicates.
+- Keep mini-player and notification re-entry from bypassing a required script-runtime refresh, and prune disabled cached scripts even when the configured document tree is unavailable.
+- Fix editor autocomplete placement around the on-screen keyboard across the shared mpv configuration and script editors.
+
+### Reliability, Diagnostics, and Developer Changes
+
+- Added playback and lifecycle Perfetto tracing.
+- Removed blocking browser-side work before player launch and allowed a newer direct load to supersede a pending stop.
+- Refined lifecycle ownership and background/foreground handoffs so activity changes, queued loads, and service state do not compete over the same playback session.
+- Remove temporary auto-crop filters only when the app-owned filter is present, avoiding repeated missing-filter errors.
+- Guard missing or unreadable wallpaper files and invalid image bounds before decoding.
+- Integrated CrashX, stored crash reports, a dedicated debug-log viewer, and improved crash/recovery and report-preparation messages.
+- Extend the database for downloads, server integrations, audiobook progress, playback marks, and shared bookmarks, with migrations that preserve existing data.
+- Resolve native mpvlib variants from GitHub release artifacts instead of committing large AAR binaries to the repository.
+- Updated Gradle, Android Gradle Plugin, Kotlin, KSP, Room, Compose, and Material dependencies.
+- Added Dependabot configuration and refreshed checkout, Java setup, and release actions.
+
+### Documentation, Website, and Translations
+
+- Added the project website and expanded installation, feature, settings, and scripting documentation.
+- Added branded website themes, refreshed screenshots/showcases, and improved light-mode contrast.
+- Refined website deployment rules so preview and pull-request builds can be skipped while retaining production deployment.
+- Audited the custom mpv command/scripting reference and expanded the user guides.
+- Added citation metadata, repository contributor presentation, an in-app contributors section, and acknowledgments for upstream projects and adapted work.
+- Expanded translations across Arabic, German, Spanish, French, Hindi, Japanese, Brazilian Portuguese, Russian, and Simplified Chinese.
+
+### Upgrade Notes
+
+- New settings backups use format version 2. This version imports older backups, but older app versions do not understand the new encoded string-set format.
+- A legacy wallpaper must still be readable to embed it in a backup. Missing images cause export/import to report a failure instead of producing a falsely portable backup.
+- Settings backups contain preferences and saved network-connection configuration, not a complete backup of media files or every library database table.
+- Network passwords and Android storage permission grants are not transferred by settings export.
+- Live transcription and translation use configured external providers, require suitable credentials/network access, and may incur provider charges. They are not an offline speech engine.
+- Download availability, pause/resume support, external subtitles, and selected formats depend on the source and download engine. DRM-protected content is not unlocked by these features.
+- Audiobook import does not bypass DRM, and metadata/chapter availability depends on the files and storage provider.
+- Android TV support remains partial. Server features depend on the server's capabilities, permissions, and configuration.
+
 ## 2.5.0 - Frame Review, Auto Crop & Library Performance
 
 > [!IMPORTANT]

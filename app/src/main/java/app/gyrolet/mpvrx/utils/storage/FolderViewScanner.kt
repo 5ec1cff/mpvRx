@@ -16,8 +16,11 @@ import android.util.Log
 import app.gyrolet.mpvrx.database.dao.DirectoryScanDao
 import app.gyrolet.mpvrx.database.entities.DirectoryScanEntity
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
@@ -120,6 +123,7 @@ object FolderViewScanner {
       if (options.includeAudio) {
         scanAudioMediaStoreImmediateChildren(context, allFolders, noMediaPathFilter, options)
       }
+      scanFileSystemRoots(context, allFolders, options, noMediaPathFilter, forceFileSystemCheck)
 
       // Convert to VideoFolder list
       val result =
@@ -867,7 +871,7 @@ object FolderViewScanner {
   /**
    * Scan external volumes (USB OTG, SD cards) via filesystem
    */
-  private fun scanFileSystemRoots(
+  private suspend fun scanFileSystemRoots(
     context: Context,
     folders: MutableMap<String, FolderData>,
     options: MediaScanOptions,
@@ -880,8 +884,9 @@ object FolderViewScanner {
 
       if (shouldIncludePrimaryStorageInFilesystemFolderScan(options, forceFileSystemCheck)) {
         rootsToScan += primaryStorageRoot
+      } else {
+        rootsToScan += File(primaryStorageRoot, Environment.DIRECTORY_MOVIES)
       }
-
       rootsToScan += getPrimaryStorageSupplementalScanRoots(primaryStorageRoot)
 
       for (volume in StorageVolumeUtils.getExternalStorageVolumes(context)) {
@@ -893,7 +898,9 @@ object FolderViewScanner {
         rootsToScan += File(volumePath)
       }
 
+      val visitedDirectories = mutableSetOf<String>()
       for (root in rootsToScan) {
+        currentCoroutineContext().ensureActive()
         if (!root.exists() || !root.canRead() || !root.isDirectory) {
           continue
         }
@@ -904,8 +911,11 @@ object FolderViewScanner {
           maxDepth = 20,
           options = options,
           noMediaPathFilter = noMediaPathFilter,
+          visitedDirectories = visitedDirectories,
         )
       }
+    } catch (cancellation: CancellationException) {
+      throw cancellation
     } catch (e: Exception) {
       Log.e(TAG, "Filesystem folder scan error", e)
     }
@@ -914,25 +924,29 @@ object FolderViewScanner {
   /**
    * Recursively scan directory for videos
    */
-  private fun scanDirectoryRecursive(
+  private suspend fun scanDirectoryRecursive(
     directory: File,
     folders: MutableMap<String, FolderData>,
     maxDepth: Int,
     currentDepth: Int = 0,
     options: MediaScanOptions,
     noMediaPathFilter: NoMediaPathFilter,
+    visitedDirectories: MutableSet<String>,
   ) {
+    currentCoroutineContext().ensureActive()
     if (currentDepth >= maxDepth) return
     if (!directory.exists() || !directory.canRead() || !directory.isDirectory) return
     if (FileFilterUtils.shouldSkipFolder(directory, options, noMediaPathFilter)) return
 
     try {
+      if (!visitedDirectories.add(directory.canonicalPath)) return
       val files = directory.listFiles() ?: return
 
       val mediaFiles = mutableListOf<File>()
       val subdirectories = mutableListOf<File>()
 
       for (file in files) {
+        currentCoroutineContext().ensureActive()
         try {
           when {
             file.isDirectory -> {
@@ -1003,8 +1017,10 @@ object FolderViewScanner {
 
       // Recurse into subdirectories
       for (subdir in subdirectories) {
-        scanDirectoryRecursive(subdir, folders, maxDepth, currentDepth + 1, options, noMediaPathFilter)
+        scanDirectoryRecursive(subdir, folders, maxDepth, currentDepth + 1, options, noMediaPathFilter, visitedDirectories)
       }
+    } catch (cancellation: CancellationException) {
+      throw cancellation
     } catch (e: Exception) {
       Log.w(TAG, "Error scanning: ${directory.absolutePath}", e)
     }

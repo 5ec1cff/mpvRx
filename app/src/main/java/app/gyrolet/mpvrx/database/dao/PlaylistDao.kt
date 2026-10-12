@@ -38,12 +38,6 @@ interface PlaylistDao {
   @Query("SELECT * FROM PlaylistEntity ORDER BY updatedAt DESC")
   suspend fun getAllPlaylists(): List<PlaylistEntity>
 
-  @Query("SELECT * FROM PlaylistEntity WHERE isAudio = :isAudio ORDER BY updatedAt DESC")
-  fun observePlaylistsByAudio(isAudio: Boolean): Flow<List<PlaylistEntity>>
-
-  @Query("SELECT * FROM PlaylistEntity WHERE isAudio = :isAudio ORDER BY updatedAt DESC")
-  suspend fun getPlaylistsByAudio(isAudio: Boolean): List<PlaylistEntity>
-
   @Query("SELECT * FROM PlaylistEntity WHERE id = :playlistId")
   suspend fun getPlaylistById(playlistId: Int): PlaylistEntity?
 
@@ -106,23 +100,17 @@ interface PlaylistDao {
     updatePlaylist(playlist)
   }
 
-  @Update
-  suspend fun updatePlaylistItem(item: PlaylistItemEntity)
-
-  @Delete
-  suspend fun deletePlaylistItem(item: PlaylistItemEntity)
-
   @Delete
   suspend fun deletePlaylistItems(items: List<PlaylistItemEntity>)
 
-  @Query("DELETE FROM PlaylistItemEntity WHERE id = :itemId")
-  suspend fun deletePlaylistItemById(itemId: Int)
-
-  @Query("DELETE FROM PlaylistItemEntity WHERE id IN (:itemIds)")
-  suspend fun deletePlaylistItemsByIds(itemIds: List<Int>)
-
   @Query("SELECT * FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC")
   fun observePlaylistItems(playlistId: Int): Flow<List<PlaylistItemEntity>>
+
+  @Query("SELECT * FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC, id ASC LIMIT 1")
+  fun observeFirstPlaylistItem(playlistId: Int): Flow<PlaylistItemEntity?>
+
+  @Query("SELECT * FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC, id ASC LIMIT :limit")
+  fun observePlaylistPreviewItems(playlistId: Int, limit: Int = 2): Flow<List<PlaylistItemEntity>>
 
   @Query("SELECT * FROM PlaylistItemEntity WHERE playlistId = :playlistId ORDER BY position ASC")
   suspend fun getPlaylistItems(playlistId: Int): List<PlaylistItemEntity>
@@ -170,6 +158,15 @@ interface PlaylistDao {
     position: Long,
   )
 
+  @Query("UPDATE PlaylistItemEntity SET lastPosition = 0, lastPlayedAt = 0, playCount = 0 WHERE filePath = :filePath")
+  suspend fun clearPlayHistoryForFile(filePath: String)
+
+  @Query("UPDATE PlaylistItemEntity SET lastPlayedAt = :timestamp WHERE filePath = :filePath")
+  suspend fun markFileLastPlayed(filePath: String, timestamp: Long)
+
+  @Query("UPDATE PlaylistItemEntity SET lastPosition = 0 WHERE filePath = :filePath")
+  suspend fun clearResumePositionForFile(filePath: String)
+
   @Query(
     """
     SELECT * FROM PlaylistItemEntity 
@@ -207,34 +204,6 @@ interface PlaylistDao {
     filePath: String,
   ): PlaylistItemEntity?
 
-  // Pagination support for large playlists
-  @Query(
-    """
-    SELECT * FROM PlaylistItemEntity
-    WHERE playlistId = :playlistId
-    ORDER BY position ASC
-    LIMIT :limit OFFSET :offset
-    """,
-  )
-  suspend fun getPlaylistItemsWindow(
-    playlistId: Int,
-    offset: Int,
-    limit: Int,
-  ): List<PlaylistItemEntity>
-
-  @Query(
-    """
-    SELECT * FROM PlaylistItemEntity
-    WHERE playlistId = :playlistId AND position >= :startPosition AND position < :endPosition
-    ORDER BY position ASC
-    """,
-  )
-  suspend fun getPlaylistItemsInRange(
-    playlistId: Int,
-    startPosition: Int,
-    endPosition: Int,
-  ): List<PlaylistItemEntity>
-
   // M3U category / group support
   @Query(
     """
@@ -253,18 +222,6 @@ interface PlaylistDao {
     """,
   )
   suspend fun getDistinctCategories(playlistId: Int): List<String>
-
-  @Query(
-    """
-    SELECT * FROM PlaylistItemEntity
-    WHERE playlistId = :playlistId AND groupTitle = :category
-    ORDER BY position ASC
-    """,
-  )
-  fun observeItemsByCategory(
-    playlistId: Int,
-    category: String,
-  ): kotlinx.coroutines.flow.Flow<List<PlaylistItemEntity>>
 
   // Favorites
   @Query(
@@ -289,15 +246,6 @@ interface PlaylistDao {
     itemId: Int,
     isFavorite: Boolean,
   )
-
-  // Get favorite filePaths for a playlist (used to preserve favorites on refresh)
-  @Query(
-    """
-    SELECT filePath FROM PlaylistItemEntity
-    WHERE playlistId = :playlistId AND isFavorite = 1
-    """,
-  )
-  suspend fun getFavoriteFilePaths(playlistId: Int): List<String>
 
   companion object {
     private const val PLAYLIST_WRITE_CHUNK_SIZE = 500

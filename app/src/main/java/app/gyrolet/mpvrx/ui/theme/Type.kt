@@ -10,68 +10,20 @@
 package app.gyrolet.mpvrx.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.R
 import java.util.Locale
 
-// Roboto Flex font family (variable font supporting weights 100-900)
-val RobotoFlex =
-  FontFamily(
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Thin,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.ExtraLight,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Light,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Normal,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Medium,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.SemiBold,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Bold,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.ExtraBold,
-      style = FontStyle.Normal,
-    ),
-    Font(
-      resId = R.font.roboto_flex,
-      weight = FontWeight.Black,
-      style = FontStyle.Normal,
-    ),
-  )
-
-val SystemTypography = Typography()
+val SystemTypography = Typography().withExpressiveEmphasis()
 
 private const val GoogleSansRoundedAxis = 100f
 
@@ -161,30 +113,113 @@ val GoogleSansRounded =
     ),
   )
 
-// Use PixelPlayer's rounded Google Sans Flex typography app-wide by default.
-val AppTypography =
+/**
+ * Display cut of the bundled Google Sans Flex variable font.
+ *
+ * The wider, lightly slanted axis mix gives app headings and hero copy a recognizable expressive
+ * voice; body text keeps [GoogleSansRounded] for readability and predictable fallback. Multiple
+ * weight instances keep the variable axes intentional instead of relying on synthetic bolding.
+ */
+@OptIn(ExperimentalTextApi::class)
+val GoogleSansExpressiveDisplay =
+  FontFamily(
+    Font(
+      resId = R.font.gflex_variable,
+      weight = FontWeight.Medium,
+      variationSettings =
+        FontVariation.Settings(
+          FontVariation.weight(FontWeight.Medium.weight),
+          FontVariation.width(110f),
+          FontVariation.slant(-4f),
+          FontVariation.Setting("GRAD", 60f),
+          FontVariation.Setting("ROND", GoogleSansRoundedAxis),
+        ),
+    ),
+    Font(
+      resId = R.font.gflex_variable,
+      weight = FontWeight.SemiBold,
+      variationSettings =
+        FontVariation.Settings(
+          FontVariation.weight(FontWeight.SemiBold.weight),
+          FontVariation.width(111f),
+          FontVariation.slant(-4f),
+          FontVariation.Setting("GRAD", 70f),
+          FontVariation.Setting("ROND", GoogleSansRoundedAxis),
+        ),
+    ),
+    Font(
+      resId = R.font.gflex_variable,
+      weight = FontWeight.Bold,
+      variationSettings =
+        FontVariation.Settings(
+          FontVariation.weight(FontWeight.Bold.weight),
+          FontVariation.width(112f),
+          FontVariation.slant(-4f),
+          FontVariation.Setting("GRAD", 80f),
+          FontVariation.Setting("ROND", GoogleSansRoundedAxis),
+        ),
+    ),
+    Font(
+      resId = R.font.gflex_variable,
+      weight = FontWeight.ExtraBold,
+      variationSettings =
+        FontVariation.Settings(
+          FontVariation.weight(FontWeight.ExtraBold.weight),
+          FontVariation.width(112f),
+          FontVariation.slant(-3f),
+          FontVariation.Setting("GRAD", 90f),
+          FontVariation.Setting("ROND", GoogleSansRoundedAxis),
+        ),
+    ),
+    Font(
+      resId = R.font.gflex_variable,
+      weight = FontWeight.Black,
+      variationSettings =
+        FontVariation.Settings(
+          FontVariation.weight(FontWeight.Black.weight),
+          FontVariation.width(112f),
+          FontVariation.slant(-2f),
+          FontVariation.Setting("GRAD", 100f),
+          FontVariation.Setting("ROND", GoogleSansRoundedAxis),
+        ),
+    ),
+  )
+
+fun typographyWithFontFamily(
+  fontFamily: FontFamily,
+  displayFontFamily: FontFamily = fontFamily,
+): Typography =
   SystemTypography.run {
     copy(
-      displayLarge = displayLarge.copy(fontFamily = GoogleSansRounded),
-      displayMedium = displayMedium.copy(fontFamily = GoogleSansRounded),
-      displaySmall = displaySmall.copy(fontFamily = GoogleSansRounded),
-      headlineLarge = headlineLarge.copy(fontFamily = GoogleSansRounded),
-      headlineMedium = headlineMedium.copy(fontFamily = GoogleSansRounded),
-      headlineSmall = headlineSmall.copy(fontFamily = GoogleSansRounded),
-      titleLarge = titleLarge.copy(fontFamily = GoogleSansRounded),
-      titleMedium = titleMedium.copy(fontFamily = GoogleSansRounded),
-      titleSmall = titleSmall.copy(fontFamily = GoogleSansRounded),
-      bodyLarge = bodyLarge.copy(fontFamily = GoogleSansRounded),
-      bodyMedium = bodyMedium.copy(fontFamily = GoogleSansRounded),
-      bodySmall = bodySmall.copy(fontFamily = GoogleSansRounded),
-      labelLarge = labelLarge.copy(fontFamily = GoogleSansRounded),
-      labelMedium = labelMedium.copy(fontFamily = GoogleSansRounded),
-      labelSmall = labelSmall.copy(fontFamily = GoogleSansRounded),
-    )
+      displayLarge = displayLarge.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.Black, letterSpacing = 0.sp),
+      displayMedium = displayMedium.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.sp),
+      displaySmall = displaySmall.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+      headlineLarge = headlineLarge.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+      headlineMedium = headlineMedium.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+      headlineSmall = headlineSmall.copy(fontFamily = displayFontFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+      titleLarge = titleLarge.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+      titleMedium = titleMedium.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+      titleSmall = titleSmall.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+      bodyLarge = bodyLarge.copy(fontFamily = fontFamily, fontWeight = FontWeight.Normal, letterSpacing = 0.sp),
+      bodyMedium = bodyMedium.copy(fontFamily = fontFamily, fontWeight = FontWeight.Normal, letterSpacing = 0.sp),
+      bodySmall = bodySmall.copy(fontFamily = fontFamily, fontWeight = FontWeight.Normal, letterSpacing = 0.sp),
+      labelLarge = labelLarge.copy(fontFamily = fontFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+      labelMedium = labelMedium.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+      labelSmall = labelSmall.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+    ).withExpressiveEmphasis()
   }
 
+// Use PixelPlayer's rounded Google Sans Flex typography app-wide by default.
+val AppTypography = typographyWithFontFamily(GoogleSansRounded, GoogleSansExpressiveDisplay)
+
+val LocalAppFontFamily = staticCompositionLocalOf { GoogleSansRounded }
+
+@Composable
 fun fontFamilyForText(text: String): FontFamily =
-  if (text.requiresSystemFontFallback()) FontFamily.SansSerif else GoogleSansRounded
+  if (text.requiresSystemFontFallback()) FontFamily.SansSerif else LocalAppFontFamily.current
+
+fun expressiveDisplayFontForText(text: String): FontFamily =
+  if (text.requiresSystemFontFallback()) FontFamily.SansSerif else GoogleSansExpressiveDisplay
 
 fun localeRequiresSystemFont(locale: Locale): Boolean =
   locale.getDisplayName(locale).requiresSystemFontFallback()
@@ -210,6 +245,7 @@ private fun String.requiresSystemFontFallback(): Boolean {
 // Bumps font weights one step heavier for expressive emphasis
 // ═══════════════════════════════════════════════════════════
 
+@Immutable
 data class EmphasizedTypography(
   val displayLarge: TextStyle,
   val displayMedium: TextStyle,
@@ -228,23 +264,45 @@ data class EmphasizedTypography(
   val labelSmall: TextStyle,
 )
 
-val AppEmphasizedTypography =
-  EmphasizedTypography(
-    displayLarge = AppTypography.displayLarge.copy(fontWeight = FontWeight.Black),
-    displayMedium = AppTypography.displayMedium.copy(fontWeight = FontWeight.Black),
-    displaySmall = AppTypography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
-    headlineLarge = AppTypography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-    headlineMedium = AppTypography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-    headlineSmall = AppTypography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-    titleLarge = AppTypography.titleLarge.copy(fontWeight = FontWeight.Bold),
-    titleMedium = AppTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-    titleSmall = AppTypography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-    bodyLarge = AppTypography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-    bodyMedium = AppTypography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-    bodySmall = AppTypography.bodySmall.copy(fontWeight = FontWeight.Medium),
-    labelLarge = AppTypography.labelLarge.copy(fontWeight = FontWeight.Bold),
-    labelMedium = AppTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
-    labelSmall = AppTypography.labelSmall.copy(fontWeight = FontWeight.Bold),
+/** Keep native Material components and app headings on the same selected font and type scale. */
+private fun Typography.withExpressiveEmphasis(): Typography =
+  copy(
+    displayLargeEmphasized = displayLarge.copy(fontWeight = FontWeight.Black),
+    displayMediumEmphasized = displayMedium.copy(fontWeight = FontWeight.Black),
+    displaySmallEmphasized = displaySmall.copy(fontWeight = FontWeight.ExtraBold),
+    headlineLargeEmphasized = headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+    headlineMediumEmphasized = headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+    headlineSmallEmphasized = headlineSmall.copy(fontWeight = FontWeight.Bold),
+    titleLargeEmphasized = titleLarge.copy(fontWeight = FontWeight.Bold),
+    titleMediumEmphasized = titleMedium.copy(fontWeight = FontWeight.SemiBold),
+    titleSmallEmphasized = titleSmall.copy(fontWeight = FontWeight.SemiBold),
+    bodyLargeEmphasized = bodyLarge.copy(fontWeight = FontWeight.Medium),
+    bodyMediumEmphasized = bodyMedium.copy(fontWeight = FontWeight.Medium),
+    bodySmallEmphasized = bodySmall.copy(fontWeight = FontWeight.Medium),
+    labelLargeEmphasized = labelLarge.copy(fontWeight = FontWeight.Bold),
+    labelMediumEmphasized = labelMedium.copy(fontWeight = FontWeight.Bold),
+    labelSmallEmphasized = labelSmall.copy(fontWeight = FontWeight.Bold),
   )
+
+fun emphasizedTypography(typography: Typography): EmphasizedTypography =
+  EmphasizedTypography(
+    displayLarge = typography.displayLargeEmphasized,
+    displayMedium = typography.displayMediumEmphasized,
+    displaySmall = typography.displaySmallEmphasized,
+    headlineLarge = typography.headlineLargeEmphasized,
+    headlineMedium = typography.headlineMediumEmphasized,
+    headlineSmall = typography.headlineSmallEmphasized,
+    titleLarge = typography.titleLargeEmphasized,
+    titleMedium = typography.titleMediumEmphasized,
+    titleSmall = typography.titleSmallEmphasized,
+    bodyLarge = typography.bodyLargeEmphasized,
+    bodyMedium = typography.bodyMediumEmphasized,
+    bodySmall = typography.bodySmallEmphasized,
+    labelLarge = typography.labelLargeEmphasized,
+    labelMedium = typography.labelMediumEmphasized,
+    labelSmall = typography.labelSmallEmphasized,
+  )
+
+val AppEmphasizedTypography = emphasizedTypography(AppTypography)
 
 val LocalEmphasizedTypography = staticCompositionLocalOf { AppEmphasizedTypography }

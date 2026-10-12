@@ -19,8 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.pow
@@ -249,68 +247,6 @@ class VideoMetadataCacheRepository(
               }.awaitAll()
             results.putAll(codecResults)
           }
-        }
-      }
-
-      results
-    }
-
-  /**
-   * Extract metadata for multiple videos in parallel with progressive updates
-   * Emits results as they become available (progressive loading)
-   *
-   * @param videos List of (File, Uri, DisplayName) triples
-   * @return Flow that emits (path, metadata) pairs as each video is processed
-   */
-  fun extractMetadataProgressively(
-    videos: List<Triple<File, Uri, String>>,
-  ): Flow<Pair<String, MediaInfoOps.VideoMetadata?>> =
-    flow {
-      // Process videos in batches to limit concurrent operations
-      videos.chunked(PARALLEL_PROCESSING_LIMIT).forEach { batch ->
-        coroutineScope {
-          val results =
-            batch
-              .map { (file, uri, displayName) ->
-                async {
-                  val metadata = getOrExtractMetadata(file, uri, displayName)
-                  file.absolutePath to metadata
-                }
-              }.awaitAll()
-
-          // Emit each result as it completes
-          results.forEach { result ->
-            emit(result)
-          }
-        }
-      }
-    }
-
-  /**
-   * Batch extract metadata for videos without blocking UI
-   * Processes in parallel and returns all results at once
-   */
-  suspend fun extractMetadataBatch(videos: List<Triple<File, Uri, String>>): Map<String, MediaInfoOps.VideoMetadata> =
-    withContext(Dispatchers.IO) {
-      val results = mutableMapOf<String, MediaInfoOps.VideoMetadata>()
-
-      videos.chunked(PARALLEL_PROCESSING_LIMIT).forEach { batch ->
-        coroutineScope {
-          val batchResults =
-            batch
-              .map { (file, uri, displayName) ->
-                async {
-                  val metadata = getOrExtractMetadata(file, uri, displayName)
-                  if (metadata != null) {
-                    file.absolutePath to metadata
-                  } else {
-                    null
-                  }
-                }
-              }.awaitAll()
-              .filterNotNull()
-
-          results.putAll(batchResults)
         }
       }
 

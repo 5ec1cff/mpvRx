@@ -9,6 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -71,6 +74,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
@@ -306,7 +310,7 @@ object CustomButtonScreen : Screen {
             .fillMaxSize()
             .padding(horizontal = 16.dp)
             .then(settingsHighlight),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         // Section divider items
         item { Spacer(Modifier.height(8.dp)) }
@@ -328,6 +332,7 @@ object CustomButtonScreen : Screen {
 
             ButtonSlotCard(
               slotLabel = side,
+              shape = rememberConnectedShape(index % 4, 4, ConnectedLayout.Vertical),
               button = button,
               isDragging = isDragging,
               elevation = elevation,
@@ -363,7 +368,7 @@ object CustomButtonScreen : Screen {
         item {
           Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
             colors =
               CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -402,7 +407,7 @@ object CustomButtonScreen : Screen {
                 OutlinedButton(
                   onClick = { importLauncher.launch(arrayOf("text/xml", "application/xml")) },
                   modifier = Modifier.weight(1f),
-                  shape = RoundedCornerShape(12.dp),
+                  shape = MaterialTheme.shapes.largeIncreased,
                 ) {
                   Icon(
                     Icons.RoundedFilled.FileDownload,
@@ -423,7 +428,7 @@ object CustomButtonScreen : Screen {
                     )
                   },
                   modifier = Modifier.weight(1f),
-                  shape = RoundedCornerShape(12.dp),
+                  shape = MaterialTheme.shapes.largeIncreased,
                 ) {
                   Icon(
                     Icons.RoundedFilled.FileUpload,
@@ -497,6 +502,7 @@ fun ButtonSlotCard(
   dragHandle: @Composable (Modifier) -> Unit,
   onSave: (CustomButton) -> Unit,
   onDelete: () -> Unit,
+  shape: Shape = MaterialTheme.shapes.extraLargeIncreased,
 ) {
   var expanded by remember { mutableStateOf(false) }
   val buttonId =
@@ -539,8 +545,8 @@ fun ButtonSlotCard(
     modifier =
       Modifier
         .fillMaxWidth()
-        .shadow(elevation = elevation.dp, shape = RoundedCornerShape(16.dp)),
-    shape = RoundedCornerShape(16.dp),
+        .shadow(elevation = elevation.dp, shape = shape),
+    shape = shape,
     colors = CardDefaults.cardColors(containerColor = cardColor),
     onClick = { expanded = !expanded },
   ) {
@@ -842,7 +848,7 @@ fun ButtonExpandedContent(
       Modifier
         .fillMaxWidth()
         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-    verticalArrangement = Arrangement.spacedBy(10.dp),
+    verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
   ) {
     HorizontalDividerWithLabel("Button")
 
@@ -858,7 +864,7 @@ fun ButtonExpandedContent(
       },
       modifier = Modifier.fillMaxWidth(),
       singleLine = true,
-      shape = RoundedCornerShape(12.dp),
+      shape = MaterialTheme.shapes.largeIncreased,
     )
 
     HorizontalDividerWithLabel("Scripts (Lua / JS)")
@@ -873,7 +879,7 @@ fun ButtonExpandedContent(
           Button(
             onClick = { onScriptLanguageChange(language) },
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.largeIncreased,
           ) {
             Text(language.displayName)
           }
@@ -881,7 +887,7 @@ fun ButtonExpandedContent(
           OutlinedButton(
             onClick = { onScriptLanguageChange(language) },
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.largeIncreased,
           ) {
             Text(language.displayName)
           }
@@ -893,6 +899,7 @@ fun ButtonExpandedContent(
     LuaEditorEntryCard(
       label = "Tap action *",
       code = draftContent,
+      shape = rememberConnectedShape(0, 3, ConnectedLayout.Vertical),
       isRequired = true,
       onClick = { onOpenScriptEditor("content") },
     )
@@ -901,6 +908,7 @@ fun ButtonExpandedContent(
     LuaEditorEntryCard(
       label = "Long press action",
       code = draftLongPress,
+      shape = rememberConnectedShape(1, 3, ConnectedLayout.Vertical),
       onClick = { onOpenScriptEditor("longPress") },
     )
 
@@ -908,6 +916,7 @@ fun ButtonExpandedContent(
     LuaEditorEntryCard(
       label = "On startup",
       code = draftStartup,
+      shape = rememberConnectedShape(2, 3, ConnectedLayout.Vertical),
       onClick = { onOpenScriptEditor("startup") },
     )
 
@@ -995,6 +1004,7 @@ fun LuaEditorEntryCard(
   code: String,
   isRequired: Boolean = false,
   onClick: () -> Unit,
+  shape: Shape = MaterialTheme.shapes.extraLargeIncreased,
 ) {
   val hasCode = code.isNotBlank()
   val borderColor =
@@ -1007,7 +1017,7 @@ fun LuaEditorEntryCard(
   Card(
     onClick = onClick,
     modifier = Modifier.fillMaxWidth(),
-    shape = RoundedCornerShape(14.dp),
+    shape = shape,
     colors =
       CardDefaults.cardColors(
         containerColor =
@@ -1204,7 +1214,7 @@ fun ImportSelectionScreen(
 
         Card(
           modifier = Modifier.fillMaxWidth(),
-          shape = RoundedCornerShape(16.dp),
+          shape = MaterialTheme.shapes.extraLargeIncreased,
           colors =
             CardDefaults.cardColors(
               containerColor =

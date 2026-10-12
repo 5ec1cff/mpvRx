@@ -40,6 +40,8 @@ fun addVideosToPlaybackQueue(
         title = video.displayName.ifBlank { video.title },
         mimeType = video.mimeType,
         durationSeconds = (video.duration / 1000L).toInt().takeIf { it > 0 },
+        videoWidth = video.width,
+        videoHeight = video.height,
       )
     }
   val added =

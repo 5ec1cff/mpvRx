@@ -38,7 +38,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 @kotlinx.serialization.Serializable
 private data class OpenAiTranscriptionResponse(
@@ -370,12 +369,7 @@ class RealtimeSubtitleService(
         }
 
         val apiClient =
-          okHttpClient
-            .newBuilder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(180, TimeUnit.SECONDS)
-            .writeTimeout(180, TimeUnit.SECONDS)
-            .build()
+          okHttpClient.withAiUploadTimeouts()
 
         val bodyBuilder =
           MultipartBody
@@ -437,7 +431,7 @@ class RealtimeSubtitleService(
   private class SessionCompleted : RuntimeException()
 }
 
-private fun audioMediaType(file: File): okhttp3.MediaType {
+internal fun audioMediaType(file: File): okhttp3.MediaType {
   val ext = file.name.substringAfterLast('.', "").lowercase()
   return when (ext) {
     "wav" -> "audio/wav".toMediaType()

@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.browser.dialogs
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,14 +21,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -53,6 +55,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,12 +65,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.data.network.ServerSuggestion
+import app.gyrolet.mpvrx.domain.network.NetworkAddress
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
+import app.gyrolet.mpvrx.domain.network.NetworkPath
 import app.gyrolet.mpvrx.domain.network.NetworkProtocol
+import app.gyrolet.mpvrx.domain.network.SmbSharePath
+import app.gyrolet.mpvrx.domain.network.normalizedAddress
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ConnectionEditorSheet(
   title: String,
@@ -75,6 +84,7 @@ internal fun ConnectionEditorSheet(
   onDismiss: () -> Unit,
   onSave: (NetworkConnection, clearPassword: Boolean) -> Unit,
   modifier: Modifier = Modifier,
+  savedConnections: List<NetworkConnection> = emptyList(),
 ) {
   var name by remember(initialConnection) { mutableStateOf(initialConnection.name) }
   var protocol by remember(initialConnection) { mutableStateOf(initialConnection.protocol) }
@@ -102,7 +112,25 @@ internal fun ConnectionEditorSheet(
     )
   val parsedPort = port.toIntOrNull()
   val isPortValid = parsedPort != null && parsedPort in MIN_PORT..MAX_PORT
-  val canSave = host.isNotBlank() && isPortValid && (isAnonymous || username.isNotBlank())
+  val address = remember(host, protocol, useHttps) {
+    runCatching { NetworkAddress.parse(host, protocol, useHttps) }.getOrNull()
+  }
+  val effectiveProtocol = address?.protocol ?: protocol
+  val normalizedPath = remember(path, effectiveProtocol, address?.path) {
+    runCatching { NetworkPath.from((address?.path ?: path).trim().let { if (effectiveProtocol == NetworkProtocol.SMB) it.replace('\\', '/') else it }).value }.getOrNull()
+  }
+  val isPathValid = normalizedPath != null &&
+    (effectiveProtocol != NetworkProtocol.SMB || runCatching { SmbSharePath(normalizedPath) }.isSuccess)
+  val canSave = address != null && isPortValid && isPathValid && (isAnonymous || username.isNotBlank())
+  val resolvedConnection = remember(host, port, protocol, path, useHttps, initialConnection) {
+    runCatching {
+      initialConnection.copy(host = host, port = parsedPort ?: 0, protocol = protocol, path = path, useHttps = useHttps).normalizedAddress()
+    }.getOrNull()
+  }
+  val originalAddress = remember(initialConnection) { runCatching { initialConnection.normalizedAddress() }.getOrNull() }
+  val destinationChanged = resolvedConnection?.host?.lowercase() != originalAddress?.host?.lowercase() ||
+    resolvedConnection?.protocol != originalAddress?.protocol || resolvedConnection?.port != originalAddress?.port ||
+    resolvedConnection?.useHttps != originalAddress?.useHttps
 
   val dismiss = {
     focusManager.clearFocus()
@@ -110,20 +138,21 @@ internal fun ConnectionEditorSheet(
   }
   val save = {
     if (canSave) {
+      val resolvedAddress = requireNotNull(resolvedConnection)
       focusManager.clearFocus()
       onSave(
         initialConnection.copy(
-          name = name.trim().ifBlank { "${protocol.displayName} - ${host.trim()}" },
-          protocol = protocol,
-          host = host.trim(),
-          port = requireNotNull(parsedPort),
+          name = name.trim().ifBlank { "${effectiveProtocol.displayName} - ${resolvedAddress.host}" },
+          protocol = effectiveProtocol,
+          host = resolvedAddress.host,
+          port = resolvedAddress.port,
           username = if (isAnonymous) "" else username.trim(),
           password = if (isAnonymous) "" else password,
-          path = path.trim().ifBlank { "/" },
+          path = requireNotNull(normalizedPath),
           isAnonymous = isAnonymous,
-          useHttps = protocol == NetworkProtocol.WEBDAV && useHttps,
+          useHttps = resolvedAddress.useHttps,
         ),
-        isAnonymous || clearPassword,
+        isAnonymous || clearPassword || (destinationChanged && password.isEmpty()),
       )
     }
   }
@@ -145,8 +174,8 @@ internal fun ConnectionEditorSheet(
     ) {
       Text(
         text = title,
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.semantics { heading() },
+        style = MaterialTheme.typography.headlineSmallEmphasized,
       )
 
       OutlinedTextField(
@@ -176,7 +205,9 @@ internal fun ConnectionEditorSheet(
               .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(
-          expanded = protocolMenuExpanded,
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+      expanded = protocolMenuExpanded,
           onDismissRequest = { protocolMenuExpanded = false },
         ) {
           NetworkProtocol.entries.forEach { selectedProtocol ->
@@ -193,13 +224,38 @@ internal fun ConnectionEditorSheet(
         }
       }
 
-      OutlinedTextField(
+      NetworkServerField(
         value = host,
-        onValueChange = { host = it },
-        label = { FieldLabel(R.string.ui_host_ip_address) },
+        onValueChange = { input ->
+          val pasted = input.length > host.length + 1
+          host = input
+          // Normalize pasted URLs/UNC paths once, leaving normal hostname typing uninterrupted.
+          val parsed = runCatching { NetworkAddress.parse(input, protocol, useHttps) }.getOrNull()
+          if (pasted && parsed != null && ("://" in input || input.startsWith("\\\\") || parsed.port != null || parsed.path != null)) {
+            host = parsed.host
+            if (parsed.protocol != protocol || parsed.useHttps != useHttps) {
+              port = (if (parsed.useHttps) 443 else parsed.protocol.defaultPort).toString()
+            }
+            protocol = parsed.protocol
+            useHttps = parsed.useHttps
+            parsed.port?.let { port = it.toString() }
+            parsed.path?.let { path = it }
+          }
+        },
+        onSelected = { selected ->
+          host = selected.host
+          selected.protocol?.let {
+            protocol = it
+            useHttps = selected.useHttps
+            port = (selected.port ?: if (selected.useHttps) 443 else it.defaultPort).toString()
+            path = selected.path ?: "/"
+          }
+          if (name.isBlank()) name = selected.name
+        },
+        savedServers = savedConnections.filter { it.id != initialConnection.id }.mapNotNull(ServerSuggestion::saved),
+        label = stringResource(R.string.ui_host_ip_address),
         modifier = Modifier.fillMaxWidth().focusRequester(hostFocusRequester),
-        singleLine = true,
-        placeholder = { Text("192.168.1.100", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        isError = host.isNotBlank() && address == null,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(onNext = { portFocusRequester.requestFocus() }),
       )
@@ -224,10 +280,14 @@ internal fun ConnectionEditorSheet(
       OutlinedTextField(
         value = path,
         onValueChange = { path = it },
-        label = { FieldLabel(R.string.ui_path) },
+        label = { FieldLabel(if (effectiveProtocol == NetworkProtocol.SMB) R.string.network_smb_share_folder else R.string.ui_path) },
         modifier = Modifier.fillMaxWidth().focusRequester(pathFocusRequester),
         singleLine = true,
-        placeholder = { Text("/", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        placeholder = { Text(if (effectiveProtocol == NetworkProtocol.SMB) "/Media/Movies" else "/", maxLines = 1) },
+        isError = !isPathValid,
+        supportingText = if (effectiveProtocol == NetworkProtocol.SMB) {
+          { Text(stringResource(R.string.network_smb_share_hint)) }
+        } else null,
         keyboardOptions = KeyboardOptions(imeAction = if (isAnonymous) ImeAction.Done else ImeAction.Next),
         keyboardActions =
           KeyboardActions(
@@ -264,6 +324,9 @@ internal fun ConnectionEditorSheet(
         modifier = Modifier.fillMaxWidth().focusRequester(usernameFocusRequester),
         singleLine = true,
         enabled = !isAnonymous,
+        supportingText = if (protocol == NetworkProtocol.SMB && !isAnonymous) {
+          { Text(stringResource(R.string.network_smb_username_hint)) }
+        } else null,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(onNext = { passwordFocusRequester.requestFocus() }),
       )
@@ -275,7 +338,7 @@ internal fun ConnectionEditorSheet(
           if (it.isNotEmpty()) clearPassword = false
         },
         label = {
-          FieldLabel(if (isEditing) R.string.ui_new_password_keep_existing else R.string.ui_password)
+          FieldLabel(if (isEditing && !destinationChanged) R.string.ui_new_password_keep_existing else R.string.ui_password)
         },
         modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
         singleLine = true,
@@ -317,15 +380,15 @@ internal fun ConnectionEditorSheet(
         )
       }
 
-      Row(
+      FlowRow(
         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        TextButton(onClick = dismiss) {
+        TextButton(onClick = dismiss, shapes = ButtonDefaults.shapes()) {
           Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium)
         }
-        Button(onClick = save, enabled = canSave) {
+        Button(onClick = save, enabled = canSave, shapes = ButtonDefaults.shapes()) {
           Text(stringResource(R.string.ui_save), fontWeight = FontWeight.SemiBold)
         }
       }
@@ -353,7 +416,7 @@ private fun ConnectionToggle(
     modifier =
       Modifier
         .fillMaxWidth()
-        .clip(RoundedCornerShape(8.dp))
+        .clip(MaterialTheme.shapes.small)
         .toggleable(
           value = checked,
           enabled = enabled,

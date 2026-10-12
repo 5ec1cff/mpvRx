@@ -21,9 +21,13 @@ import app.gyrolet.mpvrx.database.repository.NetworkStreamEntryRepository
 import app.gyrolet.mpvrx.database.repository.PlaybackStateRepositoryImpl
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.database.repository.RecentlyPlayedRepositoryImpl
+import app.gyrolet.mpvrx.domain.framecapture.FrameCaptureRepository
+import app.gyrolet.mpvrx.domain.framecapture.FrameCaptureRepositoryImpl
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.domain.recentlyplayed.repository.RecentlyPlayedRepository
+import app.gyrolet.mpvrx.domain.network.NetworkImageRepository
 import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
+import app.gyrolet.mpvrx.repository.WatchStatsRepository
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
@@ -826,6 +830,167 @@ val MIGRATION_19_21 =
     }
   }
 
+val MIGRATION_21_22 =
+  object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `PlaybackStateEntity` ADD COLUMN `newLabelOverride` INTEGER")
+    }
+  }
+
+val MIGRATION_22_23 =
+  object : Migration(22, 23) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `audiobooks` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sourceKey` TEXT NOT NULL,
+        `title` TEXT NOT NULL, `subtitle` TEXT NOT NULL, `author` TEXT NOT NULL,
+        `narrator` TEXT NOT NULL, `series` TEXT NOT NULL, `seriesPart` TEXT NOT NULL,
+        `description` TEXT NOT NULL, `genre` TEXT NOT NULL, `language` TEXT NOT NULL,
+        `publisher` TEXT NOT NULL, `publishedYear` TEXT NOT NULL, `isbn` TEXT NOT NULL,
+        `asin` TEXT NOT NULL, `abridged` INTEGER, `coverUri` TEXT, `addedAt` INTEGER NOT NULL,
+        `lastPlayedAt` INTEGER NOT NULL, `currentTrackId` INTEGER, `positionMs` INTEGER NOT NULL,
+        `progressMs` INTEGER NOT NULL, `finished` INTEGER NOT NULL, `playbackSpeed` REAL NOT NULL,
+        `rewindSeconds` INTEGER NOT NULL)""")
+      db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_audiobooks_sourceKey` ON `audiobooks` (`sourceKey`)")
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `audiobook_tracks` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bookId` INTEGER NOT NULL,
+        `uri` TEXT NOT NULL, `fileName` TEXT NOT NULL, `title` TEXT NOT NULL,
+        `position` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `size` INTEGER NOT NULL,
+        FOREIGN KEY(`bookId`) REFERENCES `audiobooks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)""")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_audiobook_tracks_bookId` ON `audiobook_tracks` (`bookId`)")
+      db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_audiobook_tracks_bookId_uri` ON `audiobook_tracks` (`bookId`, `uri`)")
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `audiobook_chapters` (
+        `trackId` INTEGER NOT NULL, `startMs` INTEGER NOT NULL, `endMs` INTEGER NOT NULL, `title` TEXT NOT NULL,
+        PRIMARY KEY(`trackId`, `startMs`),
+        FOREIGN KEY(`trackId`) REFERENCES `audiobook_tracks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)""")
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `audiobook_bookmarks` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bookId` INTEGER NOT NULL,
+        `trackId` INTEGER NOT NULL, `positionMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL,
+        FOREIGN KEY(`bookId`) REFERENCES `audiobooks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+        FOREIGN KEY(`trackId`) REFERENCES `audiobook_tracks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)""")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_audiobook_bookmarks_bookId` ON `audiobook_bookmarks` (`bookId`)")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_audiobook_bookmarks_trackId` ON `audiobook_bookmarks` (`trackId`)")
+    }
+  }
+
+val MIGRATION_23_24 =
+  object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `playback_bookmarks` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `mediaId` TEXT NOT NULL,
+        `positionMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `createdAt` INTEGER NOT NULL,
+        `bookTrackId` INTEGER,
+        FOREIGN KEY(`bookTrackId`) REFERENCES `audiobook_tracks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)""")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_playback_bookmarks_mediaId` ON `playback_bookmarks` (`mediaId`)")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_playback_bookmarks_bookTrackId` ON `playback_bookmarks` (`bookTrackId`)")
+      db.execSQL("""INSERT INTO `playback_bookmarks` (`id`, `mediaId`, `positionMs`, `title`, `createdAt`, `bookTrackId`)
+        SELECT `id`, 'audiobook:' || `bookId`, `positionMs`, `title`, `createdAt`, `trackId` FROM `audiobook_bookmarks`""")
+      db.execSQL("DROP TABLE `audiobook_bookmarks`")
+    }
+  }
+
+/**
+ * Records the size of network playlist entries at the time they were added, so the playlist can
+ * show it without reaching out to the share. Table and column names must match Room's generated
+ * schema exactly, or Room rejects the database on open.
+ */
+val MIGRATION_26_27 =
+  object : Migration(26, 27) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `PlaylistItemEntity` ADD COLUMN `fileSize` INTEGER")
+    }
+  }
+
+/**
+ * Network connections become tombstones instead of being deleted, so a re-created connection with
+ * the same settings can revive the row and keep the id that playlist entries reference.
+ */
+val MIGRATION_27_28 =
+  object : Migration(27, 28) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `network_connections` ADD COLUMN `isDeleted` INTEGER NOT NULL DEFAULT 0")
+    }
+  }
+
+/**
+ * Frame captures are metadata-only rows: the image is written to the system gallery, and this table
+ * records where it went and which moment of which video it came from.
+ */
+val MIGRATION_28_29 =
+  object : Migration(28, 29) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL(
+        """CREATE TABLE IF NOT EXISTS `frame_captures` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        `imageUri` TEXT,
+        `imagePath` TEXT,
+        `videoUri` TEXT NOT NULL,
+        `videoPath` TEXT,
+        `videoTitle` TEXT NOT NULL,
+        `positionMs` INTEGER NOT NULL,
+        `capturedAt` INTEGER NOT NULL
+      )""",
+      )
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_frame_captures_capturedAt` ON `frame_captures` (`capturedAt`)")
+    }
+  }
+
+/**
+ * Snapshot folders are an in-app grouping only: the images stay in the gallery's `mpvSnaps` album,
+ * and `frame_captures.folderId` records which folder a row belongs to (null = the root). No foreign
+ * key — see the note on `FrameCaptureEntity` — so the column is nullable with the root as its meaning.
+ */
+val MIGRATION_29_30 =
+  object : Migration(29, 30) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL(
+        """CREATE TABLE IF NOT EXISTS `snapshot_folders` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        `name` TEXT NOT NULL,
+        `createdAt` INTEGER NOT NULL
+      )""",
+      )
+      db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_snapshot_folders_name` ON `snapshot_folders` (`name`)")
+      db.execSQL("ALTER TABLE `frame_captures` ADD COLUMN `folderId` INTEGER")
+      db.execSQL("CREATE INDEX IF NOT EXISTS `index_frame_captures_folderId` ON `frame_captures` (`folderId`)")
+    }
+  }
+
+/**
+ * The mosaic layout tiles frames by their own aspect ratio, so a capture row now remembers the size
+ * of the image it points at. Nullable: rows written before this migration have none and are filled
+ * in on first browse.
+ */
+val MIGRATION_30_31 =
+  object : Migration(30, 31) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `frame_captures` ADD COLUMN `imageWidth` INTEGER")
+      db.execSQL("ALTER TABLE `frame_captures` ADD COLUMN `imageHeight` INTEGER")
+    }
+  }
+
+val MIGRATION_24_25 =
+  object : Migration(24, 25) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("""CREATE TABLE IF NOT EXISTS `audiobookshelf_servers` (
+        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+        `name` TEXT NOT NULL,
+        `serverUrl` TEXT NOT NULL,
+        `username` TEXT NOT NULL,
+        `token` TEXT NOT NULL,
+        `userId` TEXT NOT NULL,
+        `activeLibraryId` TEXT,
+        `lastConnected` INTEGER NOT NULL
+      )""")
+    }
+  }
+
+val MIGRATION_25_26 =
+  object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `RecentlyPlayedEntity` ADD COLUMN `artworkUrl` TEXT DEFAULT NULL")
+    }
+  }
+
 val DatabaseModule =
   module {
     single<Json> {
@@ -862,6 +1027,16 @@ val DatabaseModule =
           MIGRATION_19_20,
           MIGRATION_20_21,
           MIGRATION_19_21,
+          MIGRATION_21_22,
+          MIGRATION_22_23,
+          MIGRATION_23_24,
+          MIGRATION_24_25,
+          MIGRATION_25_26,
+          MIGRATION_26_27,
+          MIGRATION_27_28,
+          MIGRATION_28_29,
+          MIGRATION_29_30,
+          MIGRATION_30_31,
         ).build()
     }
 
@@ -872,6 +1047,15 @@ val DatabaseModule =
     }
 
     single { ThumbnailRepository(androidContext()) }
+    single { NetworkImageRepository(context = androidContext(), networkRepository = get()) }
+    single { WatchStatsRepository(androidContext()) }
+
+    single { get<MpvRxDatabase>().audiobookDao() }
+    single { get<MpvRxDatabase>().playbackBookmarkDao() }
+    single { get<MpvRxDatabase>().frameCaptureDao() }
+    single { get<MpvRxDatabase>().snapshotFolderDao() }
+
+    singleOf(::FrameCaptureRepositoryImpl).bind(FrameCaptureRepository::class)
 
     single {
       app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository(
@@ -964,6 +1148,24 @@ val DatabaseModule =
 
     single {
       app.gyrolet.mpvrx.repository.NavidromeRepository(
+        dao = get(),
+        client = get(),
+      )
+    }
+
+    single {
+      get<MpvRxDatabase>().audiobookshelfServerDao()
+    }
+
+    single {
+      app.gyrolet.mpvrx.data.audiobookshelf.AudiobookshelfClient(
+        httpClient = get(),
+        json = get(),
+      )
+    }
+
+    single {
+      app.gyrolet.mpvrx.repository.AudiobookshelfRepository(
         dao = get(),
         client = get(),
       )

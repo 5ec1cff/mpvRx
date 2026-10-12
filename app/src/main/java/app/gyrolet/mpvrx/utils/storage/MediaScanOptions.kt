@@ -52,12 +52,6 @@ class NoMediaPathFilter(
       return false
     }
 
-    // App media inside Android/data is often hidden behind .nomedia, but users still
-    // expect those video folders to be discoverable in the browser.
-    if (isAndroidDataAccessiblePath(directory)) {
-      return false
-    }
-
     return hasHiddenMarkerInPath(directory)
   }
 
@@ -71,6 +65,7 @@ class NoMediaPathFilter(
       runCatching {
         directory.name.startsWith(".") ||
           options.normalizedHiddenFolderMarkerNames.any { File(directory, it).isFile } ||
+          File(directory, app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.AUDIOBOOK_MARKER).isFile ||
           directory.parentFile?.let(::hasHiddenMarkerInPath) == true
       }.getOrElse { error ->
         Log.w(TAG, "Failed checking hidden-folder ancestry for $path", error)

@@ -170,6 +170,7 @@ object NetworkBookmarksScreen : Screen {
     }
 
     Scaffold(
+      containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
       topBar = {
         BrowserTopBar(
           title = stringResource(R.string.network_bookmarks_title),
@@ -226,7 +227,8 @@ private fun BookmarkManageCard(
   onRemove: () -> Unit,
 ) {
   Card(
-    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
+    onClick = onOpen,
+    modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(8.dp),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
   ) {

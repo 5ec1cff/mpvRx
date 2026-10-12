@@ -26,9 +26,11 @@ import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.utils.media.MediaInfoOps
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
+import app.gyrolet.mpvrx.utils.storage.INTERNAL_STORAGE_LABEL
 import app.gyrolet.mpvrx.utils.storage.MediaScanOptions
 import app.gyrolet.mpvrx.utils.storage.StorageVolumeUtils
 import app.gyrolet.mpvrx.utils.storage.TreeViewScanner
+import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import app.gyrolet.mpvrx.utils.storage.mediaPathKey
 import kotlinx.coroutines.Dispatchers
@@ -38,8 +40,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 import java.util.Locale
-import kotlin.math.log10
-import kotlin.math.pow
 
 /**
  * Unified repository for ALL media file operations
@@ -69,22 +69,21 @@ object MediaFileRepository : KoinComponent {
       minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
     )
 
-  private suspend fun getTreeViewNewBadgeParams(): Triple<Boolean, Int, Set<String>> {
+  private data class TreeViewNewBadgeParams(
+    val showNewLabels: Boolean,
+    val thresholdDays: Int,
+    val playedMediaTitles: Set<String>,
+    val newLabelOverrides: Map<String, Boolean>,
+  )
+
+  private suspend fun getTreeViewNewBadgeParams(): TreeViewNewBadgeParams {
     val showNewLabels = appearancePreferences.showUnplayedOldVideoLabel.get()
     val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
-    val playedMediaTitles =
-      if (showNewLabels) {
-        playbackStateRepository
-          .getAllPlaybackStates()
-          // Only treat a video as "played" (and drop its NEW badge) once it has
-          // actually been watched to the threshold. Threshold 0 keeps the badge.
-          .filter { it.hasBeenWatched }
-          .mapTo(mutableSetOf()) { it.mediaTitle }
-      } else {
-        emptySet()
-      }
+    val states = if (showNewLabels) playbackStateRepository.getAllPlaybackStates() else emptyList()
+    val playedMediaTitles = states.filter { it.hasBeenWatched }.mapTo(mutableSetOf()) { it.mediaTitle }
+    val overrides = states.mapNotNull { state -> state.newLabelOverride?.let { state.mediaTitle to it } }.toMap()
 
-    return Triple(showNewLabels, thresholdDays, playedMediaTitles)
+    return TreeViewNewBadgeParams(showNewLabels, thresholdDays, playedMediaTitles, overrides)
   }
 
   /**
@@ -148,12 +147,16 @@ object MediaFileRepository : KoinComponent {
     includeAudioOverride: Boolean? = null,
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
-      FolderViewScanner
+      val options = currentScanOptions(includeAudioOverride)
+      val folders = FolderViewScanner
         .getAllVideoFolders(
           context = context,
-          options = currentScanOptions(includeAudioOverride),
+          options = options,
           forceFileSystemCheck = forceFileSystemCheck,
-        ).also { onProgress?.invoke(it.size) }
+        )
+      folders.distinctBy { it.path.lowercase(Locale.ROOT) }
+        .sortedBy { it.name.lowercase(Locale.getDefault()) }
+        .also { onProgress?.invoke(it.size) }
     }
 
   suspend fun getIndexedNoMediaFolders(): List<VideoFolder> =
@@ -191,11 +194,14 @@ object MediaFileRepository : KoinComponent {
             val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
             while (cursor.moveToNext()) {
               val path = cursor.getString(dataColumn)
+              if (path == null) continue
               val file = File(path)
-              if (!file.exists()) continue
+              // On Android 10+ the file may not be directly accessible via the file system
+              // even though it exists in MediaStore. Only skip if the path is invalid.
+              val parentPath = file.parent ?: continue
+              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(parentPath)) continue
               val durationMs = cursor.getLong(durationColumn)
               if (minimumAudioDurationSeconds > 0 && durationMs / 1000 < minimumAudioDurationSeconds) continue
-              val parentPath = file.parent ?: continue
               val key = normalizeAudioFolderKey(parentPath)
               val aggregate = aggregates.getOrPut(key) { AudioFolderAggregate(path = parentPath) }
               aggregate.size += cursor.getLong(sizeColumn)
@@ -269,6 +275,7 @@ object MediaFileRepository : KoinComponent {
               val path = cursor.getString(dataColumn)
               val file = File(path)
               if (!file.exists()) continue
+              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(path)) continue
               val durationMs = cursor.getLong(durationColumn)
               val title = cursor.getString(titleColumn) ?: file.nameWithoutExtension
               val displayName = cursor.getString(displayColumn) ?: file.name
@@ -282,9 +289,9 @@ object MediaFileRepository : KoinComponent {
                   path = path,
                   uri = Uri.fromFile(file),
                   duration = durationMs,
-                  durationFormatted = formatDuration(durationMs),
+                  durationFormatted = VideoScanUtils.formatDuration(durationMs),
                   size = cursor.getLong(sizeColumn),
-                  sizeFormatted = formatFileSize(cursor.getLong(sizeColumn)),
+                  sizeFormatted = VideoScanUtils.formatFileSize(cursor.getLong(sizeColumn)),
                   dateModified = cursor.getLong(dateColumn),
                   dateAdded = cursor.getLong(dateColumn),
                   mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase()),
@@ -315,8 +322,7 @@ object MediaFileRepository : KoinComponent {
   private fun normalizeAudioFolderKey(path: String): String =
     path.replace('\\', '/').trimEnd('/').lowercase(Locale.ROOT)
 
-  private fun leafName(path: String): String =
-    path.replace('\\', '/').trimEnd('/').substringAfterLast('/')
+  private fun leafName(path: String): String = leafStorageName(path)
 
   fun scanNoMediaFoldersIncrementally(
     context: Context,
@@ -328,16 +334,6 @@ object MediaFileRepository : KoinComponent {
       dao = database.directoryScanDao(),
       forceDiscovery = forceDiscovery,
     )
-
-  /**
-   * No-op enrichment - MediaStore already provides all metadata
-   * Kept for backward compatibility
-   */
-  suspend fun enrichVideoFolders(
-    context: Context,
-    folders: List<VideoFolder>,
-    onProgress: ((Int, Int) -> Unit)? = null,
-  ): List<VideoFolder> = folders
 
   // =============================================================================
   // VIDEO FILE OPERATIONS
@@ -476,9 +472,9 @@ object MediaFileRepository : KoinComponent {
       path = path,
       uri = uri,
       duration = duration,
-      durationFormatted = formatDuration(duration),
+      durationFormatted = VideoScanUtils.formatDuration(duration),
       size = size,
-      sizeFormatted = formatFileSize(size),
+      sizeFormatted = VideoScanUtils.formatFileSize(size),
       dateModified = dateModified,
       dateAdded = dateModified,
       mimeType = mimeType,
@@ -487,67 +483,7 @@ object MediaFileRepository : KoinComponent {
       width = width,
       height = height,
       fps = fps,
-      resolution = formatResolutionWithFps(width, height, fps),
-      hasEmbeddedSubtitles = hasEmbeddedSubtitles,
-      subtitleCodec = subtitleCodec,
-    )
-  }
-
-  /**
-   * Creates a Video object from a file with pre-fetched metadata
-   * Use this when metadata has already been batch-extracted
-   */
-  private fun createVideoFromFileWithMetadata(
-    file: File,
-    bucketId: String,
-    bucketDisplayName: String,
-    metadata: MediaInfoOps.VideoMetadata?,
-  ): Video {
-    val path = file.absolutePath
-    val displayName = file.name
-    val title = file.nameWithoutExtension
-    val dateModified = file.lastModified() / 1000
-
-    val extension = file.extension.lowercase()
-    val mimeType = FileTypeUtils.getMimeTypeFromExtension(extension)
-    val uri = Uri.fromFile(file)
-
-    // Use pre-fetched metadata
-    var size = file.length()
-    var duration = 0L
-    var width = 0
-    var height = 0
-    var fps = 0f
-
-    metadata?.let {
-      if (it.sizeBytes > 0) size = it.sizeBytes
-      duration = it.durationMs
-      width = it.width
-      height = it.height
-      fps = it.fps
-    }
-    val hasEmbeddedSubtitles = metadata?.hasEmbeddedSubtitles ?: false
-    val subtitleCodec = metadata?.subtitleCodec ?: ""
-
-    return Video(
-      id = path.hashCode().toLong(),
-      title = title,
-      displayName = displayName,
-      path = path,
-      uri = uri,
-      duration = duration,
-      durationFormatted = formatDuration(duration),
-      size = size,
-      sizeFormatted = formatFileSize(size),
-      dateModified = dateModified,
-      dateAdded = dateModified,
-      mimeType = mimeType,
-      bucketId = bucketId,
-      bucketDisplayName = bucketDisplayName,
-      width = width,
-      height = height,
-      fps = fps,
-      resolution = formatResolutionWithFps(width, height, fps),
+      resolution = VideoScanUtils.formatResolutionWithFps(width, height, fps),
       hasEmbeddedSubtitles = hasEmbeddedSubtitles,
       subtitleCodec = subtitleCodec,
     )
@@ -568,11 +504,6 @@ object MediaFileRepository : KoinComponent {
   // =============================================================================
 
   /**
-   * Gets the default root path for the filesystem browser
-   */
-  fun getDefaultRootPath(): String = Environment.getExternalStorageDirectory().absolutePath
-
-  /**
    * Parses a path into breadcrumb components
    */
   fun getPathComponents(path: String): List<PathComponent> {
@@ -587,7 +518,7 @@ object MediaFileRepository : KoinComponent {
     var currentPath = ""
     for (part in parts) {
       currentPath += "/$part"
-      components.add(PathComponent(part, currentPath))
+      components.add(PathComponent(leafStorageName(currentPath), currentPath))
     }
 
     return components
@@ -608,6 +539,7 @@ object MediaFileRepository : KoinComponent {
   ): Result<List<FileSystemItem>> =
     withContext(Dispatchers.IO) {
       try {
+        val scanOptions = currentScanOptions()
         val directory = File(path)
 
         // Validation checks
@@ -626,8 +558,7 @@ object MediaFileRepository : KoinComponent {
         val items = mutableListOf<FileSystemItem>()
 
         // Get folders using TreeViewScanner (instant from cache)
-        val scanOptions = currentScanOptions()
-        val (showNewLabels, thresholdDays, playedMediaTitles) = getTreeViewNewBadgeParams()
+        val (showNewLabels, thresholdDays, playedMediaTitles, newLabelOverrides) = getTreeViewNewBadgeParams()
         val folders =
           TreeViewScanner.getFoldersInDirectory(
             context = context,
@@ -638,6 +569,7 @@ object MediaFileRepository : KoinComponent {
             showNewLabels = showNewLabels,
             thresholdDays = thresholdDays,
             maxAutoFlattenLevels = browserPreferences.treeFlattenDepth.get().maxLevels,
+            newLabelOverrides = newLabelOverrides,
           )
         folders.forEach { folderData ->
           items.add(
@@ -668,6 +600,8 @@ object MediaFileRepository : KoinComponent {
         }
 
         Result.success(items)
+      } catch (error: kotlinx.coroutines.CancellationException) {
+        throw error
       } catch (e: SecurityException) {
         Log.e(TAG, "Security exception scanning directory: $path", e)
         Result.failure(Exception("Permission denied: ${e.message}"))
@@ -688,7 +622,7 @@ object MediaFileRepository : KoinComponent {
       val roots = mutableListOf<FileSystemItem.Folder>()
 
       try {
-        val (showNewLabels, thresholdDays, playedMediaTitles) = getTreeViewNewBadgeParams()
+        val (showNewLabels, thresholdDays, playedMediaTitles, newLabelOverrides) = getTreeViewNewBadgeParams()
 
         // Primary storage (internal)
         val primaryStorage = Environment.getExternalStorageDirectory()
@@ -705,11 +639,12 @@ object MediaFileRepository : KoinComponent {
               playedMediaTitles,
               showNewLabels,
               thresholdDays,
+              newLabelOverrides,
             )
 
           roots.add(
             FileSystemItem.Folder(
-              name = "Internal Storage",
+              name = INTERNAL_STORAGE_LABEL,
               path = primaryPath,
               lastModified = primaryStorage.lastModified(),
               videoCount = folderData?.videoCount ?: 0,
@@ -740,6 +675,7 @@ object MediaFileRepository : KoinComponent {
                   playedMediaTitles,
                   showNewLabels,
                   thresholdDays,
+                  newLabelOverrides,
                 )
 
               roots.add(
@@ -763,71 +699,4 @@ object MediaFileRepository : KoinComponent {
 
       roots
     }
-
-  // =============================================================================
-  // FORMATTING UTILITIES
-  // =============================================================================
-
-  private fun formatDuration(durationMs: Long): String {
-    if (durationMs <= 0) return "0s"
-
-    val seconds = durationMs / 1000
-    val hours = seconds / 3600
-    val minutes = (seconds % 3600) / 60
-    val secs = seconds % 60
-
-    return when {
-      hours > 0 -> String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, secs)
-      minutes > 0 -> String.format(Locale.getDefault(), "%d:%02d", minutes, secs)
-      else -> "${secs}s"
-    }
-  }
-
-  private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "0 B"
-    val units = arrayOf("B", "KB", "MB", "GB", "TB")
-    val digitGroups = (log10(bytes.toDouble()) / log10(1024.0)).toInt()
-    return String.format(
-      Locale.getDefault(),
-      "%.1f %s",
-      bytes / 1024.0.pow(digitGroups.toDouble()),
-      units[digitGroups],
-    )
-  }
-
-  private fun formatResolution(
-    width: Int,
-    height: Int,
-  ): String {
-    if (width <= 0 || height <= 0) return "--"
-
-    val label =
-      when {
-        width >= 7680 || height >= 4320 -> "4320p"
-        width >= 3840 || height >= 2160 -> "2160p"
-        width >= 2560 || height >= 1440 -> "1440p"
-        width >= 1920 || height >= 1080 -> "1080p"
-        width >= 1280 || height >= 720 -> "720p"
-        width >= 854 || height >= 480 -> "480p"
-        width >= 640 || height >= 360 -> "360p"
-        width >= 426 || height >= 240 -> "240p"
-        else -> "${height}p"
-      }
-
-    return label
-  }
-
-  private fun formatResolutionWithFps(
-    width: Int,
-    height: Int,
-    fps: Float,
-  ): String {
-    val baseResolution = formatResolution(width, height)
-    if (baseResolution == "--" || fps <= 0f) return baseResolution
-
-    // Show only the integer part for frame rates, without rounding
-    val fpsFormatted = fps.toInt().toString()
-
-    return "$baseResolution@$fpsFormatted"
-  }
 }

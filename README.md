@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" width="250" height="250" alt="mpvRx app icon" />
+  <img src="website/public/images/icon.svg" width="250" height="250" alt="mpvRx solid purple app icon" />
 </p>
 
 <h1 align="center">mpvRx</h1>
@@ -17,8 +17,7 @@
 </p>
 
 > [!IMPORTANT]
-> **Well Development is now Resumed**
-
+> [Join us on Telegram](https://t.me/+yA0f2nknCAc1ODZl)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-brightgreen.svg" />
@@ -80,7 +79,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Multi-Tap Continuous Seeking** | Triple/quadruple tap to keep seeking further without lifting |
 | **Horizontal Swipe to Seek** | Swipe across video to seek with live time/delta overlay |
 | **Long-Press Dynamic Speed** | Long-press activates configurable speed boost; swipe left/right to adjust across 8 presets |
-| **Subtitle Drag Gesture** | Long-press center screen to drag subtitles vertically when active |
+| **Subtitle Drag Gesture** | Hold the center to move primary subtitles; hold either subtitle directly to move that track independently |
 | **Subtitle Zoom & Dialogue Seek** | Pinch subtitle text to resize it and swipe across subtitles to seek between dialogue lines |
 | **Pinch-to-Zoom with Pan** | Pinch to zoom (-1x to 3x) with simultaneous pan and single-finger pan after zoom |
 | **Volume Boost via Gesture** | Vertical swipe volume can exceed 100% into configurable boost range |
@@ -165,6 +164,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Landscape/Portrait Adaptive Layouts** | Completely different control layouts per orientation |
 | **One-Tap Control Unlock** | When playback controls are locked, tap the unlock button at the top-left or top-right according to the side you touch |
 | **Double-Back Unlock** | While controls are locked, the first Back press shows a reminder; a second quick press unlocks them |
+| **App Icons** | Solid purple is the default across app, splash, Recents, website, and store artwork; gradient and classic remain selectable in Appearance |
 | **Hide Button Backgrounds** | Transparent buttons with only icons visible |
 | **Centralized "More Sheet"** | Quick access to all player buttons and custom controls |
 | **In-Player Settings** | Toggle 10+ settings (gestures, PiP, UI behavior) without leaving playback |
@@ -230,6 +230,11 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Lyrics** | View local or embedded lyrics, fetch online lyrics from LRCLIB, and switch between available sources |
 | **Four Audio Visualizers** | Choose Blob, Galaxy, Cuboid, or Particle visualizations, with an optional audio-reactive wavy seekbar |
 | **Audio Playlists & Favorites** | Create local audio playlists, keep favorite tracks together, and start normal or shuffled playback |
+| **Audiobook Library** | Open the book icon in Music to import a file, selected files, or one book folder including disc subfolders; M4B is recognized |
+| **Book Metadata** | Covers, author, narrator, series and edition details from embedded tags or optional metadata.json/OPF sidecars, with editable book details |
+| **Audiobook Listening** | Book progress/resume through the normal audio player, shared playlist/speed controls, a whole-book seekbar with chapter markers, artwork, visualizers, configured seek gestures, pause rewind and sleep timers |
+| **Playback Bookmarks** | In video and audio player layouts, tap the bookmark icon to open chapters/bookmarks; long-press it to add a named point. Custom points persist and appear on the existing seekbar, with rename and delete actions |
+| **Audiobook Text** | Display supplied embedded lyrics or readable local LRC text in the existing lyrics view, without automatic online song matching |
 
 </details>
 
@@ -319,7 +324,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Stats Page 6** | Live system monitor: FPS, dropped frames, codecs, network sparkline, battery |
 | **Video Compressor** | Built-in FFmpeg-based compression with presets |
 | **12 Video Filter Presets** | Vivid, Cinematic, Dramatic, Ghibli Style, Neon Pop, Deep Black, and more |
-| **Custom Skip Segments** | Intro/outro/recap/credits/preview detection from IntroDB, TIDB, AniSkip, Anime Skip |
+| **Custom Skip Segments** | Intro/outro/recap/credits/preview detection from IntroDB, TIDB v3, AniSkip v2, Anime Skip, and SkipDB (requires an IMDb ID). Hybrid uses one validated provider result; duration-aware caches keep release versions separate. |
 | **A-B Loop** | In-player looping with visual markers on seekbar |
 | **Frame Navigation** | Frame-by-frame forward/backward with frame number display |
 | **Sleep Timer** | Built-in with quick presets (15/30/45/60 min) |
@@ -329,12 +334,15 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Safe Area / Window Offset** | Prevents camera notch overlap |
 | **Display Cutout Mode** | Full-bleed on notch devices |
 | **Remember Brightness** | Persists brightness level set during playback |
-| **M3U Playlist Support** | Parse and play local M3U playlists |
+| **Automatic Local Playlists** | Discover M3U/M3U8 IPTV playlists in readable internal storage, SD cards, and granted local folders; refresh changed sources without duplicate entries |
+| **Playlist Covers** | Show the first entry's IPTV logo or cached media thumbnail in list and grid layouts, with an icon fallback when artwork is unavailable |
 | **yt-dlp Integration** | High-performance streaming support for YouTube, Twitch, Bilibili, and more via a native Python bridge (SDK 29+ bypass) |
 | **yt-dlp Quality Controls** | Independent codec, resolution, FPS, HDR, container, and audio-bitrate preferences |
 | **Dynamic Refresh Rate** | Matches supported display refresh rates to the current video's frame rate for smoother motion |
 | **Secure Folder** | PIN-protected access with optional biometrics, media move/restore actions, and a hideable entry point |
 | **Screenshot Templates** | Filename placeholders for source name, playback position, and millisecond-accurate timestamps |
+
+Local playlist discovery runs when the Playlists page is first loaded and after media-index or storage-mount changes. Pull to refresh to rescan manually, or use **Playlist options > Add local playlist folder** to grant access to a folder. Android's restrictions on protected directories such as `Android/data` and `Android/obb` still apply; discovery cannot bypass them. HLS segment manifests are not imported as channel lists. Removing a discovered playlist does not delete its source file, and that source stays hidden until explicitly imported again. Remote video thumbnails respect the existing network-thumbnail setting.
 
 </details>
 

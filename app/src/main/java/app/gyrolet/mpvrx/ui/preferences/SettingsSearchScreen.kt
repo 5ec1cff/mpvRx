@@ -103,12 +103,6 @@ object SettingsSearchScreen : Screen {
         if (searchHistoryRaw.isEmpty()) emptyList() else searchHistoryRaw.split("|")
       }
 
-    fun removeSearchHistory(query: String) {
-      val current = searchHistory.toMutableList()
-      current.remove(query)
-      searchHistoryPref.set(current.joinToString("|"))
-    }
-
     fun clearSearchHistory() {
       searchHistoryPref.set("")
     }

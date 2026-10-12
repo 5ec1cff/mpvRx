@@ -1,16 +1,17 @@
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 commonsNet = "3.13.0"
 smbj = "0.15.0"
+dcerpc = "0.12.13"
+guava = "33.4.0-android"
 jsch = "2.28.7"
-kotlin = "2.4.10"
-ksp = "2.3.11"
-composeBom = "2026.08.00"
+kotlin = "2.4.20"
+ksp = "2.3.12"
+composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 koin = "4.2.2"
-lazycolumnscrollbar = "2.2.0"
 nanohttpd = "2.3.1"
-room = "2.8.4"
+room = "2.8.5"
 navigation3 = "1.1.7"
 lifecycle = "2.10.0"
 kotlinx-serialization = "1.11.0"
@@ -25,11 +26,11 @@ sardineAndroid = "0.9"
 reorderable = "3.1.0"
 googleMaterial = "1.14.0"
 androidxCore = "1.19.0"
-androidxPreference = "1.2.1"
+androidxCoreSplashScreen = "1.2.0"
 androidxConstraintLayout = "2.2.2"
-media3 = "1.11.0"
+media3 = "1.11.1"
 soraEditor = "0.24.6"
-androidxMaterial3 = "1.5.0-alpha27"
+androidxMaterial3 = "1.5.0-alpha29"
 androidxAppcompat = "1.8.0"
 composeConstraintLayout = "1.1.2"
 androidxMedia = "1.8.0"
@@ -41,15 +42,20 @@ fsaf = "1.1.3"
 materialSymbols = "2.2.1"
 seeker = "2.0.1"
 markdownRenderer = "0.45.0"
-kotlinTest = "2.4.10"
+kotlinTest = "2.4.20"
 mediainfo = "v1.0.0-fix"
-mpvlib = "1.0.9"
+mpvlib = "1.1.2"
 googleCast = "22.3.1"
 androidxBiometric = "1.4.0-alpha07"
 leakcanary = "2.14"
+kmpVibrate = "1.1.0"
 libtorrent4j = "2.1.0-39"
 libarchiveAndroid = "1.1.6"
 ktlint = "14.2.0"
+telephoto = "0.19.0"
+haze = "2.0.1"
+kyant = "2.0.1"
+kyant-shapes = "1.2.1"
 
 [libraries]
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
@@ -57,8 +63,9 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
 smbj = { module = "com.hierynomus:smbj", version.ref = "smbj" }
+dcerpc = { module = "com.rapid7.client:dcerpc", version.ref = "dcerpc" }
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 jsch = { module = "com.github.mwiede:jsch", version.ref = "jsch" }
-lazycolumnscrollbar = { module = "com.github.nanihadesuka:LazyColumnScrollbar", version.ref = "lazycolumnscrollbar" }
 nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
 sardine-android = { module = "com.github.thegrizzlylabs:sardine-android", version.ref = "sardineAndroid" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -66,12 +73,10 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3", version.ref = "androidxMaterial3" }
-androidx-compose-material = { group = "androidx.compose.material", name = "material" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppcompat" }
 composables-material-symbols-rounded-filled-android = { module = "com.composables:icons-material-symbols-rounded-filled-android", version.ref = "materialSymbols" }
 composables-material-symbols-rounded-filled-cmp = { module = "com.composables:icons-material-symbols-rounded-filled-cmp-jvm", version.ref = "materialSymbols" }
 androidx-compose-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "composeConstraintLayout" }
-androidx-compose-animation-graphics = { group = "androidx.compose.animation", name = "animation-graphics-android" }
 mediasession = { group = "androidx.media", name = "media", version.ref = "androidxMedia" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
@@ -88,7 +93,7 @@ mpvlib-fongmi = { module = "app.gyrolet.mpvlib:mpvlib-fongmi", version.ref = "mp
 
 google-material = { module = "com.google.android.material:material", version.ref = "googleMaterial" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
-androidx-preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "androidxPreference" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidxCoreSplashScreen" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "androidxConstraintLayout" }
 androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
 androidx-media3-effect = { module = "androidx.media3:media3-effect", version.ref = "media3" }
@@ -124,12 +129,17 @@ jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "androidxBiometric" }
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
+kmp-vibrate = { module = "io.github.jmseb3:vibrate", version.ref = "kmpVibrate" }
 libtorrent4j = { module = "org.libtorrent4j:libtorrent4j", version.ref = "libtorrent4j" }
 libtorrent4j-android-arm64 = { module = "org.libtorrent4j:libtorrent4j-android-arm64", version.ref = "libtorrent4j" }
 libtorrent4j-android-arm = { module = "org.libtorrent4j:libtorrent4j-android-arm", version.ref = "libtorrent4j" }
 libtorrent4j-android-x86 = { module = "org.libtorrent4j:libtorrent4j-android-x86", version.ref = "libtorrent4j" }
 libtorrent4j-android-x8664 = { module = "org.libtorrent4j:libtorrent4j-android-x86_64", version.ref = "libtorrent4j" }
 libarchive-android = { module = "me.zhanghai.android.libarchive:library", version.ref = "libarchiveAndroid" }
+telephoto-zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "telephoto" }
+haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
+kyant-backdrop = { module = "io.github.kyant0:backdrop-android", version.ref = "kyant" }
+kyant-shapes = { module = "io.github.kyant0:shapes-android", version.ref = "kyant-shapes" }
 
 [bundles]
 koin = ["koin-core", "koin-android", "koin-compose", "koin-viewmodel"]

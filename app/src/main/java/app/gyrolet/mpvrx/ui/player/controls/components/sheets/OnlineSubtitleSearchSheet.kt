@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -122,6 +123,7 @@ fun OnlineSubtitleSearchSheet(
     Column(modifier) {
       val keyboardController = LocalSoftwareKeyboardController.current
       val context = LocalContext.current
+      val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
       val mediaInfo = remember(mediaTitle) { MediaInfoParser.parse(mediaTitle) }
       var searchQuery by remember { mutableStateOf(mediaInfo.title) }
       val aiPreferences = koinInject<AiPreferences>()
@@ -192,15 +194,15 @@ fun OnlineSubtitleSearchSheet(
       }
 
       Column(
-        modifier = Modifier.padding(top = MaterialTheme.spacing.medium),
+        modifier = Modifier.padding(top = if (isImeVisible) 0.dp else 8.dp),
       ) {
-        // Detected info chip
-        if (detectedInfo.isNotBlank() && mediaInfo.title.isNotBlank()) {
+        // Detected info chip; dropped while typing so the field stays above the keyboard.
+        if (!isImeVisible && detectedInfo.isNotBlank() && mediaInfo.title.isNotBlank()) {
           Row(
             modifier =
               Modifier
                 .fillMaxWidth()
-                .padding(horizontal = MaterialTheme.spacing.medium)
+                .padding(horizontal = 20.dp)
                 .padding(bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
           ) {
@@ -225,7 +227,7 @@ fun OnlineSubtitleSearchSheet(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.extraSmall),
+              .padding(horizontal = 20.dp, vertical = 8.dp),
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
@@ -307,7 +309,7 @@ fun OnlineSubtitleSearchSheet(
         )
       }
 
-      LazyColumn {
+      LazyColumn(contentPadding = PaddingValues(bottom = 8.dp)) {
         // Autocomplete Results - Horizontal Scrollable
         if (showWyzieSelection && mediaSearchResults.isNotEmpty()) {
           item(key = "tmdb_results") {
@@ -430,6 +432,7 @@ fun OnlineSubtitleRow(
     modifier =
       modifier
         .fillMaxWidth()
+        .clip(MaterialTheme.shapes.medium)
         .clickable { onDownload(subtitleForDownload) },
     shape = MaterialTheme.shapes.medium,
     color =
@@ -754,93 +757,6 @@ fun TmdbMediaCard(
           )
         }
       }
-    }
-  }
-}
-
-@Composable
-fun TmdbResultRow(
-  result: app.gyrolet.mpvrx.repository.wyzie.WyzieTmdbResult,
-  onClick: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  val posterUrl = tmdbPosterUrl(result.poster, "w92")
-
-  Row(
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .clickable { onClick() }
-        .padding(12.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
-  ) {
-    // Poster image (2:3 aspect ratio)
-    if (posterUrl != null) {
-      Box(
-        modifier =
-          Modifier
-            .width(48.dp)
-            .height(72.dp)
-            .background(
-              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-              shape = RoundedCornerShape(4.dp),
-            ),
-        contentAlignment = Alignment.Center,
-      ) {
-        RemoteImage(
-          url = posterUrl,
-          contentDescription = result.title,
-          modifier =
-            Modifier
-              .matchParentSize()
-              .clip(RoundedCornerShape(4.dp)),
-          contentScale = ContentScale.Crop,
-          alpha = 0.9f,
-        )
-      }
-    } else {
-      // Placeholder when no poster
-      Box(
-        modifier =
-          Modifier
-            .width(48.dp)
-            .height(72.dp)
-            .background(
-              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-              shape = RoundedCornerShape(4.dp),
-            ),
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          Icons.RoundedFilled.Movie,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-          modifier = Modifier.size(24.dp),
-        )
-      }
-    }
-
-    // Text info
-    Column(
-      modifier = Modifier.weight(1f),
-      verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-      Text(
-        text = result.title,
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-      )
-      Spacer(modifier = Modifier.height(4.dp))
-      Text(
-        text = "${result.mediaType.uppercase()} ${result.releaseYear ?: ""}".trim(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-      )
     }
   }
 }

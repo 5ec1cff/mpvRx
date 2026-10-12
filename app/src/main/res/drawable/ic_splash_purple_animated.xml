@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+ android:drawable="@drawable/ic_splash_purple_foreground">
+ <target android:name="logo_main" android:animation="@animator/mpvrx_splash_main"/>
+ <target android:name="logo_tip" android:animation="@animator/mpvrx_splash_tip"/>
+</animated-vector>

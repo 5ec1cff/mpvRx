@@ -26,16 +26,6 @@ internal object GlUtils {
       .bufferedReader()
       .use { it.readText() }
 
-  @Deprecated("Use readAssetText instead", replaceWith = ReplaceWith("readAssetText"))
-  fun readRawText(
-    context: Context,
-    resourceId: Int,
-  ): String =
-    context.resources
-      .openRawResource(resourceId)
-      .bufferedReader()
-      .use { it.readText() }
-
   fun createProgram(
     vertexSource: String,
     fragmentSource: String,

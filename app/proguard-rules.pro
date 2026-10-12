@@ -20,6 +20,15 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontobfuscate
+
+# Keep jsoup and the affected AndroidX classes intact: R8's class-merging optimization rewrites their
+# parent hierarchy to point at a `final` jsoup class, which strict ART verifiers (common on Android TV /
+# low-end devices) reject at load time with java.lang.VerifyError -> white screen / launch crash.
+# Disabling optimization keeps shrinking (APK stays thin) and avoids the hierarchy corruption. See #708.
+-dontoptimize
+-keep class org.jsoup.** { *; }
+-keep class androidx.compose.runtime.Latch { *; }
+-keep class androidx.core.view.WindowInsetsControllerCompat* { *; }
 -keep,allowoptimization class is.xyz.mpv.** { public protected *; }
 -keep,allowoptimization class net.mediaarea.mediainfo.lib.** { public protected *; }
 -keep class org.libtorrent4j.swig.libtorrent_jni { *; }

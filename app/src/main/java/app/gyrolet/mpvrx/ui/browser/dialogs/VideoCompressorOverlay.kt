@@ -56,7 +56,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -77,12 +77,12 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Surface
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,6 +115,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import kotlinx.coroutines.Dispatchers
@@ -994,6 +995,7 @@ private fun CompressorVideoTab(
         onSetTargetSize(it)
       },
       valueRange = 0.1f..maxOf(10f, state.targetSizeMb, (state.originalSize.toFloat() / (1024f * 1024f))),
+      modifier = Modifier.fillMaxWidth().tvFocusHighlight(MaterialTheme.shapes.small, focusedScale = 1.01f),
     )
 
     Text(
@@ -1228,7 +1230,7 @@ private fun CompressorAudioTab(
             onValueChange = onUpdateAudioVolume,
             valueRange = 0f..2f,
             steps = 19,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).tvFocusHighlight(MaterialTheme.shapes.small, focusedScale = 1.01f),
           )
         }
         Text(
@@ -2272,7 +2274,7 @@ private fun DefaultAudioConfigEditor(
               onValueChange = { volume = it },
               valueRange = 0f..2f,
               steps = 19,
-              modifier = Modifier.weight(1f),
+              modifier = Modifier.weight(1f).tvFocusHighlight(MaterialTheme.shapes.small, focusedScale = 1.01f),
             )
           }
         }

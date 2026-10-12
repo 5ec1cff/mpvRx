@@ -57,7 +57,6 @@ import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
@@ -217,7 +216,7 @@ data class ControlLayoutEditorScreen(
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val gridState = rememberLazyGridState()
         val reorderableState =
           rememberReorderableLazyGridState(gridState) { from, to ->
@@ -272,7 +271,7 @@ data class ControlLayoutEditorScreen(
                     .height(120.dp),
                 shape =
                   androidx.compose.foundation.shape
-                    .RoundedCornerShape(16.dp),
+                    .RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerLowest,
                 border =
                   BorderStroke(
@@ -376,7 +375,7 @@ data class ControlLayoutEditorScreen(
               modifier = Modifier.fillMaxWidth(),
               shape =
                 androidx.compose.foundation.shape
-                  .RoundedCornerShape(16.dp),
+                  .RoundedCornerShape(24.dp),
               colors =
                 androidx.compose.material3.CardDefaults.cardColors(
                   containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -450,7 +449,7 @@ private fun IconsLegend() {
         .padding(top = 24.dp, bottom = 8.dp),
     shape =
       androidx.compose.foundation.shape
-        .RoundedCornerShape(16.dp),
+        .RoundedCornerShape(24.dp),
     colors =
       androidx.compose.material3.CardDefaults.cardColors(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,

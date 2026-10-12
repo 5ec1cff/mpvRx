@@ -448,11 +448,6 @@ class VideoCompressorViewModel(
     }
   }
 
-  fun loadVideo(
-    context: Context,
-    video: Video,
-  ) = loadVideos(context, listOf(video))
-
   private suspend fun readVideoState(
     context: Context,
     video: Video,

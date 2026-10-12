@@ -20,6 +20,7 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
+import app.gyrolet.mpvrx.ui.utils.performAppHapticFeedback
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -48,7 +49,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RangeSlider
+import app.gyrolet.mpvrx.ui.components.AppRangeSlider as RangeSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -565,7 +566,6 @@ class ClipOverlayView @JvmOverloads constructor(
 
   private fun mediaDurationSeconds(): Double =
     PlaybackSession.getPropertyDouble("duration")
-      ?: PlaybackSession.getPropertyInt("duration")?.toDouble()
       ?: 0.0
 
   private fun currentPosition(): Double? = PlaybackSession.getPropertyDouble("time-pos")
@@ -1246,7 +1246,7 @@ private class CropSelectionView(
         dragMode = hitTest(event.x, event.y)
         if (dragMode == DragMode.NONE) return false
         activePointerId = event.getPointerId(0)
-        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        performAppHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         lastX = event.x
         lastY = event.y
         parent?.requestDisallowInterceptTouchEvent(true)

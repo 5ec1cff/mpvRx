@@ -94,19 +94,6 @@ internal object PlayerLifecyclePolicy {
       !isActivityUnavailable &&
       !isAlreadyInPip
 
-  fun shouldPauseOnPause(
-    backgroundPlaybackEnabled: Boolean,
-    backgroundPlaybackSessionActive: Boolean,
-    isUserFinishing: Boolean,
-    isInPictureInPictureMode: Boolean,
-    isScreenOffOrLocked: Boolean,
-  ): Boolean {
-    if (isUserFinishing && !backgroundPlaybackSessionActive) return true
-    if (isInPictureInPictureMode && !isScreenOffOrLocked) return false
-
-    return !backgroundPlaybackEnabled
-  }
-
   fun shouldStartBackgroundPlaybackOnBack(
     backgroundPlaybackEnabled: Boolean,
     mediaReady: Boolean,
@@ -126,7 +113,7 @@ internal object PlayerLifecyclePolicy {
     alreadyHandled: Boolean,
   ): Boolean =
     wasInPictureInPictureMode &&
-      (!isInPictureInPictureMode || isActivityFinishing) &&
+      (isInPictureInPictureMode || isActivityFinishing) &&
       !isChangingConfigurations &&
       !isScreenOffOrLocked &&
       !alreadyHandled

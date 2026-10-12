@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin.seerr
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,19 +32,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
+import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -55,7 +53,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -224,8 +221,8 @@ fun SeerrDetailSheet(
       resolutionOptions.firstOrNull { !it.is4k } ?: resolutionOptions.first(),
     )
   }
-  var isResolutionDropdownExpanded by remember { mutableStateOf(false) }
-  var isOverviewExpanded by remember { mutableStateOf(false) }
+  var isOverviewExpanded by remember(details?.id, searchItem?.id) { mutableStateOf(false) }
+  var canExpandOverview by remember(details?.id, searchItem?.id) { mutableStateOf(false) }
 
   ModalBottomSheet(
     onDismissRequest = onDismiss,
@@ -771,9 +768,14 @@ fun SeerrDetailSheet(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = if (isOverviewExpanded) Int.MAX_VALUE else 3,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.clickable { isOverviewExpanded = !isOverviewExpanded },
+            onTextLayout = { textLayoutResult ->
+              if (!isOverviewExpanded) {
+                canExpandOverview = textLayoutResult.hasVisualOverflow
+              }
+            },
+            modifier = Modifier.clickable(enabled = canExpandOverview) { isOverviewExpanded = !isOverviewExpanded },
           )
-          if (overview.length > 150) {
+          if (canExpandOverview) {
             Text(
               text = if (isOverviewExpanded) "Show less" else "Read more",
               style = MaterialTheme.typography.labelSmall,

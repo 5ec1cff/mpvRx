@@ -23,29 +23,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,13 +48,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AiPreferences
@@ -77,14 +68,12 @@ import app.gyrolet.mpvrx.ui.preferences.PreferenceDivider
 import app.gyrolet.mpvrx.ui.preferences.PreferenceSectionHeader
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.koin.compose.koinInject
 
@@ -245,32 +234,13 @@ object AiIntegrationScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text =
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.pref_section_ai_title),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.pref_section_ai_title),
+          onBack = { backstack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(AiIntegrationScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -315,6 +285,7 @@ object AiIntegrationScreen : Screen {
             item {
               PreferenceCard {
                 val providers = AiProvider.values().toList()
+                ExpressivePreferenceItem {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_ai_provider_title),
                   value = provider,
@@ -336,6 +307,7 @@ object AiIntegrationScreen : Screen {
                     Text(provider.displayName, color = MaterialTheme.colorScheme.outline)
                   },
                 )
+                }
               }
             }
 
@@ -403,6 +375,7 @@ val apiKeyInfo =
 
                 item {
                   PreferenceCard {
+                    ExpressivePreferenceItem {
                     TextFieldPreference(
                       value = apiKeyInfo.apiKey,
                       onValueChange = apiKeyInfo.onChange,
@@ -433,6 +406,7 @@ val apiKeyInfo =
                         }
                       },
                     )
+                    }
 
                     PreferenceDivider()
 
@@ -853,6 +827,7 @@ val apiKeyInfo =
 
                   PreferenceDivider()
 
+                  ExpressivePreferenceItem {
                   ListPreference(
                     value = subtitleGenerationOutputFormat,
                     onValueChange = { preferences.subtitleGenerationOutputFormat.set(it) },
@@ -874,9 +849,11 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
 
                   PreferenceDivider()
 
+                  ExpressivePreferenceItem {
                   ListPreference(
                     value = sttProvider,
                     onValueChange = preferences.sttProvider::set,
@@ -899,6 +876,7 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
 
                   PreferenceDivider()
 
@@ -918,6 +896,7 @@ val apiKeyInfo =
                   PreferenceDivider()
 
                   val sttLanguage by preferences.sttLanguage.collectAsState()
+                  ExpressivePreferenceItem {
                   ListPreference(
                     modifier = Modifier.settingsSearchTarget(R.string.pref_translation_section),
                     value = sttLanguage,
@@ -981,6 +960,7 @@ val apiKeyInfo =
                       )
                     },
                   )
+                  }
                 }
               }
 

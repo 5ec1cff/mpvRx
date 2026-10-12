@@ -20,6 +20,18 @@ For custom fonts:
 3. Select the preferred default font.
 4. Clear the font cache if a replaced file does not appear.
 
+## Move and resize during playback
+
+Enable **Drag to move subtitles** in gesture settings. Drag visible primary or secondary subtitle text vertically to move only that track. A temporary highlight identifies the selected track. Hold in the center away from subtitle text, then drag to move both tracks together.
+
+With **Pinch to zoom subtitles** enabled, pinch over either track to resize it. A pinch on the secondary subtitle adjusts only the secondary track. The existing **Pinch zooms secondary subtitle** option still links secondary scaling to a pinch on the primary; disable it for fully independent sizing. Two-finger vertical movement also repositions the selected track when subtitle dragging is enabled.
+
+The **Zoom** bottom sheet has separate **Zoom subtitles with video** and **Zoom statistics with video** switches. Both default to off: video zoom and pan affect the video plane, leaving subtitle size and stats pages 1–6 independent. Enabling a switch scales that overlay with the video zoom without changing its saved base size.
+
+Positions and sizes use the existing subtitle settings and are remembered. Direct dragging stays within 0–100%; the settings sliders retain the advanced 0–150% range. Horizontal swipes on the primary subtitle still seek dialogue. Locked controls block these gestures, and options owned by `mpv.conf` stay protected.
+
+The touch region is estimated from the current text and font settings. Custom-positioned ASS signs and image subtitles may not have matching text bounds; use the subtitle position controls for those formats.
+
 ## Online search
 
 Three search modes are available:

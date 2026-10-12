@@ -39,19 +39,12 @@ class SecureFolderPreferences(
 
   fun verifyPin(pin: String): Boolean = PinHasher.verify(pin, pinSalt.get(), pinHash.get())
 
-  fun clearPin() {
-    pinHash.delete()
-    pinSalt.delete()
-  }
-
   // ============================================================================
   // Forgot-PIN security question
   // ============================================================================
   val securityQuestion = preferenceStore.getString("secure_folder_security_question", "")
   private val securityAnswerHash = preferenceStore.getString("secure_folder_security_answer_hash", "")
   private val securityAnswerSalt = preferenceStore.getString("secure_folder_security_answer_salt", "")
-
-  fun isSecurityQuestionSet(): Boolean = securityQuestion.get().isNotBlank() && securityAnswerHash.get().isNotBlank()
 
   fun setSecurityQuestion(
     question: String,
@@ -67,11 +60,6 @@ class SecureFolderPreferences(
     PinHasher.verify(normalizeAnswer(answer), securityAnswerSalt.get(), securityAnswerHash.get())
 
   private fun normalizeAnswer(answer: String): String = answer.trim().lowercase()
-
-  /** Call after a successful forgot-PIN flow: wipes the PIN so setup runs again, keeps the Q&A. */
-  fun resetPinAfterRecovery() {
-    clearPin()
-  }
 
   // ============================================================================
   // Visibility of the Secure Folder entry point
@@ -93,17 +81,4 @@ class SecureFolderPreferences(
   val dontAskBeforeDelete = preferenceStore.getBoolean("secure_folder_dont_ask_delete", false)
   val dontAskBeforeHideEntryPoint = preferenceStore.getBoolean("secure_folder_dont_ask_hide_entry_point", false)
 
-  /** Full reset — used for testing/debug or a future "reset Secure Folder" action. */
-  fun resetAll() {
-    clearPin()
-    securityQuestion.delete()
-    securityAnswerHash.delete()
-    securityAnswerSalt.delete()
-    isEntryPointHidden.delete()
-    isBiometricEnabled.delete()
-    dontAskBeforeMove.delete()
-    dontAskBeforeRestore.delete()
-    dontAskBeforeDelete.delete()
-    dontAskBeforeHideEntryPoint.delete()
-  }
 }

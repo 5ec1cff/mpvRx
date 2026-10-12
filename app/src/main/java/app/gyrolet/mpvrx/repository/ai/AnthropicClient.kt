@@ -20,7 +20,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 @Serializable
 private data class AnthropicModel(
@@ -81,12 +80,7 @@ class AnthropicClient(
   }
 
   private val apiClient: OkHttpClient =
-    client
-      .newBuilder()
-      .connectTimeout(60, TimeUnit.SECONDS)
-      .readTimeout(120, TimeUnit.SECONDS)
-      .writeTimeout(60, TimeUnit.SECONDS)
-      .build()
+    client.withAiChatTimeouts()
 
   override suspend fun fetchModels(apiKey: String): Result<List<AiModelInfo>> =
     withContext(Dispatchers.IO) {

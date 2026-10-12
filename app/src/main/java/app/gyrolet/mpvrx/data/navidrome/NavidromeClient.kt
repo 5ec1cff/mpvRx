@@ -16,13 +16,11 @@ import app.gyrolet.mpvrx.domain.navidrome.NavidromeArtist
 import app.gyrolet.mpvrx.domain.navidrome.NavidromePlaylist
 import app.gyrolet.mpvrx.domain.navidrome.NavidromeServer
 import app.gyrolet.mpvrx.domain.navidrome.NavidromeSong
-import app.gyrolet.mpvrx.network.awaitResponse
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -222,16 +220,6 @@ class NavidromeClient(
       val baseArtist = parseArtist(artistObj)
       val albumsList = artistObj["album"]?.jsonArray?.map { parseAlbum(it.jsonObject) } ?: emptyList()
       baseArtist.copy(albums = albumsList)
-    }
-  }
-
-  suspend fun getArtistInfo(server: NavidromeServer, artistId: String): Result<String?> = withContext(Dispatchers.IO) {
-    val url = buildSubsonicUrl(server, "getArtistInfo2.view", mapOf("id" to artistId))
-    executeGet(url).map { response ->
-      val info = response["artistInfo2"]?.jsonObject ?: response["artistInfo"]?.jsonObject
-      info?.get("largeImageUrl")?.jsonPrimitive?.content
-        ?: info?.get("mediumImageUrl")?.jsonPrimitive?.content
-        ?: info?.get("smallImageUrl")?.jsonPrimitive?.content
     }
   }
 

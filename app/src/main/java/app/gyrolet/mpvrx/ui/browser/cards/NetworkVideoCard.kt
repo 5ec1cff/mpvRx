@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.browser.cards
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -49,9 +52,12 @@ import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.browser.components.MediaTypeBadge
+import app.gyrolet.mpvrx.ui.browser.components.NetworkMediaType
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -70,6 +76,9 @@ fun NetworkVideoCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   isGridMode: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
+  /** Corner label naming the media type; null hides it (shown only when images are mixed in). */
+  mediaType: NetworkMediaType? = null,
 ) {
   val appearancePreferences = koinInject<AppearancePreferences>()
   val browserPreferences = koinInject<BrowserPreferences>()
@@ -98,8 +107,6 @@ fun NetworkVideoCard(
           widthPx = thumbSizePx,
           heightPx = thumbSizePx,
           connection = connection,
-          fileSize = file.size,
-          lastModified = file.lastModified,
         )
       } else {
         null
@@ -122,7 +129,6 @@ fun NetworkVideoCard(
                 connection = connection,
                 fileSize = file.size,
                 mimeType = file.mimeType,
-                lastModified = file.lastModified,
               )
             }
         }
@@ -143,7 +149,6 @@ fun NetworkVideoCard(
             connection = connection,
             fileSize = file.size,
             mimeType = file.mimeType,
-            lastModified = file.lastModified,
           )
         }
       if (thumbnail != null) return@LaunchedEffect
@@ -152,45 +157,42 @@ fun NetworkVideoCard(
   }
 
   val displayName = if (showExtensionField) file.name else file.name.substringBeforeLast('.', file.name)
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
+  val selectionColor = animatedSelectionColor(isSelected)
 
   Card(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-        .clip(AppShapeScale.large)
+        .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+        .clip(cardShape)
+                .semantics { selected = isSelected }
+        .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-    shape = AppShapeScale.large,
+    shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
-      if (isSelected) {
-        Box(
-          modifier =
-            Modifier
-              .matchParentSize()
-              .padding(2.dp)
-              .clip(AppShapeScale.large)
-              .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
-        )
-      }
+      Box(
+        modifier = Modifier.matchParentSize().clip(cardShape).background(selectionColor),
+      )
 
       if (isGridMode) {
         Column(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(12.dp),
+              .padding(horizontal = 4.dp, vertical = 6.dp),
           horizontalAlignment = if (centerGridTitles) Alignment.CenterHorizontally else Alignment.Start,
         ) {
         Box(
           modifier =
             Modifier
               .fillMaxWidth()
-              .aspectRatio(16f / 9f)
+              .aspectRatio(16f / 10f)
               .clip(AppShapeScale.medium)
               .background(MaterialTheme.colorScheme.surfaceContainerHigh),
           contentAlignment = Alignment.Center,
@@ -215,8 +217,14 @@ fun NetworkVideoCard(
               tint = MaterialTheme.colorScheme.secondary,
             )
           }
+          if (mediaType != null) {
+            MediaTypeBadge(
+              type = mediaType,
+              modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp),
+            )
+          }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
           displayName,
           style = MaterialTheme.typography.titleSmall,
@@ -236,7 +244,7 @@ fun NetworkVideoCard(
         ) {
           if (showSizeChip && file.size > 0) {
             Text(
-              formatFileSize(file.size),
+              formatCardFileSize(file.size),
               style = MaterialTheme.typography.labelSmall,
               modifier =
                 Modifier
@@ -249,7 +257,7 @@ fun NetworkVideoCard(
           }
           if (showDateChip && file.lastModified > 0) {
             Text(
-              formatDate(file.lastModified),
+              formatCardDate(file.lastModified),
               style = MaterialTheme.typography.labelSmall,
               modifier =
                 Modifier
@@ -267,7 +275,7 @@ fun NetworkVideoCard(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(16.dp),
+              .padding(horizontal = 8.dp, vertical = 2.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
         // Match the normal video list thumbnail footprint.
@@ -304,8 +312,14 @@ fun NetworkVideoCard(
               tint = MaterialTheme.colorScheme.secondary,
             )
           }
+          if (mediaType != null) {
+            MediaTypeBadge(
+              type = mediaType,
+              modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp),
+            )
+          }
         }
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column(
           modifier = Modifier.weight(1f),
         ) {
@@ -327,7 +341,7 @@ fun NetworkVideoCard(
           ) {
             if (showSizeChip && file.size > 0) {
               Text(
-                formatFileSize(file.size),
+                formatCardFileSize(file.size),
                 style = MaterialTheme.typography.labelSmall,
                 modifier =
                   Modifier
@@ -340,7 +354,7 @@ fun NetworkVideoCard(
             }
             if (showDateChip && file.lastModified > 0) {
               Text(
-                formatDate(file.lastModified),
+                formatCardDate(file.lastModified),
                 style = MaterialTheme.typography.labelSmall,
                 modifier =
                   Modifier
@@ -355,24 +369,7 @@ fun NetworkVideoCard(
           }
         }
       }
+      SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
     }
   }
 }
-
-private fun formatFileSize(bytes: Long): String =
-  when {
-    bytes < 1024 -> "$bytes B"
-    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
-    bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
-    else -> String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
-  }
-
-// Hoisted because a card formats a date on every recomposition and SimpleDateFormat construction
-// parses the pattern and clones a Calendar each time.
-private val NETWORK_CARD_DATE_FORMATTER: java.time.format.DateTimeFormatter =
-  java.time.format.DateTimeFormatter
-    .ofPattern("MMM dd")
-    .withZone(java.time.ZoneId.systemDefault())
-
-private fun formatDate(timestamp: Long): String =
-  NETWORK_CARD_DATE_FORMATTER.format(java.time.Instant.ofEpochMilli(timestamp))

@@ -669,7 +669,7 @@ private fun TorrentErrorScreen(
   }
 }
 
-private fun loadViewedFileIndices(
+internal fun loadViewedFileIndices(
   preferences: SharedPreferences,
   infoHash: String,
 ): Set<Int> =
@@ -679,7 +679,7 @@ private fun loadViewedFileIndices(
     .mapNotNull(String::toIntOrNull)
     .toSet()
 
-private fun saveViewedFileIndices(
+internal fun saveViewedFileIndices(
   preferences: SharedPreferences,
   infoHash: String,
   indices: Set<Int>,

@@ -33,4 +33,5 @@ data class RecentlyPlayedEntity(
   val timestamp: Long,
   val launchSource: String? = null,
   val playlistId: Int? = null,
+  val artworkUrl: String? = null,
 )

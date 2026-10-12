@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand splash: black background with the purple gradient logo. -->
+    <color name="splash_background">#000000</color>
+    <color name="splash_background_classic">#F7F5F8</color>
+</resources>

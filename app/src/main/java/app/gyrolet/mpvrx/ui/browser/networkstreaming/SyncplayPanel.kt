@@ -22,9 +22,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +44,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.syncplay.SyncplayManager
+import app.gyrolet.mpvrx.domain.syncplay.SyncplayConnectionFailure
+import app.gyrolet.mpvrx.domain.syncplay.SyncplayEndpoint
 import org.koin.compose.koinInject
 
 /**
@@ -56,6 +64,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
   var username by remember(syncplayManager) { mutableStateOf(savedCredentials.username) }
   var room by remember(syncplayManager) { mutableStateOf(savedCredentials.room) }
   var password by remember(syncplayManager) { mutableStateOf(savedCredentials.password) }
+  var serversExpanded by remember { mutableStateOf(false) }
 
   val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
   LazyColumn(
@@ -129,13 +138,39 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
       }
     } else {
       item {
-        OutlinedTextField(
-          value = host,
-          onValueChange = { host = it },
-          label = { Text(stringResource(R.string.syncplay_server_host)) },
-          singleLine = true,
-          modifier = Modifier.fillMaxWidth(),
-        )
+        ExposedDropdownMenuBox(
+          expanded = serversExpanded,
+          onExpandedChange = { if (!state.isConnecting) serversExpanded = it },
+        ) {
+          OutlinedTextField(
+            value = host,
+            onValueChange = { host = it },
+            label = { Text(stringResource(R.string.syncplay_server_host)) },
+            singleLine = true,
+            enabled = !state.isConnecting,
+            trailingIcon = {
+              ExposedDropdownMenuDefaults.TrailingIcon(
+                expanded = serversExpanded,
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.SecondaryEditable),
+              )
+            },
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
+          )
+          ExposedDropdownMenu(
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+      expanded = serversExpanded, onDismissRequest = { serversExpanded = false }) {
+            val endpoints = (listOf(savedCredentials.host to savedCredentials.port) +
+              (8995..8999).map { "syncplay.pl" to it }).distinct()
+            endpoints.forEach { (server, serverPort) ->
+              DropdownMenuItem(
+                text = { Text("${if (':' in server) "[$server]" else server}:$serverPort") },
+                trailingIcon = { Text(stringResource(R.string.syncplay_title)) },
+                onClick = { host = server; port = serverPort.toString(); serversExpanded = false },
+              )
+            }
+          }
+        }
       }
       item {
         OutlinedTextField(
@@ -143,6 +178,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
           onValueChange = { port = it },
           label = { Text(stringResource(R.string.syncplay_port)) },
           singleLine = true,
+          enabled = !state.isConnecting,
           modifier = Modifier.fillMaxWidth(),
         )
       }
@@ -152,6 +188,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
           onValueChange = { username = it },
           label = { Text(stringResource(R.string.syncplay_username)) },
           singleLine = true,
+          enabled = !state.isConnecting,
           modifier = Modifier.fillMaxWidth(),
         )
       }
@@ -161,6 +198,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
           onValueChange = { room = it },
           label = { Text(stringResource(R.string.syncplay_room_name)) },
           singleLine = true,
+          enabled = !state.isConnecting,
           modifier = Modifier.fillMaxWidth(),
         )
       }
@@ -171,6 +209,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
           label = { Text(stringResource(R.string.syncplay_password_optional)) },
           visualTransformation = PasswordVisualTransformation(),
           singleLine = true,
+          enabled = !state.isConnecting,
           modifier = Modifier.fillMaxWidth(),
         )
       }
@@ -180,7 +219,16 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
           Text(
             text =
               if (state.connectionFailed) {
-                stringResource(R.string.syncplay_connection_failed)
+                stringResource(when (state.connectionFailure) {
+                  SyncplayConnectionFailure.NAME_LOOKUP -> R.string.syncplay_failure_dns
+                  SyncplayConnectionFailure.REFUSED -> R.string.syncplay_failure_refused
+                  SyncplayConnectionFailure.TIMEOUT -> R.string.syncplay_failure_timeout
+                  SyncplayConnectionFailure.UNREACHABLE -> R.string.syncplay_failure_unreachable
+                  SyncplayConnectionFailure.HANDSHAKE_TIMEOUT -> R.string.syncplay_failure_handshake
+                  SyncplayConnectionFailure.CLOSED -> R.string.syncplay_failure_closed
+                  SyncplayConnectionFailure.PROTOCOL -> R.string.syncplay_failure_protocol
+                  else -> R.string.syncplay_failure_network
+                })
               } else {
                 stringResource(R.string.syncplay_error, state.error.orEmpty())
               },
@@ -191,6 +239,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
 
       item {
         val parsedPort = port.toIntOrNull()
+        val endpoint = parsedPort?.let { runCatching { SyncplayEndpoint.parse(host, it) }.getOrNull() }
         Button(
           onClick = {
             parsedPort?.let {
@@ -202,8 +251,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
               host.isNotBlank() &&
               username.isNotBlank() &&
               room.isNotBlank() &&
-              parsedPort != null &&
-              parsedPort in 1..65535,
+              endpoint != null,
           modifier = Modifier.fillMaxWidth(),
         ) {
           Text(
@@ -211,6 +259,13 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
               if (state.isConnecting) R.string.syncplay_connecting else R.string.syncplay_connect,
             ),
           )
+        }
+      }
+      if (state.isConnecting) {
+        item {
+          TextButton(onClick = { syncplayManager.disconnect() }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.generic_cancel))
+          }
         }
       }
     }

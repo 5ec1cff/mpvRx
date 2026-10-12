@@ -321,12 +321,6 @@ class AiService(
       Result.success(sb.toString())
     }
 
-  suspend fun isConfigured(): Boolean {
-    val provider = preferences.provider.get()
-    val apiKey = getApiKey(provider)
-    return preferences.enabled.get() && apiKey.isNotBlank() && preferences.selectedModelFor(provider).get().isNotBlank()
-  }
-
   fun getApiKey(provider: AiProvider): String =
     when (provider) {
       AiProvider.OPENCODE -> preferences.openCodeApiKey.get()

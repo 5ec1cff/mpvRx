@@ -20,6 +20,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.SubtitlesBorderStyle
 
 const val DEFAULT_SUBTITLE_FONT_FAMILY = "sans-serif"
+const val LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY = "Google Sans Flex"
 
 class SubtitlesPreferences(
   preferenceStore: PreferenceStore,
@@ -32,6 +33,7 @@ class SubtitlesPreferences(
   val font = preferenceStore.getString("sub_font", "")
   val fontSize = preferenceStore.getInt("sub_font_size", 55)
   val subScale = preferenceStore.getFloat("sub_scale", 1f)
+  val secondarySubScale = preferenceStore.getFloat("secondary_sub_scale", 1f)
   val borderSize = preferenceStore.getInt("sub_border_size", 3)
   val bold = preferenceStore.getBoolean("sub_bold", false)
   val italic = preferenceStore.getBoolean("sub_italic", false)
@@ -46,8 +48,11 @@ class SubtitlesPreferences(
 
   val justification = preferenceStore.getEnum("sub_justify", SubtitleJustification.Auto)
   val subPos = preferenceStore.getInt("sub_pos", 100)
+  val secondarySubPos = preferenceStore.getInt("secondary_sub_pos", 10)
+  val secondarySubPinchZoom = preferenceStore.getBoolean("secondary_sub_pinch_zoom", false)
 
   val overrideAssSubs = preferenceStore.getBoolean("sub_override_ass")
+  val forceRtlSubtitles = preferenceStore.getBoolean("sub_force_ltr", false)
   val scaleByWindow = preferenceStore.getBoolean("sub_scale_by_window", true)
   val blendSubtitlesWithVideo = preferenceStore.getBoolean("sub_blend_with_video", false)
 

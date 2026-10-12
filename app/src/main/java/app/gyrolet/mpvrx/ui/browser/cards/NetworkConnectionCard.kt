@@ -10,21 +10,26 @@
 package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,9 +38,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -43,6 +49,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NetworkConnectionCard(
   connection: NetworkConnection,
@@ -61,7 +68,7 @@ fun NetworkConnectionCard(
   val targetScale = if (isPressed) 0.98f else 1.0f
   val scale by animateFloatAsState(
     targetValue = targetScale,
-    animationSpec = AppMotion.Spatial.Expressive,
+    animationSpec = if (AppMotion.shouldReduceMotion()) snap() else AppMotion.Spatial.Expressive,
     label = "NetworkConnectionCardScale",
   )
 
@@ -103,8 +110,7 @@ fun NetworkConnectionCard(
         Column(modifier = Modifier.weight(1f)) {
           Text(
             text = connection.name,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMediumEmphasized,
             color = MaterialTheme.colorScheme.onSurface,
           )
           Text(
@@ -170,14 +176,19 @@ fun NetworkConnectionCard(
         modifier =
           Modifier
             .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .toggleable(
+              value = connection.autoConnect,
+              role = Role.Checkbox,
+              onValueChange = { onAutoConnectChange(connection, it) },
+            )
             .padding(top = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Checkbox(
           checked = connection.autoConnect,
-          onCheckedChange = { checked ->
-            onAutoConnectChange(connection, checked)
-          },
+          onCheckedChange = null,
         )
         Text(
           text =
@@ -210,20 +221,20 @@ fun NetworkConnectionCard(
                 CircularProgressIndicator(
                   modifier = Modifier.size(16.dp),
                   strokeWidth = 2.dp,
-                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                  color = LocalContentColor.current,
                 )
                 Text(
                   androidx.compose.ui.res
                     .stringResource(app.gyrolet.mpvrx.R.string.ui_connecting),
-                  color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                 )
               }
             }
           }
 
           isConnected -> {
-            Row(
+            FlowRow(
               horizontalArrangement = Arrangement.spacedBy(8.dp),
+              verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
               FilledTonalButton(
                 onClick = { onBrowse(connection) },

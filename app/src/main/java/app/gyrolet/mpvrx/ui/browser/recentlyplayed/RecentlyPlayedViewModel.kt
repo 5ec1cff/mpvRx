@@ -17,18 +17,22 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import app.gyrolet.mpvrx.database.MpvRxDatabase
 import app.gyrolet.mpvrx.database.entities.RecentlyPlayedEntity
-import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
+import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
+import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.domain.recentlyplayed.repository.RecentlyPlayedRepository
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.java.KoinJavaComponent.inject
@@ -39,7 +43,6 @@ class RecentlyPlayedViewModel(
   application: Application,
 ) : AndroidViewModel(application) {
   private val recentlyPlayedRepository by inject<RecentlyPlayedRepository>(RecentlyPlayedRepository::class.java)
-  private val playlistRepository by inject<PlaylistRepository>(PlaylistRepository::class.java)
   private val metadataCache by inject<VideoMetadataCacheRepository>(VideoMetadataCacheRepository::class.java)
 
   private val _recentItems = MutableStateFlow<List<RecentlyPlayedItem>>(emptyList())
@@ -47,115 +50,61 @@ class RecentlyPlayedViewModel(
 
   private val _isLoading = MutableStateFlow(true)
   val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+  private val refreshRevision = MutableStateFlow(0L)
+  private val completedRefreshRevision = MutableStateFlow(0L)
 
   init {
-    // Observe recently played changes and update automatically
+    // Recently Played is a media history, not a playlist history. Observe only played media rows:
+    // items launched from a playlist remain visible as their actual audio/video, never as a
+    // playlist container card.
     viewModelScope.launch {
-      val db =
-        org.koin.java.KoinJavaComponent
-          .get<MpvRxDatabase>(MpvRxDatabase::class.java)
-
-      // Combine both flows - entities and playlists
       kotlinx.coroutines.flow
         .combine(
           recentlyPlayedRepository.observeRecentlyPlayed(limit = 50),
-          db.recentlyPlayedDao().observeRecentlyPlayedPlaylists(limit = 50),
-        ) { entities, playlists ->
-          Pair(entities, playlists)
-        }.collect { (entities, playlists) ->
-          loadRecentVideosFromEntities(entities, playlists)
+          refreshRevision,
+        ) { entities, revision ->
+          entities to revision
+        }.collect { (entities, revision) ->
+          loadRecentVideosFromEntities(entities)
+          completedRefreshRevision.value = revision
         }
     }
   }
 
+  suspend fun refresh() {
+    val revision = refreshRevision.updateAndGet { it + 1L }
+    completedRefreshRevision.first { it >= revision }
+  }
+
   private suspend fun loadRecentVideosFromEntities(
     allRecentEntities: List<RecentlyPlayedEntity>,
-    recentPlaylists: List<app.gyrolet.mpvrx.database.dao.RecentlyPlayedDao.RecentlyPlayedPlaylistInfo>,
   ) {
     try {
       val items = mutableListOf<RecentlyPlayedItem>()
 
-      // Group videos by playlist and standalone videos
-      val playlistMap = mutableMapOf<Int, MutableList<Pair<String, Long>>>()
-      val standaloneVideos = mutableListOf<Pair<String, Long>>()
+      // The DAO is newest-first. Collapse legacy duplicate rows by path while preserving the
+      // newest play timestamp, then expose every entry strictly as the media that was played.
+      val distinctRecentEntities = allRecentEntities.distinctBy { it.filePath }
 
-      // Get a set of all network playlist IDs to filter them out
-      val networkPlaylistIds = mutableSetOf<Int>()
-      for (playlistId in allRecentEntities.mapNotNull { it.playlistId }.distinct()) {
-        val playlist = playlistRepository.getPlaylistById(playlistId)
-        if (playlist?.isM3uPlaylist == true) {
-          networkPlaylistIds.add(playlistId)
-        }
-      }
+      for (entity in distinctRecentEntities) {
+        val filePath = entity.filePath
 
-      for (entity in allRecentEntities) {
-        // Skip videos from network playlists
-        if (entity.playlistId != null) {
-          if (entity.playlistId in networkPlaylistIds) {
-            // Skip videos from network playlists
-            continue
-          }
-          playlistMap
-            .getOrPut(entity.playlistId) { mutableListOf() }
-            .add(Pair(entity.filePath, entity.timestamp))
-        } else {
-          standaloneVideos.add(Pair(entity.filePath, entity.timestamp))
-        }
-      }
+        // A playlist/manifest URL itself is never a playable-history card.
+        if (isStreamingPlaylist(filePath)) continue
 
-      // Legacy/duplicate rows for the same file can still exist in the DB (e.g. from before a
-      // race-condition fix); collapse them so the LazyColumn never sees two items with the same
-      // key. allRecentEntities is ordered by timestamp DESC, so the first occurrence is the newest.
-      val distinctStandaloneVideos = standaloneVideos.distinctBy { it.first }
-
-      // Create playlist items (excluding network/M3U playlists)
-      for (playlistInfo in recentPlaylists) {
-        val playlist = playlistRepository.getPlaylistById(playlistInfo.playlistId)
-
-        // Skip M3U/network playlists - only include local playlists
-        if (playlist != null && !playlist.isM3uPlaylist) {
-          val playlistVideos = playlistMap[playlistInfo.playlistId] ?: emptyList()
-          val mostRecent = playlistVideos.maxByOrNull { it.second }
-          if (mostRecent != null) {
-            val itemCount = playlistRepository.getPlaylistItemCount(playlist.id)
-            items.add(
-              RecentlyPlayedItem.PlaylistItem(
-                playlist = playlist,
-                videoCount = itemCount,
-                mostRecentVideoPath = mostRecent.first,
-                timestamp = playlistInfo.timestamp,
-              ),
-            )
-          }
-        }
-      }
-
-      // Create standalone video items
-      for ((filePath, timestamp) in distinctStandaloneVideos) {
-        val entity = allRecentEntities.find { it.filePath == filePath }
-
-        // Check if this is a network URL
         val isNetworkUri =
           filePath.startsWith("http://", ignoreCase = true) ||
             filePath.startsWith("https://", ignoreCase = true) ||
             filePath.startsWith("rtmp://", ignoreCase = true) ||
             filePath.startsWith("rtsp://", ignoreCase = true)
 
-        // Skip any kind of streaming playlist entries
-        if (isStreamingPlaylist(filePath)) {
-          // Skip streaming playlist entries
-          continue
-        }
-
         val video =
           if (isNetworkUri) {
-            // For network URLs, create video object directly using parsed title from entity
-            createNetworkVideoFromUrl(filePath, entity?.videoTitle, entity)
+            createNetworkVideoFromUrl(filePath, entity.videoTitle, entity)
           } else {
-            // For local files, check if they exist
             val file = File(filePath)
             if (file.exists()) {
-              createVideoFromFilePath(filePath, file, entity?.videoTitle)
+              createVideoFromFilePath(filePath, file, entity.videoTitle)
             } else {
               recentlyPlayedRepository.deleteByFilePath(filePath)
               null
@@ -163,13 +112,13 @@ class RecentlyPlayedViewModel(
           }
 
         if (video != null) {
-          items.add(RecentlyPlayedItem.VideoItem(video, timestamp))
+          items.add(RecentlyPlayedItem.VideoItem(video, entity.timestamp))
         }
       }
 
-      // Sort by timestamp
-      val sortedItems = items.sortedByDescending { it.timestamp }
-      _recentItems.value = sortedItems
+      _recentItems.value = items.sortedByDescending { it.timestamp }
+    } catch (cancellation: CancellationException) {
+      throw cancellation
     } catch (e: Exception) {
       Log.e("RecentlyPlayedViewModel", "Error loading recent videos", e)
       _recentItems.value = emptyList()
@@ -177,7 +126,6 @@ class RecentlyPlayedViewModel(
       _isLoading.value = false
     }
   }
-
   private suspend fun createVideoFromFilePath(
     filePath: String,
     file: File,
@@ -210,7 +158,7 @@ class RecentlyPlayedViewModel(
       val dateAdded = dateModified
       val parent = file.parent ?: ""
       val bucketId = parent.hashCode().toString()
-      val bucketDisplayName = File(parent).name
+      val bucketDisplayName = leafStorageName(parent)
 
       val extension = file.extension.lowercase()
       val isAudio = extension in FileTypeUtils.AUDIO_EXTENSIONS
@@ -257,7 +205,7 @@ class RecentlyPlayedViewModel(
         width = width,
         height = height,
         fps = fps,
-        resolution = if (isAudio) "--" else formatResolution(width, height),
+        resolution = if (isAudio) "--" else VideoScanUtils.formatResolution(width, height),
         isAudio = isAudio,
       )
     } catch (e: Exception) {
@@ -313,6 +261,7 @@ class RecentlyPlayedViewModel(
         "mpd" -> "application/dash+xml"
         else -> "video/*"
       }
+    val isAudio = HttpUtils.isMusicStreamingUrl(uri)
 
     return Video(
       id = url.hashCode().toLong(),
@@ -332,20 +281,13 @@ class RecentlyPlayedViewModel(
       width = width,
       height = height,
       fps = 0f, // Network videos typically don't have fps metadata stored
-      resolution = formatResolution(width, height),
+      resolution = if (isAudio) "--" else VideoScanUtils.formatResolution(width, height),
+      isAudio = isAudio,
+      artworkUrl = entity?.artworkUrl,
     )
   }
 
   // Basic video creation function removed as it's no longer used
-
-  suspend fun clearAllRecentlyPlayed() {
-    try {
-      recentlyPlayedRepository.clearAll()
-      // The observe flow will automatically update the UI
-    } catch (e: Exception) {
-      Log.e("RecentlyPlayedViewModel", "Error clearing recent videos", e)
-    }
-  }
 
   suspend fun deleteVideosFromHistory(
     videos: List<Video>,
@@ -471,26 +413,6 @@ class RecentlyPlayedViewModel(
       bytes / 1024.0.pow(digitGroups.toDouble()),
       units[digitGroups],
     )
-  }
-
-  private fun formatResolution(
-    width: Int,
-    height: Int,
-  ): String {
-    if (width <= 0 || height <= 0) return "--"
-
-    return when {
-      width >= 7680 || height >= 4320 -> "4320p"
-      width >= 3840 || height >= 2160 -> "2160p"
-      width >= 2560 || height >= 1440 -> "1440p"
-      width >= 1920 || height >= 1080 -> "1080p"
-      width >= 1280 || height >= 720 -> "720p"
-      width >= 854 || height >= 480 -> "480p"
-      width >= 640 || height >= 360 -> "360p"
-      width >= 426 || height >= 240 -> "240p"
-      width >= 256 || height >= 144 -> "144p"
-      else -> "${height}p"
-    }
   }
 
   private fun isNetworkUri(path: String): Boolean =

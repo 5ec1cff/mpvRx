@@ -43,6 +43,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -68,6 +69,8 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import kotlinx.serialization.Serializable
+import java.text.DateFormat
+import java.util.Date
 
 @Serializable
 data class MpvHelpScreen(
@@ -77,6 +80,8 @@ data class MpvHelpScreen(
   @Composable
   override fun Content() {
     val backstack = LocalBackStack.current
+    val context = LocalContext.current
+    val documentation by MpvDocumentationRepository.state.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
@@ -84,9 +89,9 @@ data class MpvHelpScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedKind by rememberSaveable { mutableStateOf<HelpEntryKind?>(initialFilter) }
 
-    val allEntries = remember { MpvHelpData.allEntries }
+    val allEntries = documentation.entries
 
-    val filteredEntries by remember(searchQuery, selectedKind) {
+    val filteredEntries by remember(searchQuery, selectedKind, allEntries) {
       derivedStateOf {
         val query = searchQuery.trim().lowercase()
         allEntries.filter { entry ->
@@ -109,18 +114,11 @@ data class MpvHelpScreen(
         if (searchQuery.isNotBlank()) {
           listOf(null to filteredEntries)
         } else {
-          MpvHelpData.categories
-            .map { cat ->
-              cat to
-                cat.entries.filter { e ->
-                  selectedKind == null || e.kind == selectedKind
-                }
-            }.filter { (_, entries) -> entries.isNotEmpty() }
+          filteredEntries.groupBy { it.category }
+            .map { (name, entries) -> HelpCategory(name, entries) to entries }
         }
       }
     }
-
-    val context = LocalContext.current
 
     fun copyToClipboard(entry: HelpEntry) {
       val text =
@@ -135,6 +133,7 @@ data class MpvHelpScreen(
     }
 
     LaunchedEffect(Unit) {
+      MpvDocumentationRepository.ensureLoaded(context)
       focusRequester.requestFocus()
     }
 
@@ -161,6 +160,18 @@ data class MpvHelpScreen(
               )
             }
           },
+          actions = {
+            IconButton(
+              onClick = { MpvDocumentationRepository.ensureLoaded(context, forceRefresh = true) },
+              enabled = !documentation.isRefreshing,
+            ) {
+              Icon(
+                Icons.RoundedFilled.Refresh,
+                contentDescription = "Refresh official MPV documentation",
+                tint = MaterialTheme.colorScheme.secondary,
+              )
+            }
+          },
         )
       },
     ) { padding ->
@@ -170,6 +181,27 @@ data class MpvHelpScreen(
             .fillMaxSize()
             .padding(padding),
       ) {
+        val sourceLabel =
+          if (documentation.isRefreshing) {
+            "Checking official mpv documentation…"
+          } else if (documentation.lastCheckedMillis > 0L) {
+            val date = remember(documentation.lastCheckedMillis) {
+              DateFormat.getDateInstance(DateFormat.MEDIUM)
+                .format(Date(documentation.lastCheckedMillis))
+            }
+            "Official mpv • $date"
+          } else {
+            "Official mpv • offline snapshot"
+          }
+        Text(
+          text = documentation.error ?: sourceLabel,
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        )
         app.gyrolet.mpvrx.ui.components.InlineSearchBar(
           query = searchQuery,
           onQueryChange = { searchQuery = it },
@@ -246,7 +278,7 @@ data class MpvHelpScreen(
           color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
         )
 
-        if (searchQuery.isNotBlank() && filteredEntries.isEmpty()) {
+        if (filteredEntries.isEmpty()) {
           Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
@@ -261,9 +293,11 @@ data class MpvHelpScreen(
               Spacer(modifier = Modifier.height(16.dp))
               Text(
                 text =
-                  androidx.compose.ui.res.stringResource(
-                    app.gyrolet.mpvrx.R.string.ui_no_results_found,
-                  ),
+                  if (searchQuery.isNotBlank()) {
+                    context.getString(app.gyrolet.mpvrx.R.string.ui_no_results_found)
+                  } else {
+                    documentation.error ?: "Loading official mpv documentation…"
+                  },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.outline,
               )
@@ -290,7 +324,7 @@ data class MpvHelpScreen(
               ) { _, entry ->
                 HelpEntryCard(
                   entry = entry,
-                  onClick = { copyToClipboard(entry) },
+                  onCopy = { copyToClipboard(entry) },
                 )
               }
             }
@@ -321,8 +355,9 @@ private fun CategoryHeader(name: String) {
 @Composable
 private fun HelpEntryCard(
   entry: HelpEntry,
-  onClick: () -> Unit,
+  onCopy: () -> Unit,
 ) {
+  var expanded by remember(entry.name, entry.kind) { mutableStateOf(false) }
   val colors = MaterialTheme.colorScheme
   val bgColor =
     if (entry.androidCompatible) {
@@ -336,8 +371,8 @@ private fun HelpEntryCard(
       Modifier
         .fillMaxWidth()
         .combinedClickable(
-          onClick = onClick,
-          onLongClick = onClick,
+          onClick = { expanded = !expanded },
+          onLongClick = onCopy,
         ),
     color = bgColor,
   ) {
@@ -397,7 +432,7 @@ private fun HelpEntryCard(
         text = entry.description,
         style = MaterialTheme.typography.bodySmall,
         color = colors.onSurfaceVariant,
-        maxLines = 3,
+        maxLines = if (expanded) Int.MAX_VALUE else 3,
         overflow = TextOverflow.Ellipsis,
       )
 

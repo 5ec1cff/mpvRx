@@ -41,7 +41,7 @@ fun String.fileExtension(): String {
  * precise seeking for a better scrubbing experience.
  */
 fun resolveSeekMode(playerPreferences: PlayerPreferences): String {
-  val duration = PlaybackSession.getPropertyInt("duration") ?: 0
+  val duration = PlaybackSession.getPropertyDouble("duration")?.toInt() ?: 0
   val usePrecise = playerPreferences.usePreciseSeeking.get() || duration < 120
   return if (usePrecise) "relative+exact" else "relative+keyframes"
 }

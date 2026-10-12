@@ -19,7 +19,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.concurrent.TimeUnit
 
 @Serializable
 private data class OrModelPricing(
@@ -75,23 +74,13 @@ class OpenRouterClient(
   }
 
   private val apiClient: OkHttpClient =
-    client
-      .newBuilder()
-      .connectTimeout(60, TimeUnit.SECONDS)
-      .readTimeout(120, TimeUnit.SECONDS)
-      .writeTimeout(60, TimeUnit.SECONDS)
-      .build()
+    client.withAiChatTimeouts()
 
   override suspend fun fetchModels(apiKey: String): Result<List<AiModelInfo>> =
     withContext(Dispatchers.IO) {
       runCatchingCancellable {
         val request =
-          Request
-            .Builder()
-            .url("$BASE_URL/models")
-            .header("Authorization", "Bearer $apiKey")
-            .get()
-            .build()
+          bearerGetRequest("$BASE_URL/models", apiKey)
 
         apiClient.newCall(request).awaitResponse().use { response ->
           val body = response.body.string()
@@ -120,12 +109,7 @@ class OpenRouterClient(
     withContext(Dispatchers.IO) {
       runCatchingCancellable {
         val request =
-          Request
-            .Builder()
-            .url("$BASE_URL/auth/key")
-            .header("Authorization", "Bearer $apiKey")
-            .get()
-            .build()
+          bearerGetRequest("$BASE_URL/auth/key", apiKey)
 
         apiClient.newCall(request).awaitResponse().use { response ->
           if (!response.isSuccessful) throw Exception("Invalid API key: ${response.code}")

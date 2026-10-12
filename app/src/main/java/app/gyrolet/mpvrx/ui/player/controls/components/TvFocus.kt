@@ -20,15 +20,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
@@ -40,7 +47,7 @@ fun Modifier.tvFocusHighlight(
 ): Modifier =
   composed {
     val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
-    if (!isTelevision || !enabled) return@composed this
+    if (!isTelevision || !enabled) return@composed clip(shape)
 
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
@@ -54,6 +61,7 @@ fun Modifier.tvFocusHighlight(
         scaleX = scale
         scaleY = scale
       }
+      .clip(shape)
       .then(
         if (focused) {
           Modifier.border(3.dp, MaterialTheme.colorScheme.primary, shape)
@@ -87,4 +95,24 @@ fun Modifier.tvInitialFocus(requester: FocusRequester): Modifier =
 fun Modifier.tvFocusGroup(): Modifier =
   composed {
     if (DeviceFormFactor.isTelevision(LocalContext.current)) this.focusGroup() else this
+  }
+
+fun Modifier.tvContextMenu(onContextMenu: (() -> Unit)?): Modifier =
+  composed {
+    val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
+    val currentOnContextMenu by rememberUpdatedState(onContextMenu)
+    if (!isTelevision || currentOnContextMenu == null) return@composed this
+
+    this.onPreviewKeyEvent { event ->
+      val isContextMenuKey = event.key == Key.Menu || event.key == Key.Info
+      if (!isContextMenuKey) return@onPreviewKeyEvent false
+      when (event.type) {
+        KeyEventType.KeyUp -> {
+          currentOnContextMenu?.invoke()
+          true
+        }
+        KeyEventType.KeyDown -> true
+        else -> false
+      }
+    }
   }

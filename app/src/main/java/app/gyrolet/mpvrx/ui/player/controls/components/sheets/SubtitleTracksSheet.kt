@@ -9,27 +9,28 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,27 +41,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSectionHeader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import java.util.Locale
 
 sealed class SubtitleItem {
   data class Track(
     val node: TrackNode,
+    val groupIndex: Int,
+    val groupSize: Int,
   ) : SubtitleItem()
 
   data class Header(
@@ -72,6 +86,7 @@ sealed class SubtitleItem {
   object Off : SubtitleItem()
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SubtitlesSheet(
   tracks: ImmutableList<TrackNode>,
@@ -120,11 +135,15 @@ fun SubtitlesSheet(
 
       if (internal.isNotEmpty() || external.isNotEmpty()) {
         list.add(SubtitleItem.Header(if (internal.isNotEmpty()) "Embedded Subtitles" else "Local Subtitles"))
-        list.addAll(internal.map { SubtitleItem.Track(it) })
+        internal.forEachIndexed { index, track ->
+          list.add(SubtitleItem.Track(track, groupIndex = index, groupSize = internal.size))
+        }
         if (internal.isNotEmpty() && external.isNotEmpty()) {
           list.add(SubtitleItem.Header("External Subtitles"))
         }
-        list.addAll(external.map { SubtitleItem.Track(it) })
+        external.forEachIndexed { index, track ->
+          list.add(SubtitleItem.Track(track, groupIndex = index, groupSize = external.size))
+        }
       }
 
       list.toImmutableList()
@@ -261,32 +280,34 @@ fun SubtitlesSheet(
           source.filter { it.contains(langSearch, ignoreCase = true) }
         }
       }
-    androidx.compose.material3.AlertDialog(
+    AppPickerSheet(
       onDismissRequest = {
         showLanguagePicker = null
         showRealtimeLanguagePicker = false
         langSearch = ""
       },
-      title = {
-        Text(
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_translate_to),
-        )
+      title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_translate_to),
+      scrollContent = false,
+      actions = {
+        androidx.compose.material3.TextButton(onClick = {
+          showLanguagePicker = null
+          showRealtimeLanguagePicker = false
+          langSearch = ""
+        }) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          )
+        }
       },
-      text = {
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small)) {
-          OutlinedTextField(
-            value = langSearch,
-            onValueChange = { langSearch = it },
-            placeholder = {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_search_language),
-              )
-            },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
+          PlayerSheetSearchField(
+            query = langSearch,
+            onQueryChange = { langSearch = it },
+            placeholder =
+              androidx.compose.ui.res
+                .stringResource(app.gyrolet.mpvrx.R.string.ui_search_language),
           )
           LazyColumn(modifier = Modifier.height(280.dp)) {
             items(languagesToShow, key = { it }) { lang ->
@@ -319,72 +340,68 @@ fun SubtitlesSheet(
             }
           }
         }
-      },
-      confirmButton = {
-        androidx.compose.material3.TextButton(onClick = {
-          showLanguagePicker = null
-          showRealtimeLanguagePicker = false
-          langSearch = ""
-        }) {
-          Text(
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-          )
-        }
-      },
-    )
+    }
   }
 
-  PlayerSheet(onDismissRequest) {
-    Column(modifier) {
-      AddTrackRow(
-        stringResource(R.string.player_sheets_add_ext_sub),
-        onAddSubtitle,
-        actions = {
-          IconButton(onClick = onOpenOnlineSearch) {
-            Icon(Icons.RoundedFilled.Search, null)
-          }
-          if (aiEnabled && realtimeSubsEnabled) {
-            IconButton(
-              onClick = {
-                if (isRealtimeSubsActive) {
-                  onStopRealtimeSubtitle()
-                } else if (configuredLanguages.isEmpty()) {
-                  onStartRealtimeSubtitle("")
-                } else if (configuredLanguages.size == 1) {
-                  onStartRealtimeSubtitle(codeToName[configuredLanguages.first()] ?: configuredLanguages.first())
-                } else {
-                  showRealtimeLanguagePicker = true
-                }
-              },
-            ) {
-              Icon(
-                if (isRealtimeSubsActive) Icons.RoundedFilled.Close else Icons.RoundedFilled.Translate,
-                stringResource(R.string.pref_stt_title),
+  PlayerSheet(
+    onDismissRequest = onDismissRequest,
+    title = stringResource(R.string.btn_label_subtitles),
+  ) {
+    LazyColumn(
+      modifier = modifier.fillMaxWidth(),
+      contentPadding = PaddingValues(bottom = 8.dp),
+    ) {
+      item(key = "subtitle_actions") {
+        AddTrackRow(
+          stringResource(R.string.player_sheets_add_ext_sub),
+          onAddSubtitle,
+          modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+          shape = rememberConnectedShape(index = 0, itemCount = 2, layout = ConnectedLayout.Vertical),
+          actions = {
+            PlayerSheetAction(Icons.RoundedFilled.Search, stringResource(R.string.settings_search_title), onOpenOnlineSearch)
+            if (aiEnabled && realtimeSubsEnabled) {
+              PlayerSheetAction(
+                icon = if (isRealtimeSubsActive) Icons.RoundedFilled.Close else Icons.RoundedFilled.Translate,
+                label = stringResource(R.string.pref_stt_title),
+                onClick = {
+                  if (isRealtimeSubsActive) {
+                    onStopRealtimeSubtitle()
+                  } else if (configuredLanguages.isEmpty()) {
+                    onStartRealtimeSubtitle("")
+                  } else if (configuredLanguages.size == 1) {
+                    onStartRealtimeSubtitle(codeToName[configuredLanguages.first()] ?: configuredLanguages.first())
+                  } else {
+                    showRealtimeLanguagePicker = true
+                  }
+                },
+              )
+              PlayerSheetAction(
+                icon = Icons.RoundedFilled.Subtitles,
+                label = stringResource(R.string.ui_include_auto_generated_subtitles),
+                onClick = onGenerateSubtitle,
+                enabled = !isGeneratingSubtitles,
               )
             }
-            IconButton(onClick = onGenerateSubtitle) {
-              Icon(Icons.RoundedFilled.Subtitles, stringResource(R.string.ui_include_auto_generated_subtitles))
-            }
-          }
-          IconButton(onClick = onOpenSubtitleSettings) {
-            Icon(Icons.RoundedFilled.Palette, null)
-          }
-          IconButton(onClick = onOpenSubtitleDelay, enabled = delayControlEnabled) {
-            Icon(Icons.RoundedFilled.AvTimer, null)
-          }
-        },
-      )
+            PlayerSheetAction(
+              icon = Icons.RoundedFilled.Palette,
+              label = stringResource(R.string.player_sheets_subtitles_settings_title),
+              onClick = onOpenSubtitleSettings,
+            )
+            PlayerSheetAction(
+              icon = Icons.RoundedFilled.AvTimer,
+              label = stringResource(R.string.player_sheets_sub_delay_card_title),
+              onClick = onOpenSubtitleDelay,
+              enabled = delayControlEnabled,
+            )
+          },
+        )
+      }
 
       if (aiEnabled && isTranslating) {
+        item(key = "translation_progress") {
         Column(
-          modifier =
-            Modifier.padding(
-              start = MaterialTheme.spacing.medium,
-              end = MaterialTheme.spacing.medium,
-              top = MaterialTheme.spacing.small,
-            ),
-          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+          modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -397,39 +414,28 @@ fun SubtitlesSheet(
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.primary,
               modifier = Modifier.weight(1f),
-              maxLines = 1,
+              maxLines = 2,
               overflow = TextOverflow.Ellipsis,
             )
-            FilledTonalIconButton(
+            PlayerSheetAction(
+              icon = Icons.RoundedFilled.Close,
+              label = stringResource(R.string.ui_cancel_translation),
               onClick = onCancelTranslation,
-              modifier = Modifier.size(36.dp),
-              colors =
-                IconButtonDefaults.filledTonalIconButtonColors(
-                  containerColor = MaterialTheme.colorScheme.errorContainer,
-                  contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                ),
-            ) {
-              Icon(
-                imageVector = Icons.RoundedFilled.Close,
-                contentDescription =
-                  androidx.compose.ui.res.stringResource(
-                    app.gyrolet.mpvrx.R.string.ui_cancel_translation,
-                  ),
-                modifier = Modifier.size(20.dp),
-              )
-            }
+            )
           }
           LinearProgressIndicator(
-            progress = { realtimeSubsProgress },
+            progress = { translationProgress.coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth(),
           )
+        }
         }
       }
 
       if (aiEnabled && isGeneratingSubtitles) {
+        item(key = "subtitle_generation_progress") {
         androidx.compose.foundation.layout.Column(
-          modifier = Modifier.padding(MaterialTheme.spacing.medium),
-          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+          modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           Text(
             "${subtitleGenerationStatus.ifBlank {
@@ -439,32 +445,34 @@ fun SubtitlesSheet(
             color = MaterialTheme.colorScheme.primary,
           )
           LinearProgressIndicator(
-            progress = { subtitleGenerationProgress },
+            progress = { subtitleGenerationProgress.coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth(),
           )
+        }
         }
       }
 
       if (aiEnabled && isRealtimeSubsActive) {
+        item(key = "realtime_subtitle_progress") {
         Column(
-          modifier = Modifier.padding(MaterialTheme.spacing.medium),
-          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+          modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           Text(
             realtimeSubsStatus.ifBlank { stringResource(R.string.pref_stt_title) },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
           )
           LinearProgressIndicator(
-            progress = { translationProgress },
+            progress = { realtimeSubsProgress.coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth(),
           )
         }
+        }
       }
 
-      LazyColumn {
         items(
           items,
           key = { item ->
@@ -481,7 +489,7 @@ fun SubtitlesSheet(
             is SubtitleItem.Track -> {
               val track = item.node
               SubtitleTrackRow(
-                title = getTrackTitle(track),
+                track = track,
                 isSelected = isSubtitleSelected(track.id),
                 selectionIndicator = subtitleSelectionIndicator(track.id),
                 isExternal = track.external == true,
@@ -499,47 +507,50 @@ fun SubtitlesSheet(
                 },
                 translationEnabled = translationEnabled,
                 isCurrentlyTranslating = track.id == translatingTrackId,
+                groupIndex = item.groupIndex,
+                groupSize = item.groupSize,
               )
             }
             is SubtitleItem.Header -> {
-              Row(
-                modifier =
-                  Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.extraSmall),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-              ) {
-                Text(
-                  text = item.title,
-                  style = MaterialTheme.typography.labelLarge,
-                  color = MaterialTheme.colorScheme.primary,
-                  fontWeight = FontWeight.Bold,
-                )
-              }
+              PlayerSheetSectionHeader(item.title)
             }
             is SubtitleItem.Off -> {
-              Row(
+              val haptics = rememberAppHaptics()
+              val shape = rememberConnectedShape(index = 1, itemCount = 2, layout = ConnectedLayout.Vertical)
+              val isFrostedOff = LocalPlayerGlassSurfaceActive.current
+              Surface(
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
                     .tvInitialFocus(initialFocusRequester)
-                    .tvFocusHighlight()
-                    .clickable(onClick = onDisableSubtitles)
-                    .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.extraSmall),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+                    .tvFocusHighlight(shape)
+                    .clip(shape)
+                    .selectable(selected = subtitlesOff, role = Role.RadioButton) {
+                      onDisableSubtitles()
+                      if (!subtitlesOff) haptics.selection(false)
+                    },
+                shape = shape,
+                color =
+                  animatedPlayerSheetSelectionColor(subtitlesOff, frosted = isFrostedOff, label = "subtitlesOffSelection"),
               ) {
-                if (isTelevision) {
-                  RadioButton(selected = subtitlesOff, onClick = null)
-                } else {
-                  Checkbox(checked = subtitlesOff, onCheckedChange = { onDisableSubtitles() })
+                Row(
+                  modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  if (isTelevision) {
+                    RadioButton(selected = subtitlesOff, onClick = null)
+                  } else {
+                    Checkbox(checked = subtitlesOff, onCheckedChange = null)
+                  }
+                  Text(
+                    stringResource(R.string.player_sheets_off),
+                    style = if (subtitlesOff) MaterialTheme.typography.bodyLargeEmphasized else MaterialTheme.typography.bodyLarge,
+                    color = if (subtitlesOff) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                  )
                 }
-                Text(
-                  stringResource(R.string.player_sheets_off),
-                  fontWeight = if (subtitlesOff) FontWeight.Bold else FontWeight.Normal,
-                  modifier = Modifier.weight(1f),
-                )
               }
             }
             SubtitleItem.Divider -> {
@@ -554,17 +565,14 @@ fun SubtitlesSheet(
             }
           }
         }
-        item {
-          Spacer(modifier = Modifier.height(MaterialTheme.spacing.medium))
-        }
-      }
     }
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SubtitleTrackRow(
-  title: String,
+  track: TrackNode,
   isSelected: Boolean,
   selectionIndicator: String?,
   isExternal: Boolean,
@@ -573,60 +581,110 @@ fun SubtitleTrackRow(
   onTranslate: () -> Unit,
   translationEnabled: Boolean,
   isCurrentlyTranslating: Boolean = false,
+  groupIndex: Int? = null,
+  groupSize: Int? = null,
   modifier: Modifier = Modifier,
 ) {
   val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
-  Row(
+  val haptics = rememberAppHaptics()
+  val shape =
+    if (groupIndex != null && groupSize != null && groupSize > 0) {
+      rememberConnectedShape(
+        index = groupIndex,
+        itemCount = groupSize,
+        layout = ConnectedLayout.Vertical,
+      )
+    } else {
+      MaterialTheme.shapes.medium
+    }
+  val isFrosted = LocalPlayerGlassSurfaceActive.current
+  val containerColor = animatedPlayerSheetSelectionColor(
+    selected = isSelected,
+    frosted = isFrosted,
+    label = "subtitleTrackSelection",
+  )
+  val badges = subtitleTrackBadges(track, selectionIndicator, isExternal)
+  Surface(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight()
-        .clickable(onClick = onToggle)
-        .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.extraSmall),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+        .padding(horizontal = 8.dp, vertical = 2.dp)
+        .tvFocusHighlight(shape)
+        .clip(shape)
+        .toggleable(value = isSelected, role = Role.Checkbox) { selected ->
+          onToggle()
+          haptics.selection(selected)
+        },
+    shape = shape,
+    color = containerColor,
   ) {
-    if (isTelevision) {
-      RadioButton(selected = isSelected, onClick = null)
-    } else {
-      Checkbox(checked = isSelected, onCheckedChange = { onToggle() })
-    }
-    Text(title, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
-
-    if (selectionIndicator != null) {
-      Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-      ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      if (isTelevision) {
+        RadioButton(selected = isSelected, onClick = null)
+      } else {
+        Checkbox(checked = isSelected, onCheckedChange = null)
+      }
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(
-          text = selectionIndicator,
-          style = MaterialTheme.typography.labelMedium,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+          text = getTrackTitle(track),
+          style = if (isSelected) MaterialTheme.typography.bodyLargeEmphasized else MaterialTheme.typography.bodyLarge,
+          color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+        )
+        TrackBadgeFlow(badges = badges, selected = isSelected)
+      }
+      if (isCurrentlyTranslating) {
+        androidx.compose.material3.CircularProgressIndicator(
+          modifier = Modifier.size(MaterialTheme.spacing.large),
+          strokeWidth = MaterialTheme.spacing.smaller,
         )
       }
-    }
-
-    if (isCurrentlyTranslating) {
-      androidx.compose.material3.CircularProgressIndicator(
-        modifier = Modifier.size(MaterialTheme.spacing.large),
-        strokeWidth = MaterialTheme.spacing.smaller,
-      )
-    }
-
-    if (isExternal) {
-      if (translationEnabled) {
-        IconButton(onClick = onTranslate) {
-          Icon(
-            Icons.RoundedFilled.Translate,
-            contentDescription =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.ui_translate),
+      if (isExternal) {
+        if (translationEnabled) {
+          PlayerSheetAction(
+            icon = Icons.RoundedFilled.Translate,
+            label = stringResource(R.string.ui_translate),
+            onClick = onTranslate,
+            enabled = !isCurrentlyTranslating,
           )
         }
+        PlayerSheetAction(Icons.RoundedFilled.Delete, stringResource(R.string.ui_remove), onRemove)
       }
-      IconButton(onClick = onRemove) { Icon(Icons.RoundedFilled.Delete, contentDescription = null) }
     }
+  }
+}
+
+@Composable
+private fun subtitleTrackBadges(
+  track: TrackNode,
+  selectionIndicator: String?,
+  isExternal: Boolean,
+): List<TrackBadge> {
+  val primaryLabel = stringResource(R.string.track_badge_primary)
+  val secondaryLabel = stringResource(R.string.track_badge_secondary)
+  val defaultLabel = stringResource(R.string.theme_default)
+  val forcedLabel = stringResource(R.string.track_badge_forced)
+  val externalLabel = stringResource(R.string.track_badge_external)
+  return remember(track, selectionIndicator, isExternal, primaryLabel, secondaryLabel, defaultLabel, forcedLabel, externalLabel) {
+    buildList {
+      selectionIndicator?.let { indicator ->
+        val label = when (indicator) {
+          "P" -> primaryLabel
+          "S" -> secondaryLabel
+          else -> indicator
+        }
+        add(TrackBadge(label, emphasized = true))
+      }
+      track.effectiveLang?.takeIf(String::isNotBlank)?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      (track.codec?.takeIf(String::isNotBlank) ?: track.codecDesc?.takeIf(String::isNotBlank))
+        ?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      if (track.default == true) add(TrackBadge(defaultLabel))
+      if (track.forced == true) add(TrackBadge(forcedLabel))
+      if (track.hearingImpaired == true) add(TrackBadge("SDH"))
+      if (isExternal) add(TrackBadge(externalLabel))
+    }.distinctBy(TrackBadge::text)
   }
 }

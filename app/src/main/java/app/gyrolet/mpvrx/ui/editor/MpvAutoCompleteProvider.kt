@@ -38,12 +38,21 @@ object MpvAutoCompleteProvider {
     prefix: String,
     mode: MpvCompletionMode,
     publisher: CompletionPublisher,
+    inputKeyPosition: Boolean = false,
+    optionName: String? = null,
+    optionValuePrefix: String = "",
   ) {
-    val query = prefix.trimStart('-')
-    if (query.isEmpty()) return
+    val completingValue = mode == MpvCompletionMode.MPV_CONF && optionName != null
+    val query = if (completingValue) optionValuePrefix else prefix.trimStart('-')
+    if (query.isEmpty() && !completingValue) return
 
+    val choices = when {
+      completingValue -> valuesForOption(requireNotNull(optionName))
+      mode == MpvCompletionMode.INPUT_CONF && inputKeyPosition -> inputKeyCompletions
+      else -> completionsFor(mode)
+    }
     val suggestions =
-      completionsFor(mode)
+      choices
         .asSequence()
         .distinctBy { it.label }
         .filter { it.matchRank(query) < Int.MAX_VALUE }
@@ -54,7 +63,12 @@ object MpvAutoCompleteProvider {
         ).take(MAX_COMPLETIONS)
         .map { def ->
           val commitText = def.label + def.commitSuffix
-          SimpleCompletionItem(def.label, def.desc, prefix.length, commitText).apply {
+          SimpleCompletionItem(
+            def.label,
+            def.desc,
+            if (completingValue) optionValuePrefix.length else prefix.length,
+            commitText,
+          ).apply {
             kind(def.kind)
             def.detailText()?.let { detail = it }
           }
@@ -73,10 +87,67 @@ object MpvAutoCompleteProvider {
 
   private fun completionsFor(mode: MpvCompletionMode): List<CompletionDef> =
     when (mode) {
-      MpvCompletionMode.SCRIPT -> mpvCompletions
+      MpvCompletionMode.SCRIPT -> documentedCompletions().js + mpvCompletions
       MpvCompletionMode.MPV_CONF -> mpvConfigCompletions
       MpvCompletionMode.INPUT_CONF -> inputConfCompletions
     }
+
+  private val optionEnum = Regex("""<([^<>]+)>""")
+  private val literalValue = Regex("""[a-zA-Z][a-zA-Z0-9_.+-]*""")
+
+  // Parse the enum tokens from the official option signature, not a second manual catalog.
+  // For free-form language lists, show clearly labeled *examples*, never a false exhaustive enum.
+  private fun valuesForOption(name: String): List<CompletionDef> {
+    val documentation = MpvDocumentationRepository.state.value.entries
+      .firstOrNull { it.kind == HelpEntryKind.OPTION && it.name.equals(name, ignoreCase = true) }
+      ?: return emptyList()
+    if (name.equals("slang", true) || name.equals("alang", true) || name.equals("vlang", true)) {
+      return listOf(
+        "eng" to "English",
+        "jpn" to "Japanese",
+        "hin" to "Hindi",
+        "spa" to "Spanish",
+        "fra" to "French",
+        "deu" to "German",
+      ).map { (code, label) ->
+        createDef(
+          code,
+          code,
+          "$label (common language-code example, not a complete list). " + documentation.description.take(100),
+          CompletionItemKind.Keyword,
+        )
+      }
+    }
+    val signatureValues = documentation.signature.substringAfter('=', "")
+    if (signatureValues.isBlank()) return emptyList()
+    val literals = optionEnum.findAll(signatureValues)
+      .flatMap { it.groupValues[1].split('|').asSequence() }
+      .map { it.trim() }
+      .filter { literalValue.matches(it) }
+      .filterNot { it.lowercase() in setOf(
+        "id", "n", "value", "number", "file", "filename", "name", "time",
+        "path", "languagecode", "integer", "string",
+      ) }
+      .distinct()
+      .take(24)
+      .toList()
+    if (literals.size < 2) return emptyList()
+    return literals.map { value ->
+      val meaning = when (value.lowercase()) {
+        "yes" -> "Enable"
+        "no" -> "Disable"
+        "auto" -> "Automatic selection"
+        "default" -> "Use mpv default"
+        else -> "Documented value"
+      }
+      createDef(
+        value,
+        value,
+        "$meaning for " + documentation.name + ". " + documentation.description.take(140),
+        CompletionItemKind.Keyword,
+      )
+    }
+  }
 
   private fun CompletionDef.matchRank(query: String): Int {
     val label = this.label.lowercase()
@@ -105,157 +176,59 @@ object MpvAutoCompleteProvider {
     }
   }
 
-  private fun configOption(
-    label: String,
-    value: String,
-    desc: String,
-  ) = createDef(label, "$label=$value", desc, CompletionItemKind.Property, commitSuffix = "=")
-
   private fun inputKey(
     label: String,
     desc: String,
   ) = createDef(label, "input.conf key", desc, CompletionItemKind.Keyword)
 
-  private val mpvConfigCompletions by lazy {
-    listOf(
-      configOption("profile", "<name>", "Apply an mpv profile by name."),
-      configOption("include", "<path>", "Include another config file."),
-      configOption("input-conf", "<path>", "Load key bindings from a file."),
-      configOption("load-scripts", "<yes|no>", "Enable loading scripts at startup."),
-      configOption("script", "<path>", "Load an additional script file."),
-      configOption("script-opts", "<key=value,...>", "Pass options to mpv scripts."),
-      configOption("config", "<yes|no>", "Enable mpv config file loading."),
-      configOption("save-position-on-quit", "<yes|no>", "Resume from the last playback position."),
-      configOption("keep-open", "<yes|no|always>", "Keep the player open after playback ends."),
-      configOption("pause", "<yes|no>", "Start or keep playback paused."),
-      configOption("volume", "<number>", "Set startup audio volume."),
-      configOption("volume-max", "<number>", "Set maximum allowed volume."),
-      configOption("mute", "<yes|no>", "Start with audio muted."),
-      configOption("audio", "<auto|no|id>", "Select the audio track."),
-      configOption("aid", "<auto|no|id>", "Select the audio track ID."),
-      configOption("audio-delay", "<seconds>", "Shift audio timing."),
-      configOption("sub", "<auto|no|id>", "Select the subtitle track."),
-      configOption("sid", "<auto|no|id>", "Select the subtitle track ID."),
-      configOption("sub-delay", "<seconds>", "Shift subtitle timing."),
-      configOption("sub-pos", "<0-100>", "Set subtitle vertical position."),
-      configOption("sub-scale", "<number>", "Scale subtitle size."),
-      configOption("sub-visibility", "<yes|no>", "Show or hide subtitles."),
-      configOption("sub-auto", "<no|exact|fuzzy|all>", "Auto-load external subtitles."),
-      configOption("audio-file-auto", "<no|exact|fuzzy|all>", "Auto-load external audio files."),
-      configOption("secondary-sid", "<auto|no|id>", "Select secondary subtitles."),
-      configOption("osd-level", "<0-3>", "Choose OSD verbosity."),
-      configOption("osd-duration", "<milliseconds>", "Set OSD message duration."),
-      configOption("osd-font-size", "<number>", "Set OSD font size."),
-      configOption("osd-scale", "<number>", "Scale OSD text and UI."),
-      configOption("screenshot-format", "<png|jpg|webp>", "Choose screenshot image format."),
-      configOption("screenshot-directory", "<path>", "Set screenshot save directory."),
-      configOption("screenshot-template", "<template>", "Set screenshot filename template."),
-      configOption("hwdec", "<auto|no|mode>", "Choose hardware decoding mode."),
-      configOption("vo", "<driver>", "Choose video output driver."),
-      configOption("ao", "<driver>", "Choose audio output driver."),
-      configOption("gpu-api", "<auto|vulkan|opengl>", "Choose GPU API."),
-      configOption("gpu-context", "<auto|context>", "Choose GPU context."),
-      configOption("video-sync", "<mode>", "Choose video/audio sync mode."),
-      configOption("interpolation", "<yes|no>", "Enable frame interpolation."),
-      configOption("scale", "<filter>", "Choose video upscaler."),
-      configOption("cscale", "<filter>", "Choose chroma scaler."),
-      configOption("dscale", "<filter>", "Choose video downscaler."),
-      configOption("tscale", "<filter>", "Choose temporal scaler."),
-      configOption("deband", "<yes|no>", "Enable debanding."),
-      configOption("deband-iterations", "<number>", "Set deband pass count."),
-      configOption("deband-threshold", "<number>", "Set deband strength threshold."),
-      configOption("sigmoid-upscaling", "<yes|no>", "Use sigmoid upscaling."),
-      configOption("correct-downscaling", "<yes|no>", "Improve downscaling accuracy."),
-      configOption("linear-downscaling", "<yes|no>", "Use linear-light downscaling."),
-      configOption("dither-depth", "<auto|no|bits>", "Set output dithering depth."),
-      configOption("target-prim", "<auto|bt.709|bt.2020>", "Set target color primaries."),
-      configOption("target-trc", "<auto|bt.1886|pq|hlg>", "Set target transfer curve."),
-      configOption("target-peak", "<nits>", "Set target display peak brightness."),
-      configOption("tone-mapping", "<algorithm>", "Choose HDR tone mapping algorithm."),
-      configOption("tone-mapping-param", "<number>", "Tune tone mapping strength."),
-      configOption("tone-mapping-mode", "<auto|clip|mobius|reinhard>", "Choose tone mapping mode."),
-      configOption("inverse-tone-mapping", "<yes|no>", "Enable inverse tone mapping."),
-      configOption("gamut-mapping-mode", "<mode>", "Choose gamut mapping behavior."),
-      configOption("hdr-compute-peak", "<yes|no>", "Estimate HDR peak brightness."),
-      configOption("hdr-peak-percentile", "<number>", "Set HDR peak percentile."),
-      configOption("loop-file", "<no|inf|count>", "Loop the current file."),
-      configOption("loop-playlist", "<no|inf|count>", "Loop the playlist."),
-      configOption("shuffle", "<yes|no>", "Shuffle playlist playback."),
-      configOption("speed", "<number>", "Set playback speed."),
-      configOption("ytdl", "<yes|no>", "Enable youtube-dl / yt-dlp hook."),
-      configOption("ytdl-path", "<path>", "Path to youtube-dl / yt-dlp."),
-      configOption("cache", "<yes|no|auto>", "Control stream cache usage."),
-      configOption("demuxer-max-bytes", "<size>", "Limit demuxer cache size."),
-      configOption("demuxer-max-back-bytes", "<size>", "Limit backward cache size."),
-      configOption("vf", "<filter-list>", "Set the video filter chain."),
-      configOption("af", "<filter-list>", "Set the audio filter chain."),
-      configOption("input-default-bindings", "<yes|no>", "Enable default key bindings."),
-      configOption("input-vo-keyboard", "<yes|no>", "Enable keyboard input through VO."),
-      // ── Audio extras ──
-      configOption("audio-pitch-correction", "<yes|no>", "Preserve pitch when changing speed."),
-      configOption("audio-exclusive", "<yes|no>", "Exclusive audio output mode."),
-      configOption("audio-buffer", "<seconds>", "Audio output buffer size."),
-      configOption("audio-file-paths", "<path-list>", "Search paths for external audio files."),
-      configOption("audio-format", "<auto|s16|s32|float>", "Audio sample format."),
-      configOption("audio-samplerate", "<auto|Hz>", "Audio output sample rate."),
-      configOption("audio-channels", "<auto|count>", "Audio output channel count."),
-      // ── Video extras ──
-      configOption("video-rotate", "<0|90|180|270>", "Force video rotation."),
-      configOption("video-zoom", "<number>", "Video zoom level."),
-      configOption("video-unscaled", "<no|yes|downscale-big>", "Disable video scaling."),
-      configOption("video-aspect-override", "<ratio|no>", "Override aspect ratio."),
-      configOption("video-align-x", "<-1..1>", "Horizontal video alignment."),
-      configOption("video-align-y", "<-1..1>", "Vertical video alignment."),
-      configOption("video-pan-x", "<number>", "Pan video horizontally."),
-      configOption("video-pan-y", "<number>", "Pan video vertically."),
-      configOption("deinterlace", "<yes|no|auto>", "Enable deinterlacing."),
-      // ── Playback extras ──
-      configOption("keep-open-pauses", "<yes|no>", "Pause on EOF instead of stopping."),
-      configOption("hr-seek", "<no|yes|always>", "Use precise seeks."),
-      configOption("hr-seek-framedrop", "<yes|no>", "Drop frames during hr-seek."),
-      configOption("cache-pause", "<yes|no>", "Pause when cache runs low."),
-      configOption("cache-pause-initial", "<yes|no>", "Pause until initial cache filled."),
-      configOption("demuxer-max-duration", "<seconds>", "Max demuxer cache duration."),
-      configOption("demuxer-max-back-duration", "<seconds>", "Max backward cache duration."),
-      configOption("demuxer-seekable-cache", "<yes|no>", "Enable seeking in cached range."),
-      configOption("ab-loop-a", "<time>", "Set A-B loop point A."),
-      configOption("ab-loop-b", "<time>", "Set A-B loop point B."),
-      // ── Subtitle extras ──
-      configOption("sub-font", "<name>", "Subtitle font family."),
-      configOption("sub-font-size", "<number>", "Subtitle font size."),
-      configOption("sub-color", "<#RRGGBB[AA]>", "Subtitle text color."),
-      configOption("sub-border-color", "<#RRGGBB[AA]>", "Subtitle border color."),
-      configOption("sub-border-size", "<number>", "Subtitle border/outline size."),
-      configOption("sub-shadow-color", "<#RRGGBB[AA]>", "Subtitle shadow color."),
-      configOption("sub-shadow-offset", "<number>", "Subtitle shadow offset."),
-      configOption("sub-bold", "<yes|no>", "Bold subtitle text."),
-      configOption("sub-ass-override", "<no|yes|force|scale>", "Override ASS subtitle styles."),
-      configOption("sub-justify", "<auto|left|center|right>", "Subtitle text justification."),
-      configOption("sub-clear-on-seek", "<yes|no>", "Clear subs on seek."),
-      // ── OSD extras ──
-      configOption("osd-font", "<name>", "OSD font family."),
-      configOption("osd-color", "<#RRGGBB[AA]>", "OSD text color."),
-      configOption("osd-border-color", "<#RRGGBB[AA]>", "OSD border color."),
-      configOption("osd-shadow-color", "<#RRGGBB[AA]>", "OSD shadow color."),
-      configOption("osd-margin-x", "<number>", "Horizontal OSD margin."),
-      configOption("osd-margin-y", "<number>", "Vertical OSD margin."),
-      // ── Display extras ──
-      configOption("ontop", "<yes|no>", "Keep window on top."),
-      configOption("border", "<yes|no>", "Show window border."),
-      configOption("cursor-autohide", "<time|no|always>", "Auto-hide cursor after inactivity."),
-      // ── HDR extras ──
-      configOption("tone-mapping-param", "<number>", "Tone-mapping algorithm parameter."),
-      configOption("tone-mapping-mode", "<auto|rgb|luma>", "Tone-mapping mode."),
-      configOption("gamut-mapping-mode", "<auto|clip|desaturate|warn>", "Gamut mapping behavior."),
-      configOption("hdr-compute-peak", "<yes|no>", "Compute HDR peak per-frame."),
-      configOption("hdr-peak-percentile", "<number>", "HDR peak percentile."),
-    )
+  private data class CachedDocCompletions(
+    val entries: List<HelpEntry>,
+    val config: List<CompletionDef>,
+    val commands: List<CompletionDef>,
+    val js: List<CompletionDef>,
+  )
+
+  @Volatile
+  private var cachedDocCompletions: CachedDocCompletions? = null
+
+  // Materialize the parsed catalog just once for each refreshed snapshot, not on every
+  // keystroke. New documentation appears in autocompletion without reopening the editor.
+  private fun documentedCompletions(): CachedDocCompletions {
+    val entries = MpvDocumentationRepository.state.value.entries
+    cachedDocCompletions?.takeIf { it.entries === entries }?.let { return it }
+    return synchronized(this) {
+      cachedDocCompletions?.takeIf { it.entries === entries } ?: CachedDocCompletions(
+        entries = entries,
+        config = entries.filter { it.kind == HelpEntryKind.OPTION }.map { entry ->
+          createDef(
+            entry.name,
+            entry.signature,
+            entry.description.take(200),
+            CompletionItemKind.Property,
+            commitSuffix = if (entry.signature.contains('=')) "=" else "",
+          )
+        },
+        commands = entries.filter { it.kind == HelpEntryKind.COMMAND }.map { entry ->
+          createDef(
+            entry.name,
+            entry.signature,
+            entry.description.take(200),
+            CompletionItemKind.Keyword,
+            commitSuffix = " ",
+          )
+        },
+        js = entries.filter { it.kind == HelpEntryKind.JS_API }.map { entry ->
+          createDef(entry.name, entry.signature, entry.description.take(200))
+        },
+      ).also { cachedDocCompletions = it }
+    }
   }
 
-  private val inputConfCompletions by lazy {
-    inputKeyCompletions +
-      mpvCompletions.filter { it.kind == CompletionItemKind.Keyword || it.kind == CompletionItemKind.Property }
-  }
+  private val mpvConfigCompletions: List<CompletionDef>
+    get() = documentedCompletions().config
+
+  private val inputConfCompletions: List<CompletionDef>
+    get() = documentedCompletions().commands
 
   private val inputKeyCompletions =
     listOf(
@@ -536,7 +509,6 @@ object MpvAutoCompleteProvider {
       createDef("audio-reload", "audio-reload [id]", "Reload audio track.", CompletionItemKind.Keyword),
       createDef("video-reload", "video-reload [id]", "Reload video track.", CompletionItemKind.Keyword),
       createDef("set", "set <property> <value>", "Set property.", CompletionItemKind.Keyword),
-      createDef("set-string", "set-string <property> <value>", "Set property as string.", CompletionItemKind.Keyword),
       createDef(
         "change-list",
         "change-list <property> <operation> <value>",
@@ -555,12 +527,6 @@ object MpvAutoCompleteProvider {
       createDef("expand-text", "expand-text <text>", "Expand property expressions.", CompletionItemKind.Keyword),
       createDef("show-text", "show-text <text> [duration] [level]", "Show text on OSD.", CompletionItemKind.Keyword),
       createDef("show-progress", "show-progress", "Show playback progress OSD.", CompletionItemKind.Keyword),
-      createDef(
-        "show-property-text",
-        "show-property-text <text> [duration] [level]",
-        "Show expanded property text.",
-        CompletionItemKind.Keyword,
-      ),
       createDef("screenshot", "screenshot [flags]", "Take screenshot.", CompletionItemKind.Keyword),
       createDef(
         "screenshot-to-file",
@@ -705,8 +671,6 @@ object MpvAutoCompleteProvider {
       createDef("mute", "mute", "Mute state.", CompletionItemKind.Property),
       createDef("audio", "audio", "Selected audio track.", CompletionItemKind.Property),
       createDef("aid", "aid", "Selected audio track ID.", CompletionItemKind.Property),
-      createDef("audio-codec", "audio-codec", "Current audio codec.", CompletionItemKind.Property),
-      createDef("audio-codec-name", "audio-codec-name", "Audio codec name.", CompletionItemKind.Property),
       createDef("audio-params", "audio-params", "Current audio parameters.", CompletionItemKind.Property),
       createDef("audio-out-params", "audio-out-params", "Audio output parameters.", CompletionItemKind.Property),
       createDef("audio-device", "audio-device", "Selected audio output device.", CompletionItemKind.Property),
@@ -719,14 +683,11 @@ object MpvAutoCompleteProvider {
       ),
       createDef("video", "video", "Selected video track.", CompletionItemKind.Property),
       createDef("vid", "vid", "Selected video track ID.", CompletionItemKind.Property),
-      createDef("video-codec", "video-codec", "Current video codec.", CompletionItemKind.Property),
-      createDef("video-codec-name", "video-codec-name", "Video codec name.", CompletionItemKind.Property),
       createDef("video-params", "video-params", "Video parameters.", CompletionItemKind.Property),
       createDef("dwidth", "dwidth", "Display width.", CompletionItemKind.Property),
       createDef("dheight", "dheight", "Display height.", CompletionItemKind.Property),
       createDef("width", "width", "Video width.", CompletionItemKind.Property),
       createDef("height", "height", "Video height.", CompletionItemKind.Property),
-      createDef("fps", "fps", "Video FPS.", CompletionItemKind.Property),
       createDef("container-fps", "container-fps", "Container FPS.", CompletionItemKind.Property),
       createDef(
         "video-speed-correction",
@@ -839,8 +800,6 @@ object MpvAutoCompleteProvider {
       createDef("input-bindings", "input-bindings", "List of active input bindings.", CompletionItemKind.Property),
       createDef("profile-list", "profile-list", "List of profiles.", CompletionItemKind.Property),
       createDef("cache-speed", "cache-speed", "Cache fill rate (bytes/sec).", CompletionItemKind.Property),
-      createDef("cache-duration", "cache-duration", "Cache duration.", CompletionItemKind.Property),
-      createDef("cache-used", "cache-used", "Used cache bytes.", CompletionItemKind.Property),
       createDef(
         "demuxer-cache-duration",
         "demuxer-cache-duration",
@@ -855,13 +814,9 @@ object MpvAutoCompleteProvider {
       createDef("display-names", "display-names", "Available display names.", CompletionItemKind.Property),
       createDef("display-width", "display-width", "Display width.", CompletionItemKind.Property),
       createDef("display-height", "display-height", "Display height.", CompletionItemKind.Property),
-      createDef("play-dir", "play-dir", "Playback direction (1/-1).", CompletionItemKind.Property),
-      createDef("drop-frame-count", "drop-frame-count", "Dropped frame count.", CompletionItemKind.Property),
+      createDef("frame-drop-count", "frame-drop-count", "Dropped frame count.", CompletionItemKind.Property),
       createDef("avsync", "avsync", "Audio/video sync difference.", CompletionItemKind.Property),
       createDef("display-sync-active", "display-sync-active", "Display sync active.", CompletionItemKind.Property),
-      createDef("toggle", "toggle <property>", "Toggle boolean property.", CompletionItemKind.Keyword),
-      createDef("speed-multiply", "speed-multiply <factor>", "Multiply playback speed.", CompletionItemKind.Keyword),
-      createDef("speed-set", "speed-set <speed>", "Set absolute speed.", CompletionItemKind.Keyword),
       createDef("ab-loop", "ab-loop", "Toggle A-B loop.", CompletionItemKind.Keyword),
       // ============================================================
       // Common JS / MuJS globals

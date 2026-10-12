@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night counterpart of values/colors.xml; see the comment there. -->
+    <color name="splash_background">#161217</color>
+</resources>

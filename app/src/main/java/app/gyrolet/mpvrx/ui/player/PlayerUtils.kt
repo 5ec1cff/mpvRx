@@ -248,7 +248,7 @@ internal fun Uri.resolveUri(
       openContentFd(context, allowFdFallback = allowFdFallback)
         ?: if (allowFdFallback) null else toString()
     "data" -> "data://$schemeSpecificPart"
-    "magnet", "torrent" -> toString()
+    "archive", "magnet", "torrent" -> toString()
     NetworkPlaybackUri.SCHEME, XtreamPlaybackUri.SCHEME -> toString()
     in Utils.PROTOCOLS -> toString()
     else -> {

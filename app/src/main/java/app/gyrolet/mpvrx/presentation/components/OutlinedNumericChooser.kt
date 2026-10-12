@@ -59,7 +59,7 @@ fun OutlinedNumericChooser(
       enabled = enabled,
       modifier = Modifier.size(48.dp),
     ) {
-      Icon(decreaseIcon, null)
+      Icon(decreaseIcon, stringResource(R.string.generic_decrease))
     }
     var valueString by remember { mutableStateOf("$value") }
     LaunchedEffect(value) {
@@ -88,6 +88,7 @@ fun OutlinedNumericChooser(
       },
       suffix = suffix,
       modifier = Modifier.weight(1f),
+      singleLine = true,
       keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
     RepeatingIconButton(
@@ -95,7 +96,7 @@ fun OutlinedNumericChooser(
       enabled = enabled,
       modifier = Modifier.size(48.dp),
     ) {
-      Icon(increaseIcon, null)
+      Icon(increaseIcon, stringResource(R.string.generic_increase))
     }
   }
 }
@@ -126,7 +127,7 @@ fun OutlinedNumericChooser(
       enabled = enabled,
       modifier = Modifier.size(48.dp),
     ) {
-      Icon(decreaseIcon, null)
+      Icon(decreaseIcon, stringResource(R.string.generic_decrease))
     }
     var valueString by remember { mutableStateOf("$value") }
     LaunchedEffect(value) {
@@ -156,7 +157,7 @@ fun OutlinedNumericChooser(
         if (value < min) Text(stringResource(R.string.numeric_chooser_value_too_small))
       },
       modifier = Modifier.weight(1f),
-      maxLines = 1,
+      singleLine = true,
       suffix = suffix,
       keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     )
@@ -165,7 +166,7 @@ fun OutlinedNumericChooser(
       enabled = enabled,
       modifier = Modifier.size(48.dp),
     ) {
-      Icon(increaseIcon, null)
+      Icon(increaseIcon, stringResource(R.string.generic_increase))
     }
   }
 }

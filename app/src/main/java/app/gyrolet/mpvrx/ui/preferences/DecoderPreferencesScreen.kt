@@ -21,17 +21,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,12 +59,10 @@ import app.gyrolet.mpvrx.ui.player.Debanding
 import app.gyrolet.mpvrx.ui.player.MPVProfile
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 
 @Serializable
@@ -95,30 +91,13 @@ object DecoderPreferencesScreen : Screen {
     var anime4kExpanded by remember { mutableStateOf(false) }
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_decoder),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backstack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(R.string.pref_decoder),
+          onBack = { backstack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
+      ProvideExpressivePreferenceLocals {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(DecoderPreferencesScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -140,6 +119,7 @@ object DecoderPreferencesScreen : Screen {
             PreferenceCard {
               val profile by preferences.profile.collectAsState()
               val currentProfile = MPVProfile.fromValue(profile)
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_decoder_profile_title),
                 value = currentProfile,
@@ -154,6 +134,7 @@ object DecoderPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -285,6 +266,7 @@ object DecoderPreferencesScreen : Screen {
               PreferenceDivider()
 
               val debanding by preferences.debanding.collectAsState()
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_decoder_debanding_title),
                 value = debanding,
@@ -299,6 +281,7 @@ object DecoderPreferencesScreen : Screen {
                   )
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -420,6 +403,7 @@ object DecoderPreferencesScreen : Screen {
                         PreferenceDivider()
 
                         val anime4kQuality by preferences.anime4kQuality.collectAsState()
+                        ExpressivePreferenceItem {
                         ListPreference(
                           value = anime4kQuality,
                           onValueChange = { preferences.anime4kQuality.set(it) },
@@ -433,6 +417,7 @@ object DecoderPreferencesScreen : Screen {
                             )
                           },
                         )
+                        }
 
                         PreferenceDivider()
 

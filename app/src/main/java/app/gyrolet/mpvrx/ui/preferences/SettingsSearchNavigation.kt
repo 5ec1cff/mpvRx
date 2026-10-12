@@ -59,7 +59,9 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_title, itemIndex = 0),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_amoled_mode_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_app_icon_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_system_font_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unlimited_name_lines_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_unplayed_old_video_label_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 3),
@@ -69,6 +71,28 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_quality_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture_tap_thumbnail_to_select_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_network_thumbnails_title, itemIndex = 5),
+      ),
+    LiquidGlassPreferencesScreen to
+      listOf(
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_liquid_glass_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_frost, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_opacity, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_height, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_amount, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_depth, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_chromatic, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_vibrancy, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_Saturation, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_brightness, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_contrast, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_style, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_strength, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_width, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_blur, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_shadow_strength, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_shadow_radius, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_inner_shadow_strength, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_inner_shadow_radius, itemIndex = 11),
       ),
     PlayerControlsPreferencesScreen to
       listOf(
@@ -94,9 +118,11 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_autoplay_next_video_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_auto_pip_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_auto_pip_home_only_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_player_external_display_projection_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_player_keep_screen_on_when_paused_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_player_autoplay_after_screen_unlock_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_video_background_playback_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_background_playback_behavior, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_notification_style, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.show_splash_ovals_on_double_tap_to_seek, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.show_time_on_double_tap_to_seek, itemIndex = 3),
@@ -117,6 +143,8 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
     GesturePreferencesScreen to
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_haptic_feedback_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_video_swipe_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_player_gestures_brightness, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_player_gestures_volume, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_player_gestures_pinch_to_zoom, itemIndex = 1),
@@ -132,6 +160,11 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture_media_previous, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture_media_play, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture_media_next, itemIndex = 5),
+      ),
+    VideoSwipePreferencesScreen to
+      listOf(
+        SettingsSearchListAnchor(titleRes = R.string.pref_video_swipe_right, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_video_swipe_left, itemIndex = 1),
       ),
     DecoderPreferencesScreen to
       listOf(
@@ -155,6 +188,7 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_autoplay_next_audio_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_audio_channels, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_audio_volume_boost_cap, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_auto_fetch_online, itemIndex = 5),
       ),
     SubtitlesPreferencesScreen to
       listOf(
@@ -208,6 +242,15 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_media_servers_title, itemIndex = 0),
         SettingsSearchListAnchor(titleRes = R.string.pref_jellyfin_server_management, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_seerr_server_management, itemIndex = 2),
+      ),
+    NetworkConfigurationPreferencesScreen to
+      listOf(
+        SettingsSearchListAnchor(titleRes = R.string.ui_yt_dlp_manager, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ui_release_channel, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ytdlp_subtitles_language, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.ytdlp_playlist_behavior, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_section_p2p_streaming, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_enable_p2p_streaming_title, itemIndex = 0),
       ),
   )
 

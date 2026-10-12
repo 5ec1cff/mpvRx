@@ -15,14 +15,22 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.preferences.PlayerPreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import org.koin.compose.koinInject
 
 /**
  * mpvRx motion policy — respects system reduce-motion accessibility setting.
@@ -37,8 +45,11 @@ val LocalMotionPolicy = staticCompositionLocalOf { MotionPolicy() }
 
 @Composable
 fun rememberMotionPolicy(): MotionPolicy {
-  LocalView.current
-  return MotionPolicy(reduceMotion = !ValueAnimator.areAnimatorsEnabled())
+  var animationsDisabled by remember { mutableStateOf(!ValueAnimator.areAnimatorsEnabled()) }
+  LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+    animationsDisabled = !ValueAnimator.areAnimatorsEnabled()
+  }
+  return MotionPolicy(reduceMotion = animationsDisabled)
 }
 
 /**
@@ -57,6 +68,12 @@ object AppMotion {
 
   @Composable
   fun shouldReduceMotion(): Boolean = policy().reduceMotion
+
+  @Composable
+  fun playerReducedMotion(): Boolean {
+    val reducedByPlayer by koinInject<PlayerPreferences>().reduceMotion.collectAsState()
+    return shouldReduceMotion() || reducedByPlayer
+  }
 
   fun <T> noBounce(stiffness: Float): SpringSpec<T> =
     spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = stiffness)
@@ -78,7 +95,11 @@ object AppMotion {
     val ExpressiveDefault: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 700f)
     val ExpressiveFast: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 1400f)
     val ExpressiveSlow: SpringSpec<Float> = spring(dampingRatio = 0.9f, stiffness = 300f)
+    val ExpressiveOffset: SpringSpec<IntOffset> = spring(dampingRatio = 0.9f, stiffness = 700f)
+    val ExpressiveSize: SpringSpec<IntSize> = spring(dampingRatio = 0.9f, stiffness = 700f)
     val StandardDefault: SpringSpec<Float> = spring(dampingRatio = 1f, stiffness = 380f)
+    val StandardOffset: SpringSpec<IntOffset> = spring(dampingRatio = 1f, stiffness = 380f)
+    val StandardSize: SpringSpec<IntSize> = spring(dampingRatio = 1f, stiffness = 380f)
     val Expressive: SpringSpec<Float> = ExpressiveDefault
     val Standard: SpringSpec<Float> = StandardDefault
     val Snappy: SpringSpec<Float> = ExpressiveFast
@@ -102,16 +123,4 @@ object AppMotion {
         stiffness = Spring.StiffnessMedium,
       )
   }
-}
-
-/**
- * Elevation tokens — consistent shadow/tonal elevation levels.
- */
-object ElevationTokens {
-  val Level0 = 0.dp
-  val Level1 = 1.dp
-  val Level2 = 3.dp
-  val Level3 = 6.dp
-  val Level4 = 8.dp
-  val Level5 = 12.dp
 }

@@ -16,20 +16,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +41,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.presentation.components.RepeatingIconButton
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -71,12 +68,20 @@ fun PlaybackSpeedSheet(
   pitchCorrectionEnabled: Boolean = true,
   modifier: Modifier = Modifier,
 ) {
-  PlayerSheet(onDismissRequest = onDismissRequest) {
+  val speedHaptics = app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics(0.05f, 4f, landmarks = listOf(1f))
+  val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
+  val adjustSpeed: (Float) -> Unit = { target ->
+    if (kotlin.math.abs(target - speed) > 0.001f) {
+      onSpeedChange(target)
+      speedHaptics.move(speed, target)
+    }
+  }
+  PlayerSheet(onDismissRequest = onDismissRequest, title = stringResource(R.string.btn_label_speed)) {
     Column(
       modifier
         .verticalScroll(rememberScrollState())
         .padding(vertical = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(6.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       // Slider and +/- Buttons
 
@@ -85,10 +90,6 @@ fun PlaybackSpeedSheet(
         modifier = Modifier.fillMaxWidth().padding(horizontal = MaterialTheme.spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
       ) {
-        Text(
-          text = stringResource(R.string.player_sheets_speed_slider_label),
-          style = MaterialTheme.typography.bodyMedium,
-        )
         Text(
           text = "${speed.toFixed(2)}x",
           style = MaterialTheme.typography.headlineMedium,
@@ -106,9 +107,9 @@ fun PlaybackSpeedSheet(
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
       ) {
         RepeatingIconButton(
-          onClick = { onSpeedChange((speed - 0.05f).coerceAtLeast(0.05f)) },
+          onClick = { adjustSpeed((speed - 0.05f).coerceAtLeast(0.05f)) },
           enabled = speedControlEnabled,
-          modifier = Modifier.size(40.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(Icons.RoundedFilled.Remove, null, modifier = Modifier.size(24.dp))
         }
@@ -118,7 +119,7 @@ fun PlaybackSpeedSheet(
           onValueChange = {
             // Snap to nearest 0.05
             val snapped = (it * 20).roundToInt() / 20f
-            onSpeedChange(snapped)
+            adjustSpeed(snapped)
           },
           valueRange = 0.1f..4.0f,
           enabled = speedControlEnabled,
@@ -129,9 +130,9 @@ fun PlaybackSpeedSheet(
         )
 
         RepeatingIconButton(
-          onClick = { onSpeedChange((speed + 0.05f).coerceAtMost(4.0f)) },
+          onClick = { adjustSpeed((speed + 0.05f).coerceAtMost(4.0f)) },
           enabled = speedControlEnabled,
-          modifier = Modifier.size(40.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(Icons.RoundedFilled.Add, null, modifier = Modifier.size(24.dp))
         }
@@ -158,60 +159,46 @@ fun PlaybackSpeedSheet(
 
             FilterChip(
               selected = kotlin.math.abs(presetSpeed - speed) < 0.01f,
-              onClick = { onSpeedChange(presetSpeed) },
+              onClick = {
+                if (kotlin.math.abs(presetSpeed - speed) > 0.001f) {
+                  onSpeedChange(presetSpeed)
+                  actionHaptics.selection(true)
+                }
+              },
               label = { Text("${presetSpeed.toFixed(2)}") },
               leadingIcon = null,
               enabled = speedControlEnabled,
               colors =
-                if (!isDefault) {
-                  androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                  )
-                } else {
-                  androidx.compose.material3.FilterChipDefaults
-                    .filterChipColors()
-                },
+                androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                  containerColor = if (isDefault) playerSheetSelectionColor(false)
+                    else MaterialTheme.colorScheme.tertiaryContainer,
+                  labelColor = if (isDefault) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onTertiaryContainer,
+                  selectedContainerColor = playerSheetSelectionColor(true),
+                  selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
             )
           }
         }
 
         // Add / Remove Preset Buttons
-        val buttonModifier =
-          Modifier
-            .height(32.dp)
-            .width(110.dp)
-
         val isCurrentSpeedSaved = speedPresets.any { kotlin.math.abs(it - speed) < 0.001f }
         val isDefaultPreset = defaultPresets.any { kotlin.math.abs(it - speed) < 0.001f }
 
-        if (isCurrentSpeedSaved) {
-          if (!isDefaultPreset) {
-            Button(
+        androidx.compose.foundation.layout.Box(Modifier.size(48.dp)) {
+          if (isCurrentSpeedSaved && !isDefaultPreset) {
+            PlayerSheetAction(
+              icon = Icons.RoundedFilled.Remove,
+              label = stringResource(R.string.ui_remove),
               onClick = { onRemoveSpeedPreset(speed) },
               enabled = speedControlEnabled,
-              colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-              contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-              modifier = buttonModifier,
-            ) {
-              Icon(Icons.RoundedFilled.Remove, null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_remove),
-              )
-            }
-          }
-        } else {
-          Button(
-            onClick = { onAddSpeedPreset(speed) },
-            enabled = speedControlEnabled,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            modifier = buttonModifier,
-          ) {
-            Icon(Icons.RoundedFilled.Add, null, modifier = Modifier.size(16.dp).padding(end = 4.dp))
-            Text(
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.ui_add),
+            )
+          } else if (!isCurrentSpeedSaved) {
+            PlayerSheetAction(
+              icon = Icons.RoundedFilled.Add,
+              label = stringResource(R.string.ui_add),
+              onClick = { onAddSpeedPreset(speed) },
+              enabled = speedControlEnabled,
             )
           }
         }
@@ -244,7 +231,6 @@ fun PlaybackSpeedSheet(
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           },
-          switchModifier = Modifier.scale(0.8f),
         )
       }
 

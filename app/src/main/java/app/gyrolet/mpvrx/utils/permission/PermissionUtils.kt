@@ -48,7 +48,6 @@ import java.io.File
  * Simplified storage permission utilities with MANAGE_EXTERNAL_STORAGE support.
  */
 object PermissionUtils {
-  private const val FILE_ACCESS_TAG = "FileAccessRequest"
 
   private var mediaRequestLauncher: ActivityResultLauncher<IntentSenderRequest>? = null
   private var resultOkCallback: () -> Unit = {}
@@ -71,11 +70,6 @@ object PermissionUtils {
       resultCancelledCallback()
     }
   }
-
-  suspend fun requestScopedWriteAccess(
-    context: Context,
-    uris: List<Uri>,
-  ): Boolean = requestWriteAccess(context, uris)
 
   suspend fun requestScopedDeleteAccess(
     context: Context,
@@ -224,8 +218,14 @@ object PermissionUtils {
         }
       }
 
+    var previouslyGranted by androidx.compose.runtime.saveable.rememberSaveable(audioOnly) {
+      androidx.compose.runtime.mutableStateOf(effectivePermissionState.status == PermissionStatus.Granted)
+    }
     LaunchedEffect(effectivePermissionState.status) {
-      if (effectivePermissionState.status == PermissionStatus.Granted) {
+      val isGranted = effectivePermissionState.status == PermissionStatus.Granted
+      val becameGranted = isGranted && !previouslyGranted
+      previouslyGranted = isGranted
+      if (becameGranted) {
         onPermissionGranted()
       }
     }
@@ -256,12 +256,13 @@ object PermissionUtils {
     suspend fun deleteVideos(
       context: Context,
       videos: List<Video>,
+      onDeleted: (Video) -> Unit = {},
     ): Pair<Int, Int> =
       withContext(Dispatchers.IO) {
         if (!BuildConfig.SCOPED_STORAGE_ONLY || hasManageStoragePermission()) {
-          deleteVideosDirectly(context, videos)
+          deleteVideosDirectly(context, videos, onDeleted)
         } else {
-          deleteVideosScoped(context, videos)
+          deleteVideosScoped(context, videos, onDeleted)
         }
       }
 
@@ -271,6 +272,7 @@ object PermissionUtils {
     private suspend fun deleteVideosDirectly(
       context: Context,
       videos: List<Video>,
+      onDeleted: (Video) -> Unit,
     ): Pair<Int, Int> =
       withContext(Dispatchers.IO) {
         var deleted = 0
@@ -283,6 +285,7 @@ object PermissionUtils {
             if (file.exists() && file.delete()) {
               deleted++
               deletedPaths += video.path
+              onDeleted(video)
               RecentlyPlayedOps.onVideoDeleted(video.path)
               PlaybackStateOps.onVideoDeleted(video.path)
               Log.d(TAG, "✓ Deleted: ${video.displayName}")
@@ -311,6 +314,7 @@ object PermissionUtils {
     private suspend fun deleteVideosScoped(
       context: Context,
       videos: List<Video>,
+      onDeleted: (Video) -> Unit,
     ): Pair<Int, Int> =
       withContext(Dispatchers.IO) {
         var deleted = 0
@@ -325,6 +329,7 @@ object PermissionUtils {
           if (granted) {
             contentVideos.forEach { video ->
               deleted++
+              onDeleted(video)
               RecentlyPlayedOps.onVideoDeleted(video.path)
               PlaybackStateOps.onVideoDeleted(video.path)
               Log.d(TAG, "✓ Deleted (scoped request): ${video.displayName}")
@@ -339,6 +344,7 @@ object PermissionUtils {
               val rows = context.contentResolver.delete(video.uri, null, null)
               if (rows > 0) {
                 deleted++
+                onDeleted(video)
                 RecentlyPlayedOps.onVideoDeleted(video.path)
                 PlaybackStateOps.onVideoDeleted(video.path)
                 Log.d(TAG, "✓ Deleted (scoped): ${video.displayName}")
@@ -359,6 +365,7 @@ object PermissionUtils {
             if (!file.exists() || file.delete()) {
               deleted++
               deletedFilePaths += video.path
+              onDeleted(video)
               RecentlyPlayedOps.onVideoDeleted(video.path)
               PlaybackStateOps.onVideoDeleted(video.path)
               Log.d(TAG, "✓ Deleted (file fallback): ${video.displayName}")

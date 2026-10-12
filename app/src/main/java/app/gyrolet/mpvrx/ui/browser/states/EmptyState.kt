@@ -9,35 +9,34 @@
 
 package app.gyrolet.mpvrx.ui.browser.states
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.spacing
 
 @Composable
 fun EmptyState(
@@ -46,72 +45,69 @@ fun EmptyState(
   message: String,
   modifier: Modifier = Modifier,
 ) {
-  // Animated alpha for subtle pulsing effect
-  val infiniteTransition = rememberInfiniteTransition(label = "empty_state")
-  val alpha by infiniteTransition.animateFloat(
-    initialValue = 0.6f,
-    targetValue = 1f,
-    animationSpec =
-      infiniteRepeatable(
-        animation = tween(2500, easing = FastOutSlowInEasing),
-        repeatMode = RepeatMode.Reverse,
-      ),
-    label = "icon_alpha",
-  )
+  BrowserStateContent(icon = icon, title = title, message = message, modifier = modifier)
+}
 
-  Box(
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun BrowserStateContent(
+  icon: AppIcon,
+  title: String,
+  message: String,
+  modifier: Modifier = Modifier,
+  loading: Boolean = false,
+) {
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val scrollState = rememberScrollState()
+  BoxWithConstraints(
     modifier = modifier.fillMaxSize(),
     contentAlignment = Alignment.Center,
   ) {
+    val scrollModifier = if (constraints.hasBoundedHeight) Modifier.verticalScroll(scrollState) else Modifier
     Column(
       modifier =
         Modifier
+          .widthIn(max = 480.dp)
           .fillMaxWidth()
-          .padding(horizontal = 48.dp)
-          .padding(bottom = 80.dp),
-      // Account for bottom navigation bar
+          .then(scrollModifier)
+          .padding(MaterialTheme.spacing.large)
+          .semantics { if (loading) liveRegion = LiveRegionMode.Polite },
       horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Center,
+      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
     ) {
-      // Icon with Surface
-      Surface(
-        modifier =
-          Modifier
-            .size(96.dp)
-            .alpha(alpha),
-        shape = AppShapeScale.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 0.dp,
-      ) {
-        Icon(
-          imageVector = icon,
-          contentDescription = null,
-          modifier = Modifier.padding(24.dp),
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+      if (loading && !reduceMotion) {
+        LoadingIndicator(modifier = Modifier.size(80.dp))
+      } else {
+        Surface(
+          modifier = Modifier.size(80.dp),
+          shape = MaterialTheme.shapes.extraLarge,
+          color = MaterialTheme.colorScheme.secondaryContainer,
+        ) {
+          Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.padding(MaterialTheme.spacing.medium),
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+          )
+        }
       }
 
-      Spacer(modifier = Modifier.height(24.dp))
-
-      // Title
       Text(
         text = title,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.semantics { heading() },
+        style = MaterialTheme.typography.titleLargeEmphasized,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onSurface,
       )
 
-      Spacer(modifier = Modifier.height(8.dp))
-
-      // Message
-      Text(
-        text = message,
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
-      )
+      if (message.isNotBlank()) {
+        Text(
+          text = message,
+          style = MaterialTheme.typography.bodyMedium,
+          textAlign = TextAlign.Center,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
     }
   }
 }

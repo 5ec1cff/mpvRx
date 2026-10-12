@@ -26,6 +26,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 
@@ -60,11 +62,13 @@ fun ExposedTextDropDownMenu(
       colors = OutlinedTextFieldDefaults.colors(),
       modifier =
         Modifier
-          .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable)
+          .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled)
           .fillMaxWidth(),
     )
 
     ExposedDropdownMenu(
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
       expanded = expanded,
       onDismissRequest = { expanded = false },
       modifier = Modifier.heightIn(max = 300.dp),
@@ -72,6 +76,7 @@ fun ExposedTextDropDownMenu(
       options.forEach { option: String ->
         DropdownMenuItem(
           text = { Text(text = option) },
+          modifier = Modifier.semantics { selected = option == selectedValue },
           onClick = {
             expanded = false
             onValueChangedEvent(option)

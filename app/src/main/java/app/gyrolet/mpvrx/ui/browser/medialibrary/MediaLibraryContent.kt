@@ -16,24 +16,19 @@ import app.gyrolet.mpvrx.ui.utils.NavigationBackHandler as BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonMenu
@@ -54,7 +49,6 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -69,14 +63,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.database.repository.SecureFolderRepository
@@ -89,9 +79,12 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
+import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserBottomBar
+import app.gyrolet.mpvrx.ui.browser.components.rememberBrowserBottomBarBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddToPlaylistDialog
+import app.gyrolet.mpvrx.ui.browser.dialogs.toPlaylistCandidates
 import app.gyrolet.mpvrx.ui.browser.dialogs.DeleteConfirmationDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FileOperationProgressDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderPickerDialog
@@ -131,7 +124,6 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
   val appearancePreferences = koinInject<app.gyrolet.mpvrx.preferences.AppearancePreferences>()
   val showQuickPlayFab by appearancePreferences.showQuickPlayFab.collectAsState()
   val playerPreferences = koinInject<PlayerPreferences>()
-  val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
   val navigationBarHeight = LocalNavigationBarHeight.current
 
   val viewModel: MediaLibraryViewModel =
@@ -150,6 +142,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
   val savedMediaType by browserPreferences.mediaLibraryType.collectAsState()
   val playlistMode by playerPreferences.playlistMode.collectAsState()
   val mediaType = if (forceAudio) MediaLibraryType.Audio else if (includeAudioBrowser) savedMediaType else MediaLibraryType.Video
+  val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
   val sortedVideos =
     remember(videos, videoSortType, videoSortOrder) {
       SortUtils.sortVideos(videos, videoSortType, videoSortOrder)
@@ -188,23 +181,22 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
     rememberSelectionManager(
       items = filteredVideosWithInfo.map { it.video },
       getId = { it.path.hashCode().toLong() },
-      onDeleteItems = { items, _ ->
-        coroutineScope.launch { viewModel.deleteVideos(items) }
-        Pair(items.size, 0)
-      },
+      onDeleteItems = { items, _ -> viewModel.deleteVideos(items) },
       onRenameItem = { video, newName ->
         coroutineScope.launch { viewModel.renameVideo(video, newName) }
         Result.success(Unit)
       },
       onOperationComplete = { viewModel.refresh() },
     )
+  val selectedVideos = selectionManager.getSelectedItems()
+  val watchedVideoIds = remember(filteredVideosWithInfo) {
+    filteredVideosWithInfo.filter(VideoWithPlaybackInfo::isWatched).mapTo(hashSetOf()) { it.video.id }
+  }
 
   val isRefreshing = remember { mutableStateOf(false) }
   val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
   val deleteDialogOpen = rememberSaveable { mutableStateOf(false) }
   val renameDialogOpen = rememberSaveable { mutableStateOf(false) }
-  var swipeRenameVideo by remember { mutableStateOf<Video?>(null) }
-  var swipeDeleteVideo by remember { mutableStateOf<Video?>(null) }
   val addToPlaylistDialogOpen = rememberSaveable { mutableStateOf(false) }
   val isFabVisible = remember { mutableStateOf(true) }
   val isFabExpanded = remember { mutableStateOf(false) }
@@ -339,6 +331,8 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         title = item.displayName,
         mimeType = item.mimeType,
         durationSeconds = (item.duration / 1000L).toInt().takeIf { it > 0 },
+        videoWidth = item.width,
+        videoHeight = item.height,
       )
     }
     val isAudio = mediaType == MediaLibraryType.Audio || video.isAudio
@@ -382,20 +376,12 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
     }
   }
 
-  DisposableEffect(lifecycleOwner) {
-    val observer =
-      LifecycleEventObserver { _, event ->
-        if (event == Lifecycle.Event.ON_RESUME) {
-          viewModel.refresh()
-        }
-      }
-    lifecycleOwner.lifecycle.addObserver(observer)
-    onDispose {
-      lifecycleOwner.lifecycle.removeObserver(observer)
-    }
-  }
+  val bottomBarBackdrop = rememberBrowserBottomBarBackdrop()
 
-  Scaffold(
+  Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+      modifier = Modifier.captureLiquidGlassBackdrop(bottomBarBackdrop),
+      containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
     topBar = {
       if (isSearching) {
         InlineSearchBar(
@@ -494,7 +480,6 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
               moveToSecureConfirmOpen.value = true
             }
           },
-          onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
         )
       }
     },
@@ -615,147 +600,153 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         }
       },
     ) { padding ->
-    val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
-    val videosWereDeletedOrMoved = false
+      val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
+      val videosWereDeletedOrMoved = false
 
-    Box(modifier = Modifier.fillMaxSize()) {
-      Column(
-        modifier =
-          Modifier
-            .fillMaxSize()
-            .padding(padding),
-      ) {
-        if (includeAudioBrowser && !forceAudio) {
-          SingleChoiceSegmentedButtonRow(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-          ) {
-            MediaLibraryType.entries.forEachIndexed { index, type ->
-              SegmentedButton(
-                selected = mediaType == type,
-                onClick = {
-                  if (mediaType != type) {
-                    selectionManager.clear()
-                    browserPreferences.mediaLibraryType.set(type)
-                  }
-                },
-                shape = SegmentedButtonDefaults.itemShape(index, MediaLibraryType.entries.size),
-                colors = themedSegmentedButtonColors(),
-              ) {
-                Text(type.name)
+      Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+          modifier =
+            Modifier
+              .fillMaxSize()
+              .padding(padding),
+        ) {
+          if (includeAudioBrowser && !forceAudio) {
+            SingleChoiceSegmentedButtonRow(
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+              MediaLibraryType.entries.forEachIndexed { index, type ->
+                SegmentedButton(
+                  selected = mediaType == type,
+                  onClick = {
+                    if (mediaType != type) {
+                      selectionManager.clear()
+                      browserPreferences.mediaLibraryType.set(type)
+                    }
+                  },
+                  shape = SegmentedButtonDefaults.itemShape(index, MediaLibraryType.entries.size),
+                  colors = themedSegmentedButtonColors(),
+                ) {
+                  Text(type.name)
+                }
               }
             }
           }
-        }
 
-        Box(modifier = Modifier.weight(1f)) {
-          if (isSearching && filteredVideosWithInfo.isEmpty() && searchQuery.isNotBlank()) {
-            Box(
-              modifier = Modifier.fillMaxSize(),
-              contentAlignment = Alignment.Center,
-            ) {
-              EmptyState(
-                icon = Icons.RoundedFilled.Search,
-                title =
-                  if (mediaType ==
-                    MediaLibraryType.Audio
-                  ) {
-                    androidx.compose.ui.res
-                      .stringResource(app.gyrolet.mpvrx.R.string.ui_no_audio_found)
+          Box(modifier = Modifier.weight(1f)) {
+            if (isSearching && filteredVideosWithInfo.isEmpty() && searchQuery.isNotBlank()) {
+              Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+              ) {
+                EmptyState(
+                  icon = Icons.RoundedFilled.Search,
+                  title =
+                    if (mediaType ==
+                      MediaLibraryType.Audio
+                    ) {
+                      androidx.compose.ui.res
+                        .stringResource(app.gyrolet.mpvrx.R.string.ui_no_audio_found)
+                    } else {
+                      androidx.compose.ui.res
+                        .stringResource(app.gyrolet.mpvrx.R.string.ui_no_videos_found)
+                    },
+                  message = "Try a different search term",
+                )
+              }
+            } else {
+              VideoListContent(
+                folderId = "media_library_${mediaType.name.lowercase()}",
+                videosWithInfo = filteredVideosWithInfo,
+                isLoading = isLoading && videos.isEmpty(),
+                isRefreshing = isRefreshing,
+                recentlyPlayedFilePath = recentlyPlayedFilePath,
+                videosWereDeletedOrMoved = videosWereDeletedOrMoved,
+                autoScrollToLastPlayed = autoScrollToLastPlayed,
+                onRefresh = { viewModel.refresh() },
+                selectionManager = selectionManager,
+                onVideoClick = { video ->
+                  if (selectionManager.isInSelectionMode) {
+                    selectionManager.toggleFromUser(video)
                   } else {
-                    androidx.compose.ui.res
-                      .stringResource(app.gyrolet.mpvrx.R.string.ui_no_videos_found)
-                  },
-                message = "Try a different search term",
+                    playFromMediaLibrary(video)
+                  }
+                },
+                onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
+                isFabVisible = isFabVisible,
+                modifier = Modifier.fillMaxSize(),
+                showFloatingBottomBar = showFloatingBottomBar,
+                mediaLayoutMode = mediaLayoutMode,
+                musicCoverArtSize = musicCoverArtSize,
+                isFabExpanded = isFabExpanded.value,
+                onFabExpandedChange = { isFabExpanded.value = it },
               )
             }
-          } else {
-            VideoListContent(
-              folderId = "media_library_${mediaType.name.lowercase()}",
-              videosWithInfo = filteredVideosWithInfo,
-              isLoading = isLoading && videos.isEmpty(),
-              isRefreshing = isRefreshing,
-              recentlyPlayedFilePath = recentlyPlayedFilePath,
-              videosWereDeletedOrMoved = videosWereDeletedOrMoved,
-              autoScrollToLastPlayed = autoScrollToLastPlayed,
-              onRefresh = { viewModel.refresh() },
-              selectionManager = selectionManager,
-              onVideoClick = { video ->
-                if (selectionManager.isInSelectionMode) {
-                  selectionManager.toggle(video)
-                } else {
-                  playFromMediaLibrary(video)
-                }
-              },
-              onVideoLongClick = { video -> selectionManager.handleLongClick(video) },
-              onWatchedChange = viewModel::setWatched,
-              onRename = { video -> swipeRenameVideo = video },
-              onDelete = { video -> swipeDeleteVideo = video },
-              isFabVisible = isFabVisible,
-              modifier = Modifier.fillMaxSize(),
-              showFloatingBottomBar = showFloatingBottomBar,
-              mediaLayoutMode = mediaLayoutMode,
-              isFabExpanded = isFabExpanded.value,
-              onFabExpandedChange = { isFabExpanded.value = it },
-            )
           }
         }
-      }
 
-      FabScrollHelper.FabScrim(
-        visible = isFabExpanded.value && !quickPlayFabDirect,
-        onDismiss = { isFabExpanded.value = false },
-      )
-
-      AnimatedVisibility(
-        visible = showFloatingBottomBar,
-        enter =
-          slideInVertically(
-            animationSpec = tween(durationMillis = animationDuration),
-            initialOffsetY = { fullHeight -> fullHeight },
-          ),
-        exit =
-          slideOutVertically(
-            animationSpec = tween(durationMillis = animationDuration),
-            targetOffsetY = { fullHeight -> fullHeight },
-          ),
-        modifier = Modifier.align(Alignment.BottomCenter),
-      ) {
-        BrowserBottomBar(
-          isSelectionMode = selectionManager.isInSelectionMode,
-          onCopyClick = {
-            operationType.value = CopyPasteOps.OperationType.Copy
-            if (CopyPasteOps.canUseDirectFileOperations()) {
-              folderPickerOpen.value = true
-            } else {
-              treePickerLauncher.launch(null)
-            }
-          },
-          onMoveClick = {
-            operationType.value = CopyPasteOps.OperationType.Move
-            if (CopyPasteOps.canUseDirectFileOperations()) {
-              folderPickerOpen.value = true
-            } else {
-              treePickerLauncher.launch(null)
-            }
-          },
-          onDownscaleClick = { compressorDialogOpen.value = true },
-          onRenameClick = { renameDialogOpen.value = true },
-          onDeleteClick = { deleteDialogOpen.value = true },
-          onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
-          showCopy = true,
-          showMove = true,
-          showDownscale = selectionManager.getSelectedItems().let { items -> items.isNotEmpty() && items.none { it.isAudio } },
-          showRename = selectionManager.selectedCount > 0,
-          modifier =
-            Modifier.padding(
-              bottom = if (NavigationBarState.shouldHideNavigationBar) 0.dp else navigationBarHeight,
-            ),
+        FabScrollHelper.FabScrim(
+          visible = isFabExpanded.value && !quickPlayFabDirect,
+          onDismiss = { isFabExpanded.value = false },
         )
       }
     }
+
+    AnimatedVisibility(
+      visible = showFloatingBottomBar,
+      enter =
+        slideInVertically(
+          animationSpec =
+            spring(
+              dampingRatio = AppMotion.Spatial.Expressive.dampingRatio,
+              stiffness = AppMotion.Spatial.Expressive.stiffness,
+            ),
+          initialOffsetY = { fullHeight -> fullHeight },
+        ),
+      exit =
+        slideOutVertically(
+          animationSpec =
+            spring(
+              dampingRatio = AppMotion.Spatial.Standard.dampingRatio,
+              stiffness = AppMotion.Spatial.Standard.stiffness,
+            ),
+          targetOffsetY = { fullHeight -> fullHeight },
+        ),
+      modifier = Modifier.align(Alignment.BottomCenter),
+    ) {
+      BrowserBottomBar(
+        backdrop = bottomBarBackdrop,
+        isSelectionMode = selectionManager.isInSelectionMode,
+        onCopyClick = {
+          operationType.value = CopyPasteOps.OperationType.Copy
+          if (CopyPasteOps.canUseDirectFileOperations()) {
+            folderPickerOpen.value = true
+          } else {
+            treePickerLauncher.launch(null)
+          }
+        },
+        onMoveClick = {
+          operationType.value = CopyPasteOps.OperationType.Move
+          if (CopyPasteOps.canUseDirectFileOperations()) {
+            folderPickerOpen.value = true
+          } else {
+            treePickerLauncher.launch(null)
+          }
+        },
+        onDownscaleClick = { compressorDialogOpen.value = true },
+        onRenameClick = { renameDialogOpen.value = true },
+        onDeleteClick = { deleteDialogOpen.value = true },
+        onAddToPlaylistClick = { addToPlaylistDialogOpen.value = true },
+        showCopy = true,
+        showMove = true,
+        showDownscale = selectionManager.getSelectedItems().let { items -> items.isNotEmpty() && items.none { it.isAudio } },
+        showRename = selectionManager.selectedCount > 0,
+        modifier = Modifier.padding(bottom = 0.dp),
+      )
+    }
+  }
 
     if (sortDialogOpen.value) {
       VideoSortDialog(
@@ -767,6 +758,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
         isFolderView = false,
         enableViewModeOptions = !forceAudio,
+        isAudio = mediaType == MediaLibraryType.Audio,
       )
     }
 
@@ -780,23 +772,6 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         itemCount = selectionManager.selectedCount,
         isOpen = deleteDialogOpen.value,
         itemType = if (mediaType == MediaLibraryType.Audio) "audio file" else "video",
-      )
-    }
-
-    swipeDeleteVideo?.let { video ->
-      DeleteConfirmationDialog(
-        isOpen = true,
-        onDismiss = { swipeDeleteVideo = null },
-        onConfirm = {
-          swipeDeleteVideo = null
-          coroutineScope.launch {
-            viewModel.deleteVideos(listOf(video))
-            viewModel.refresh()
-          }
-        },
-        itemType = if (mediaType == MediaLibraryType.Audio) "audio file" else "video",
-        itemCount = 1,
-        itemNames = listOf(video.displayName),
       )
     }
 
@@ -816,30 +791,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
       }
     }
 
-    swipeRenameVideo?.let { video ->
-      val extension =
-        video.displayName.substringAfterLast('.', "")
-          .takeIf { it.isNotBlank() }
-          ?.let { ".$it" }
-      RenameDialog(
-        isOpen = true,
-        onDismiss = { swipeRenameVideo = null },
-        onConfirm = { newName ->
-          swipeRenameVideo = null
-          coroutineScope.launch {
-            viewModel.renameVideo(video, newName)
-            viewModel.refresh()
-          }
-        },
-        currentName = video.displayName.substringBeforeLast('.'),
-        itemType = if (mediaType == MediaLibraryType.Audio) "audio file" else "video",
-        extension = extension,
-      )
-    }
-
     AddToPlaylistDialog(
       isOpen = addToPlaylistDialogOpen.value,
-      videos = selectionManager.getSelectedItems(),
+      candidates = selectionManager.getSelectedItems().toPlaylistCandidates(),
       onDismiss = { addToPlaylistDialogOpen.value = false },
       onSuccess = {
         selectionManager.clear()
@@ -931,4 +885,4 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
       onCancel = { secureFolderRepository.cancelOperation() },
     )
   }
-}
+

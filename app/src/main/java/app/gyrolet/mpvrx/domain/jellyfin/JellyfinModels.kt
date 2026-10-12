@@ -61,6 +61,16 @@ data class JellyfinQueryResult(
 
 @Immutable
 @Serializable
+data class JellyfinPerson(
+  val id: String,
+  val name: String,
+  val role: String? = null,
+  val type: String? = null,
+  val primaryImageTag: String? = null,
+)
+
+@Immutable
+@Serializable
 data class JellyfinItem(
   val id: String,
   val name: String,
@@ -86,6 +96,9 @@ data class JellyfinItem(
   val isFolder: Boolean = false,
   val primaryImageTag: String? = null,
   val backdropImageTag: String? = null,
+  val logoImageTag: String? = null,
+  val parentLogoImageTag: String? = null,
+  val parentLogoItemId: String? = null,
   val albumId: String? = null,
   val albumPrimaryImageTag: String? = null,
   val childCount: Int? = null,
@@ -100,7 +113,20 @@ data class JellyfinItem(
   val lastPlayedDate: String? = null,
   val remoteTrailerUrl: String? = null,
   val canDelete: Boolean = true,
+  val people: List<JellyfinPerson> = emptyList(),
 ) {
+  val directors: List<JellyfinPerson>
+    get() = people.filter { it.type.equals("Director", ignoreCase = true) }.distinctBy { it.id }
+
+  val writers: List<JellyfinPerson>
+    get() = people.filter { it.type.equals("Writer", ignoreCase = true) || it.type.equals("Writing", ignoreCase = true) }.distinctBy { it.id }
+
+  val producers: List<JellyfinPerson>
+    get() = people.filter { it.type.equals("Producer", ignoreCase = true) || it.type.equals("ExecutiveProducer", ignoreCase = true) }.distinctBy { it.id }
+
+  val actors: List<JellyfinPerson>
+    get() = people.filter { it.type.equals("Actor", ignoreCase = true) || it.type.equals("GuestStar", ignoreCase = true) || it.type == null }.distinctBy { it.id to (it.role ?: "") }
+
   val isVideo: Boolean
     get() = type == "Movie" || type == "Episode" || type == "Video"
 

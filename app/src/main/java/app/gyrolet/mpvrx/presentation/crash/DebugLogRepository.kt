@@ -18,8 +18,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-internal const val DEBUG_LOG_ENTRY_LIMIT = 1_500
-
 internal enum class DebugLogLevel(
   val code: String,
   val label: String,
@@ -58,8 +56,8 @@ internal data class DebugLogSnapshot(
  * still surfaced instead of being silently discarded.
  */
 internal object DebugLogReader {
-  private const val PRIMARY_RAW_LIMIT = 2_000
-  private const val FALLBACK_RAW_LIMIT = 4_000
+  private const val MIN_RAW_LIMIT = 2_000
+  private const val MAX_RAW_LIMIT = 100_000
 
   private val threadTimePattern =
     Regex(
@@ -76,9 +74,11 @@ internal object DebugLogReader {
   private val briefPattern =
     Regex("""^([VDIWEF])/([^\(]+)\(\s*(\d+)\):\s?(.*)$""")
 
-  fun readSnapshot(): DebugLogSnapshot {
+  fun readSnapshot(maxBytes: Int): DebugLogSnapshot {
     val pid = Process.myPid()
     val failures = mutableListOf<String>()
+    val primaryRawLimit = (maxBytes / 128).coerceIn(MIN_RAW_LIMIT, MAX_RAW_LIMIT)
+    val fallbackRawLimit = (primaryRawLimit * 2).coerceAtMost(MAX_RAW_LIMIT)
 
     val primary =
       runCommand(
@@ -89,17 +89,18 @@ internal object DebugLogReader {
           "threadtime",
           "-d",
           "-t",
-          PRIMARY_RAW_LIMIT.toString(),
+          primaryRawLimit.toString(),
         ),
+        maxBytes,
       )
 
     if (primary.exitCode == 0) {
       val parsed = parseLines(primary.lines, expectedPid = pid, allowRawFallback = true)
       if (parsed.isNotEmpty()) {
         return DebugLogSnapshot(
-          entries = parsed.takeLast(DEBUG_LOG_ENTRY_LIMIT),
+          entries = trimEntriesToByteBudget(parsed, maxBytes),
           source = "process-filtered",
-          rawLineCount = primary.lines.size,
+          rawLineCount = primary.rawLineCount,
         )
       }
     } else {
@@ -114,17 +115,18 @@ internal object DebugLogReader {
           "threadtime",
           "-d",
           "-t",
-          FALLBACK_RAW_LIMIT.toString(),
+          fallbackRawLimit.toString(),
         ),
+        maxBytes,
       )
 
     if (fallback.exitCode == 0) {
       val parsed = parseLines(fallback.lines, expectedPid = pid, allowRawFallback = false)
       if (parsed.isNotEmpty()) {
         return DebugLogSnapshot(
-          entries = parsed.takeLast(DEBUG_LOG_ENTRY_LIMIT),
+          entries = trimEntriesToByteBudget(parsed, maxBytes),
           source = "pid-fallback",
-          rawLineCount = fallback.lines.size,
+          rawLineCount = fallback.rawLineCount,
         )
       }
 
@@ -133,19 +135,13 @@ internal object DebugLogReader {
       return DebugLogSnapshot(
         entries = emptyList(),
         source = "empty",
-        rawLineCount = fallback.lines.size,
+        rawLineCount = fallback.rawLineCount,
       )
     }
 
     failures += fallback.errorMessage("fallback logcat")
     throw IOException(failures.filter { it.isNotBlank() }.joinToString("; ").ifBlank { "Unable to read logcat" })
   }
-
-  internal fun parseForTesting(
-    lines: List<String>,
-    expectedPid: Int? = null,
-    allowRawFallback: Boolean = true,
-  ): List<DebugLogEntry> = parseLines(lines, expectedPid, allowRawFallback)
 
   private fun parseLines(
     lines: List<String>,
@@ -155,7 +151,7 @@ internal object DebugLogReader {
     if (lines.isEmpty()) return emptyList()
 
     val now = System.currentTimeMillis()
-    val parsed = ArrayList<DebugLogEntry>(minOf(lines.size, DEBUG_LOG_ENTRY_LIMIT))
+    val parsed = ArrayList<DebugLogEntry>(lines.size)
     lines.forEachIndexed { index, line ->
       if (line.isBlank() || line.startsWith("--------- beginning of")) return@forEachIndexed
 
@@ -180,6 +176,38 @@ internal object DebugLogReader {
       }
     }
     return parsed
+  }
+
+  fun trimTextToByteBudget(text: String, maxBytes: Int): String {
+    if (text.toByteArray(Charsets.UTF_8).size <= maxBytes) return text
+    val kept = ArrayDeque<String>()
+    var used = 0
+    for (line in text.lineSequence().toList().asReversed()) {
+      val bytes = line.toByteArray(Charsets.UTF_8).size + 1
+      if (used + bytes > maxBytes) break
+      kept.addFirst(line)
+      used += bytes
+    }
+    return kept.joinToString("\n")
+  }
+
+  private fun trimEntriesToByteBudget(entries: List<DebugLogEntry>, maxBytes: Int): List<DebugLogEntry> {
+    val kept = ArrayDeque<DebugLogEntry>()
+    var used = 0
+    for (entry in entries.asReversed()) {
+      val bytes = buildString {
+        append(entry.timestamp)
+        entry.pid?.let { pid ->
+          append(' ').append(pid)
+          entry.tid?.let { tid -> append('/').append(tid) }
+        }
+        append(' ').append(entry.level.code).append('/').append(entry.tag).append(": ").append(entry.message).append('\n')
+      }.toByteArray(Charsets.UTF_8).size
+      if (used + bytes > maxBytes) break
+      kept.addFirst(entry)
+      used += bytes
+    }
+    return kept.toList()
   }
 
   private fun parseKnownLine(
@@ -247,16 +275,28 @@ internal object DebugLogReader {
       tid = tid,
     )
 
-  private fun runCommand(command: List<String>): CommandResult {
+  private fun runCommand(
+    command: List<String>,
+    maxBytes: Int,
+  ): CommandResult {
     val process = ProcessBuilder(command).redirectErrorStream(true).start()
     return try {
-      val lines =
-        BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
-          buildList {
-            reader.forEachLine { line -> add(line) }
+      var rawLineCount = 0
+      var retainedBytes = 0
+      val lines = ArrayDeque<String>()
+      BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+        while (true) {
+          val line = reader.readLine() ?: break
+          rawLineCount++
+          val lineBytes = line.toByteArray(Charsets.UTF_8).size + 1
+          lines.addLast(line)
+          retainedBytes += lineBytes
+          while (retainedBytes > maxBytes && lines.isNotEmpty()) {
+            retainedBytes -= lines.removeFirst().toByteArray(Charsets.UTF_8).size + 1
           }
         }
-      CommandResult(process.waitFor(), lines)
+      }
+      CommandResult(process.waitFor(), lines.toList(), rawLineCount)
     } finally {
       process.destroy()
     }
@@ -265,6 +305,7 @@ internal object DebugLogReader {
   private data class CommandResult(
     val exitCode: Int,
     val lines: List<String>,
+    val rawLineCount: Int,
   ) {
     fun errorMessage(label: String): String {
       val detail = lines.takeLast(3).joinToString(" ").trim()

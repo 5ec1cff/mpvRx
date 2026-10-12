@@ -21,11 +21,11 @@ interface RecentlyPlayedDao {
   @Insert(onConflict = OnConflictStrategy.REPLACE)
   suspend fun insert(recentlyPlayed: RecentlyPlayedEntity)
 
-  @Query("DELETE FROM RecentlyPlayedEntity WHERE filePath = :filePath")
-  suspend fun deleteExistingEntriesForFile(filePath: String)
-
   @Query("SELECT * FROM RecentlyPlayedEntity WHERE filePath = :filePath LIMIT 1")
   suspend fun getByFilePath(filePath: String): RecentlyPlayedEntity?
+
+  @Query("UPDATE RecentlyPlayedEntity SET timestamp = :timestamp, launchSource = 'normal' WHERE filePath = :filePath")
+  suspend fun markLastPlayed(filePath: String, timestamp: Long)
 
   // Existing history rows keep their id when they are replayed, while timestamp is refreshed.
   // Recency must therefore be ordered by timestamp (with id only as a deterministic tie-breaker)
@@ -95,9 +95,6 @@ interface RecentlyPlayedDao {
   @Query("DELETE FROM RecentlyPlayedEntity")
   suspend fun clearAll()
 
-  @Query("DELETE FROM RecentlyPlayedEntity WHERE timestamp < :cutoffTime")
-  suspend fun deleteOlderThan(cutoffTime: Long)
-
   @Query("DELETE FROM RecentlyPlayedEntity WHERE filePath = :filePath")
   suspend fun deleteByFilePath(filePath: String)
 
@@ -128,38 +125,6 @@ interface RecentlyPlayedDao {
     width: Int,
     height: Int,
   )
-
-  @Query(
-    """
-    SELECT DISTINCT playlistId, MAX(timestamp) as timestamp
-    FROM RecentlyPlayedEntity
-    WHERE playlistId IS NOT NULL
-    GROUP BY playlistId
-    ORDER BY timestamp DESC
-    LIMIT :limit
-  """,
-  )
-  suspend fun getRecentlyPlayedPlaylists(limit: Int = 10): List<RecentlyPlayedPlaylistInfo>
-
-  @Query(
-    """
-    SELECT DISTINCT playlistId, MAX(timestamp) as timestamp
-    FROM RecentlyPlayedEntity
-    WHERE playlistId IS NOT NULL
-    GROUP BY playlistId
-    ORDER BY timestamp DESC
-    LIMIT :limit
-  """,
-  )
-  fun observeRecentlyPlayedPlaylists(limit: Int = 50): Flow<List<RecentlyPlayedPlaylistInfo>>
-
-  data class RecentlyPlayedPlaylistInfo(
-    val playlistId: Int,
-    val timestamp: Long,
-  )
-
-  @Query("SELECT * FROM RecentlyPlayedEntity ORDER BY timestamp DESC, id DESC")
-  suspend fun getAllRecentlyPlayed(): List<RecentlyPlayedEntity>
 
   @Query("SELECT COUNT(*) FROM RecentlyPlayedEntity")
   suspend fun getRecentlyPlayedCount(): Int

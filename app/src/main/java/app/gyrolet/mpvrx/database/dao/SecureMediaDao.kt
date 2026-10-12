@@ -24,9 +24,6 @@ interface SecureMediaDao {
   @Query("SELECT * FROM secure_media ORDER BY dateHidden DESC")
   suspend fun getAll(): List<SecureMediaEntity>
 
-  @Query("SELECT * FROM secure_media WHERE id = :id LIMIT 1")
-  suspend fun getById(id: Long): SecureMediaEntity?
-
   @Query("SELECT * FROM secure_media WHERE id IN (:ids)")
   suspend fun getByIds(ids: List<Long>): List<SecureMediaEntity>
 
@@ -38,9 +35,6 @@ interface SecureMediaDao {
 
   @Query("DELETE FROM secure_media WHERE id IN (:ids)")
   suspend fun deleteByIds(ids: List<Long>)
-
-  @Query("SELECT COUNT(*) FROM secure_media")
-  suspend fun getCount(): Int
 
   @Query("SELECT COUNT(*) FROM secure_media")
   fun observeCount(): Flow<Int>

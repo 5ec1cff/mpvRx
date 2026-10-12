@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.di
 
 import app.gyrolet.mpvrx.domain.anime4k.Anime4KManager
+import app.gyrolet.mpvrx.domain.fonts.GoogleFontsRepository
 import app.gyrolet.mpvrx.domain.hdr.HdrToysManager
 import app.gyrolet.mpvrx.domain.hdr.MpvShaderRuntime
 import app.gyrolet.mpvrx.domain.torrent.TorrentStreamingEngine
@@ -56,12 +57,13 @@ val domainModule =
     single<MpvShaderRuntime> { PlaybackSessionShaderRuntime }
     single { MpvConfigCache(androidContext(), get()) }
     single { HdrToysManager(androidContext(), get()) }
+    single { GoogleFontsRepository(androidContext(), get()) }
     single { OnlineSubtitleFileStore(androidContext(), get()) }
     single { WyzieSearchRepository(androidContext(), get(), get(), get(), get()) }
     single { MpvRxSubtitleHubRepository(get(), get(), get(), get()) }
     single { OnlineSubtitleOrchestrator(get<WyzieSearchRepository>(), get<MpvRxSubtitleHubRepository>()) }
-    single { IntroDbRepository(get(), get()) }
-    single { GitHubContributorsRepository(get(), get()) }
+    single { IntroDbRepository(get(), get(), androidContext()) }
+    single { GitHubContributorsRepository(get(), get(), androidContext()) }
     single { OpenCodeClient(get(), get()) }
     single { GroqClient(get(), get()) }
     single { OpenAiClient(get(), get()) }
@@ -97,8 +99,7 @@ val domainModule =
     }
     single { app.gyrolet.mpvrx.data.lyrics.LrcLibApiService(get()) }
     single { app.gyrolet.mpvrx.data.lyrics.LyricsTranslationService(get()) }
-    single { app.gyrolet.mpvrx.repository.lyrics.LyricsRepository(androidContext(), get()) }
+    single { app.gyrolet.mpvrx.repository.lyrics.LyricsRepository(androidContext(), get(), get()) }
     single { TorrentStreamingEngine(androidContext()) }
     single { app.gyrolet.mpvrx.repository.SeerrRepository(get(), get(), get()) }
   }
-

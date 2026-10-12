@@ -714,11 +714,6 @@ class WyzieSearchRepository(
       }
     }
 
-  suspend fun trendingMedia(limit: Int = 20): Result<List<WyzieTmdbResult>> =
-    withContext(Dispatchers.IO) {
-      Result.failure(IOException("Trending endpoint no longer available"))
-    }
-
   suspend fun getTvShowDetails(id: Int): Result<WyzieTvShowDetails> =
     withContext(Dispatchers.IO) {
       try {

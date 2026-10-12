@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
@@ -44,10 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
@@ -78,6 +75,9 @@ fun AmbientSheet(
   val warmth by viewModel.ambientWarmth.collectAsState()
   val fadeCurve by viewModel.ambientFadeCurve.collectAsState()
   val opacity by viewModel.ambientOpacity.collectAsState()
+  val glowEdgeBlend by viewModel.ambientGlowEdgeBlend.collectAsState()
+  val youTubeEdgeBlend by viewModel.ambientYouTubeEdgeBlend.collectAsState()
+  val edgeBlend = if (ambientStyle == AmbientStyle.Glow) glowEdgeBlend else youTubeEdgeBlend
   val isFast =
     remember(
       blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
@@ -96,41 +96,18 @@ fun AmbientSheet(
     ) {
       matchesGlowPreset(AmbientShaderPresets.glowHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
     }
-  val configuration = LocalConfiguration.current
-  val customMaxHeight =
-    if (configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
-      (configuration.screenHeightDp * 0.5f).dp
-    } else {
-      null
-    }
-
   PlayerSheet(
     onDismissRequest = onDismissRequest,
-    customMaxHeight = customMaxHeight,
+    title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_ambience_mode),
   ) {
     Column(
       modifier =
         Modifier
           .fillMaxWidth()
           .verticalScroll(rememberScrollState())
-          .padding(vertical = MaterialTheme.spacing.medium),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
+          .padding(vertical = 8.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // ── Title ────────────────────────────────────────────────────────
-      Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_ambience_mode),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        textAlign = TextAlign.Center,
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp),
-      )
-
       SingleChoiceSegmentedButtonRow(
         modifier =
           Modifier
@@ -152,6 +129,24 @@ fun AmbientSheet(
       HorizontalDivider(
         modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+      )
+
+      SliderItem(
+        label = stringResource(R.string.ambient_edge_blend),
+        valueText = "%.1f%%".format(edgeBlend * 100f),
+        value = edgeBlend,
+        onChange = { viewModel.setAmbientEdgeBlend(ambientStyle, it) },
+        min = 0f,
+        max = 0.1f,
+        steps = 19,
+        icon = {
+          AppSymbolIcon(
+            imageVector = Icons.RoundedFilled.Gradient,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+          )
+        },
       )
 
       if (ambientStyle == AmbientStyle.Glow) {

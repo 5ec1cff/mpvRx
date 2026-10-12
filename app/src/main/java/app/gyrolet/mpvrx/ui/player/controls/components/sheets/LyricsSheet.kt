@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,22 +44,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.lyrics.LyricsSourceType
-import app.gyrolet.mpvrx.domain.lyrics.SyncedLine
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
+import app.gyrolet.mpvrx.ui.player.controls.components.LyricsProviderPicker
 import app.gyrolet.mpvrx.ui.theme.fontFamilyForText
 
 @Composable
 fun LyricsSheet(
   viewModel: PlayerViewModel,
   onDismiss: () -> Unit,
+  onOpenProviderSheet: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val state by viewModel.lyricsUiState.collectAsState()
@@ -79,29 +83,16 @@ fun LyricsSheet(
     }
   }
 
-  Surface(
-    modifier = modifier.fillMaxWidth(),
-    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    tonalElevation = 6.dp,
+  PlayerSheet(
+    onDismissRequest = onDismiss,
+    modifier = modifier,
   ) {
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(horizontal = 20.dp, vertical = 16.dp),
+        .padding(horizontal = 20.dp, vertical = 8.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-      // Top drag handle
-      Box(
-        modifier = Modifier
-          .width(36.dp)
-          .height(4.dp)
-          .clip(CircleShape)
-          .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
-      )
-
-      Spacer(modifier = Modifier.height(12.dp))
-
       // Header title + Source Switcher
       Row(
         modifier = Modifier.fillMaxWidth(),
@@ -175,7 +166,7 @@ fun LyricsSheet(
           selected = state.selectedSource == LyricsSourceType.ONLINE,
           onClick = { viewModel.switchLyricsSource(LyricsSourceType.ONLINE) },
           label = {
-            Text("Online (LRCLIB)")
+            Text(stringResource(R.string.lyrics_source_online))
           },
           colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -191,6 +182,21 @@ fun LyricsSheet(
             color = MaterialTheme.colorScheme.primary,
           )
         }
+      }
+
+      if (state.onlineEnabled) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          LyricsProviderPicker(
+            preferredProvider = state.preferredProvider,
+            onlineProvider = state.onlineProvider,
+            onOpenSheet = onOpenProviderSheet,
+          )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
       }
 
       state.errorMessage?.let { message ->
@@ -322,9 +328,11 @@ fun LyricsSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
               )
-              Spacer(modifier = Modifier.height(8.dp))
-              TextButton(onClick = { viewModel.loadLyricsForCurrentTrack(forceRefresh = true) }) {
-                Text("Search Online")
+              if (state.onlineEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = { viewModel.searchLyricsOnline() }) {
+                  Text(stringResource(R.string.lyrics_search_online))
+                }
               }
             }
           }

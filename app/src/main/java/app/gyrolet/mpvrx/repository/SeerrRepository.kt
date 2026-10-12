@@ -11,9 +11,7 @@ package app.gyrolet.mpvrx.repository
 
 import android.util.Log
 import app.gyrolet.mpvrx.data.network.ServerUrlUtils
-import app.gyrolet.mpvrx.domain.seerr.ApproveRequestBody
 import app.gyrolet.mpvrx.domain.seerr.CreateRequestBody
-import app.gyrolet.mpvrx.domain.seerr.DiscoverSlider
 import app.gyrolet.mpvrx.domain.seerr.Genre
 import app.gyrolet.mpvrx.domain.seerr.JellyseerrRequest
 import app.gyrolet.mpvrx.domain.seerr.JellyseerrSearchResult
@@ -21,14 +19,12 @@ import app.gyrolet.mpvrx.domain.seerr.JellyseerrUser
 import app.gyrolet.mpvrx.domain.seerr.MediaDetails
 import app.gyrolet.mpvrx.domain.seerr.MediaResultsResponse
 import app.gyrolet.mpvrx.domain.seerr.MediaType
-import app.gyrolet.mpvrx.domain.seerr.PublicSettings
 import app.gyrolet.mpvrx.domain.seerr.RequestsResponse
 import app.gyrolet.mpvrx.domain.seerr.SearchResultItem
 import app.gyrolet.mpvrx.domain.seerr.SeerrRadarrServer
 import app.gyrolet.mpvrx.domain.seerr.SeerrRadarrServerResponse
 import app.gyrolet.mpvrx.domain.seerr.SeerrSonarrServer
 import app.gyrolet.mpvrx.domain.seerr.SeerrSonarrServerResponse
-import app.gyrolet.mpvrx.domain.seerr.UserQuotaResponse
 import app.gyrolet.mpvrx.network.awaitResponse
 import app.gyrolet.mpvrx.preferences.SeerrPreferences
 import kotlinx.coroutines.CancellationException
@@ -50,7 +46,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -295,21 +290,6 @@ class SeerrRepository(
     return res
   }
 
-  suspend fun getPublicSettings(): Result<PublicSettings> {
-    val req = buildRequest(path = "api/v1/settings/public")
-    return executeCall<PublicSettings>(req, "Failed to get public settings")
-  }
-
-  suspend fun getUserQuota(userId: Int): Result<UserQuotaResponse> {
-    val req = buildRequest(path = "api/v1/user/$userId/quota")
-    return executeCall<UserQuotaResponse>(req, "Failed to get user quota")
-  }
-
-  suspend fun getDiscoverSliders(): Result<List<DiscoverSlider>> {
-    val req = buildRequest(path = "api/v1/discover/slider")
-    return executeCall<List<DiscoverSlider>>(req, "Failed to get discover sliders")
-  }
-
   suspend fun getRecentlyAdded(take: Int = 20): Result<List<SearchResultItem>> {
     val req = buildRequest(
       path = "api/v1/media",
@@ -404,16 +384,6 @@ class SeerrRepository(
     return executeCall<JellyseerrSearchResult>(req, "Failed to get upcoming TV")
   }
 
-  suspend fun getMovieGenres(): Result<List<Genre>> {
-    val req = buildRequest(path = "api/v1/discover/genreslider/movie")
-    return executeCall<List<Genre>>(req, "Failed to get movie genres")
-  }
-
-  suspend fun getTvGenres(): Result<List<Genre>> {
-    val req = buildRequest(path = "api/v1/discover/genreslider/tv")
-    return executeCall<List<Genre>>(req, "Failed to get TV genres")
-  }
-
   suspend fun searchMedia(query: String, page: Int = 1): Result<JellyseerrSearchResult> {
     val req = buildRequest(
       path = "api/v1/search",
@@ -442,12 +412,6 @@ class SeerrRepository(
     val res = executeCall<MediaDetails>(req, "Failed to get TV details for $tmdbId")
     res.onSuccess { mediaDetailsCache["tv" to tmdbId] = it }
     return res
-  }
-
-  suspend fun enrichRequest(request: JellyseerrRequest): JellyseerrRequest {
-    val key = request.mediaDetailsKey() ?: return request
-    val details = mediaDetailsEnrichmentSemaphore.withPermit { fetchMediaDetails(key) } ?: return request
-    return request.withMediaDetails(details)
   }
 
   suspend fun enrichRequests(requests: List<JellyseerrRequest>): List<JellyseerrRequest> = withContext(Dispatchers.IO) {

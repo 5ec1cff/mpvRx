@@ -9,7 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.panels
 
-import android.widget.Toast
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,18 +66,7 @@ fun LuaScriptsPanel(
 
   fun toggleScriptSelection(scriptName: String) {
     val isEnabled = selectedScripts.contains(scriptName)
-    val newSelection =
-      if (isEnabled) {
-        Toast
-          .makeText(
-            context,
-            "$scriptName disabled. Reopen the video if the script stays active.",
-            Toast.LENGTH_LONG,
-          ).show()
-        selectedScripts - scriptName
-      } else {
-        selectedScripts + scriptName
-      }
+    val newSelection = if (isEnabled) selectedScripts - scriptName else selectedScripts + scriptName
     preferences.selectedLuaScripts.set(newSelection)
   }
 
@@ -109,7 +100,7 @@ fun LuaScriptsPanel(
         Modifier
           .padding(MaterialTheme.spacing.medium)
           .imePadding(),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
     ) {
       LuaRuntimeStatusCard(
         enabled = enableLuaScripts,
@@ -117,6 +108,7 @@ fun LuaScriptsPanel(
         enabledScriptsCount = enabledScriptsCount,
         availableScriptsCount = catalog.availableScripts.size,
         onEnabledChange = preferences.enableLuaScripts::set,
+        shape = rememberConnectedShape(0, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
       )
 
       when {
@@ -136,9 +128,10 @@ fun LuaScriptsPanel(
           )
         }
         else -> {
-          catalog.availableScripts.forEach { scriptName ->
+          catalog.availableScripts.forEachIndexed { index, scriptName ->
             LuaScriptToggleCard(
               scriptName = scriptName,
+              shape = rememberConnectedShape(index + 1, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
               selected = selectedScripts.contains(scriptName),
               controlsEnabled = scriptsListEnabled,
               onToggle = { toggleScriptSelection(scriptName) },

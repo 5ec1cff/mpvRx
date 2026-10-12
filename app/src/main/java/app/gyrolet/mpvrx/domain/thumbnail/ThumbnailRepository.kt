@@ -22,6 +22,7 @@ import android.provider.MediaStore
 import android.util.LruCache
 import app.gyrolet.mpvrx.data.network.client.NetworkMimeTypes
 import app.gyrolet.mpvrx.data.network.proxy.NetworkStreamingProxy
+import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
 import app.gyrolet.mpvrx.preferences.ThumbnailMode
@@ -85,6 +86,8 @@ class ThumbnailRepository(
   private val diskCacheLock = ReentrantReadWriteLock()
   private val ongoingOperations = ConcurrentHashMap<String, Deferred<Bitmap?>>()
   private val diskVideoBaseKeyCache = ConcurrentHashMap<String, String>()
+  // Lets composition reuse keys already computed on worker threads.
+  private val resolvedThumbnailKeys = LruCache<String, String>(4096)
   private data class ResolvedMetadata(
     val size: Long,
     val dateModified: Long,
@@ -205,9 +208,21 @@ class ThumbnailRepository(
         memoryCache.get(key)
       }?.let { return@withContext it }
 
-      val decoded =
-        readBitmapFromDisk(diskCacheKey(video), isNetworkUrl(video.path))
-          ?: return@withContext null
+      val isNetwork = isNetworkUrl(video.path)
+      var decoded = readBitmapFromDisk(diskCacheKey(video), isNetwork)
+      if (decoded == null && !isNetwork) {
+        if (video.duration > 0L) {
+          decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L)), false)
+        } else {
+          val canonical = canonicalLocalPath(video)
+          val resolvedDur = resolveLocalMetadata(video, canonical).duration
+          if (resolvedDur > 0L) {
+            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur)), false)
+          }
+        }
+      }
+      if (decoded == null) return@withContext null
+
       val scaled = scaleBitmap(decoded, widthPx, heightPx)
       synchronized(memoryCache) {
         memoryCache.put(key, scaled)
@@ -249,6 +264,7 @@ class ThumbnailRepository(
         File(context.cacheDir, "thumbnails"),
         File(context.filesDir, "thumbnails"),
         File(context.cacheDir, "remote_images"),
+        File(context.cacheDir, "network_images"),
       ).forEach(::deleteCacheDirectory)
       check(localDiskDir.mkdirs() || localDiskDir.isDirectory) {
         "Unable to recreate thumbnail cache directory: ${localDiskDir.absolutePath}"
@@ -256,6 +272,10 @@ class ThumbnailRepository(
       check(networkDiskDir.mkdirs() || networkDiskDir.isDirectory) {
         "Unable to recreate thumbnail cache directory: ${networkDiskDir.absolutePath}"
       }
+      // NetworkImageRepository owns this directory but is a Koin singleton, so its mkdirs() only
+      // ever ran once at construction. Recreate it here or every network image load silently fails
+      // until the process restarts.
+      File(context.cacheDir, "network_images").mkdirs()
     }
   }
 
@@ -346,19 +366,33 @@ class ThumbnailRepository(
     video: Video,
     width: Int,
     height: Int,
-  ): String = "${videoBaseKey(video)}|$width|$height|${thumbnailModeKey()}|${thumbnailQualityKey()}"
+  ): String =
+    "${videoBaseKey(video)}|$width|$height|${thumbnailModeKey()}|${thumbnailQualityKey()}".also { key ->
+      resolvedThumbnailKeys.put(peekIdentity(video, width, height), key)
+    }
 
   /**
-   * Folder prefetch and a visible card may request different sizes for the same source.
-   * The disk entry is size-independent, so either completion can wake the card and let it
-   * decode the cached bitmap at its own target dimensions.
+   * Non-blocking peek for composition. Building a key can hit the filesystem or MediaStore, so this
+   * only answers once [thumbnailKey] has run on a worker thread and returns null otherwise.
    */
-  fun isThumbnailKeyForVideo(
-    key: String,
+  fun peekThumbnailFromMemory(
     video: Video,
-  ): Boolean =
-    key.startsWith("${videoBaseKey(video)}|") &&
-      key.endsWith("|${thumbnailModeKey()}|${thumbnailQualityKey()}")
+    widthPx: Int,
+    heightPx: Int,
+  ): Bitmap? {
+    val key = resolvedThumbnailKeys.get(peekIdentity(video, widthPx, heightPx)) ?: return null
+    return synchronized(memoryCache) {
+      memoryCache.get(key)
+    }
+  }
+
+  private fun peekIdentity(
+    video: Video,
+    widthPx: Int,
+    heightPx: Int,
+  ): String =
+    "${video.path}|${video.uri}|${video.size}|${video.dateModified}|${video.duration}" +
+      "|$widthPx|$heightPx|${thumbnailModeKey()}|${thumbnailQualityKey()}"
 
   // Keep extraction-quality changes from reusing smaller legacy images that were
   // cached without their requested dimensions in the key.
@@ -368,6 +402,7 @@ class ThumbnailRepository(
   private fun canonicalLocalPath(video: Video): String {
     val raw = video.path.ifBlank { video.uri.toString() }
     if (isNetworkUrl(raw)) return raw
+    if (ZipArchiveMedia.isPlaybackUri(raw)) return raw
 
     val decoded = runCatching { Uri.decode(raw) }.getOrNull() ?: raw
 
@@ -501,12 +536,19 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
   ): Bitmap? {
+    if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return null
     val mode = browserPreferences.thumbnailMode.get()
     val dimension = maxOf(widthPx, heightPx, MAX_THUMBNAIL_SIZE).coerceAtMost(thumbnailMaxSize())
+    // Entries saved without media metadata (e.g. songs added to a playlist) arrive flagged as video.
+    val isAudio =
+      video.isAudio ||
+        app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalLocalPath(video)))
 
-    if (video.isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {
+    if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {
       generateEmbeddedArtwork(video)?.let { return scaleBitmap(it, widthPx, heightPx) }
-      if (video.isAudio) return null
+      if (isAudio) {
+        return loadMediaStoreAudioArtwork(video, dimension)?.let { scaleBitmap(it, widthPx, heightPx) }
+      }
     }
 
     generateWithFastThumbnails(video, mode, dimension)?.let {
@@ -515,6 +557,41 @@ class ThumbnailRepository(
 
     return extractLocalVideoFrame(video, widthPx, heightPx)
   }
+
+  /** MediaStore's indexed cover, which also covers formats the retriever cannot read art from. */
+  private fun loadMediaStoreAudioArtwork(
+    video: Video,
+    sizePx: Int,
+  ): Bitmap? =
+    runCatching {
+      val resolver = context.contentResolver
+      val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+      val mediaStoreId =
+        video.uri
+          .takeIf { it.scheme == "content" && it.authority == MediaStore.AUTHORITY }
+          ?.let { runCatching { android.content.ContentUris.parseId(it) }.getOrNull() }
+      val (audioId, albumId) =
+        resolver.query(
+          collection,
+          arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.ALBUM_ID),
+          if (mediaStoreId != null) "${MediaStore.Audio.Media._ID}=?" else "${MediaStore.Audio.Media.DATA}=?",
+          arrayOf(mediaStoreId?.toString() ?: canonicalLocalPath(video)),
+          null,
+        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) to cursor.getLong(1) else null }
+          ?: return null
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        resolver.loadThumbnail(
+          android.content.ContentUris.withAppendedId(collection, audioId),
+          android.util.Size(sizePx, sizePx),
+          null,
+        )
+      } else {
+        resolver
+          .openInputStream(
+            android.content.ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"), albumId),
+          )?.use(BitmapFactory::decodeStream)
+      }
+    }.getOrNull()
 
   private fun generateEmbeddedArtwork(video: Video): Bitmap? =
     runCatching {
@@ -991,12 +1068,11 @@ class ThumbnailRepository(
     connection: NetworkConnection? = null,
     fileSize: Long = -1L,
     mimeType: String? = null,
-    lastModified: Long = 0L,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
       if (!appearancePreferences.showNetworkThumbnails.get()) return@withContext null
 
-      val identity = networkThumbnailIdentity(path, connection, fileSize, lastModified)
+      val identity = networkThumbnailIdentity(path, connection)
       val memKey = networkThumbnailMemoryKey(identity, widthPx, heightPx)
       synchronized(memoryCache) { memoryCache.get(memKey) }?.let { return@withContext it }
       ongoingOperations[memKey]?.let { return@withContext it.await() }
@@ -1072,7 +1148,9 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
   ): Bitmap? {
-    val connection = networkRepository.getConnectionById(connectionId) ?: return null
+    // Tombstones included: the cache key needs only this connection's identity, and an entry whose
+    // share was deleted must keep showing the frame that is already on disk.
+    val connection = networkRepository.getConnectionIncludingDeleted(connectionId) ?: return null
     return getThumbnailForNetworkPath(
       path = path,
       widthPx = widthPx,
@@ -1191,26 +1269,30 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
     connection: NetworkConnection? = null,
-    fileSize: Long = -1L,
-    lastModified: Long = 0L,
   ): String =
     networkThumbnailMemoryKey(
-      networkThumbnailIdentity(path, connection, fileSize, lastModified),
+      networkThumbnailIdentity(path, connection),
       widthPx,
       heightPx,
     )
 
+  /**
+   * Cache identity for a network thumbnail: the share endpoint plus the path, nothing else.
+   *
+   * Size and modification time are deliberately excluded. A playlist entry knows neither, so
+   * folding them in gave one file two different cache entries — one per screen showing it — and
+   * made the second screen download and extract the frame again. The trade-off is that replacing
+   * a file in place keeps serving the previous thumbnail until the cache is cleared.
+   */
   private fun networkThumbnailIdentity(
     path: String,
     connection: NetworkConnection?,
-    fileSize: Long,
-    lastModified: Long,
   ): String {
     val endpoint =
       connection?.let {
         "${it.id}|${it.protocol.name}|${it.host.lowercase()}|${it.port}|${it.path}|${it.useHttps}"
       } ?: "direct"
-    return "$endpoint|$path|$fileSize|$lastModified"
+    return "$endpoint|$path"
   }
 
   private fun networkThumbnailMemoryKey(
@@ -1286,9 +1368,9 @@ class ThumbnailRepository(
     val processorCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     return when {
       activityManager?.isLowRamDevice == true || processorCount <= 2 -> 1
-      processorCount <= 4 -> 2
-      processorCount <= 6 -> 3
-      else -> 4
+      // Bound decode pressure on larger mobile SoCs so returning to the library cannot launch
+      // four simultaneous thumbnail decoders beside UI image work.
+      else -> 2
     }
   }
 

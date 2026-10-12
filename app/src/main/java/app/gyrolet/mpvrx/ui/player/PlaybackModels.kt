@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.player
 
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import app.gyrolet.mpvrx.utils.media.fileExtension
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import java.net.URI
@@ -54,8 +55,11 @@ data class PlaybackItem(
   val playlistItemId: Int? = null,
   val artworkUri: String? = null,
   val durationSeconds: Int? = null,
+  val videoWidth: Int = 0,
+  val videoHeight: Int = 0,
   /** File index inside a multi-file torrent; lets a series episode restart its stream. */
   val torrentFileIndex: Int? = null,
+  val audiobook: AudiobookPlaybackInfo? = null,
 ) {
   /** True while this torrent episode still points at its magnet/torrent source instead of a live stream URL. */
   fun requiresTorrentResolution(): Boolean = torrentFileIndex != null && playableUri == originalUri
@@ -73,6 +77,8 @@ data class PlaybackItem(
       playlistItemId: Int? = null,
       artworkUri: String? = null,
       durationSeconds: Int? = null,
+      videoWidth: Int = 0,
+      videoHeight: Int = 0,
     ): PlaybackItem =
       PlaybackItem(
         stableId =
@@ -89,6 +95,8 @@ data class PlaybackItem(
         playlistItemId = playlistItemId,
         artworkUri = artworkUri,
         durationSeconds = durationSeconds,
+        videoWidth = videoWidth,
+        videoHeight = videoHeight,
       )
   }
 }
@@ -102,6 +110,7 @@ internal enum class DeclaredPlaybackMediaKind {
 internal fun PlaybackItem.declaredMediaKind(): DeclaredPlaybackMediaKind {
   if (mimeType?.startsWith("audio/", ignoreCase = true) == true) return DeclaredPlaybackMediaKind.AUDIO
   if (mimeType?.startsWith("video/", ignoreCase = true) == true) return DeclaredPlaybackMediaKind.VIDEO
+  if (HttpUtils.isMusicStreamingUrl(originalUri) || HttpUtils.isMusicStreamingUrl(playableUri)) return DeclaredPlaybackMediaKind.AUDIO
 
   val extensions =
     sequenceOf(originalUri, playableUri, title)
@@ -120,21 +129,22 @@ internal fun PlaybackItem.declaredMediaKind(): DeclaredPlaybackMediaKind {
   return DeclaredPlaybackMediaKind.UNKNOWN
 }
 
+data class AudiobookPlaybackInfo(val bookId: Long, val trackId: Long)
+
 internal fun PlaybackItem.isDefinitelyAudioOnly(): Boolean =
   declaredMediaKind() == DeclaredPlaybackMediaKind.AUDIO
 
 internal enum class PlaybackVideoSelection {
   DISABLED,
   IMMEDIATE,
-  DEFERRED,
 }
 
-internal fun PlaybackItem.videoSelection(surfaceAttached: Boolean): PlaybackVideoSelection =
+internal fun PlaybackItem.videoSelection(): PlaybackVideoSelection =
   when (declaredMediaKind()) {
     DeclaredPlaybackMediaKind.AUDIO -> PlaybackVideoSelection.DISABLED
     DeclaredPlaybackMediaKind.VIDEO,
     DeclaredPlaybackMediaKind.UNKNOWN,
-    -> if (surfaceAttached) PlaybackVideoSelection.IMMEDIATE else PlaybackVideoSelection.DEFERRED
+    -> PlaybackVideoSelection.IMMEDIATE
   }
 
 data class PlaybackQueueState(

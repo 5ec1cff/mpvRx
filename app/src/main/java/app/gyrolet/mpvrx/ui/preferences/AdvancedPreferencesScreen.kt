@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
@@ -24,15 +25,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,12 +44,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.domain.download.DownloadLocations
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
@@ -61,13 +60,14 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
 import app.gyrolet.mpvrx.presentation.crash.CrashActivity
+import app.gyrolet.mpvrx.presentation.crash.DebugLogReader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.MpvConfigCache
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
+import app.gyrolet.mpvrx.ui.preferences.components.RestartRequiredDialog
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
-import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
@@ -78,7 +78,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import me.zhanghai.compose.preference.Preference
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
+import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import org.koin.compose.koinInject
 import java.io.File
 import java.util.Locale
@@ -97,6 +97,7 @@ private enum class AppLanguage(
   PortugueseBrazil("pt-BR"),
   Russian("ru"),
   SimplifiedChinese("zh-CN"),
+  Ukrainian("uk"),
   ;
 
   fun displayName(context: android.content.Context): String {
@@ -128,6 +129,7 @@ object AdvancedPreferencesScreen : Screen {
     val preferences = koinInject<AdvancedPreferences>()
     val mpvConfigCache = koinInject<MpvConfigCache>()
     val settingsManager = koinInject<SettingsManager>()
+    val downloadLocations = koinInject<DownloadLocations>()
     val foldersPreferences = koinInject<FoldersPreferences>()
     val subtitlesPreferences = koinInject<SubtitlesPreferences>()
     val scope = rememberCoroutineScope()
@@ -209,6 +211,10 @@ object AdvancedPreferencesScreen : Screen {
         }
       }
 
+    val autoBackupEnabled by preferences.autoBackupEnabled.collectAsState()
+    val configurationFolderUri by preferences.mpvConfStorageUri.collectAsState()
+    var lastAutoBackupTime by remember { mutableStateOf(settingsManager.lastAutoBackupTime()) }
+
     val baseStorageFolder by foldersPreferences.baseStorageFolder.collectAsState()
 
     val storageRootPicker =
@@ -229,8 +235,20 @@ object AdvancedPreferencesScreen : Screen {
         preferences.mpvConfStorageUri.set(uriString)
         subtitlesPreferences.subtitleSaveFolder.set(uriString)
         val root = DocumentFile.fromTreeUri(context, uri) ?: return@rememberLauncherForActivityResult
-        listOf("fonts", "Subtitles", "scripts", "script-opts", "shaders").forEach { name ->
+        listOf("Backup", "Downloads", "fonts", "Subtitles", "scripts", "script-opts", "shaders").forEach { name ->
           if (root.findFile(name) == null) root.createDirectory(name)
+        }
+        if (downloadLocations.setLocationUnderTree(uri, "Downloads") == null) {
+          Toast.makeText(context, context.getString(R.string.onboarding_configuration_restore_failed, unknownError), Toast.LENGTH_LONG).show()
+        }
+        if (autoBackupEnabled) {
+          scope.launch {
+            settingsManager.autoBackupIfChanged(uriString).onSuccess {
+              lastAutoBackupTime = settingsManager.lastAutoBackupTime()
+            }.onFailure { error ->
+              Toast.makeText(context, error.message ?: unknownError, Toast.LENGTH_LONG).show()
+            }
+          }
         }
       }
 
@@ -259,85 +277,57 @@ object AdvancedPreferencesScreen : Screen {
       )
     }
 
-    // Import results dialog
-    if (showImportDialog && importStats != null) {
-      AlertDialog(
-        onDismissRequest = { showImportDialog = false },
-        title = { Text(stringResource(R.string.pref_import_complete_title)) },
-        text = {
-          Text(
+    // Imported settings require a restart so every screen reloads the new configuration.
+    if (showImportDialog) {
+      importStats?.let { stats ->
+        RestartRequiredDialog(
+          title = stringResource(R.string.pref_import_complete_title),
+          message =
             stringResource(
               R.string.pref_import_complete_text,
-              importStats?.imported ?: 0,
-              importStats?.failed ?: 0,
-              importStats?.version ?: "unknown",
+              stats.imported,
+              stats.failed,
+              stats.version,
             ),
-          )
-        },
-        confirmButton = {
-          TextButton(onClick = { showImportDialog = false }) {
-            Text(stringResource(R.string.generic_ok))
-          }
-        },
-      )
+          confirmLabel = stringResource(R.string.pref_app_language_restart_now),
+          onDismiss = { showImportDialog = false },
+          onConfirm = {
+            showImportDialog = false
+            (context as? Activity)?.recreate()
+          },
+        )
+      }
     }
 
     pendingAppLanguage?.let { language ->
-      AlertDialog(
-        onDismissRequest = { pendingAppLanguage = null },
-        title = { Text(stringResource(R.string.pref_app_language_restart_title)) },
-        text = { Text(stringResource(R.string.pref_app_language_restart_message)) },
-        dismissButton = {
-          TextButton(onClick = { pendingAppLanguage = null }) {
-            Text(stringResource(R.string.generic_cancel))
-          }
-        },
-        confirmButton = {
-          TextButton(
-            onClick = {
-              pendingAppLanguage = null
-              val locales =
-                if (language == AppLanguage.SystemDefault) {
-                  LocaleListCompat.getEmptyLocaleList()
-                } else {
-                  LocaleListCompat.forLanguageTags(language.languageTag)
-                }
-              AppCompatDelegate.setApplicationLocales(locales)
-            },
-          ) {
-            Text(stringResource(R.string.pref_app_language_restart_now))
-          }
+      RestartRequiredDialog(
+        title = stringResource(R.string.pref_app_language_restart_title),
+        message = stringResource(R.string.pref_app_language_restart_message),
+        confirmLabel = stringResource(R.string.pref_app_language_restart_now),
+        onDismiss = { pendingAppLanguage = null },
+        onConfirm = {
+          pendingAppLanguage = null
+          val locales =
+            if (language == AppLanguage.SystemDefault) {
+              LocaleListCompat.getEmptyLocaleList()
+            } else {
+              LocaleListCompat.forLanguageTags(language.languageTag)
+            }
+          AppCompatDelegate.setApplicationLocales(locales)
         },
       )
     }
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_advanced),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            if (LocalShowSettingsBackArrow.current) {
-              IconButton(onClick = { backStack.popSafely() }) {
-                Icon(
-                  Icons.RoundedFilled.ArrowBack,
-                  contentDescription = null,
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
-              }
-            }
-          },
+        SettingsTopAppBar(
+          title = stringResource(R.string.pref_advanced),
+          onBack = { backStack.popSafely() },
         )
       },
     ) { padding ->
-      ProvidePreferenceLocals {
-        val mpvConfStorageLocation by preferences.mpvConfStorageUri.collectAsState()
+      ProvideExpressivePreferenceLocals {
+        val mpvConfStorageLocation = configurationFolderUri
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(AdvancedPreferencesScreen, MaterialTheme.colorScheme.primary)
         LazyColumn(
@@ -358,6 +348,7 @@ object AdvancedPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
                 value = currentAppLanguage,
@@ -374,6 +365,7 @@ object AdvancedPreferencesScreen : Screen {
                   )
                 },
               )
+              }
             }
           }
 
@@ -384,6 +376,42 @@ object AdvancedPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              SwitchPreference(
+                value = autoBackupEnabled,
+                enabled = configurationFolderUri.isNotBlank(),
+                onValueChange = { enabled ->
+                  preferences.autoBackupEnabled.set(enabled)
+                  if (enabled) {
+                    scope.launch {
+                      settingsManager.autoBackupIfChanged(configurationFolderUri).onSuccess {
+                        lastAutoBackupTime = settingsManager.lastAutoBackupTime()
+                      }.onFailure { error ->
+                        Toast.makeText(context, error.message ?: unknownError, Toast.LENGTH_LONG).show()
+                      }
+                    }
+                  }
+                },
+                title = { Text(stringResource(R.string.pref_auto_backup_title)) },
+                summary = {
+                  Text(
+                    if (configurationFolderUri.isBlank()) {
+                      stringResource(R.string.pref_auto_backup_select_folder)
+                    } else if (lastAutoBackupTime > 0L) {
+                      stringResource(
+                        R.string.pref_auto_backup_last_backup,
+                        android.text.format.DateUtils.getRelativeTimeSpanString(lastAutoBackupTime),
+                      )
+                    } else {
+                      stringResource(R.string.pref_auto_backup_summary)
+                    },
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_export_settings_title),
                 title = { Text(text = stringResource(R.string.pref_export_settings_title)) },
@@ -404,9 +432,11 @@ object AdvancedPreferencesScreen : Screen {
                   exportLauncher.launch(settingsManager.getDefaultExportFilename())
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_import_settings_title),
                 title = { Text(text = stringResource(R.string.pref_import_settings_title)) },
@@ -427,6 +457,7 @@ object AdvancedPreferencesScreen : Screen {
                   importLauncher.launch(arrayOf("text/xml", "application/xml", "*/*"))
                 },
               )
+              }
             }
           }
 
@@ -437,6 +468,7 @@ object AdvancedPreferencesScreen : Screen {
 
           item {
             PreferenceCard {
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_mpv_conf_storage_location),
                 title = { Text(stringResource(R.string.pref_advanced_mpv_conf_storage_location)) },
@@ -462,9 +494,11 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { storageRootPicker.launch(null) },
               )
+              }
 
               if (baseStorageFolder.isNotEmpty()) {
                 PreferenceDivider()
+                ExpressivePreferenceItem {
                 Preference(
                   title = { Text(stringResource(R.string.pref_clear_storage_root_title)) },
                   icon = {
@@ -483,6 +517,7 @@ object AdvancedPreferencesScreen : Screen {
                     subtitlesPreferences.subtitleSaveFolder.set("")
                   },
                 )
+                }
               }
             }
           }
@@ -526,6 +561,7 @@ object AdvancedPreferencesScreen : Screen {
                 }
               }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_mpv_conf),
                 title = { Text(stringResource(R.string.pref_advanced_mpv_conf)) },
@@ -541,6 +577,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(ConfigEditorScreen(ConfigEditorScreen.ConfigType.MPV_CONF))
                 },
               )
+              }
 
               PreferenceDivider()
 
@@ -551,6 +588,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_input_conf),
                 title = { Text(stringResource(R.string.pref_advanced_input_conf)) },
@@ -566,45 +604,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(ConfigEditorScreen(ConfigEditorScreen.ConfigType.INPUT_CONF))
                 },
               )
-            }
-          }
-
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
-          }
-
-          item {
-            PreferenceCard {
-              val enableP2pStreaming by preferences.enableP2pStreaming.collectAsState()
-              val enableHlsProxy by preferences.enableHlsProxy.collectAsState()
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_enable_p2p_streaming_title),
-                value = enableP2pStreaming,
-                onValueChange = preferences.enableP2pStreaming::set,
-                title = { Text(stringResource(R.string.pref_enable_p2p_streaming_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_enable_p2p_streaming_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
-
-              PreferenceDivider()
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_enable_hls_proxy_title),
-                value = enableHlsProxy,
-                onValueChange = preferences.enableHlsProxy::set,
-                title = { Text(stringResource(R.string.pref_enable_hls_proxy_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_enable_hls_proxy_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+              }
             }
           }
 
@@ -633,6 +633,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_manage_lua_scripts_title),
                 title = { Text(stringResource(R.string.pref_manage_lua_scripts_title)) },
@@ -665,9 +666,11 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 enabled = mpvConfStorageLocation.isNotBlank() && enableLuaScripts,
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
                 summary = {
@@ -680,41 +683,7 @@ object AdvancedPreferencesScreen : Screen {
                   backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
                 },
               )
-            }
-          }
-
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.ui_network))
-          }
-
-          item {
-            PreferenceCard {
-              Preference(
-                title = {
-                  Text(
-                    androidx.compose.ui.res
-                      .stringResource(app.gyrolet.mpvrx.R.string.ui_yt_dlp_manager),
-                  )
-                },
-                summary = {
-                  Text(
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_install_and_update_yt_dlp_for_streaming_support,
-                    ),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                icon = {
-                  Icon(
-                    Icons.RoundedFilled.CloudDownload,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                  )
-                },
-                onClick = {
-                  backStack.navigateTo(YtdlpSettingsScreen)
-                },
-              )
+              }
             }
           }
 
@@ -763,6 +732,7 @@ object AdvancedPreferencesScreen : Screen {
                   stringResource(R.string.pref_clear_playback_history_recently_played_none)
                 }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_clear_playback_history),
                 title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
@@ -781,6 +751,7 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { isConfirmDialogShown = true },
               )
+              }
 
               if (isConfirmDialogShown) {
                 ConfirmDialog(
@@ -850,6 +821,7 @@ object AdvancedPreferencesScreen : Screen {
                         File(context.cacheDir, "thumbnails"),
                         File(context.filesDir, "thumbnails"),
                         File(context.cacheDir, "remote_images"),
+                        File(context.cacheDir, "network_images"),
                       ).forEach { dir ->
                         if (dir.exists()) {
                           dir.walkTopDown().filter { it.isFile }.forEach { size += it.length() }
@@ -874,6 +846,7 @@ object AdvancedPreferencesScreen : Screen {
                 }
               }
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_clear_config_cache_title),
                 title = { Text(text = stringResource(R.string.pref_clear_config_cache_title)) },
@@ -931,9 +904,11 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_clear_thumbnail_cache_title),
                 title = { Text(text = stringResource(R.string.pref_clear_thumbnail_cache_title)) },
@@ -953,6 +928,7 @@ object AdvancedPreferencesScreen : Screen {
                 },
                 onClick = { isClearThumbsConfirmShown = true },
               )
+              }
 
               if (isClearThumbsConfirmShown) {
                 ConfirmDialog(
@@ -995,6 +971,7 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_clear_fonts_cache),
                 title = { Text(text = stringResource(id = R.string.pref_advanced_clear_fonts_cache)) },
@@ -1039,6 +1016,7 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
             }
           }
 
@@ -1051,6 +1029,7 @@ object AdvancedPreferencesScreen : Screen {
             PreferenceCard {
               val activity = LocalActivity.current!!
               val verboseLogging by preferences.verboseLogging.collectAsState()
+              val debugLogSizeMb by preferences.debugLogSizeMb.collectAsState()
 
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_verbose_logging_title),
@@ -1067,6 +1046,27 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              ExpressivePreferenceItem {
+              SliderPreference(
+                value = debugLogSizeMb.toFloat(),
+                onValueChange = { value -> preferences.debugLogSizeMb.set(value.toInt().coerceIn(1, 10)) },
+                sliderValue = debugLogSizeMb.toFloat(),
+                onSliderValueChange = { value -> preferences.debugLogSizeMb.set(value.toInt().coerceIn(1, 10)) },
+                title = { Text(stringResource(R.string.pref_debug_log_size_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_debug_log_size_summary, debugLogSizeMb),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+                valueRange = 1f..10f,
+                valueSteps = 8,
+              )
+              }
+
+              PreferenceDivider()
+
+              ExpressivePreferenceItem {
               Preference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_dump_logs_title),
                 title = { Text(stringResource(R.string.pref_advanced_dump_logs_title)) },
@@ -1079,7 +1079,11 @@ object AdvancedPreferencesScreen : Screen {
                 onClick = {
                   scope.launch(Dispatchers.IO) {
                     val deviceInfo = CrashActivity.collectDeviceInfo()
-                    val logcat = CrashActivity.collectLogcat()
+                    val deviceInfoBytes = deviceInfo.toByteArray(Charsets.UTF_8).size
+                    val logcat = DebugLogReader.trimTextToByteBudget(
+                      CrashActivity.collectLogcat(),
+                      (debugLogSizeMb.coerceIn(1, 10) * 1024 * 1024 - deviceInfoBytes - 64).coerceAtLeast(0),
+                    )
 
                     SafeClipboard.copyPlainText(
                       context = context,
@@ -1090,6 +1094,7 @@ object AdvancedPreferencesScreen : Screen {
                   }
                 },
               )
+              }
             }
           }
         }

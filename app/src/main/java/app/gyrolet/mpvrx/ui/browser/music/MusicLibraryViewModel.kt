@@ -46,6 +46,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   private val browserPreferences: app.gyrolet.mpvrx.preferences.BrowserPreferences by inject()
   private val audioPreferences: app.gyrolet.mpvrx.preferences.AudioPreferences by inject()
   private val foldersPreferences: app.gyrolet.mpvrx.preferences.FoldersPreferences by inject()
+  private val audiobookDao: app.gyrolet.mpvrx.database.dao.AudiobookDao by inject()
 
   val visibleTabs: StateFlow<List<MusicTab>> = combine(
     audioPreferences.musicTabOrder.changes(),
@@ -61,6 +62,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   // Songs, Albums and Artists immediately without rescanning storage on every slider movement.
   private val _allSongs = MutableStateFlow<List<MusicSong>>(emptyList())
   private val filterMutex = Mutex()
+  private val refreshMutex = Mutex()
 
   private val _songs = MutableStateFlow<List<MusicSong>>(emptyList())
   val songs: StateFlow<List<MusicSong>> = _songs.asStateFlow()
@@ -190,10 +192,19 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   }.flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  suspend fun refreshLibrary(context: Context) {
+  suspend fun refreshLibrary(context: Context) = refreshMutex.withLock {
     _isLoading.value = true
     try {
-      _allSongs.value = MusicLibraryScanner.scanSongs(context)
+      withContext(Dispatchers.IO) {
+        app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.syncKnownAudiobooks(context, audiobookDao)
+      }
+      _allSongs.value = MusicLibraryScanner.scanSongs(context) { indexedSongs ->
+        if (_allSongs.value.isEmpty()) {
+          _allSongs.value = indexedSongs
+          applyFilters()
+        }
+        _isLoading.value = false
+      }
       applyFilters()
     } catch (e: CancellationException) {
       throw e
@@ -223,7 +234,8 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
           song.path.equals(folderPath, ignoreCase = true) ||
             song.path.startsWith(if (folderPath.endsWith("/")) folderPath else "$folderPath/", ignoreCase = true)
         }
-        meetsDuration && isNotBlacklisted
+        val isNotAudiobook = !app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(song.path)
+        meetsDuration && isNotBlacklisted && isNotAudiobook
       }
       Triple(visible, buildAlbums(visible), buildArtists(visible))
     }
@@ -239,7 +251,8 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
 
   private fun buildAlbums(songs: List<MusicSong>): List<MusicAlbum> =
     songs
-      .groupBy { song -> if (song.albumId > 0) song.albumId else song.album.hashCode().toLong() }
+      .filter { it.hasAlbumTag }
+      .groupBy { requireNotNull(it.albumKey) }
       .map { (albumId, albumSongs) ->
         val firstSong = albumSongs.first()
         MusicAlbum(
@@ -249,6 +262,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
           songCount = albumSongs.size,
           year = albumSongs.maxOfOrNull { it.year } ?: 0,
           albumArtUri = firstSong.albumArtUri,
+          artworkSong = firstSong,
         )
       }
       .sortedBy { it.title.lowercase() }
@@ -262,7 +276,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
           id = firstSong.artist.hashCode().toLong(),
           name = firstSong.artist,
           songCount = artistSongs.size,
-          albumCount = artistSongs.map { it.albumId }.distinct().size,
+          albumCount = artistSongs.mapNotNull { it.albumKey }.distinct().size,
         )
       }
       .sortedBy { it.name.lowercase() }
@@ -285,22 +299,8 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
     browserPreferences.musicSortField.set(field)
   }
 
-  fun toggleSortOrder() {
-    val nextOrder = if (sortOrder.value == MusicSortOrder.ASCENDING) {
-      MusicSortOrder.DESCENDING
-    } else {
-      MusicSortOrder.ASCENDING
-    }
-    browserPreferences.musicSortOrder.set(nextOrder)
-  }
-
   fun setSortOrder(order: MusicSortOrder) {
     browserPreferences.musicSortOrder.set(order)
-  }
-
-  fun toggleViewMode() {
-    val nextMode = if (viewMode.value == MusicViewMode.GRID) MusicViewMode.LIST else MusicViewMode.GRID
-    browserPreferences.musicViewMode.set(nextMode)
   }
 
   fun setViewMode(mode: MusicViewMode) {

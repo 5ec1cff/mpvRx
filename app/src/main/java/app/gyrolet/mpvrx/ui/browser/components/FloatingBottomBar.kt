@@ -11,9 +11,13 @@ package app.gyrolet.mpvrx.ui.browser.components
 
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -22,12 +26,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,11 +40,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.presentation.components.LiquidGlassBackdrop
+import app.gyrolet.mpvrx.presentation.components.LiquidGlassEditingBarSurface
+import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import org.koin.compose.koinInject
+
+@Composable
+internal fun rememberBrowserBottomBarBackdrop(): LiquidGlassBackdrop? {
+  val preferences = koinInject<AppearancePreferences>()
+  val enabled by preferences.liquidGlassEnabled.collectAsState()
+  return rememberLiquidGlassBackdrop().takeIf { enabled }
+}
 
 private data class BarLayoutParams(
   val buttonSize: androidx.compose.ui.unit.Dp,
@@ -51,6 +71,14 @@ private data class BarLayoutParams(
   val rowPaddingVertical: androidx.compose.ui.unit.Dp,
   val surfacePaddingHorizontal: androidx.compose.ui.unit.Dp,
   val surfacePaddingVertical: androidx.compose.ui.unit.Dp,
+)
+
+/** A screen-specific action rendered before Delete in [BrowserBottomBar]. */
+data class BrowserBottomBarAction(
+  val icon: AppIcon,
+  val label: String,
+  val onClick: () -> Unit,
+  val tint: Color? = null,
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -65,6 +93,10 @@ fun BrowserBottomBar(
   onAddToPlaylistClick: () -> Unit,
   onPlayNextClick: (() -> Unit)? = null,
   onAddToQueueClick: (() -> Unit)? = null,
+  onPinClick: (() -> Unit)? = null,
+  unpinSelected: Boolean = false,
+  pinLabelRes: Int = app.gyrolet.mpvrx.R.string.ui_pin_folders,
+  unpinLabelRes: Int = app.gyrolet.mpvrx.R.string.ui_unpin_folders,
   modifier: Modifier = Modifier,
   showCopy: Boolean = true,
   showMove: Boolean = true,
@@ -72,10 +104,17 @@ fun BrowserBottomBar(
   showRename: Boolean = true,
   showDelete: Boolean = true,
   showAddToPlaylist: Boolean = true,
+  backdrop: LiquidGlassBackdrop? = null,
+  extraActions: List<BrowserBottomBarAction> = emptyList(),
+  deleteIcon: AppIcon = Icons.RoundedFilled.Delete,
+  deleteLabel: String = stringResource(R.string.delete),
 ) {
   val configuration = LocalConfiguration.current
   val isTablet = configuration.smallestScreenWidthDp >= 600
   val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+  val reducedMotion = AppMotion.shouldReduceMotion()
+  val haptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
+  val entranceOffset = with(LocalDensity.current) { 12.dp.roundToPx() }
 
   var lastShowCopy by remember { mutableStateOf(showCopy) }
   var lastShowMove by remember { mutableStateOf(showMove) }
@@ -85,6 +124,9 @@ fun BrowserBottomBar(
   var lastShowAddToPlaylist by remember { mutableStateOf(showAddToPlaylist) }
   var lastShowPlayNext by remember { mutableStateOf(onPlayNextClick != null) }
   var lastShowAddToQueue by remember { mutableStateOf(onAddToQueueClick != null) }
+  var lastShowPin by remember { mutableStateOf(onPinClick != null) }
+  var lastUnpinSelected by remember { mutableStateOf(unpinSelected) }
+  var lastExtraActions by remember { mutableStateOf(extraActions) }
 
   if (isSelectionMode) {
     lastShowCopy = showCopy
@@ -95,6 +137,9 @@ fun BrowserBottomBar(
     lastShowAddToPlaylist = showAddToPlaylist
     lastShowPlayNext = onPlayNextClick != null
     lastShowAddToQueue = onAddToQueueClick != null
+    lastShowPin = onPinClick != null
+    lastUnpinSelected = unpinSelected
+    lastExtraActions = extraActions
   }
 
   val effectiveShowCopy = if (isSelectionMode) showCopy else lastShowCopy
@@ -105,28 +150,39 @@ fun BrowserBottomBar(
   val effectiveShowAddToPlaylist = if (isSelectionMode) showAddToPlaylist else lastShowAddToPlaylist
   val effectiveShowPlayNext = if (isSelectionMode) onPlayNextClick != null else lastShowPlayNext
   val effectiveShowAddToQueue = if (isSelectionMode) onAddToQueueClick != null else lastShowAddToQueue
+  val effectiveShowPin = if (isSelectionMode) onPinClick != null else lastShowPin
+  val effectiveUnpinSelected = if (isSelectionMode) unpinSelected else lastUnpinSelected
+  val effectiveExtraActions = if (isSelectionMode) extraActions else lastExtraActions
 
   AnimatedVisibility(
     visible = isSelectionMode,
     modifier = modifier,
     enter =
-      androidx.compose.animation.slideInVertically(
-        animationSpec =
-          androidx.compose.animation.core.spring(
-            dampingRatio = app.gyrolet.mpvrx.ui.theme.AppMotion.Spatial.ExpressiveDp.dampingRatio,
-            stiffness = app.gyrolet.mpvrx.ui.theme.AppMotion.Spatial.ExpressiveDp.stiffness,
-          ),
-        initialOffsetY = { fullHeight -> fullHeight * 2 },
-      ) + fadeIn(),
+      if (reducedMotion) {
+        EnterTransition.None
+      } else {
+        androidx.compose.animation.slideInVertically(
+          animationSpec =
+            androidx.compose.animation.core.spring(
+              dampingRatio = AppMotion.Spatial.ExpressiveDp.dampingRatio,
+              stiffness = AppMotion.Spatial.ExpressiveDp.stiffness,
+            ),
+          initialOffsetY = { entranceOffset },
+        ) + fadeIn(androidx.compose.animation.core.tween(180))
+      },
     exit =
-      androidx.compose.animation.slideOutVertically(
-        animationSpec =
-          androidx.compose.animation.core.spring(
-            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
-          ),
-        targetOffsetY = { fullHeight -> fullHeight * 2 },
-      ) + fadeOut(),
+      if (reducedMotion) {
+        ExitTransition.None
+      } else {
+        androidx.compose.animation.slideOutVertically(
+          animationSpec =
+            androidx.compose.animation.core.spring(
+              dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+              stiffness = androidx.compose.animation.core.Spring.StiffnessMedium,
+            ),
+          targetOffsetY = { entranceOffset },
+        ) + fadeOut(androidx.compose.animation.core.tween(120))
+      },
   ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
       val availableWidth = maxWidth
@@ -138,9 +194,10 @@ fun BrowserBottomBar(
           effectiveShowRename,
           effectiveShowPlayNext,
           effectiveShowAddToQueue,
+          effectiveShowPin,
           effectiveShowAddToPlaylist,
           effectiveShowDelete,
-        ).count { it }
+        ).count { it } + effectiveExtraActions.size
 
       val layoutParams =
         when {
@@ -194,9 +251,7 @@ fun BrowserBottomBar(
               listOf(
                 BarLayoutParams(56.dp, 28.dp, 12.dp, 10.dp, 4.dp, 16.dp, 6.dp), // Large (Compact vertical)
                 BarLayoutParams(48.dp, 24.dp, 10.dp, 8.dp, 4.dp, 12.dp, 6.dp), // Medium (Compact vertical)
-                BarLayoutParams(42.dp, 22.dp, 8.dp, 6.dp, 2.dp, 8.dp, 4.dp), // Small (Compact vertical)
-                BarLayoutParams(36.dp, 18.dp, 6.dp, 4.dp, 2.dp, 6.dp, 4.dp), // Tiny (Compact vertical)
-                BarLayoutParams(32.dp, 18.dp, 2.dp, 4.dp, 2.dp, 4.dp, 2.dp), // Narrow
+                BarLayoutParams(48.dp, 24.dp, 4.dp, 4.dp, 2.dp, 4.dp, 2.dp),
               )
             options.firstOrNull { opt ->
               val totalWidth =
@@ -210,9 +265,7 @@ fun BrowserBottomBar(
               listOf(
                 BarLayoutParams(56.dp, 28.dp, 12.dp, 10.dp, 8.dp, 16.dp, 12.dp), // Large
                 BarLayoutParams(48.dp, 24.dp, 10.dp, 8.dp, 6.dp, 12.dp, 10.dp), // Medium
-                BarLayoutParams(42.dp, 22.dp, 8.dp, 6.dp, 4.dp, 8.dp, 8.dp), // Small
-                BarLayoutParams(36.dp, 18.dp, 6.dp, 4.dp, 4.dp, 6.dp, 6.dp), // Tiny
-                BarLayoutParams(32.dp, 18.dp, 2.dp, 4.dp, 4.dp, 4.dp, 4.dp), // Narrow
+                BarLayoutParams(48.dp, 24.dp, 4.dp, 4.dp, 4.dp, 4.dp, 4.dp),
               )
             options.firstOrNull { opt ->
               val totalWidth =
@@ -223,7 +276,7 @@ fun BrowserBottomBar(
           }
         }
 
-      Surface(
+      Box(
         modifier =
           Modifier
             .windowInsetsPadding(WindowInsets.systemBars)
@@ -232,85 +285,115 @@ fun BrowserBottomBar(
               horizontal = layoutParams.surfacePaddingHorizontal,
               vertical = layoutParams.surfacePaddingVertical,
             ),
-        shape = RoundedCornerShape(percent = 100),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 0.dp,
-        shadowElevation = 12.dp,
       ) {
-        Row(
-          modifier =
-            Modifier.padding(
-              horizontal = layoutParams.rowPaddingHorizontal,
-              vertical = layoutParams.rowPaddingVertical,
-            ),
-          horizontalArrangement = Arrangement.spacedBy(layoutParams.spacing),
-          verticalAlignment = Alignment.CenterVertically,
+        LiquidGlassEditingBarSurface(
+          backdrop = backdrop,
         ) {
-          BrowserBottomBarButton(
-            effectiveShowCopy,
-            onCopyClick,
-            Icons.RoundedFilled.ContentCopy,
-            "Copy",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowMove,
-            onMoveClick,
-            Icons.RoundedFilled.DriveFileMove,
-            "Move",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowDownscale,
-            onDownscaleClick,
-            Icons.RoundedFilled.FitScreen,
-            "Compressor",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowRename,
-            onRenameClick,
-            Icons.RoundedFilled.DriveFileRenameOutline,
-            "Rename",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowPlayNext,
-            onPlayNextClick ?: {},
-            Icons.RoundedFilled.SkipNext,
-            "Play Next",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowAddToQueue,
-            onAddToQueueClick ?: {},
-            Icons.RoundedFilled.QueueMusic,
-            "Add to Queue",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowAddToPlaylist,
-            onAddToPlaylistClick,
-            Icons.RoundedFilled.PlaylistAdd,
-            "Add to Playlist",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-          )
-          BrowserBottomBarButton(
-            effectiveShowDelete,
-            onDeleteClick,
-            Icons.RoundedFilled.Delete,
-            "Delete",
-            layoutParams.buttonSize,
-            layoutParams.iconSize,
-            tint = MaterialTheme.colorScheme.error,
-          )
+          Row(
+            modifier =
+              Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(
+                  horizontal = layoutParams.rowPaddingHorizontal,
+                  vertical = layoutParams.rowPaddingVertical,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(layoutParams.spacing),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            BrowserBottomBarButton(
+              effectiveShowCopy,
+              onCopyClick,
+              Icons.RoundedFilled.ContentCopy,
+              stringResource(R.string.ui_copy),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowMove,
+              onMoveClick,
+              Icons.RoundedFilled.DriveFileMove,
+              stringResource(R.string.snapshot_move),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowDownscale,
+              onDownscaleClick,
+              Icons.RoundedFilled.FitScreen,
+              stringResource(R.string.ui_compressor),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowRename,
+              onRenameClick,
+              Icons.RoundedFilled.DriveFileRenameOutline,
+              stringResource(R.string.rename),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowPlayNext,
+              onPlayNextClick ?: {},
+              Icons.RoundedFilled.SkipNext,
+              stringResource(R.string.video_swipe_play_next),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowAddToQueue,
+              onAddToQueueClick ?: {},
+              Icons.RoundedFilled.QueueMusic,
+              stringResource(R.string.video_swipe_add_queue),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowAddToPlaylist,
+              onAddToPlaylistClick,
+              Icons.RoundedFilled.PlaylistAdd,
+              stringResource(R.string.ui_add_to_playlist),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            BrowserBottomBarButton(
+              effectiveShowPin,
+              {
+                if (isSelectionMode) {
+                  onPinClick?.let { action ->
+                    action()
+                    haptics.selection(!effectiveUnpinSelected)
+                  }
+                }
+              },
+              Icons.RoundedFilled.PushPin,
+              androidx.compose.ui.res.stringResource(
+                if (effectiveUnpinSelected) unpinLabelRes else pinLabelRes,
+              ),
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+            )
+            effectiveExtraActions.forEach { action ->
+              BrowserBottomBarButton(
+                true,
+                action.onClick,
+                action.icon,
+                action.label,
+                layoutParams.buttonSize,
+                layoutParams.iconSize,
+                tint = action.tint ?: MaterialTheme.colorScheme.primary,
+              )
+            }
+            BrowserBottomBarButton(
+              effectiveShowDelete,
+              onDeleteClick,
+              deleteIcon,
+              deleteLabel,
+              layoutParams.buttonSize,
+              layoutParams.iconSize,
+              tint = MaterialTheme.colorScheme.error,
+            )
+          }
         }
       }
     }

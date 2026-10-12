@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.icons
 
+import androidx.annotation.DrawableRes
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -22,11 +23,18 @@ import androidx.compose.material3.Icon as MaterialIcon
 
 @Immutable
 class AppIcon(
-  private val ltrImageVector: ImageVector,
+  private val ltrImageVector: ImageVector? = null,
   private val rtlImageVector: ImageVector? = null,
   val mirrorInRtl: Boolean = false,
+  @DrawableRes val drawableRes: Int? = null,
 ) {
-  internal fun resolve(isRtl: Boolean): ImageVector = if (isRtl) rtlImageVector ?: ltrImageVector else ltrImageVector
+  constructor(imageVector: ImageVector, rtlImageVector: ImageVector? = null, mirrorInRtl: Boolean = false) :
+    this(ltrImageVector = imageVector, rtlImageVector = rtlImageVector, mirrorInRtl = mirrorInRtl, drawableRes = null)
+
+  constructor(@DrawableRes drawableRes: Int) :
+    this(ltrImageVector = null, rtlImageVector = null, mirrorInRtl = false, drawableRes = drawableRes)
+
+  internal fun resolve(isRtl: Boolean): ImageVector? = if (isRtl) rtlImageVector ?: ltrImageVector else ltrImageVector
 
   internal fun hasExplicitRtlSource(): Boolean = rtlImageVector != null
 }
@@ -38,18 +46,28 @@ fun Icon(
   modifier: Modifier = Modifier,
   tint: Color = LocalContentColor.current,
 ) {
-  val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-  val mirroredModifier =
-    if (isRtl && !imageVector.hasExplicitRtlSource() && imageVector.mirrorInRtl) {
-      modifier.scale(scaleX = -1f, scaleY = 1f)
-    } else {
-      modifier
-    }
+  val drawableRes = imageVector.drawableRes
+  if (drawableRes != null) {
+    MaterialIcon(
+      painter = androidx.compose.ui.res.painterResource(drawableRes),
+      contentDescription = contentDescription,
+      modifier = modifier,
+      tint = tint,
+    )
+  } else {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val mirroredModifier =
+      if (isRtl && !imageVector.hasExplicitRtlSource() && imageVector.mirrorInRtl) {
+        modifier.scale(scaleX = -1f, scaleY = 1f)
+      } else {
+        modifier
+      }
 
-  MaterialIcon(
-    imageVector = imageVector.resolve(isRtl),
-    contentDescription = contentDescription,
-    modifier = mirroredModifier,
-    tint = tint,
-  )
+    MaterialIcon(
+      imageVector = imageVector.resolve(isRtl)!!,
+      contentDescription = contentDescription,
+      modifier = mirroredModifier,
+      tint = tint,
+    )
+  }
 }

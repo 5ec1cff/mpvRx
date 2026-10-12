@@ -10,7 +10,9 @@
 package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -22,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,25 +42,99 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.BrowserPageViewPreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.preferences.VideoSwipeAction
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.onWallpaper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import kotlin.math.pow
+
+@androidx.compose.runtime.Immutable
+data class FolderCardUiConfig(
+  val unlimitedNameLines: Boolean = false,
+  val showTotalVideosChip: Boolean = true,
+  val showTotalDurationChip: Boolean = true,
+  val showTotalSizeChip: Boolean = true,
+  val showDateChip: Boolean = false,
+  val showFolderPath: Boolean = false,
+  val centerGridTitles: Boolean = false,
+  val showFolderThumbnails: Boolean = false,
+  val thumbnailQuality: app.gyrolet.mpvrx.preferences.ThumbnailQuality = app.gyrolet.mpvrx.preferences.ThumbnailQuality.High,
+  val includeAudio: Boolean = false,
+  val swipeLeft: VideoSwipeAction = VideoSwipeAction.AddToPlaylist,
+  val swipeRight: VideoSwipeAction = VideoSwipeAction.ToggleWatched,
+)
+
+/** Hoist this once per screen and pass the result to every card rather than collecting per item. */
+@Composable
+fun rememberFolderCardUiConfig(viewPreferences: BrowserPageViewPreferences? = null): FolderCardUiConfig {
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val browserPreferences = koinInject<BrowserPreferences>()
+
+  val unlimitedNameLines by (viewPreferences?.unlimitedNameLines ?: appearancePreferences.unlimitedNameLines).collectAsState()
+  val showTotalVideosChip by (viewPreferences?.showItemCount ?: browserPreferences.showTotalVideosChip).collectAsState()
+  val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
+  val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
+  val showDateChip by (viewPreferences?.showDateChip ?: browserPreferences.showDateChip).collectAsState()
+  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
+  val centerGridTitles by (viewPreferences?.centerGridTitles ?: browserPreferences.centerGridTitles).collectAsState()
+  val showFolderThumbnails by (viewPreferences?.showThumbnails ?: browserPreferences.showFolderThumbnails).collectAsState()
+  val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val includeAudio by browserPreferences.includeAudioBrowser.collectAsState()
+  val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
+  val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
+
+  return remember(
+    unlimitedNameLines,
+    showTotalVideosChip,
+    showTotalDurationChip,
+    showTotalSizeChip,
+    showDateChip,
+    showFolderPath,
+    centerGridTitles,
+    showFolderThumbnails,
+    thumbnailQuality,
+    includeAudio,
+    swipeLeft,
+    swipeRight,
+  ) {
+    FolderCardUiConfig(
+      unlimitedNameLines = unlimitedNameLines,
+      showTotalVideosChip = showTotalVideosChip,
+      showTotalDurationChip = showTotalDurationChip,
+      showTotalSizeChip = showTotalSizeChip,
+      showDateChip = showDateChip,
+      showFolderPath = showFolderPath,
+      centerGridTitles = centerGridTitles,
+      showFolderThumbnails = showFolderThumbnails,
+      thumbnailQuality = thumbnailQuality,
+      includeAudio = includeAudio,
+      swipeLeft = swipeLeft,
+      swipeRight = swipeRight,
+    )
+  }
+}
 
 @Composable
 fun FolderCard(
@@ -81,71 +156,46 @@ fun FolderCard(
   isDualPane: Boolean = false,
   isActive: Boolean = false,
   isAudioOnly: Boolean = false,
+  onSwipeAction: ((VideoFolder, VideoSwipeAction) -> Unit)? = null,
+  placeholderIconSize: Dp? = null,
+  viewPreferences: BrowserPageViewPreferences? = null,
+  uiConfig: FolderCardUiConfig? = null,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val browserPreferences = koinInject<BrowserPreferences>()
-  val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
-  val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
-  val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
-  val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
-  val showDateChip by browserPreferences.showDateChip.collectAsState()
-  val showFolderPath by browserPreferences.showFolderPath.collectAsState()
-  val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
-  val showFolderThumbnails by browserPreferences.showFolderThumbnails.collectAsState()
-  val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
-  val includeAudio by browserPreferences.includeAudioBrowser.collectAsState()
-  val manualGridColumnsEnabled by browserPreferences.manualGridColumnsEnabled.collectAsState()
-  val folderGridColumnsPortrait by browserPreferences.folderGridColumnsPortrait.collectAsState()
-  val folderGridColumnsLandscape by browserPreferences.folderGridColumnsLandscape.collectAsState()
+  val resolvedUiConfig = uiConfig ?: rememberFolderCardUiConfig(viewPreferences)
+  val unlimitedNameLines = resolvedUiConfig.unlimitedNameLines
+  val showTotalVideosChip = resolvedUiConfig.showTotalVideosChip
+  val showTotalDurationChip = resolvedUiConfig.showTotalDurationChip
+  val showTotalSizeChip = resolvedUiConfig.showTotalSizeChip
+  val showDateChip = resolvedUiConfig.showDateChip
+  val showFolderPath = resolvedUiConfig.showFolderPath
+  val centerGridTitles = resolvedUiConfig.centerGridTitles
+  val showFolderThumbnails = resolvedUiConfig.showFolderThumbnails
+  val thumbnailQuality = resolvedUiConfig.thumbnailQuality
+  val includeAudio = resolvedUiConfig.includeAudio
+  val swipeLeft = resolvedUiConfig.swipeLeft
+  val swipeRight = resolvedUiConfig.swipeRight
   val context = androidx.compose.ui.platform.LocalContext.current
-  val density = LocalDensity.current
   val thumbnailRepository = koinInject<ThumbnailRepository>()
+  var thumbnailSize by remember { mutableStateOf(IntSize.Zero) }
   var folderThumbnail by remember(folder.bucketId) { mutableStateOf<android.graphics.Bitmap?>(null) }
 
   LaunchedEffect(
     folder.bucketId,
+    folder.path,
     showFolderThumbnails,
     thumbnailQuality,
     isGridMode,
-    manualGridColumnsEnabled,
-    folderGridColumnsPortrait,
-    folderGridColumnsLandscape,
-    isDualPane,
+    thumbnailSize,
   ) {
-    if (isGridMode && showFolderThumbnails) {
+    if (folder.path.isNotBlank() && isGridMode && showFolderThumbnails && thumbnailSize.width > 0 && thumbnailSize.height > 0) {
       withContext(Dispatchers.IO) {
         val videos =
           app.gyrolet.mpvrx.repository.MediaFileRepository
             .getVideosInFolder(context, folder.bucketId)
         if (videos.isNotEmpty()) {
-          val configuration = context.resources.configuration
-          val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-          val screenWidthDp = if (isDualPane) configuration.screenWidthDp.dp * 0.4f else configuration.screenWidthDp.dp
-          val contentHorizontalPadding = 8.dp
-          val itemSpacing = 2.dp
-          val usableWidth = screenWidthDp - (contentHorizontalPadding * 2) - itemSpacing
-          val folderMinWidth = 100.dp
-          val folderGridColumnsPref = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-          val folderGridColumns =
-            if (manualGridColumnsEnabled) {
-              folderGridColumnsPref.coerceAtLeast(1)
-            } else {
-              (usableWidth / folderMinWidth).toInt().coerceAtLeast(1)
-            }
-          val horizontalPadding = 32.dp
-          val spacing = 8.dp
-          val thumbWidthDp =
-            if (folderGridColumns > 1) {
-              val totalSpacing = spacing * (folderGridColumns - 1)
-              ((screenWidthDp - horizontalPadding - totalSpacing) / folderGridColumns).coerceAtLeast(120.dp)
-            } else {
-              (screenWidthDp - horizontalPadding).coerceAtLeast(160.dp)
-            }
-          val aspect = 16f / 9f
-          val thumbWidthPx = with(density) { thumbWidthDp.roundToPx() }
-          val thumbHeightPx = (thumbWidthPx / aspect).toInt()
-
-          val bmp = thumbnailRepository.getFolderThumbnail(folder.bucketId, videos, thumbWidthPx, thumbHeightPx)
+          val bmp =
+            thumbnailRepository.getFolderThumbnail(folder.bucketId, videos, thumbnailSize.width, thumbnailSize.height)
           withContext(Dispatchers.Main) {
             folderThumbnail = bmp
           }
@@ -157,15 +207,8 @@ fun FolderCard(
   }
 
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
-  val selectionInset = 2.dp
-  val selectionContainerColor =
-    if (isSelected) {
-      MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
-    } else if (isActive) {
-      MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    } else {
-      Color.Transparent
-    }
+  val selectionContainerColor = animatedSelectionColor(isSelected)
+  val showSelectionBadge = isSelected || selectionContainerColor.alpha > 0.001f
 
   // Remove the redundant folder name from the path
   val parentPath = folder.path.substringBeforeLast("/", folder.path)
@@ -176,6 +219,7 @@ fun FolderCard(
       shape = AppShapeScale.full,
       color = MaterialTheme.colorScheme.primary.copy(alpha = 0.94f),
       contentColor = MaterialTheme.colorScheme.onPrimary,
+      shadowElevation = 3.dp,
       modifier = modifier.rotate(-18f),
     ) {
       Icon(
@@ -191,13 +235,22 @@ fun FolderCard(
     }
   }
 
-  val cardShape = AppShapeScale.large
+  val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
 
-  Card(
+  VideoSwipeSurface(
+    identity = folder.path,
+    leftAction = swipeLeft,
+    rightAction = swipeRight,
+    isWatched = null,
+    enabled = !isGridMode && !isSelected && folder.path.startsWith('/'),
+    onAction = onSwipeAction?.let { action -> { swipe -> action(folder, swipe) } },
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
+                .semantics { selected = isSelected }
+        .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
@@ -206,79 +259,34 @@ fun FolderCard(
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
-      if (isSelected || isActive) {
-        Box(
-          modifier =
-            Modifier
-              .matchParentSize()
-              .padding(selectionInset)
-              .clip(cardShape)
-              .background(selectionContainerColor),
-        )
-      }
+      Box(
+        modifier =
+          Modifier
+            .matchParentSize()
+            .clip(cardShape)
+            .background(selectionContainerColor),
+      )
 
       if (isGridMode) {
-        val configuration = LocalConfiguration.current
-        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        val screenWidthDp = if (isDualPane) LocalConfiguration.current.screenWidthDp.dp * 0.4f else LocalConfiguration.current.screenWidthDp.dp
-        val contentHorizontalPadding = 8.dp
-        val itemSpacing = 2.dp
-        val usableWidth = screenWidthDp - (contentHorizontalPadding * 2) - itemSpacing
-        val folderMinWidth = 100.dp
-        val folderGridColumnsPref = if (isLandscape) folderGridColumnsLandscape else folderGridColumnsPortrait
-        val folderGridColumns =
-          if (manualGridColumnsEnabled) {
-            folderGridColumnsPref.coerceAtLeast(1)
-          } else {
-            (usableWidth / folderMinWidth).toInt().coerceAtLeast(1)
-          }
-        val isSingleColumn = folderGridColumns == 1
-
-        val horizontalAlignment =
-          if (isSingleColumn) {
-            Alignment.Start
-          } else {
-            if (centerGridTitles) Alignment.CenterHorizontally else Alignment.Start
-          }
+        val horizontalAlignment = if (centerGridTitles) Alignment.CenterHorizontally else Alignment.Start
 
         // GRID LAYOUT - Vertical arrangement
         Column(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(12.dp),
+              .padding(horizontal = 4.dp, vertical = 6.dp),
           horizontalAlignment = horizontalAlignment,
         ) {
-          val horizontalPadding = 32.dp
-          val spacing = 8.dp
-
-          val thumbWidthDp =
-            if (folderGridColumns > 1) {
-              // (screen - padding - total spacing) / columns
-              val totalSpacing = spacing * (folderGridColumns - 1)
-              ((screenWidthDp - horizontalPadding - totalSpacing) / folderGridColumns).coerceAtLeast(120.dp)
-            } else {
-              // single column fallback
-              (screenWidthDp - horizontalPadding).coerceAtLeast(160.dp)
-            }
-          val aspect = 16f / 9f
-          val thumbHeightDp = thumbWidthDp / aspect
+          val aspect = 20f / 17f
 
           Box(
             modifier =
-              (
-                if (isSingleColumn) {
-                  Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(aspect)
-                } else {
-                  Modifier
-                    .width(thumbWidthDp)
-                    .height(thumbHeightDp)
-                }
-              ).clip(AppShapeScale.medium)
+              Modifier
+                .fillMaxWidth()
+                .aspectRatio(aspect)
+                .onSizeChanged { thumbnailSize = it }
                 .tvFocusHighlight(AppShapeScale.medium, focusedScale = 1.03f)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .combinedClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
@@ -286,17 +294,12 @@ fun FolderCard(
             contentAlignment = Alignment.Center,
           ) {
             val folderImageBitmap = remember(folderThumbnail) { folderThumbnail?.asImageBitmap() }
-            val resolvedThumbnail =
-              if (showFolderThumbnails) {
-                thumbnail ?: folderImageBitmap
-              } else {
-                null
-              }
+            val resolvedThumbnail = thumbnail ?: folderImageBitmap.takeIf { showFolderThumbnails }
             if (resolvedThumbnail != null) {
               androidx.compose.foundation.Image(
                 bitmap = resolvedThumbnail,
                 contentDescription = null,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().clip(AppShapeScale.medium),
                 contentScale = ContentScale.Crop,
               )
             } else {
@@ -305,19 +308,18 @@ fun FolderCard(
                 contentDescription =
                   androidx.compose.ui.res
                     .stringResource(app.gyrolet.mpvrx.R.string.ui_folder),
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.secondary,
+                modifier = placeholderIconSize?.let { Modifier.size(it) } ?: Modifier.fillMaxWidth().aspectRatio(aspect),
+                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
               )
             }
 
-            if (newVideoCount > 0) {
+            if (newVideoCount > 0 && !showSelectionBadge) {
               Box(
                 modifier =
                   Modifier
                     .align(Alignment.TopEnd)
                     .padding(6.dp)
-                    .clip(AppShapeScale.extraSmall)
-                    .background(Color(0xFFD32F2F))
+                    .cardOverlay(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                     .padding(horizontal = 6.dp, vertical = 2.dp),
               ) {
                 Text(
@@ -326,10 +328,12 @@ fun FolderCard(
                     MaterialTheme.typography.labelSmall.copy(
                       fontWeight = FontWeight.Bold,
                     ),
-                  color = Color.White,
+                  color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
               }
             }
+
+            SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(6.dp))
 
             if (isPinned) {
               PinnedFolderBadge(
@@ -346,8 +350,7 @@ fun FolderCard(
                   Modifier
                     .align(Alignment.BottomEnd)
                     .padding(6.dp)
-                    .clip(AppShapeScale.extraSmall)
-                    .background(Color.Black.copy(alpha = 0.65f))
+                      .cardOverlay()
                     .padding(horizontal = 6.dp, vertical = 2.dp),
               ) {
                 Text(
@@ -359,31 +362,50 @@ fun FolderCard(
             }
           }
 
-          Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(4.dp))
 
           Text(
             folder.name,
-            style = if (isSingleColumn) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,
-            color = if (isRecentlyPlayed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium,
+            color =
+              when {
+                isActive -> MaterialTheme.colorScheme.primary
+                isRecentlyPlayed -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.onSurface.onWallpaper()
+              },
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
-            textAlign = if (isSingleColumn) androidx.compose.ui.text.style.TextAlign.Start else (if (centerGridTitles) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start),
+            textAlign =
+              if (centerGridTitles) {
+                androidx.compose.ui.text.style.TextAlign.Center
+              } else {
+                androidx.compose.ui.text.style.TextAlign.Start
+              },
           )
 
           if (showTotalVideosChip && folder.videoCount > 0) {
             Text(
-              if (isAudioOnly) {
-                if (folder.videoCount == 1) "1 Song" else "${folder.videoCount} Songs"
-              } else if (includeAudio) {
-                if (folder.videoCount == 1) "1 Media item" else "${folder.videoCount} Media items"
-              } else if (folder.videoCount == 1) {
-                "1 Video"
-              } else {
-                "${folder.videoCount} Videos"
-              },
+              androidx.compose.ui.res.pluralStringResource(
+                when {
+                  isAudioOnly -> R.plurals.folder_song_count
+                  includeAudio -> R.plurals.folder_media_item_count
+                  else -> R.plurals.folder_video_count
+                },
+                folder.videoCount,
+                folder.videoCount,
+              ),
               style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              color = MaterialTheme.colorScheme.onSurfaceVariant.onWallpaper(),
             )
+          }
+          if (customChipContent != null) {
+            FlowRow(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.spacedBy(4.dp),
+              verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+              customChipContent()
+            }
           }
         }
       } else {
@@ -391,16 +413,14 @@ fun FolderCard(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(12.dp),
+              .padding(horizontal = 8.dp, vertical = 2.dp),
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Box(
             modifier =
               Modifier
-                .size(64.dp)
+                .size(72.dp)
                 .tvFocusHighlight(AppShapeScale.medium, focusedScale = 1.03f)
-                .clip(AppShapeScale.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .combinedClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
@@ -411,7 +431,7 @@ fun FolderCard(
               androidx.compose.foundation.Image(
                 bitmap = thumbnail,
                 contentDescription = null,
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().clip(AppShapeScale.medium),
                 contentScale = ContentScale.Crop,
               )
             } else {
@@ -420,20 +440,19 @@ fun FolderCard(
                 contentDescription =
                   androidx.compose.ui.res
                     .stringResource(app.gyrolet.mpvrx.R.string.ui_folder),
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.secondary,
+                modifier = placeholderIconSize?.let { Modifier.size(it) } ?: Modifier.matchParentSize(),
+                tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
               )
             }
 
             // Show new video count badge if folder contains new videos
-            if (newVideoCount > 0) {
+            if (newVideoCount > 0 && !showSelectionBadge) {
               Box(
                 modifier =
                   Modifier
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
-                    .clip(AppShapeScale.extraSmall)
-                    .background(Color(0xFFD32F2F)) // Warning red color
+                    .cardOverlay(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
                     .padding(horizontal = 6.dp, vertical = 2.dp),
               ) {
                 Text(
@@ -442,10 +461,12 @@ fun FolderCard(
                     MaterialTheme.typography.labelSmall.copy(
                       fontWeight = FontWeight.Bold,
                     ),
-                  color = Color.White,
+                  color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
               }
             }
+
+            SelectionIndicator(isSelected, Modifier.align(Alignment.TopEnd).padding(4.dp))
 
             if (isPinned) {
               PinnedFolderBadge(
@@ -456,14 +477,19 @@ fun FolderCard(
               )
             }
           }
-          Spacer(modifier = Modifier.width(16.dp))
+          Spacer(modifier = Modifier.width(12.dp))
           Column(
             modifier = Modifier.weight(1f),
           ) {
             Text(
               folder.name,
               style = MaterialTheme.typography.titleMedium,
-              color = if (isRecentlyPlayed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+              color =
+                when {
+                  isActive -> MaterialTheme.colorScheme.primary
+                  isRecentlyPlayed -> MaterialTheme.colorScheme.tertiary
+                  else -> MaterialTheme.colorScheme.onSurface.onWallpaper()
+                },
               maxLines = maxLines,
               overflow = TextOverflow.Ellipsis,
             )
@@ -471,7 +497,7 @@ fun FolderCard(
               Text(
                 parentPath,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.onWallpaper(),
                 maxLines = maxLines,
                 overflow = TextOverflow.Ellipsis,
               )
@@ -497,15 +523,15 @@ fun FolderCard(
               // Hide chips at storage root level (when videoCount is 0)
               if (showTotalVideosChip && folder.videoCount > 0) {
                 Text(
-                  if (isAudioOnly) {
-                    if (folder.videoCount == 1) "1 Song" else "${folder.videoCount} Songs"
-                  } else if (includeAudio) {
-                    if (folder.videoCount == 1) "1 Media item" else "${folder.videoCount} Media items"
-                  } else if (folder.videoCount == 1) {
-                    "1 Video"
-                  } else {
-                    "${folder.videoCount} Videos"
-                  },
+                  androidx.compose.ui.res.pluralStringResource(
+                    when {
+                      isAudioOnly -> R.plurals.folder_song_count
+                      includeAudio -> R.plurals.folder_media_item_count
+                      else -> R.plurals.folder_video_count
+                    },
+                    folder.videoCount,
+                    folder.videoCount,
+                  ),
                   style = MaterialTheme.typography.labelSmall,
                   modifier =
                     Modifier

@@ -11,7 +11,9 @@ package app.gyrolet.mpvrx.ui.theme
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Typeface
 import android.os.Build
+import android.util.Log
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
@@ -56,9 +58,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.view.drawToBitmap
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.domain.fonts.GoogleFontsRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import org.koin.compose.koinInject
@@ -277,7 +281,12 @@ fun MpvrxTheme(
   val darkMode by preferences.darkMode.collectAsState()
   val amoledMode by preferences.amoledMode.collectAsState()
   val appTheme by preferences.appTheme.collectAsState()
+  val customTheme by preferences.customTheme.collectAsState()
+  val selectedCustomThemeName by preferences.selectedCustomThemeName.collectAsState()
   val useSystemFont by preferences.useSystemFont.collectAsState()
+  val googleFontFamily by preferences.googleFontFamily.collectAsState()
+  val googleFontRevision by preferences.googleFontRevision.collectAsState()
+  val googleFontsRepository = koinInject<GoogleFontsRepository>()
   val darkTheme = isSystemInDarkTheme()
   val configuration = LocalConfiguration.current
   val context = LocalContext.current
@@ -285,6 +294,43 @@ fun MpvrxTheme(
     remember(configuration) {
       localeRequiresSystemFont(configuration.locales[0])
     }
+  val downloadedFontFamily =
+    remember(googleFontFamily, googleFontRevision, googleFontsRepository) {
+      googleFontFamily
+        .takeIf { it.isNotBlank() }
+        ?.let {
+          googleFontsRepository
+            .fontFile(it)
+            ?.let { file ->
+              runCatching { FontFamily(Typeface.createFromFile(file)) }
+                .onFailure { Log.w("MpvrxTheme", "Could not load downloaded app font", it) }
+                .getOrNull()
+            }
+        }
+    }
+  val resolvedFontFamily =
+    when {
+      useSystemFont || localeNeedsSystemFont -> FontFamily.SansSerif
+      downloadedFontFamily != null -> downloadedFontFamily
+      else -> GoogleSansRounded
+    }
+  val typography =
+    remember(resolvedFontFamily, downloadedFontFamily, useSystemFont, localeNeedsSystemFont) {
+      if (useSystemFont || localeNeedsSystemFont) {
+        SystemTypography
+      } else {
+        typographyWithFontFamily(
+          fontFamily = resolvedFontFamily,
+          displayFontFamily =
+            if (downloadedFontFamily == null) {
+              GoogleSansExpressiveDisplay
+            } else {
+              resolvedFontFamily
+            },
+        )
+      }
+    }
+  val emphasizedTypography = remember(typography) { emphasizedTypography(typography) }
 
   val useDarkTheme =
     when (darkMode) {
@@ -292,11 +338,17 @@ fun MpvrxTheme(
       DarkMode.Light -> false
       DarkMode.System -> darkTheme
     }
+  val customThemeDefinition =
+    CustomThemeDefinition
+      .parseCollection(customTheme)
+      .firstOrNull { it.name == selectedCustomThemeName }
+      ?: CustomThemeDefinition.parse(customTheme).takeIf { selectedCustomThemeName.isBlank() }
 
   val darkColorScheme =
     resolveAppColorScheme(
       context = context,
       appTheme = appTheme,
+      customTheme = customThemeDefinition,
       useDarkTheme = true,
       amoledMode = amoledMode,
     )
@@ -307,6 +359,7 @@ fun MpvrxTheme(
       resolveAppColorScheme(
         context = context,
         appTheme = appTheme,
+        customTheme = customThemeDefinition,
         useDarkTheme = false,
         amoledMode = amoledMode,
       )
@@ -317,28 +370,32 @@ fun MpvrxTheme(
     LocalSpacing provides Spacing(),
     LocalThemeTransitionState provides transitionState,
     LocalMotionPolicy provides rememberMotionPolicy(),
-    LocalEmphasizedTypography provides AppEmphasizedTypography,
+    LocalAppFontFamily provides resolvedFontFamily,
+    LocalEmphasizedTypography provides emphasizedTypography,
     LocalDarkAppColorScheme provides darkColorScheme,
   ) {
     ThemeTransitionContent {
       MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        typography = if (useSystemFont || localeNeedsSystemFont) SystemTypography else AppTypography,
+        typography = typography,
         shapes = AppShapes,
         motionScheme = MotionScheme.expressive(),
-        content = content,
+        content = { app.gyrolet.mpvrx.ui.utils.ProvideAppHaptics(content) },
       )
     }
   }
 }
 
-private fun resolveAppColorScheme(
+internal fun resolveAppColorScheme(
   context: Context,
   appTheme: AppTheme,
+  customTheme: CustomThemeDefinition?,
   useDarkTheme: Boolean,
   amoledMode: Boolean,
 ): ColorScheme =
-  when {
+  customTheme?.let { definition ->
+    if (useDarkTheme) definition.darkColorScheme() else definition.lightColorScheme()
+  } ?: when {
     appTheme.isDynamic && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
       when {
         useDarkTheme && amoledMode -> {

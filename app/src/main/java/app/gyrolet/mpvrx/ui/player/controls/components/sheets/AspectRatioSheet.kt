@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,9 +23,10 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,12 +35,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSectionHeader
+import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.player.AutoCropState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -53,6 +55,7 @@ data class AspectRatio(
   val isCustom: Boolean = false,
 )
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun AspectRatioSheet(
   currentRatio: Double?,
@@ -80,24 +83,14 @@ fun AspectRatioSheet(
       AspectRatio("2.39:1", 2.39),
     )
 
-  PlayerSheet(onDismissRequest) {
+  PlayerSheet(onDismissRequest, title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_aspect_ratio)) {
     Column(
       modifier =
         modifier
+          .fillMaxWidth()
           .verticalScroll(rememberScrollState())
-          .padding(vertical = MaterialTheme.spacing.medium),
+          .padding(bottom = 8.dp),
     ) {
-      Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_aspect_ratio),
-        style = MaterialTheme.typography.headlineSmall,
-        modifier =
-          Modifier
-            .padding(horizontal = MaterialTheme.spacing.medium)
-            .padding(bottom = MaterialTheme.spacing.small),
-      )
-
       val autoCropSummary =
         when {
           !autoCropControlEnabled -> app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars_managed
@@ -109,74 +102,80 @@ fun AspectRatioSheet(
           autoCropState == AutoCropState.ERROR -> app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars_failed
           else -> app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars_summary
         }
-      ListItem(
-        content = {
-          Text(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars))
-        },
-        supportingContent = { Text(androidx.compose.ui.res.stringResource(autoCropSummary)) },
-        trailingContent = {
-          Switch(
-            checked = autoCropEnabled,
-            onCheckedChange = onAutoCropChanged,
-            enabled = autoCropControlEnabled,
-          )
-        },
-        modifier =
-          Modifier.clickable(enabled = autoCropControlEnabled) {
-            onAutoCropChanged(!autoCropEnabled)
-          },
-      )
-
-      // Preset ratios
-      Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_presets),
-        style = MaterialTheme.typography.titleSmall,
+      Surface(
         modifier =
           Modifier
-            .padding(horizontal = MaterialTheme.spacing.medium)
-            .padding(top = MaterialTheme.spacing.small),
-      )
-
-      LazyRow(
-        modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium),
-        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color =
+          if (autoCropEnabled) {
+            MaterialTheme.colorScheme.secondaryContainer
+          } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+          },
       ) {
-        items(presetRatios, key = { it.label }) { ratio ->
+        ListItem(
+          content = {
+            Text(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars))
+          },
+          supportingContent = { Text(androidx.compose.ui.res.stringResource(autoCropSummary)) },
+          trailingContent = {
+            IconSwitch(
+              checked = autoCropEnabled,
+              onCheckedChange = null,
+              enabled = autoCropControlEnabled,
+            )
+          },
+          modifier =
+            Modifier.clickable(enabled = autoCropControlEnabled) {
+              onAutoCropChanged(!autoCropEnabled)
+            },
+          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
+      }
+
+      // Preset ratios
+      PlayerSheetSectionHeader(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_presets))
+
+      androidx.compose.foundation.layout.FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        presetRatios.forEach { ratio ->
           InputChip(
             selected = currentRatio?.let { abs(it - ratio.ratio) < 0.01 } ?: (ratio.ratio == -1.0),
             onClick = { onSelectRatio(ratio.ratio) },
             label = { Text(ratio.label) },
-            modifier = Modifier.animateItem(),
             leadingIcon = null,
+            colors = androidx.compose.material3.InputChipDefaults.inputChipColors(
+              containerColor = playerSheetSelectionColor(false),
+              selectedContainerColor = playerSheetSelectionColor(true),
+              selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
           )
         }
       }
 
       // Custom ratios
       if (customRatios.isNotEmpty()) {
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.pref_gesture_double_tap_custom),
-          style = MaterialTheme.typography.titleSmall,
-          modifier =
-            Modifier
-              .padding(horizontal = MaterialTheme.spacing.medium)
-              .padding(top = MaterialTheme.spacing.medium),
-        )
+        PlayerSheetSectionHeader(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.pref_gesture_double_tap_custom))
 
-        LazyRow(
-          modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium),
-          horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+        androidx.compose.foundation.layout.FlowRow(
+          modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          items(customRatios, key = { it.label }) { ratio ->
+          customRatios.forEach { ratio ->
             InputChip(
               selected = currentRatio?.let { abs(it - ratio.ratio) < 0.01 } ?: false,
               onClick = { onSelectRatio(ratio.ratio) },
               label = { Text(ratio.label) },
               leadingIcon = null,
+            colors = androidx.compose.material3.InputChipDefaults.inputChipColors(
+              containerColor = playerSheetSelectionColor(false),
+              selectedContainerColor = playerSheetSelectionColor(true),
+              selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ),
               trailingIcon = {
                 Icon(
                   Icons.RoundedFilled.Close,
@@ -184,7 +183,6 @@ fun AspectRatioSheet(
                   modifier = Modifier.clickable { onDeleteCustomRatio(ratio) },
                 )
               },
-              modifier = Modifier.animateItem(),
             )
           }
         }

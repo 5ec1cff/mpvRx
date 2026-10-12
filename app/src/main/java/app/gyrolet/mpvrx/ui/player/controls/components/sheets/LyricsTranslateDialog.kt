@@ -7,7 +7,6 @@ package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,16 +18,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +32,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,12 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.data.lyrics.LyricsLanguageOptions
-import app.gyrolet.mpvrx.data.lyrics.SupportedLanguage
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.LyricsTranslationDisplayMode
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.theme.fontFamilyForText
 import org.koin.compose.koinInject
@@ -66,7 +60,7 @@ fun LyricsTranslateDialog(
   val audioPreferences = koinInject<AudioPreferences>()
   val displayMode by audioPreferences.lyricsTranslationDisplayMode.collectAsState()
   val state by viewModel.lyricsUiState.collectAsState()
-  var searchQuery by remember { mutableStateOf("") }
+  var searchQuery by rememberSaveable { mutableStateOf("") }
 
   val filteredLanguages = remember(searchQuery) {
     if (searchQuery.isBlank()) {
@@ -78,43 +72,39 @@ fun LyricsTranslateDialog(
     }
   }
 
-  AlertDialog(
+  AppPickerSheet(
     onDismissRequest = onDismiss,
-    title = {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Icon(
-            imageVector = Icons.RoundedFilled.Translate,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp),
-          )
-          Spacer(modifier = Modifier.width(10.dp))
-          Text(
-            text = stringResource(R.string.lyrics_translate_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-          )
-        }
-        if (state.isTranslating) {
-          CircularProgressIndicator(
-            modifier = Modifier.size(20.dp),
-            strokeWidth = 2.dp,
-            color = MaterialTheme.colorScheme.primary,
-          )
-        }
+    title = stringResource(R.string.lyrics_translate_title),
+    scrollContent = false,
+    actions = {
+      TextButton(onClick = onDismiss) {
+        Text(stringResource(R.string.ui_done), fontWeight = FontWeight.Bold)
       }
     },
-    text = {
-      Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .heightIn(max = 440.dp),
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+    ) {
+      if (state.isTranslating) {
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
       ) {
+        CircularProgressIndicator(
+          modifier = Modifier.size(20.dp),
+          strokeWidth = 2.dp,
+          color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+          text = stringResource(R.string.lyrics_translating),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+      Spacer(modifier = Modifier.height(10.dp))
+      }
+
         // Option to toggle off (original lyrics)
         Surface(
           modifier = Modifier
@@ -144,7 +134,7 @@ fun LyricsTranslateDialog(
                 color = if (!state.isTranslationActive) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
               )
               Text(
-                text = "Show original language without translation",
+                text = stringResource(R.string.lyrics_translation_off_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline,
               )
@@ -163,7 +153,13 @@ fun LyricsTranslateDialog(
           FilterChip(
             selected = displayMode == LyricsTranslationDisplayMode.DualLine,
             onClick = { audioPreferences.lyricsTranslationDisplayMode.set(LyricsTranslationDisplayMode.DualLine) },
-            label = { Text("Dual-Line", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+            label = {
+              Text(
+                stringResource(R.string.lyrics_translation_dual_line),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+              )
+            },
             modifier = Modifier.weight(1f),
             colors = FilterChipDefaults.filterChipColors(
               selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -173,7 +169,13 @@ fun LyricsTranslateDialog(
           FilterChip(
             selected = displayMode == LyricsTranslationDisplayMode.Replace,
             onClick = { audioPreferences.lyricsTranslationDisplayMode.set(LyricsTranslationDisplayMode.Replace) },
-            label = { Text("Replace Original", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+            label = {
+              Text(
+                stringResource(R.string.lyrics_translation_replace),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+              )
+            },
             modifier = Modifier.weight(1f),
             colors = FilterChipDefaults.filterChipColors(
               selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -184,26 +186,28 @@ fun LyricsTranslateDialog(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Search Filter
-        OutlinedTextField(
-          value = searchQuery,
-          onValueChange = { searchQuery = it },
-          placeholder = { Text("Search language...") },
-          modifier = Modifier.fillMaxWidth(),
-          singleLine = true,
-          shape = RoundedCornerShape(10.dp),
+        PlayerSheetSearchField(
+          query = searchQuery,
+          onQueryChange = { searchQuery = it },
+          placeholder = stringResource(R.string.ui_search_language),
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Language List
-        LazyColumn(
-          modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f, fill = false),
-          verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-          items(filteredLanguages, key = { it.code }) { lang ->
+        if (filteredLanguages.isEmpty()) {
+          Text(
+            text = stringResource(R.string.lyrics_translation_no_languages),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+          )
+        } else {
+          LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 320.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            items(filteredLanguages, key = { it.code }) { lang ->
             val isSelected = state.isTranslationActive && state.targetLanguage.equals(lang.code, ignoreCase = true)
             Row(
               modifier = Modifier
@@ -236,21 +240,16 @@ fun LyricsTranslateDialog(
                 )
                 if (lang.isRomanization) {
                   Text(
-                    text = lang.subtitle ?: "Pronunciation / Romanized",
+                    text = lang.subtitle ?: stringResource(R.string.lyrics_translation_romanized),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.tertiary,
                   )
                 }
               }
             }
+            }
           }
         }
       }
-    },
-    confirmButton = {
-      TextButton(onClick = onDismiss) {
-        Text("Done", fontWeight = FontWeight.Bold)
-      }
-    },
-  )
+    }
 }

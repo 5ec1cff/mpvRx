@@ -17,9 +17,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,7 +35,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -76,6 +74,9 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
@@ -662,7 +663,7 @@ object CodecCapabilitiesScreen : Screen {
           .padding(innerPadding)
           .padding(horizontal = 16.dp)
           .then(settingsHighlight),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
       ) {
         // Hero Diagnostics Summary Banner with Live Stat Pills
         item {
@@ -774,9 +775,9 @@ object CodecCapabilitiesScreen : Screen {
               modifier = Modifier.padding(bottom = 10.dp),
             )
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-              for (k in keyVideoCodecs) {
-                KeyCodecStatusCard(status = k)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+              keyVideoCodecs.forEachIndexed { index, codec ->
+                KeyCodecStatusCard(status = codec, index = index, itemCount = keyVideoCodecs.size)
               }
             }
           }
@@ -907,12 +908,12 @@ object CodecCapabilitiesScreen : Screen {
             }
           }
         } else {
-          items(
+          itemsIndexed(
             items = filteredCodecs,
-            key = { "${it.name}_${it.mimeType}" },
-            contentType = { "codec_card" },
-          ) { codec ->
-            CodecDetailCard(codec = codec)
+            key = { _, codec -> "${codec.name}_${codec.mimeType}" },
+            contentType = { _, _ -> "codec_card" },
+          ) { index, codec ->
+            CodecDetailCard(codec = codec, index = index, itemCount = filteredCodecs.size)
           }
         }
 
@@ -973,7 +974,7 @@ private fun StatCounterChip(
 }
 
 @Composable
-private fun KeyCodecStatusCard(status: KeyCodecStatus) {
+private fun KeyCodecStatusCard(status: KeyCodecStatus, index: Int, itemCount: Int) {
   val isHw = status.hasHardware
   val isSw = !isHw && status.hasSoftware
   val badgeBg =
@@ -1000,8 +1001,7 @@ private fun KeyCodecStatusCard(status: KeyCodecStatus) {
   Card(
     modifier = Modifier.fillMaxWidth(),
     colors = CardDefaults.cardColors(containerColor = cardBg),
-    shape = RoundedCornerShape(16.dp),
-    border = borderStrokeForHw(isHw),
+    shape = rememberConnectedShape(index, itemCount, ConnectedLayout.Vertical),
   ) {
     Column(modifier = Modifier.padding(16.dp)) {
       Row(
@@ -1111,11 +1111,12 @@ private fun borderStrokeForHw(isHw: Boolean) = if (isHw) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CodecDetailCard(codec: CodecCapabilitiesInfo) {
+private fun CodecDetailCard(codec: CodecCapabilitiesInfo, index: Int, itemCount: Int) {
   var expanded by remember { mutableStateOf(false) }
   val arrowRotation by animateFloatAsState(
     targetValue = if (expanded) 180f else 0f,
-    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+    animationSpec =
+      if (AppMotion.shouldReduceMotion()) AppMotion.ReducedAlpha else AppMotion.Spatial.ExpressiveFast,
     label = "ArrowRotation",
   )
 
@@ -1127,11 +1128,7 @@ private fun CodecDetailCard(codec: CodecCapabilitiesInfo) {
     colors = CardDefaults.cardColors(
       containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ),
-    shape = RoundedCornerShape(16.dp),
-    border = androidx.compose.foundation.BorderStroke(
-      1.dp,
-      MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-    ),
+    shape = rememberConnectedShape(index, itemCount, ConnectedLayout.Vertical),
   ) {
     Column(modifier = Modifier.padding(16.dp)) {
       Row(

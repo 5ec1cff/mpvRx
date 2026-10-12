@@ -35,24 +35,25 @@ internal fun MpvConfigOverridePreference(
   val selectedOptions = remember(storedValues) { MpvConfigOverride.resolveOptionNames(storedValues) }
   val selectedGroups = remember(selectedOptions) { MpvConfigOverride.groupsContaining(selectedOptions) }
 
-  Preference(
-    modifier = modifier,
-    title = { Text(stringResource(R.string.pref_mpv_conf_overrides_title)) },
-    summary = {
-      Text(
-        text =
-          if (selectedOptions.isEmpty()) {
-            stringResource(R.string.pref_mpv_conf_overrides_summary_app_owned)
-          } else {
-            stringResource(
-              R.string.pref_mpv_conf_overrides_summary_config_owned,
-              selectedGroups.size,
-              selectedOptions.size,
-            )
-          },
-        color = MaterialTheme.colorScheme.outline,
-      )
-    },
-    onClick = { backStack.navigateTo(MpvConfOwnershipScreen) },
-  )
+  ExpressivePreferenceItem(modifier = modifier) {
+    Preference(
+      title = { Text(stringResource(R.string.pref_mpv_conf_overrides_title)) },
+      summary = {
+        Text(
+          text =
+            if (selectedOptions.isEmpty()) {
+              stringResource(R.string.pref_mpv_conf_overrides_summary_app_owned)
+            } else {
+              stringResource(
+                R.string.pref_mpv_conf_overrides_summary_config_owned,
+                selectedGroups.size,
+                selectedOptions.size,
+              )
+            },
+          color = MaterialTheme.colorScheme.outline,
+        )
+      },
+      onClick = { backStack.navigateTo(MpvConfOwnershipScreen) },
+    )
+  }
 }

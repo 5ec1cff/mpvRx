@@ -51,8 +51,13 @@ abstract class BaseBrowserViewModel(
    *
    * @return Pair of (deletedCount, failedCount)
    */
-  open suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {
-    val result = StorageOps.deleteVideos(getApplication(), videos)
+  open suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> = deleteVideos(videos) {}
+
+  protected suspend fun deleteVideos(
+    videos: List<Video>,
+    onDeleted: (Video) -> Unit,
+  ): Pair<Int, Int> {
+    val result = StorageOps.deleteVideos(getApplication(), videos, onDeleted)
 
     // Invalidate cache for deleted videos
     val paths = videos.map { it.path }

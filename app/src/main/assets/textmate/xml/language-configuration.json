@@ -1,0 +1,58 @@
+{
+  "comments": {
+    "blockComment": [
+      "<!--",
+      "-->"
+    ]
+  },
+  "brackets": [
+    [
+      "<",
+      ">"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "{",
+      "}"
+    ]
+  ],
+  "autoClosingPairs": [
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "'",
+      "'"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "{",
+      "}"
+    ]
+  ],
+  "surroundingPairs": [
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "'",
+      "'"
+    ],
+    [
+      "<",
+      ">"
+    ]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "<[^/!?][^>]*>(?!.*</[^>]+>)",
+    "decreaseIndentPattern": "^\\s*</"
+  }
+}

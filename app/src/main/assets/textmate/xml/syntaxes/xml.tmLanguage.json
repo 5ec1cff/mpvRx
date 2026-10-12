@@ -1,0 +1,40 @@
+{
+  "name": "XML",
+  "scopeName": "text.xml",
+  "patterns": [
+    {
+      "name": "comment.block.xml",
+      "begin": "<!--",
+      "end": "-->"
+    },
+    {
+      "name": "meta.tag.xml",
+      "begin": "</?[A-Za-z_:][\\w:.-]*",
+      "end": "/?>",
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.xml",
+          "match": "[A-Za-z_:][\\w:.-]*(?=\\s*=)"
+        },
+        {
+          "name": "string.quoted.double.xml",
+          "begin": "\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.single.xml",
+          "begin": "'",
+          "end": "'"
+        },
+        {
+          "name": "keyword.operator.assignment.xml",
+          "match": "="
+        }
+      ]
+    },
+    {
+      "name": "constant.character.entity.xml",
+      "match": "&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z]+);"
+    }
+  ]
+}

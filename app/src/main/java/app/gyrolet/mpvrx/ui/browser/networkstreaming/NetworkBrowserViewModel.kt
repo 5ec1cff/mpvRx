@@ -24,6 +24,7 @@ import app.gyrolet.mpvrx.domain.network.NetworkFile
 import app.gyrolet.mpvrx.domain.network.NetworkPath
 import app.gyrolet.mpvrx.domain.network.NetworkPlaybackUri
 import app.gyrolet.mpvrx.domain.network.NetworkProtocol
+import app.gyrolet.mpvrx.domain.network.isNetworkImageFile
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.NetworkSortType
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
@@ -39,6 +40,8 @@ import app.gyrolet.mpvrx.utils.media.M3UPlaylistItem
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -46,6 +49,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -74,6 +78,9 @@ class NetworkBrowserViewModel(
   private val browserPreferences: BrowserPreferences by inject()
   private val playerPreferences: PlayerPreferences by inject()
 
+  // A refresh can overtake a previous SMB request; never allow the older listing
+  // to replace the currently selected share/folder's results.
+  private var pendingListing: Job? = null
   private val _files = MutableStateFlow<List<NetworkFile>>(emptyList())
   val files: StateFlow<List<NetworkFile>> = _files.asStateFlow()
 
@@ -93,7 +100,8 @@ class NetworkBrowserViewModel(
    * Load files in the current directory
    */
   fun loadFiles() {
-    viewModelScope.launch {
+    pendingListing?.cancel()
+    pendingListing = viewModelScope.launch {
       _isLoading.value = true
       _error.value = null
 
@@ -106,18 +114,29 @@ class NetworkBrowserViewModel(
         repository
           .listFiles(connection, currentPath)
           .onSuccess { fileList ->
+            coroutineContext.ensureActive()
             _files.value =
+              // A stable base order for consumers that do not re-sort. Display order is applied in
+              // NetworkBrowserScreen and the playback queue re-sorts in
+              // currentDirectoryPlayableFiles, so the preference-based sort that used to run here
+              // was always overwritten.
               fileList.sortedWith(
-                compareBy<NetworkFile> { !it.isDirectory }
-                  .thenBy { it.name.lowercase() },
+                compareBy<NetworkFile> { !it.isDirectory }.thenBy { it.name.lowercase() },
               )
           }.onFailure { e ->
+            if (e is CancellationException) throw e
+            // Do not keep presenting old folder contents after a failed refresh.
+            _files.value = emptyList()
             _error.value = e.message ?: "Unknown error"
           }
+      } catch (cancellation: CancellationException) {
+        throw cancellation
       } catch (e: Exception) {
+        _files.value = emptyList()
         _error.value = e.message ?: "Unknown error"
       } finally {
-        _isLoading.value = false
+        // The cancelled request may finish after its replacement starts.
+        if (pendingListing === coroutineContext[Job]) _isLoading.value = false
       }
     }
   }
@@ -132,7 +151,7 @@ class NetworkBrowserViewModel(
           repository.getConnectionById(connectionId)
             ?: throw Exception("Connection not found")
 
-        if (isM3uFile(file)) {
+        if (file.isNetworkPlaylistFile()) {
           openM3uFile(connection, file)
         } else {
           playVideoInternal(connection, file)
@@ -141,25 +160,6 @@ class NetworkBrowserViewModel(
         throw cancellation
       } catch (e: Exception) {
         Log.e(TAG, "Error opening network media", e)
-        _error.value = e.message ?: "Unknown error"
-      }
-    }
-  }
-
-  /**
-   * Play a video file
-   */
-  fun playVideo(file: NetworkFile) {
-    viewModelScope.launch {
-      try {
-        val connection =
-          repository.getConnectionById(connectionId)
-            ?: throw Exception("Connection not found")
-        playVideoInternal(connection, file)
-      } catch (cancellation: CancellationException) {
-        throw cancellation
-      } catch (e: Exception) {
-        Log.e(TAG, "Error playing video", e)
         _error.value = e.message ?: "Unknown error"
       }
     }
@@ -329,8 +329,6 @@ class NetworkBrowserViewModel(
       else -> 80
     }
 
-  private fun isM3uFile(file: NetworkFile): Boolean = file.isNetworkPlaylistFile()
-
   companion object {
     private const val TAG = "NetworkBrowserVM"
 
@@ -382,7 +380,9 @@ internal fun List<NetworkFile>.sortedForNetworkBrowser(
   sortType: NetworkSortType,
   sortOrder: SortOrder,
 ): List<NetworkFile> {
-  val (directories, media) = partition(NetworkFile::isDirectory)
+  val directories = filter(NetworkFile::isDirectory)
+  val images = filter { it.isNetworkImageFile() }
+  val media = filter { !it.isDirectory && !it.isNetworkImageFile() }
 
   fun List<NetworkFile>.sortedGroup(): List<NetworkFile> =
     when (sortType) {
@@ -394,5 +394,5 @@ internal fun List<NetworkFile>.sortedForNetworkBrowser(
         if (sortOrder.isAscending) sortedBy(NetworkFile::size) else sortedByDescending(NetworkFile::size)
     }
 
-  return directories.sortedGroup() + media.sortedGroup()
+  return directories.sortedGroup() + media.sortedGroup() + images.sortedGroup()
 }

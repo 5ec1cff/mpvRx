@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.browser.dialogs
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,36 +24,43 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.draw.alpha
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.media.model.Video
+import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -61,22 +69,44 @@ import java.util.Locale
 @Composable
 fun AddToPlaylistDialog(
   isOpen: Boolean,
-  videos: List<Video>,
+  candidates: List<PlaylistAddCandidate> = emptyList(),
   onDismiss: () -> Unit,
   onSuccess: () -> Unit,
   isJellyfin: Boolean = false,
   modifier: Modifier = Modifier,
+  onItemsAdded: () -> Unit = {},
+  videos: List<Video> = emptyList(),
 ) {
   val viewModel: AddToPlaylistViewModel = viewModel()
   val playlistOptions by viewModel.playlistOptions.collectAsState()
+  val isLoading by viewModel.isLoading.collectAsState()
   val scope = rememberCoroutineScope()
-  var showCreateDialog by remember { mutableStateOf(false) }
+  var showCreateDialog by rememberSaveable(isOpen) { mutableStateOf(false) }
+  var query by rememberSaveable(isOpen) { mutableStateOf("") }
+  var submittingId by rememberSaveable(isOpen) { mutableStateOf<String?>(null) }
   val context = LocalContext.current
-  val isAudio = remember(videos) { videos.any { it.isAudio } }
+  val resolvedCandidates = remember(candidates, videos) {
+    if (candidates.isNotEmpty()) candidates else videos.toPlaylistCandidates()
+  }
+  val isAudio = remember(resolvedCandidates) { resolvedCandidates.firstOrNull()?.isAudio == true }
+  val compatibleCandidates = remember(resolvedCandidates, isAudio) {
+    resolvedCandidates.filter { it.isAudio == isAudio }
+  }
+  val filteredOptions = remember(playlistOptions, query) {
+    val normalized = query.trim()
+    if (normalized.isEmpty()) playlistOptions else playlistOptions.filter { option ->
+      option.name.contains(normalized, ignoreCase = true)
+    }
+  }
+  val candidateCountText = pluralStringResource(
+    if (isAudio) R.plurals.playlist_picker_song_count else R.plurals.playlist_picker_video_count,
+    compatibleCandidates.size,
+    compatibleCandidates.size,
+  )
 
   androidx.compose.runtime.LaunchedEffect(isOpen, isAudio, isJellyfin) {
     if (isOpen) {
-      viewModel.loadPlaylists(isAudio = null, isJellyfin = isJellyfin)
+      viewModel.loadPlaylists(isAudio = isAudio, isJellyfin = isJellyfin)
     }
   }
 
@@ -86,82 +116,93 @@ fun AddToPlaylistDialog(
     CreatePlaylistDialog(
       onDismiss = { showCreateDialog = false },
       onConfirm = { name ->
+        if (submittingId != null || compatibleCandidates.isEmpty()) return@CreatePlaylistDialog
+        submittingId = "new"
         scope.launch {
-          viewModel.createAndAdd(name, videos, isJellyfin = isJellyfin)
-          val message =
-            if (isAudio) {
-              if (videos.size == 1) {
-                "Song added to \"$name\""
-              } else {
-                "${videos.size} songs added to \"$name\""
-              }
-            } else {
-              if (videos.size == 1) {
-                "Video added to \"$name\""
-              } else {
-                "${videos.size} videos added to \"$name\""
-              }
-            }
-          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-          showCreateDialog = false
-          onSuccess()
-          onDismiss()
+          try {
+            viewModel.createAndAdd(name, compatibleCandidates, isJellyfin = isJellyfin).getOrThrow()
+            val message =
+              context.getString(
+                if (isAudio) R.string.playlist_add_songs_success else R.string.playlist_add_videos_success,
+                compatibleCandidates.size,
+              )
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            showCreateDialog = false
+            onItemsAdded()
+            onSuccess()
+            onDismiss()
+          } catch (cancelled: CancellationException) {
+            throw cancelled
+          } catch (_: Exception) {
+            submittingId = null
+            Toast.makeText(context, R.string.playlist_add_failed, Toast.LENGTH_SHORT).show()
+          }
         }
       },
     )
     return
   }
 
-  AlertDialog(
+  AppPickerSheet(
     onDismissRequest = onDismiss,
-    title = {
-      Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_add_to_playlist),
-        style = MaterialTheme.typography.headlineMedium,
-        fontWeight = FontWeight.Bold,
-      )
+    title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_add_to_playlist),
+    subtitle = candidateCountText,
+    warning = if (compatibleCandidates.isEmpty()) {
+      androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_no_compatible_items)
+    } else {
+      null
     },
-    text = {
-      Column(
+    scrollContent = false,
+    actions = {
+      TextButton(onClick = onDismiss, enabled = submittingId == null) {
+        Text(
+          androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          fontWeight = FontWeight.Medium,
+        )
+      }
+    },
+    modifier = modifier,
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth(),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      OutlinedButton(
+        onClick = { showCreateDialog = true },
+        enabled = compatibleCandidates.isNotEmpty() && submittingId == null,
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        shape = MaterialTheme.shapes.extraLarge,
       ) {
-        // Show video / song count
+        Icon(
+          imageVector = Icons.RoundedFilled.Add,
+          contentDescription = null,
+          modifier = Modifier.size(20.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
           text =
-            if (isAudio) {
-              if (videos.size == 1) "Adding 1 song to playlist" else "Adding ${videos.size} songs to playlist"
-            } else {
-              if (videos.size == 1) "Adding 1 video to playlist" else "Adding ${videos.size} videos to playlist"
-            },
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_create_new_playlist),
+          fontWeight = FontWeight.Medium,
         )
+      }
 
-        // Create new playlist button
-        OutlinedButton(
-          onClick = { showCreateDialog = true },
-          modifier = Modifier.fillMaxWidth(),
-          shape = MaterialTheme.shapes.extraLarge,
-        ) {
-          Icon(
-            imageVector = Icons.RoundedFilled.Add,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          Text(
-            text =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.ui_create_new_playlist),
-            fontWeight = FontWeight.Medium,
-          )
+      PlayerSheetSearchField(
+        query = query,
+        onQueryChange = { query = it },
+        placeholder = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_search_hint),
+      )
+
+      when {
+        isLoading -> {
+          Box(
+            modifier = Modifier.fillMaxWidth().height(160.dp),
+            contentAlignment = Alignment.Center,
+          ) {
+            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+          }
         }
-
-        // Existing playlists
-        if (playlistOptions.isNotEmpty()) {
+        filteredOptions.isNotEmpty() -> {
           Text(
             text =
               androidx.compose.ui.res
@@ -172,85 +213,57 @@ fun AddToPlaylistDialog(
           )
 
           LazyColumn(
-            modifier = Modifier.height(300.dp),
+            modifier = Modifier.fillMaxWidth().height(300.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 4.dp),
           ) {
-            items(playlistOptions, key = { it.id }) { option ->
+            items(filteredOptions, key = { it.id }) { option ->
               PlaylistItemCard(
                 option = option,
+                enabled = submittingId == null && compatibleCandidates.isNotEmpty(),
+                isWorking = submittingId == option.id,
                 onClick = {
+                  if (submittingId != null || compatibleCandidates.isEmpty()) return@PlaylistItemCard
+                  submittingId = option.id
                   scope.launch {
-                    viewModel.addToPlaylist(option, videos, isJellyfin = isJellyfin)
-                    val message =
-                      if (isAudio) {
-                        if (videos.size == 1) {
-                          "Song added to \"${option.name}\""
-                        } else {
-                          "${videos.size} songs added to \"${option.name}\""
-                        }
-                      } else {
-                        if (videos.size == 1) {
-                          "Video added to \"${option.name}\""
-                        } else {
-                          "${videos.size} videos added to \"${option.name}\""
-                        }
-                      }
-                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    onSuccess()
-                    onDismiss()
+                    try {
+                      viewModel.addToPlaylist(option, compatibleCandidates, isJellyfin = isJellyfin).getOrThrow()
+                      val message =
+                        context.getString(
+                          if (isAudio) R.string.playlist_add_songs_success else R.string.playlist_add_videos_success,
+                          compatibleCandidates.size,
+                        )
+                      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                      onItemsAdded()
+                      onSuccess()
+                      onDismiss()
+                    } catch (cancelled: CancellationException) {
+                      throw cancelled
+                    } catch (_: Exception) {
+                      submittingId = null
+                      Toast.makeText(context, R.string.playlist_add_failed, Toast.LENGTH_SHORT).show()
+                    }
                   }
                 },
               )
             }
           }
-        } else {
-          // Empty state
-          EmptyPlaylistsMessage()
         }
-      }
-    },
-    confirmButton = {
-      Button(
-        onClick = {
-          onSuccess()
-          onDismiss()
-        },
-        colors =
-          ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-          ),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
-        Text(
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_done),
-          fontWeight = FontWeight.Bold,
+        query.isNotBlank() -> EmptyPlaylistsMessage(
+          title = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_search_empty),
+          subtitle = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.playlist_search_empty_hint),
         )
+        else -> EmptyPlaylistsMessage()
       }
-    },
-    dismissButton = {
-      TextButton(
-        onClick = onDismiss,
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
-        Text(
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-          fontWeight = FontWeight.Medium,
-        )
-      }
-    },
-    containerColor = MaterialTheme.colorScheme.surface,
-    tonalElevation = 6.dp,
-    shape = MaterialTheme.shapes.extraLarge,
-    modifier = modifier,
-  )
+    }
+  }
 }
 
 @Composable
 private fun PlaylistItemCard(
   option: PlaylistOption,
+  enabled: Boolean,
+  isWorking: Boolean,
   onClick: () -> Unit,
 ) {
   Card(
@@ -258,7 +271,8 @@ private fun PlaylistItemCard(
       Modifier
         .fillMaxWidth()
         .clip(AppShapeScale.medium)
-        .clickable(onClick = onClick),
+        .clickable(enabled = enabled, onClick = onClick)
+        .alpha(if (enabled || isWorking) 1f else 0.55f),
     shape = AppShapeScale.medium,
     colors =
       CardDefaults.cardColors(
@@ -272,12 +286,16 @@ private fun PlaylistItemCard(
           .padding(16.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      Icon(
-        imageVector = Icons.RoundedFilled.PlaylistPlay,
-        contentDescription = null,
-        modifier = Modifier.size(40.dp),
-        tint = MaterialTheme.colorScheme.primary,
-      )
+      if (isWorking) {
+        CircularProgressIndicator(modifier = Modifier.size(32.dp), strokeWidth = 3.dp)
+      } else {
+        Icon(
+          imageVector = Icons.RoundedFilled.PlaylistPlay,
+          contentDescription = null,
+          modifier = Modifier.size(40.dp),
+          tint = MaterialTheme.colorScheme.primary,
+        )
+      }
       Spacer(modifier = Modifier.width(12.dp))
       Column(
         modifier = Modifier.weight(1f),
@@ -291,7 +309,7 @@ private fun PlaylistItemCard(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-          text = option.subtitle ?: "${option.itemCount} items",
+          text = pluralStringResource(R.plurals.playlist_item_count_value, option.itemCount, option.itemCount),
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -301,7 +319,11 @@ private fun PlaylistItemCard(
 }
 
 @Composable
-private fun EmptyPlaylistsMessage() {
+private fun EmptyPlaylistsMessage(
+  title: String = androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_no_playlists_yet),
+  subtitle: String =
+    androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_create_your_first_playlist_above),
+) {
   Card(
     modifier = Modifier.fillMaxWidth(),
     shape = AppShapeScale.medium,
@@ -325,17 +347,13 @@ private fun EmptyPlaylistsMessage() {
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
       )
       Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_no_playlists_yet),
+        text = title,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
       Text(
-        text =
-          androidx.compose.ui.res
-            .stringResource(app.gyrolet.mpvrx.R.string.ui_create_your_first_playlist_above),
+        text = subtitle,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )

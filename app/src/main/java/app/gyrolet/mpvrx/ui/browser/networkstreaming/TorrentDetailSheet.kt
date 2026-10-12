@@ -13,15 +13,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +22,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,14 +32,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -75,12 +63,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.database.entities.NetworkStreamEntryEntity
 import app.gyrolet.mpvrx.domain.torrent.formatTorrentBytes
 import app.gyrolet.mpvrx.presentation.components.RemoteImage
@@ -113,7 +99,8 @@ fun TorrentDetailSheet(
       enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
     )
   val context = LocalContext.current
-  var isOverviewExpanded by remember { mutableStateOf(false) }
+  var isOverviewExpanded by remember(group.id) { mutableStateOf(false) }
+  var canExpandOverview by remember(group.id) { mutableStateOf(false) }
   var searchQuery by remember { mutableStateOf("") }
   var isSearchOpen by remember { mutableStateOf(false) }
   var sortDescending by remember { mutableStateOf(false) }
@@ -496,7 +483,7 @@ fun TorrentDetailSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 8.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable { isOverviewExpanded = !isOverviewExpanded },
+                .clickable(enabled = canExpandOverview) { isOverviewExpanded = !isOverviewExpanded },
           ) {
             Text(
               text = "Storyline",
@@ -511,14 +498,21 @@ fun TorrentDetailSheet(
               color = MaterialTheme.colorScheme.onSurfaceVariant,
               maxLines = if (isOverviewExpanded) Int.MAX_VALUE else 3,
               overflow = TextOverflow.Ellipsis,
+              onTextLayout = { textLayoutResult ->
+                if (!isOverviewExpanded) {
+                  canExpandOverview = textLayoutResult.hasVisualOverflow
+                }
+              },
             )
-            Text(
-              text = if (isOverviewExpanded) "Show less" else "Read more",
-              style = MaterialTheme.typography.labelSmall,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.primary,
-              modifier = Modifier.padding(top = 4.dp),
-            )
+            if (canExpandOverview) {
+              Text(
+                text = if (isOverviewExpanded) "Show less" else "Read more",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp),
+              )
+            }
           }
         }
       }

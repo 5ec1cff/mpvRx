@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.browser.networkstreaming
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -31,8 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -66,6 +63,8 @@ import app.gyrolet.mpvrx.domain.torrent.formatTorrentBytes
 import app.gyrolet.mpvrx.presentation.components.RemoteImage
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.utils.media.MediaInfoParser
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import kotlinx.coroutines.delay
@@ -458,6 +457,8 @@ fun TorrentResumeCard(
         .aspectRatio(16f / 9.5f)
         .shadow(6.dp, RoundedCornerShape(18.dp))
         .clip(RoundedCornerShape(18.dp))
+        .tvFocusHighlight(RoundedCornerShape(18.dp), focusedScale = 1.03f)
+        .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
@@ -611,6 +612,8 @@ fun TorrentPosterCard(
       modifier
         .width(135.dp)
         .clip(RoundedCornerShape(16.dp))
+        .tvFocusHighlight(RoundedCornerShape(16.dp), focusedScale = 1.03f)
+        .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
@@ -746,46 +749,6 @@ fun TorrentPosterCard(
           style = MaterialTheme.typography.labelSmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.padding(horizontal = 2.dp),
-        )
-      }
-    }
-  }
-}
-
-/**
- * Horizontal scrolling section of Torrent cards with a section header.
- */
-@Composable
-fun TorrentHorizontalSection(
-  title: String,
-  groups: List<TorrentStreamGroup>,
-  onGroupClick: (TorrentStreamGroup) -> Unit,
-  onGroupLongClick: ((TorrentStreamGroup) -> Unit)? = null,
-  modifier: Modifier = Modifier,
-  subtitle: String? = null,
-  onSeeAll: (() -> Unit)? = null,
-) {
-  if (groups.isEmpty()) return
-
-  Column(
-    modifier = modifier.fillMaxWidth(),
-    verticalArrangement = Arrangement.spacedBy(10.dp),
-  ) {
-    TorrentSectionHeader(
-      title = title,
-      subtitle = subtitle,
-      onSeeAll = onSeeAll,
-    )
-
-    LazyRow(
-      horizontalArrangement = Arrangement.spacedBy(12.dp),
-      contentPadding = PaddingValues(horizontal = 16.dp),
-    ) {
-      items(groups, key = { it.id }) { group ->
-        TorrentPosterCard(
-          group = group,
-          onClick = { onGroupClick(group) },
-          onLongClick = onGroupLongClick?.let { { it(group) } },
         )
       }
     }

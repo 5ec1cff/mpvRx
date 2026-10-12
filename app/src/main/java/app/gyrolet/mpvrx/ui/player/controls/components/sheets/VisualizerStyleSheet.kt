@@ -9,20 +9,19 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AudioVisualizerStyle
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
-import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 
 @Composable
 fun VisualizerStyleSheet(
@@ -31,30 +30,23 @@ fun VisualizerStyleSheet(
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  PlayerSheet(onDismissRequest) {
-    Column(modifier = modifier) {
-      Text(
-        text = stringResource(R.string.pref_audio_visualizer_style_title),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier =
-          Modifier.padding(
-            horizontal = MaterialTheme.spacing.medium,
-            vertical = MaterialTheme.spacing.small,
-          ),
-      )
-      LazyColumn {
-        items(AudioVisualizerStyle.entries, key = { it.name }) { style ->
-          AudioTrackRow(
-            title = stringResource(style.title),
-            isSelected = selectedStyle == style,
-            onClick = {
-              onSelectStyle(style)
-              onDismissRequest()
-            },
-          )
-        }
+  PlayerSheet(onDismissRequest, title = stringResource(R.string.pref_audio_visualizer_style_title)) {
+    LazyColumn(
+      modifier = modifier.fillMaxWidth(),
+      contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+    ) {
+      itemsIndexed(AudioVisualizerStyle.entries, key = { _, style -> style.name }) { index, style ->
+        AudioTrackRow(
+          title = stringResource(style.title),
+          isSelected = selectedStyle == style,
+          onClick = {
+            onSelectStyle(style)
+            onDismissRequest()
+          },
+          groupIndex = index,
+          groupSize = AudioVisualizerStyle.entries.size,
+        )
       }
     }
   }

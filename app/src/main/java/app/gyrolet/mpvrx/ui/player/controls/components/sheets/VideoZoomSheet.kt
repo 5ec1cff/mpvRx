@@ -9,10 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import app.gyrolet.mpvrx.ui.player.PlaybackSession
-
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +39,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
@@ -70,16 +68,11 @@ fun VideoZoomSheet(
 
   val currentOnSetVideoZoom by rememberUpdatedState(onSetVideoZoom)
 
-  LaunchedEffect(Unit) {
-    val mpvZoom = PlaybackSession.getPropertyDouble("video-zoom")?.toFloat() ?: videoZoom
-    zoom = mpvZoom
-  }
-
   LaunchedEffect(zoom) {
     if (zoomControlEnabled) currentOnSetVideoZoom(zoom)
   }
 
-  PlayerSheet(onDismissRequest = onDismissRequest) {
+  PlayerSheet(onDismissRequest = onDismissRequest, title = stringResource(R.string.btn_label_zoom)) {
     ZoomVideoSheet(
       zoom = zoom,
       defaultZoom = defaultZoom,
@@ -121,6 +114,8 @@ private fun ZoomVideoSheet(
   panControlEnabled: Boolean,
   modifier: Modifier = Modifier,
 ) {
+  val preferences = koinInject<PlayerPreferences>()
+  val overlaysFollowZoom by preferences.overlaysFollowVideoZoom.collectAsState()
   val isDefault = zoom == defaultZoom
   val isZero = zoom == 0f
 
@@ -129,8 +124,8 @@ private fun ZoomVideoSheet(
       modifier
         .fillMaxWidth()
         .verticalScroll(rememberScrollState())
-        .padding(vertical = MaterialTheme.spacing.medium),
-    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
+        .padding(vertical = 8.dp),
+      verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     // Zoom slider with +/- buttons
     Row(
@@ -147,14 +142,14 @@ private fun ZoomVideoSheet(
           onZoomChange(newZoom)
         },
         enabled = zoomControlEnabled,
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         Icon(
           Icons.RoundedFilled.Remove,
           contentDescription =
             androidx.compose.ui.res
               .stringResource(app.gyrolet.mpvrx.R.string.ui_decrease_zoom),
-          modifier = Modifier.size(18.dp),
+          modifier = Modifier.size(24.dp),
         )
       }
 
@@ -175,14 +170,14 @@ private fun ZoomVideoSheet(
           onZoomChange(newZoom)
         },
         enabled = zoomControlEnabled,
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         Icon(
           Icons.RoundedFilled.Add,
           contentDescription =
             androidx.compose.ui.res
               .stringResource(app.gyrolet.mpvrx.R.string.ui_increase_zoom),
-          modifier = Modifier.size(18.dp),
+          modifier = Modifier.size(24.dp),
         )
       }
     }
@@ -207,7 +202,6 @@ private fun ZoomVideoSheet(
         IconSwitch(
           checked = panAndZoomEnabled,
           onCheckedChange = onPanAndZoomToggle,
-          modifier = Modifier.scale(0.8f),
           enabled = panControlEnabled,
         )
         Spacer(modifier = Modifier.width(8.dp))
@@ -226,6 +220,13 @@ private fun ZoomVideoSheet(
             },
         )
       }
+
+      ZoomOverlaySwitch(
+        title = stringResource(R.string.player_zoom_overlays_follow),
+        summary = stringResource(R.string.player_zoom_overlays_follow_summary),
+        checked = overlaysFollowZoom,
+        onCheckedChange = { preferences.overlaysFollowVideoZoom.set(it) },
+      )
 
       // Action buttons
       Row(
@@ -249,5 +250,28 @@ private fun ZoomVideoSheet(
         }
       }
     }
+  }
+}
+
+@Composable
+private fun ZoomOverlaySwitch(
+  title: String,
+  summary: String,
+  checked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  Row(
+    modifier = Modifier.fillMaxWidth()
+      .background(animatedPlayerSheetSelectionColor(checked), MaterialTheme.shapes.medium)
+      .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+      .padding(horizontal = 12.dp, vertical = 10.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+  ) {
+    Column(Modifier.weight(1f)) {
+      Text(title, style = MaterialTheme.typography.bodyMedium)
+      Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    IconSwitch(checked = checked, onCheckedChange = null)
   }
 }

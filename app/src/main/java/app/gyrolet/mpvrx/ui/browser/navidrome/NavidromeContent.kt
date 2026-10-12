@@ -11,27 +11,20 @@ package app.gyrolet.mpvrx.ui.browser.navidrome
 
 import app.gyrolet.mpvrx.ui.utils.NavigationBackHandler as BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -41,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.PrimaryScrollableTabRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -68,14 +60,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.navidrome.NavidromeMusicTab
-import app.gyrolet.mpvrx.domain.navidrome.NavidromeServer
 import app.gyrolet.mpvrx.preferences.MediaServerPreferences
 import app.gyrolet.mpvrx.preferences.MusicSourceProvider
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.repository.JellyfinRepository
 import app.gyrolet.mpvrx.repository.NavidromeRepository
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
-import app.gyrolet.mpvrx.ui.browser.music.SharedMusicGridCard
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicTrackListItem
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -155,12 +145,18 @@ fun NavidromeContent(
   }
 
   val headerContainerColor =
-    if (MaterialTheme.colorScheme.background == Color.Black) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    if (app.gyrolet.mpvrx.ui.theme.LocalAppWallpaperActive.current) {
+      Color.Transparent
+    } else if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surfaceContainer
+    }
 
   Column(
     modifier = modifier
       .fillMaxSize()
-      .background(MaterialTheme.colorScheme.background),
+      .background(app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor()),
   ) {
     // Top Bar Container
     Column(
@@ -231,173 +227,9 @@ fun NavidromeContent(
           onSettingsClick = {
             backstack.navigateTo(app.gyrolet.mpvrx.ui.preferences.PreferencesScreen)
           },
-          preSearchActions = {
-            if (isMusicOnlyMode) {
-              var isSourceDropdownOpen by remember { mutableStateOf(false) }
-              Box {
-                Surface(
-                  shape = RoundedCornerShape(16.dp),
-                  color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-                  modifier = Modifier
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-                    .clickable { isSourceDropdownOpen = true },
-                ) {
-                  Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                  ) {
-                    androidx.compose.material3.Icon(
-                      painter = painterResource(R.drawable.ic_navidrome),
-                      contentDescription = null,
-                      modifier = Modifier.size(16.dp),
-                      tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                      text = stringResource(R.string.pref_navidrome_title),
-                      style = MaterialTheme.typography.labelMedium,
-                      fontWeight = FontWeight.Bold,
-                      color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Icon(
-                      Icons.RoundedFilled.ArrowDropDown,
-                      contentDescription = null,
-                      modifier = Modifier.size(16.dp),
-                      tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                  }
-                }
-
-                DropdownMenu(
-                  expanded = isSourceDropdownOpen,
-                  onDismissRequest = { isSourceDropdownOpen = false },
-                ) {
-                  DropdownMenuItem(
-                    text = {
-                      Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                      ) {
-                        Text(stringResource(R.string.music_source_local))
-                        if (currentMusicSource == MusicSourceProvider.LOCAL) {
-                          Spacer(Modifier.width(12.dp))
-                          Icon(
-                            Icons.RoundedFilled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                          )
-                        }
-                      }
-                    },
-                    leadingIcon = {
-                      Icon(Icons.RoundedFilled.Folder, contentDescription = null)
-                    },
-                    onClick = {
-                      mediaServerPreferences.musicSourceProvider.set(MusicSourceProvider.LOCAL)
-                      isSourceDropdownOpen = false
-                    },
-                  )
-
-                  if (jellyfinServers.isNotEmpty()) {
-                    DropdownMenuItem(
-                      text = {
-                        Row(
-                          verticalAlignment = Alignment.CenterVertically,
-                          horizontalArrangement = Arrangement.SpaceBetween,
-                          modifier = Modifier.fillMaxWidth(),
-                        ) {
-                          Text(stringResource(R.string.music_source_jellyfin))
-                          if (currentMusicSource == MusicSourceProvider.JELLYFIN) {
-                            Spacer(Modifier.width(12.dp))
-                            Icon(
-                              Icons.RoundedFilled.Check,
-                              contentDescription = null,
-                              modifier = Modifier.size(18.dp),
-                              tint = MaterialTheme.colorScheme.primary,
-                            )
-                          }
-                        }
-                      },
-                      leadingIcon = {
-                        androidx.compose.material3.Icon(
-                          painter = painterResource(R.drawable.ic_jellyfin),
-                          contentDescription = null,
-                          modifier = Modifier.size(20.dp),
-                          tint = MaterialTheme.colorScheme.primary,
-                        )
-                      },
-                      onClick = {
-                        mediaServerPreferences.musicSourceProvider.set(MusicSourceProvider.JELLYFIN)
-                        isSourceDropdownOpen = false
-                      },
-                    )
-                  }
-
-                  DropdownMenuItem(
-                    text = {
-                      Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                      ) {
-                        Text(stringResource(R.string.music_source_navidrome))
-                        if (currentMusicSource == MusicSourceProvider.NAVIDROME) {
-                          Spacer(Modifier.width(12.dp))
-                          Icon(
-                            Icons.RoundedFilled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                          )
-                        }
-                      }
-                    },
-                    leadingIcon = {
-                      androidx.compose.material3.Icon(
-                        painter = painterResource(R.drawable.ic_navidrome),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                      )
-                    },
-                    onClick = {
-                      mediaServerPreferences.musicSourceProvider.set(MusicSourceProvider.NAVIDROME)
-                      isSourceDropdownOpen = false
-                    },
-                  )
-
-                  HorizontalDivider()
-
-                  DropdownMenuItem(
-                    text = { Text(stringResource(R.string.pref_media_servers_title)) },
-                    leadingIcon = {
-                      Icon(Icons.RoundedFilled.Settings, contentDescription = null)
-                    },
-                    onClick = {
-                      isSourceDropdownOpen = false
-                      backstack.navigateTo(app.gyrolet.mpvrx.ui.preferences.MediaServersPreferencesScreen)
-                    },
-                  )
-                }
-              }
-            }
-          },
-          postSearchActions = {
-            IconButton(
-              onClick = { backstack.navigateTo(app.gyrolet.mpvrx.ui.downloads.DownloadsScreen) },
-              modifier = Modifier.padding(horizontal = 2.dp),
-            ) {
-              Icon(
-                imageVector = Icons.RoundedFilled.Download,
-                contentDescription = stringResource(R.string.downloads_open_downloads),
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          },
+          titleTrailing = if (isMusicOnlyMode) {
+            { app.gyrolet.mpvrx.ui.browser.music.MusicSourceDropdown() }
+          } else null,
         )
       }
 

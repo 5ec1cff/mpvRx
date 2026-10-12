@@ -9,52 +9,42 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.presentation.components.PlayerSheet
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 
 data class AudioPropertyItem(
   val label: String,
   val value: String,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPropertiesSheet(
   properties: List<AudioPropertyItem>,
   onDismissRequest: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val sheetState =
-    rememberBottomSheetState(
-      initialValue = SheetValue.Hidden,
-      enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-    )
-
-  ModalBottomSheet(
+  PlayerSheet(
     onDismissRequest = onDismissRequest,
-    sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    dragHandle = null,
     modifier = modifier,
   ) {
     Column(
@@ -62,45 +52,39 @@ fun AudioPropertiesSheet(
         Modifier
           .fillMaxWidth()
           .verticalScroll(rememberScrollState())
-          .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 48.dp),
+          .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
     ) {
-      Text(
-        text = "AUDIO PROPERTIES",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 2.sp,
-        fontWeight = FontWeight.SemiBold,
-      )
-
-      Spacer(modifier = Modifier.height(16.dp))
-
       properties.forEachIndexed { index, prop ->
-        Column(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clip(RoundedCornerShape(12.dp))
-              .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f))
-              .padding(horizontal = 16.dp, vertical = 12.dp),
+        val shape =
+          rememberConnectedShape(
+            index = index,
+            itemCount = properties.size,
+            layout = ConnectedLayout.Vertical,
+          )
+        Surface(
+          modifier = Modifier.fillMaxWidth(),
+          shape = shape,
+          color = animatedPlayerSheetSelectionColor(false),
         ) {
-          Text(
-            text = prop.label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-          )
-          Spacer(modifier = Modifier.height(4.dp))
-          Text(
-            text = prop.value.ifBlank { "Unknown" },
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-          )
-        }
-        if (index < properties.lastIndex) {
-          Spacer(modifier = Modifier.height(8.dp))
+          Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+          ) {
+            Text(
+              text = prop.label,
+              style = MaterialTheme.typography.labelMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+              text = prop.value.ifBlank { "Unknown" },
+              style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+              color = MaterialTheme.colorScheme.onSurface,
+              maxLines = 4,
+              overflow = TextOverflow.Ellipsis,
+            )
+          }
         }
       }
     }
