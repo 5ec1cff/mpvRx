@@ -21,6 +21,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +30,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,6 +44,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,6 +55,7 @@ import androidx.compose.material3.Text
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -355,16 +363,26 @@ private fun NoMediaPreferenceCard(
 ) {
   var showAddMarkerDialog by remember { mutableStateOf(false) }
   var markerInput by remember { mutableStateOf("") }
+  var addedMarker by remember { mutableStateOf<String?>(null) }
+  val markerListState = rememberLazyListState()
 
   val orderedMarkers = remember(markerNames) { markerNames.sorted() }
-  val itemCount = 2 + orderedMarkers.size
+  // Sorted order can place a newly added marker off-screen.
+  LaunchedEffect(orderedMarkers, addedMarker) {
+    val index = addedMarker?.let { orderedMarkers.indexOf(it) } ?: -1
+    if (index >= 0) {
+      markerListState.animateScrollToItem(index)
+      addedMarker = null
+    }
+  }
+
   Column(
     modifier = modifier.fillMaxWidth(),
     verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
   ) {
     Card(
       modifier = Modifier.fillMaxWidth(),
-      shape = rememberConnectedShape(0, itemCount, ConnectedLayout.Vertical),
+      shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
       Row(
@@ -395,63 +413,22 @@ private fun NoMediaPreferenceCard(
       }
     }
 
-    orderedMarkers.forEachIndexed { markerIndex, markerName ->
-      Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = rememberConnectedShape(markerIndex + 1, itemCount, ConnectedLayout.Vertical),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Column(modifier = Modifier.weight(1f)) {
-            Text(markerName, style = MaterialTheme.typography.titleSmallEmphasized)
-            Text(
-              text = stringResource(R.string.pref_folders_hidden_markers_title),
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          }
-          IconButton(onClick = { onMarkerNamesChanged(markerNames - markerName) }) {
-            Icon(
-              Icons.RoundedFilled.Close,
-              contentDescription = stringResource(R.string.pref_folders_remove_marker, markerName),
-            )
-          }
-        }
-      }
-    }
-
     Card(
       modifier = Modifier.fillMaxWidth(),
-      shape = rememberConnectedShape(itemCount - 1, itemCount, ConnectedLayout.Vertical),
-      colors = CardDefaults.cardColors(
-        containerColor = if (includeNoMediaFolders) {
-          MaterialTheme.colorScheme.secondaryContainer
-        } else {
-          MaterialTheme.colorScheme.surfaceContainerLow
-        },
-      ),
-      onClick = {
-        if (includeNoMediaFolders) {
-          markerInput = ""
-          showAddMarkerDialog = true
-        }
-      },
-      enabled = includeNoMediaFolders,
+      shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
       Row(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
-        Icon(Icons.RoundedFilled.Add, contentDescription = null, modifier = Modifier.size(22.dp))
         Column(modifier = Modifier.weight(1f)) {
           Text(
-            text = stringResource(R.string.pref_folders_add_marker),
+            text = stringResource(R.string.pref_folders_hidden_markers_title),
             style = MaterialTheme.typography.titleMediumEmphasized,
           )
+          Spacer(modifier = Modifier.height(4.dp))
           Text(
             text = if (orderedMarkers.isEmpty()) {
               stringResource(R.string.pref_folders_hidden_markers_empty)
@@ -461,6 +438,55 @@ private fun NoMediaPreferenceCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
+        }
+        IconButton(
+          onClick = {
+            markerInput = ""
+            showAddMarkerDialog = true
+          },
+          shapes = IconButtonDefaults.shapes(),
+          enabled = includeNoMediaFolders,
+          colors = IconButtonDefaults.filledTonalIconButtonColors(),
+        ) {
+          Icon(Icons.RoundedFilled.Add, contentDescription = stringResource(R.string.pref_folders_add_marker))
+        }
+      }
+
+      if (orderedMarkers.isNotEmpty()) {
+        LazyRow(
+          state = markerListState,
+          modifier = Modifier.fillMaxWidth(),
+          contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          items(orderedMarkers, key = { it }) { markerName ->
+            InputChip(
+              selected = false,
+              onClick = { onMarkerNamesChanged(markerNames - markerName) },
+              label = { Text(markerName, maxLines = 1) },
+              modifier =
+                Modifier.animateItem(
+                  fadeInSpec = AppMotion.Effect.Alpha,
+                  placementSpec = AppMotion.spatial(AppMotion.Spatial.ExpressiveOffset, AppMotion.ReducedOffset),
+                  fadeOutSpec = AppMotion.Effect.Alpha,
+                ),
+              trailingIcon = {
+                Icon(
+                  Icons.RoundedFilled.Close,
+                  contentDescription = stringResource(R.string.pref_folders_remove_marker, markerName),
+                  modifier = Modifier.size(InputChipDefaults.IconSize),
+                )
+              },
+              shape = CircleShape,
+              colors =
+                InputChipDefaults.inputChipColors(
+                  containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                  labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                  trailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+              border = null,
+            )
+          }
         }
       }
     }
@@ -499,7 +525,9 @@ private fun NoMediaPreferenceCard(
         TextButton(
           enabled = normalizedMarker != null && normalizedMarker !in markerNames,
           onClick = {
-            onMarkerNamesChanged(markerNames + requireNotNull(normalizedMarker))
+            val marker = requireNotNull(normalizedMarker)
+            onMarkerNamesChanged(markerNames + marker)
+            addedMarker = marker
             showAddMarkerDialog = false
           },
         ) {
