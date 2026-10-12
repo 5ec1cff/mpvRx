@@ -162,25 +162,6 @@ fun EqualizerSheet(
     onDismissRequest = onDismissRequest,
     modifier = modifier.tvFocusGroup(),
   ) {
-    Row(
-      modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(
-        text = stringResource(R.string.btn_label_equalizer),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.weight(1f),
-      )
-      IconSwitch(
-        checked = state.isEnabled,
-        onCheckedChange = onEnabledChanged,
-        modifier = Modifier.tvInitialFocus(initialFocusRequester)
-          .tvFocusHighlight(RoundedCornerShape(12.dp), focusedScale = 1.04f),
-      )
-    }
     Column(
       modifier =
         Modifier
@@ -188,6 +169,26 @@ fun EqualizerSheet(
           .verticalScroll(rememberScrollState())
           .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 16.dp),
     ) {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+          text = stringResource(R.string.btn_label_equalizer),
+          style = MaterialTheme.typography.titleLarge,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSurface,
+          modifier = Modifier.weight(1f),
+        )
+        IconSwitch(
+          checked = state.isEnabled,
+          onCheckedChange = onEnabledChanged,
+          modifier = Modifier.tvInitialFocus(initialFocusRequester)
+            .tvFocusHighlight(RoundedCornerShape(12.dp), focusedScale = 1.04f),
+        )
+      }
+
       SingleChoiceSegmentedButtonRow(
         modifier = Modifier.fillMaxWidth(),
       ) {

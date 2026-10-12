@@ -55,7 +55,7 @@ import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSectionHeader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
@@ -517,7 +517,7 @@ fun SubtitlesSheet(
             is SubtitleItem.Off -> {
               val haptics = rememberAppHaptics()
               val shape = rememberConnectedShape(index = 1, itemCount = 2, layout = ConnectedLayout.Vertical)
-              val isFrostedOff = LocalKyantPlayerBackdrop.current != null
+              val isFrostedOff = LocalPlayerGlassSurfaceActive.current
               Surface(
                 modifier =
                   Modifier
@@ -597,7 +597,7 @@ fun SubtitleTrackRow(
     } else {
       MaterialTheme.shapes.medium
     }
-  val isFrosted = LocalKyantPlayerBackdrop.current != null
+  val isFrosted = LocalPlayerGlassSurfaceActive.current
   val containerColor = animatedPlayerSheetSelectionColor(
     selected = isSelected,
     frosted = isFrosted,

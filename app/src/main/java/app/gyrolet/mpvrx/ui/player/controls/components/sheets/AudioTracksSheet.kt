@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AudioChannels
 import app.gyrolet.mpvrx.preferences.AudioPreferences
-import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
@@ -239,7 +239,7 @@ fun AudioTrackCard(
       MaterialTheme.shapes.medium
     }
   val containerColor = animatedPlayerSheetSelectionColor(
-    isSelected, frosted = LocalKyantPlayerBackdrop.current != null,
+    isSelected, frosted = LocalPlayerGlassSurfaceActive.current,
     label = "audioCardSelection",
   )
   val badges = audioTrackBadges(track)
@@ -305,7 +305,7 @@ fun AudioTrackRow(
     } else {
       MaterialTheme.shapes.medium
     }
-  val isFrosted = LocalKyantPlayerBackdrop.current != null
+  val isFrosted = LocalPlayerGlassSurfaceActive.current
   val containerColor = animatedPlayerSheetSelectionColor(
     isSelected, frosted = isFrosted, label = "audioTrackRowSelection",
   )

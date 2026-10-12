@@ -44,7 +44,6 @@ import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.theme.AppMotion
-import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 
 /**
@@ -55,7 +54,7 @@ import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 @Composable
 internal fun playerSheetSelectionColor(
   selected: Boolean,
-  frosted: Boolean = LocalPlayerGlassSurfaceActive.current || LocalKyantPlayerBackdrop.current != null,
+  frosted: Boolean = LocalPlayerGlassSurfaceActive.current,
 ): Color {
   val colors = MaterialTheme.colorScheme
   return when {
@@ -70,7 +69,7 @@ internal fun playerSheetSelectionColor(
 @Composable
 internal fun animatedPlayerSheetSelectionColor(
   selected: Boolean,
-  frosted: Boolean = LocalPlayerGlassSurfaceActive.current || LocalKyantPlayerBackdrop.current != null,
+  frosted: Boolean = LocalPlayerGlassSurfaceActive.current,
   label: String = "playerOptionSelection",
 ): Color {
   val reduceMotion = AppMotion.playerReducedMotion()
