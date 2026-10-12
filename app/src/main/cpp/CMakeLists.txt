@@ -23,6 +23,12 @@ function(mpvrx_optimize_native_target target)
     target_link_options(${target} PRIVATE ${MPVRX_NATIVE_LINK_OPTIONS})
 endfunction()
 
+# Both targets exist only for yt-dlp. Gradle turns this off for flavors without yt-dlp (Play).
+option(MPVRX_ENABLE_YTDLP "Build the yt-dlp helper executables" ON)
+if(NOT MPVRX_ENABLE_YTDLP)
+    return()
+endif()
+
 # YTDLP execution wrapper for SDK 29+ bypass
 add_executable(ytdl_wrapper ytdl_wrapper.c)
 set_target_properties(ytdl_wrapper PROPERTIES OUTPUT_NAME "ytdl")

@@ -44,6 +44,9 @@ val activeAbis =
     listOf("arm64-v8a", "armeabi-v7a") + x86Abis
   }
 val universalOnlyDistributions = setOf("noVulkan", "fongmi")
+// Distributions outside Google Play. Play forbids downloaded executable code (yt-dlp) and torrent
+// streaming, so only these flavors enable yt-dlp and ship yt-dlp and libtorrent native payloads.
+val sideloadDistributions = setOf("standard", "noVulkan", "fongmi")
 // AGP cannot build an app bundle while ABI splits produce multiple APKs (issuetracker 402800800).
 val isBundleBuild =
   gradle.startParameter.taskNames.any { it.substringAfterLast(':').startsWith("bundle") }
@@ -113,7 +116,6 @@ android {
     create("standard") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
-      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"standard\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
@@ -124,8 +126,6 @@ android {
     create("playstore") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "true")
-      // Play forbids downloading executable code; setup.py fetches yt-dlp from GitHub.
-      buildConfigField("boolean", "ENABLE_YTDLP", "false")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "false")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"standard\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "true")
@@ -136,7 +136,6 @@ android {
     create("noVulkan") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
-      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"no-vulkan\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
@@ -147,12 +146,30 @@ android {
     create("fongmi") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
-      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"fongmi\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
       buildConfigField("boolean", "MPV_SUPPORTS_VULKAN", "true")
       buildConfigField("boolean", "MPV_SUPPORTS_MEDIACODEC_VULKAN", "true")
+    }
+
+    configureEach {
+      val enableYtdlp = name in sideloadDistributions
+      buildConfigField("boolean", "ENABLE_YTDLP", enableYtdlp.toString())
+      externalNativeBuild {
+        cmake {
+          arguments += "-DMPVRX_ENABLE_YTDLP=${if (enableYtdlp) "ON" else "OFF"}"
+        }
+      }
+    }
+  }
+
+  sourceSets {
+    sideloadDistributions.forEach { flavor ->
+      getByName(flavor).apply {
+        assets.directories.add("src/ytdlp/assets")
+        jniLibs.directories.add("src/ytdlp/jniLibs")
+      }
     }
   }
 
@@ -375,13 +392,16 @@ dependencies {
   implementation(libs.kyant.backdrop)
   implementation(libs.kyant.shapes)
 
-  // libtorrent4j's Java API plus the native library for every enabled APK ABI.
+  // libtorrent4j's Java API compiles everywhere; its native library for every enabled APK ABI
+  // ships only where torrent streaming exists.
   implementation(libs.libtorrent4j)
-  implementation(libs.libtorrent4j.android.arm64)
-  implementation(libs.libtorrent4j.android.arm)
-  if (enableX86) {
-    implementation(libs.libtorrent4j.android.x86)
-    implementation(libs.libtorrent4j.android.x8664)
+  sideloadDistributions.forEach { flavor ->
+    "${flavor}Implementation"(libs.libtorrent4j.android.arm64)
+    "${flavor}Implementation"(libs.libtorrent4j.android.arm)
+    if (enableX86) {
+      "${flavor}Implementation"(libs.libtorrent4j.android.x86)
+      "${flavor}Implementation"(libs.libtorrent4j.android.x8664)
+    }
   }
 }
 
