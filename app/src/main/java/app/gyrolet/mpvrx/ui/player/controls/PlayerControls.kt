@@ -229,7 +229,7 @@ fun PlayerControls(
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
   val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
   val showControlsDrawer by playerPreferences.showControlsDrawer.collectAsState()
-  val interactionSource = remember { MutableInteractionSource() }
+  var seekRippleRequest by remember { mutableStateOf<SeekRippleRequest?>(null) }
   val controlsShown by viewModel.controlsShown.collectAsState()
   val controlsInteractionEpoch by viewModel.controlsInteractionEpoch.collectAsState()
   val tvPlayFocusRequester = rememberTvInitialFocusRequester(enabled = controlsShown)
@@ -315,7 +315,6 @@ fun PlayerControls(
     }
   }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
-  val seekText = seekState.text
   val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
   val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
   val decoder = remember(activeDecoder, configuredDecoder) {
@@ -627,16 +626,22 @@ fun PlayerControls(
 
   GestureHandler(
     viewModel = viewModel,
-    interactionSource = interactionSource,
     externalPanelShown = showControlsDrawer && isPlayerDrawerShown,
     onDismissExternalPanel = { setPlayerDrawerShown(false) },
     onLockedTouchSideChanged = { isLeft ->
       showUnlockOnLeft = isLeft
       resetControlsTimestamp = System.currentTimeMillis()
     },
+    onSeekRipple = { seekRippleRequest = it },
   )
 
-  DoubleTapToSeekOvals(doubleTapSeekAmount, seekText, showDoubleTapOvals, showSeekTime, showSeekTime, interactionSource)
+  DoubleTapToSeekOvals(
+    amount = doubleTapSeekAmount,
+    showOvals = showDoubleTapOvals,
+    showSeekIcon = showSeekTime,
+    showSeekTime = showSeekTime,
+    rippleRequest = seekRippleRequest,
+  )
 
   val glassSource = rememberVideoGlassSource(videoSurface)
   // Map the real TextureView GPU layer into the controls' window coordinates. All consumers

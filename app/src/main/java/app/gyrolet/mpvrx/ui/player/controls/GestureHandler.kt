@@ -11,61 +11,28 @@ package app.gyrolet.mpvrx.ui.player.controls
 
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalRippleConfiguration
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.GesturePreferences
@@ -73,11 +40,6 @@ import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import app.gyrolet.mpvrx.presentation.components.LeftSideOvalShape
-import app.gyrolet.mpvrx.presentation.components.RightSideOvalShape
-import app.gyrolet.mpvrx.ui.player.controls.components.stableNumericWidth
-import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.Panels
 import app.gyrolet.mpvrx.ui.player.PlayerUpdates
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
@@ -90,8 +52,6 @@ import app.gyrolet.mpvrx.ui.player.findSubtitleGestureTarget
 import app.gyrolet.mpvrx.ui.player.draggedSubtitlePosition
 import app.gyrolet.mpvrx.ui.player.getTrackSelectionId
 import app.gyrolet.mpvrx.ui.player.isSecondarySubtitleActive
-import app.gyrolet.mpvrx.ui.theme.AppMotion
-import app.gyrolet.mpvrx.ui.theme.playerRippleConfiguration
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -123,11 +83,11 @@ private fun nearestHoldSpeedPreset(speed: Float): Float =
 @Composable
 fun GestureHandler(
   viewModel: PlayerViewModel,
-  interactionSource: MutableInteractionSource,
   modifier: Modifier = Modifier,
   externalPanelShown: Boolean = false,
   onDismissExternalPanel: () -> Unit = {},
   onLockedTouchSideChanged: (isLeft: Boolean) -> Unit = {},
+  onSeekRipple: (SeekRippleRequest) -> Unit = {},
 ) {
   val playerPreferences = koinInject<PlayerPreferences>()
   val audioPreferences = koinInject<AudioPreferences>()
@@ -135,6 +95,7 @@ fun GestureHandler(
   val subtitlesPreferences = koinInject<SubtitlesPreferences>()
   val context = LocalContext.current
   val currentOnLockedTouchSideChanged by rememberUpdatedState(onLockedTouchSideChanged)
+  val currentOnSeekRipple by rememberUpdatedState(onSeekRipple)
   val subtitleTracks by viewModel.subtitleTracks.collectAsState(emptyList())
   // Pointer handlers outlive recomposition; always resolve against the current tracks.
   val subtitleRegions by rememberUpdatedState<(Float, Float) -> List<SubtitleGestureRegion>> { width, height ->
@@ -343,7 +304,7 @@ fun GestureHandler(
             }
 
             // Calculate regions
-            val seekAreaFraction = doubleTapSeekAreaWidth / 100f
+            val seekAreaFraction = (doubleTapSeekAreaWidth / 100f).coerceIn(0.01f, 0.5f)
             val leftBoundary = size.width * seekAreaFraction
             val rightBoundary = size.width * (1f - seekAreaFraction)
             val region =
@@ -352,6 +313,14 @@ fun GestureHandler(
                 downPosition.x < leftBoundary -> "left"
                 else -> "center"
               }
+            // Normalize within the physical seek region so feedback stays under the finger
+            // in either orientation, including right-to-left interface languages.
+            val seekRegionWidth = (size.width * seekAreaFraction).coerceAtLeast(1f)
+            val seekRegionStart = if (region == "right") rightBoundary else 0f
+            val ripplePosition = Offset(
+              x = ((downPosition.x - seekRegionStart) / seekRegionWidth).coerceIn(0f, 1f),
+              y = (downPosition.y / size.height.coerceAtLeast(1)).coerceIn(0f, 1f),
+            )
 
             // Track for potential drag
             var isDrag = false
@@ -425,6 +394,7 @@ fun GestureHandler(
                             viewModel.updateSeekAmount(0)
                           }
                           lastSeekRegion = "right"
+                          currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = true))
                         }
                         viewModel.handleRightDoubleTap()
                       }
@@ -437,6 +407,7 @@ fun GestureHandler(
                             viewModel.updateSeekAmount(0)
                           }
                           lastSeekRegion = "left"
+                          currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = false))
                         }
                         viewModel.handleLeftDoubleTap()
                       }
@@ -461,6 +432,7 @@ fun GestureHandler(
                             viewModel.updateSeekAmount(0)
                           }
                           lastSeekRegion = "right"
+                          currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = true))
                         }
                         viewModel.handleRightDoubleTap()
                       }
@@ -471,6 +443,7 @@ fun GestureHandler(
                             viewModel.updateSeekAmount(0)
                           }
                           lastSeekRegion = "left"
+                          currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = false))
                         }
                         viewModel.handleLeftDoubleTap()
                       }
@@ -1473,108 +1446,6 @@ fun GestureHandler(
   )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DoubleTapToSeekOvals(
-  amount: Int,
-  text: String?,
-  showOvals: Boolean,
-  showSeekIcon: Boolean,
-  showSeekTime: Boolean,
-  interactionSource: MutableInteractionSource,
-  modifier: Modifier = Modifier,
-) {
-  val gesturePreferences = koinInject<GesturePreferences>()
-  val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
-  val seekAreaFraction = doubleTapSeekAreaWidth / 100f
-  val seekOverlayTextStyle =
-    MaterialTheme.typography.headlineSmall.copy(
-      fontSize = 22.sp,
-      fontWeight = FontWeight.Bold,
-      fontFeatureSettings = "tnum",
-    )
-
-  val alpha by animateFloatAsState(if (amount == 0) 0f else 0.2f, label = "double_tap_animation_alpha")
-
-  // Scale animation for text
-  var scaleTarget by remember { mutableStateOf(1f) }
-  val scale by animateFloatAsState(
-    targetValue = scaleTarget,
-    animationSpec = tween(durationMillis = 150),
-    label = "text_scale",
-  )
-
-  LaunchedEffect(amount) {
-    if (amount != 0) {
-      scaleTarget = 1.2f
-      delay(100)
-      scaleTarget = 1f
-    } else {
-      scaleTarget = 1f
-    }
-  }
-
-  Box(
-    modifier = modifier.fillMaxSize(),
-    contentAlignment = if (amount > 0) Alignment.CenterEnd else Alignment.CenterStart,
-  ) {
-    CompositionLocalProvider(
-      LocalRippleConfiguration provides playerRippleConfiguration,
-    ) {
-      if (amount != 0) {
-        Box(
-          modifier =
-            Modifier
-              .fillMaxHeight()
-              .fillMaxWidth(seekAreaFraction),
-          contentAlignment = Alignment.Center,
-        ) {
-          if (showOvals) {
-            Box(
-              modifier =
-                Modifier
-                  .fillMaxSize()
-                  .clip(if (amount > 0) RightSideOvalShape else LeftSideOvalShape)
-                  .background(Color.White.copy(alpha))
-                  .indication(interactionSource, ripple()),
-            )
-          }
-          if (showSeekIcon || showSeekTime) {
-            Row(
-              verticalAlignment = Alignment.CenterVertically,
-              horizontalArrangement = Arrangement.Center,
-            ) {
-              if (amount < 0) {
-                CombiningChevronsAnimation(isRight = false, trigger = amount)
-                Spacer(modifier = Modifier.width(8.dp))
-                val seekText = "- ${abs(amount)}"
-                Text(
-                  text = seekText,
-                  style = seekOverlayTextStyle,
-                  textAlign = TextAlign.Center,
-                  color = Color.White,
-                  modifier = Modifier.stableNumericWidth(seekText).scale(scale),
-                )
-              } else {
-                val seekText = "+ ${abs(amount)}"
-                Text(
-                  text = seekText,
-                  style = seekOverlayTextStyle,
-                  textAlign = TextAlign.Center,
-                  color = Color.White,
-                  modifier = Modifier.stableNumericWidth(seekText).scale(scale),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                CombiningChevronsAnimation(isRight = true, trigger = amount)
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
 fun calculateNewVerticalGestureValue(
   originalValue: Int,
   startingY: Float,
@@ -1599,79 +1470,4 @@ private fun formatSeekTime(seconds: Int): String {
   } else {
     String.format("%02d:%02d", minutes, secs)
   }
-}
-
-@Composable
-fun CombiningChevronsAnimation(
-  isRight: Boolean,
-  trigger: Int,
-  modifier: Modifier = Modifier,
-) {
-  // List of active animations (unique IDs)
-  val animations = remember { mutableStateListOf<Long>() }
-
-  // Fire a new animation whenever trigger changes
-  LaunchedEffect(trigger) {
-    animations.add(System.nanoTime())
-  }
-
-  Row(
-    modifier =
-      if (isRight) {
-        modifier
-      } else {
-        modifier.scale(scaleX = -1f, scaleY = 1f)
-      },
-  ) {
-    Box {
-      // Static Chevron
-      Icon(
-        imageVector = Icons.RoundedFilled.KeyboardArrowRight,
-        contentDescription = null,
-        tint = Color.White,
-        modifier = Modifier.size(48.dp),
-      )
-
-      // Render active moving chevrons
-      animations.forEach { animId ->
-        key(animId) {
-          MovingChevron(
-            onFinished = { animations.remove(animId) },
-          )
-        }
-      }
-    }
-  }
-}
-
-@Composable
-fun MovingChevron(onFinished: () -> Unit) {
-  val progress = remember { Animatable(0f) }
-
-  LaunchedEffect(Unit) {
-    progress.animateTo(
-      targetValue = 1f,
-      animationSpec =
-        spring(
-          dampingRatio = AppMotion.Spatial.Standard.dampingRatio,
-          stiffness = AppMotion.Spatial.Standard.stiffness,
-        ),
-    )
-    onFinished()
-  }
-
-  val startOffsetDp = -15.dp
-  Icon(
-    imageVector = Icons.RoundedFilled.KeyboardArrowRight,
-    contentDescription = null,
-    tint = Color.White,
-    modifier =
-      Modifier
-        .size(48.dp)
-        .graphicsLayer {
-          val p = 1f - progress.value
-          alpha = p
-          translationX = startOffsetDp.toPx() * p
-        },
-  )
 }
