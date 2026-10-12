@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
@@ -44,7 +45,10 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 
 @Composable
-fun VideoSettingsFiltersCard(modifier: Modifier = Modifier) {
+fun VideoSettingsFiltersCard(
+  modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
+) {
   val decoderPreferences = koinInject<DecoderPreferences>()
   val configOwnedOptions = currentMpvConfigOverrideOptions()
   val hasOwnedFilter = VideoFilters.entries.any { it.mpvProperty in configOwnedOptions }
@@ -63,6 +67,7 @@ fun VideoSettingsFiltersCard(modifier: Modifier = Modifier) {
     },
     colors = panelCardsColors(),
     modifier = modifier.widthIn(max = CARDS_MAX_WIDTH),
+    shape = shape,
   ) {
     ProvidePreferenceLocals {
       Column {

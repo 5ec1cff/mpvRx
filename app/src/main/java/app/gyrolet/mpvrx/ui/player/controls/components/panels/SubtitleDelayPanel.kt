@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
@@ -47,6 +48,9 @@ import app.gyrolet.mpvrx.presentation.components.OutlinedNumericChooser
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
@@ -79,7 +83,10 @@ fun SubtitleDelayPanel(
   DraggablePanel(
     modifier = modifier,
     header = {
-      SubtitleDelayTitle(onClose = onDismissRequest)
+      DraggablePanelHeader(
+        title = stringResource(R.string.player_sheets_sub_delay_card_title),
+        onDismissRequest = onDismissRequest,
+      )
     },
   ) {
     val delay by PlaybackSession.propDouble[SUB_DELAY_PROPERTY].collectAsState()
@@ -163,7 +170,7 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
   // Note: verticalScroll is now handled by DraggablePanel
   Column(
     Modifier.padding(MaterialTheme.spacing.medium),
-    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
   ) {
     OutlinedNumericChooser(
       label = { Text(stringResource(R.string.player_sheets_sub_delay_card_delay)) },
@@ -199,7 +206,8 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
     // true (heard -> spotted), false (spotted -> heard)
     var isDirectionPositive by remember { mutableStateOf<Boolean?>(null) }
     Row(
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
     ) {
       var timerStart by remember { mutableStateOf<Long?>(null) }
       var finalDelay by remember { mutableStateOf(delay) }
@@ -224,7 +232,8 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
         onClick = {
           isDirectionPositive = if (isDirectionPositive == null) delayType == DelayType.Audio else null
         },
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(1f).heightIn(min = 64.dp),
+        shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
         enabled = delayControlEnabled && isDirectionPositive != (delayType == DelayType.Audio),
       ) {
         Text(
@@ -241,7 +250,8 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
         onClick = {
           isDirectionPositive = if (isDirectionPositive == null) delayType != DelayType.Audio else null
         },
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(1f).heightIn(min = 64.dp),
+        shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
         enabled = delayControlEnabled && isDirectionPositive != (delayType == DelayType.Subtitle),
       ) {
         Text(
@@ -256,20 +266,25 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
       }
     }
     Row(
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+      verticalAlignment = Alignment.CenterVertically,
     ) {
       Button(
         onClick = onApply,
-        modifier = Modifier.weight(1f),
+        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+        shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
         enabled = actionsEnabled && isDirectionPositive == null,
       ) {
         Text(stringResource(R.string.player_sheets_delay_set_as_default))
       }
       FilledIconButton(
         onClick = onReset,
+        modifier = Modifier.size(48.dp),
+        shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
         enabled = actionsEnabled && isDirectionPositive == null,
       ) {
-        Icon(Icons.RoundedFilled.Refresh, null)
+        Icon(Icons.RoundedFilled.Refresh, contentDescription = stringResource(R.string.generic_reset))
       }
     }
   }

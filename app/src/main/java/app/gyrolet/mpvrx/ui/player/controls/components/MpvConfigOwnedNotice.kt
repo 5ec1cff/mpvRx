@@ -11,12 +11,9 @@ package app.gyrolet.mpvrx.ui.player.controls.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,6 +27,7 @@ import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
+import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanelHeader
 import app.gyrolet.mpvrx.ui.theme.spacing
 
 @Composable
@@ -58,22 +56,10 @@ fun MpvConfigOwnedPanel(
   DraggablePanel(
     modifier = modifier,
     header = {
-      Row(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MaterialTheme.spacing.medium),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        Text(
-          text = stringResource(R.string.mpv_config_owned_title),
-          style = MaterialTheme.typography.titleLarge,
-        )
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onDismissRequest) {
-          Icon(Icons.RoundedFilled.Close, null, modifier = Modifier.size(32.dp))
-        }
-      }
+      DraggablePanelHeader(
+        title = stringResource(R.string.mpv_config_owned_title),
+        onDismissRequest = onDismissRequest,
+      )
     },
   ) {
     MpvConfigOwnedContent(

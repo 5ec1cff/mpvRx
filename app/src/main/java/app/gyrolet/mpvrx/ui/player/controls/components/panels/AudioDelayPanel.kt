@@ -49,7 +49,10 @@ fun AudioDelayPanel(
   DraggablePanel(
     modifier = modifier,
     header = {
-      AudioDelayCardTitle(onClose = onDismissRequest)
+      DraggablePanelHeader(
+        title = stringResource(R.string.player_sheets_audio_delay_card_title),
+        onDismissRequest = onDismissRequest,
+      )
     },
   ) {
     val delay by PlaybackSession.propDouble["audio-delay"].collectAsState()

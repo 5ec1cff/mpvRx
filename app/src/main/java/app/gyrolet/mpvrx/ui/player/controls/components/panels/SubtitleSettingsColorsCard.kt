@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.alpha
@@ -66,6 +67,7 @@ import org.koin.compose.koinInject
 fun SubtitleSettingsColorsCard(
   viewModel: PlayerViewModel,
   modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
 ) {
   val preferences = koinInject<SubtitlesPreferences>()
   val configOwnedOptions = currentMpvConfigOverrideOptions()
@@ -83,6 +85,7 @@ fun SubtitleSettingsColorsCard(
     },
     modifier = modifier.widthIn(max = CARDS_MAX_WIDTH),
     colors = panelCardsColors(),
+    shape = shape,
   ) {
     Column {
       AssOverrideWarningBanner(viewModel = viewModel, preferences = preferences)

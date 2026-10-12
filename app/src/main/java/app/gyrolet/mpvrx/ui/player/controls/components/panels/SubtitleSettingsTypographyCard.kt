@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -76,6 +77,7 @@ import org.koin.compose.koinInject
 fun SubtitleSettingsTypographyCard(
   viewModel: PlayerViewModel,
   modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
 ) {
   val context = LocalContext.current
   val resources = LocalResources.current
@@ -135,6 +137,7 @@ fun SubtitleSettingsTypographyCard(
     },
     modifier = modifier.widthIn(max = CARDS_MAX_WIDTH),
     colors = panelCardsColors(),
+    shape = shape,
   ) {
     Column {
       AssOverrideWarningBanner(viewModel = viewModel, preferences = preferences)

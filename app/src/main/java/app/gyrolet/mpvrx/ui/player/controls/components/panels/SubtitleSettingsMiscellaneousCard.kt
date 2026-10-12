@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.R
@@ -52,7 +53,10 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 
 @Composable
-fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
+fun SubtitlesMiscellaneousCard(
+  modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
+) {
   val preferences = koinInject<SubtitlesPreferences>()
   val playerPreferences = koinInject<PlayerPreferences>()
   val configOwnedOptions = currentMpvConfigOverrideOptions()
@@ -77,6 +81,7 @@ fun SubtitlesMiscellaneousCard(modifier: Modifier = Modifier) {
     onExpand = { isExpanded = !isExpanded },
     modifier.widthIn(max = CARDS_MAX_WIDTH),
     colors = panelCardsColors(),
+    shape = shape,
   ) {
     ProvidePreferenceLocals {
       Column {

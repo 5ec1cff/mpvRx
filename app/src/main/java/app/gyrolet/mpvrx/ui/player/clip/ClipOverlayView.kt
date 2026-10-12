@@ -85,6 +85,10 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
+import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanelHeader
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
 import app.gyrolet.mpvrx.ui.theme.spacing
 import java.util.Locale
@@ -638,34 +642,18 @@ private fun ClipEditorPanel(
 
   DraggablePanel(
     header = {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MaterialTheme.spacing.medium)
-            .padding(top = MaterialTheme.spacing.small),
-      ) {
-        AppIcon(
-          imageVector = Icons.RoundedFilled.ContentCut,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(22.dp),
-        )
-        Text(
-          text = stringResource(R.string.clip_action),
-          style = MaterialTheme.typography.titleLarge,
-          modifier = Modifier.padding(start = 10.dp),
-        )
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onCancel) {
+      DraggablePanelHeader(
+        title = stringResource(R.string.clip_action),
+        onDismissRequest = onCancel,
+        leadingContent = {
           AppIcon(
-            imageVector = Icons.RoundedFilled.Close,
-            contentDescription = stringResource(R.string.clip_cancel),
+            imageVector = Icons.RoundedFilled.ContentCut,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(24.dp),
           )
-        }
-      }
+        },
+      )
     },
   ) {
     ClipEditorPanelContent(
@@ -777,12 +765,13 @@ private fun ClipEditorPanelContent(
 
     Row(
       modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
     ) {
       FilledTonalButton(
         onClick = onMarkStart,
         enabled = !state.exporting,
         modifier = Modifier.weight(1f).height(48.dp),
+        shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
       ) {
         AppIcon(Icons.RoundedFilled.SkipPrevious, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
@@ -792,6 +781,7 @@ private fun ClipEditorPanelContent(
         onClick = onMarkEnd,
         enabled = !state.exporting,
         modifier = Modifier.weight(1f).height(48.dp),
+        shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
       ) {
         AppIcon(Icons.RoundedFilled.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))

@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -112,7 +113,10 @@ private fun applyFilterValues(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun VideoSettingsFilterPresetsCard(modifier: Modifier = Modifier) {
+fun VideoSettingsFilterPresetsCard(
+  modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
+) {
   val decoderPreferences = koinInject<DecoderPreferences>()
   val configOwnedOptions = currentMpvConfigOverrideOptions()
   val presetOptions = setOf("brightness", "saturation", "contrast", "gamma", "hue", "sharpen")
@@ -210,6 +214,7 @@ fun VideoSettingsFilterPresetsCard(modifier: Modifier = Modifier) {
     },
     colors = panelCardsColors(),
     modifier = modifier.widthIn(max = CARDS_MAX_WIDTH),
+    shape = shape,
   ) {
     Column(
       modifier = Modifier.padding(vertical = 8.dp),

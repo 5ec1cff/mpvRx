@@ -13,29 +13,19 @@ import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.lua.LuaRuntimeStatusCard
 import app.gyrolet.mpvrx.ui.lua.LuaScriptToggleCard
 import app.gyrolet.mpvrx.ui.lua.LuaScriptsEmptyState
@@ -63,6 +53,8 @@ fun LuaScriptsPanel(
     )
   val enabledScriptsCount = selectedScripts.count { it in catalog.availableScripts }
   val scriptsListEnabled = enableLuaScripts && mpvConfStorageLocation.isNotBlank()
+  val connectedItemCount =
+    if (catalog.isLoading || mpvConfStorageLocation.isBlank()) 1 else catalog.availableScripts.size + 1
 
   fun toggleScriptSelection(scriptName: String) {
     val isEnabled = selectedScripts.contains(scriptName)
@@ -73,26 +65,10 @@ fun LuaScriptsPanel(
   DraggablePanel(
     modifier = modifier,
     header = {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MaterialTheme.spacing.medium)
-            .padding(top = MaterialTheme.spacing.small),
-      ) {
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.pref_section_scripts),
-          style = MaterialTheme.typography.titleLarge,
-        )
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onDismissRequest) {
-          Icon(Icons.RoundedFilled.Close, contentDescription = null, modifier = Modifier.size(32.dp))
-        }
-      }
+      DraggablePanelHeader(
+        title = stringResource(R.string.pref_section_scripts),
+        onDismissRequest = onDismissRequest,
+      )
     },
   ) {
     Column(
@@ -108,7 +84,7 @@ fun LuaScriptsPanel(
         enabledScriptsCount = enabledScriptsCount,
         availableScriptsCount = catalog.availableScripts.size,
         onEnabledChange = preferences.enableLuaScripts::set,
-        shape = rememberConnectedShape(0, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
+        shape = rememberConnectedShape(0, connectedItemCount, ConnectedLayout.Vertical),
       )
 
       when {
@@ -131,7 +107,7 @@ fun LuaScriptsPanel(
           catalog.availableScripts.forEachIndexed { index, scriptName ->
             LuaScriptToggleCard(
               scriptName = scriptName,
-              shape = rememberConnectedShape(index + 1, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
+              shape = rememberConnectedShape(index + 1, connectedItemCount, ConnectedLayout.Vertical),
               selected = selectedScripts.contains(scriptName),
               controlsEnabled = scriptsListEnabled,
               onToggle = { toggleScriptSelection(scriptName) },
@@ -140,7 +116,9 @@ fun LuaScriptsPanel(
         }
       }
 
-      LuaSelectionFootnote()
+      Box(Modifier.padding(top = MaterialTheme.spacing.medium)) {
+        LuaSelectionFootnote()
+      }
     }
   }
 }

@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
@@ -51,7 +52,10 @@ import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 
 @Composable
-fun VideoSettingsDebandCard(modifier: Modifier = Modifier) {
+fun VideoSettingsDebandCard(
+  modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.large,
+) {
   val decoderPreferences = koinInject<DecoderPreferences>()
   val configOwnedOptions = currentMpvConfigOverrideOptions()
   val modeOptions = setOf("deband", "vf")
@@ -71,6 +75,7 @@ fun VideoSettingsDebandCard(modifier: Modifier = Modifier) {
     onExpand = { isExpanded = !isExpanded },
     modifier.widthIn(max = CARDS_MAX_WIDTH),
     colors = panelCardsColors(),
+    shape = shape,
   ) {
     ProvidePreferenceLocals {
       Column {

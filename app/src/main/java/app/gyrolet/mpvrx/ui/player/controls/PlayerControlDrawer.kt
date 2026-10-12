@@ -35,8 +35,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,6 +47,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -58,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.getPlayerButtonLabel
@@ -66,8 +66,12 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
+import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanelHeader
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.controlColor
 import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
@@ -296,30 +300,10 @@ private fun PlayerControlPanel(
 
 @Composable
 private fun PlayerControlPanelHeader(onDismissRequest: () -> Unit) {
-  Row(
-    modifier =
-      Modifier
-        .fillMaxWidth()
-        .padding(
-          start = MaterialTheme.spacing.medium,
-          end = MaterialTheme.spacing.extraSmall,
-          bottom = MaterialTheme.spacing.small,
-        ),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    Text(
-      text = stringResource(R.string.pref_player_controls_drawer_title),
-      style = MaterialTheme.typography.headlineSmall,
-      fontWeight = FontWeight.SemiBold,
-      modifier = Modifier.weight(1f),
-    )
-    IconButton(onClick = onDismissRequest) {
-      Icon(
-        imageVector = Icons.RoundedFilled.Close,
-        contentDescription = stringResource(R.string.generic_cancel),
-      )
-    }
-  }
+  DraggablePanelHeader(
+    title = stringResource(R.string.pref_player_controls_drawer_title),
+    onDismissRequest = onDismissRequest,
+  )
 }
 
 @Composable
@@ -335,21 +319,28 @@ private fun PlayerControlPanelContent(
 
   Column(
     modifier = Modifier.fillMaxWidth()
-      .padding(start = 14.dp, end = 14.dp, bottom = 20.dp)
+      .padding(start = 16.dp, end = 16.dp, bottom = 20.dp)
       .tvFocusGroup(),
-    verticalArrangement = Arrangement.spacedBy(PanelTileSpacing),
+    verticalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
   ) {
-    buttons.chunked(PanelColumnCount).forEach { rowButtons ->
+    buttons.chunked(PanelColumnCount).forEachIndexed { rowIndex, rowButtons ->
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(PanelTileSpacing),
+        horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
       ) {
-        rowButtons.forEach { button ->
+        rowButtons.forEachIndexed { columnIndex, button ->
           PlayerControlTile(
             button = button,
             active = button in activeButtons,
             renderButton = renderButton,
             tileHeight = tileHeight,
+            shape = rememberConnectedShape(
+              index = rowIndex * PanelColumnCount + columnIndex,
+              itemCount = buttons.size,
+              layout = ConnectedLayout.Grid,
+              columns = PanelColumnCount,
+              tokens = AppConnectedControlShapeTokens,
+            ),
             modifier = Modifier.weight(1f),
           )
         }
@@ -366,7 +357,8 @@ private fun PlayerControlTile(
   button: PlayerButton,
   active: Boolean,
   renderButton: @Composable (PlayerButton) -> Unit,
-  tileHeight: androidx.compose.ui.unit.Dp,
+  tileHeight: Dp,
+  shape: Shape,
   modifier: Modifier = Modifier,
 ) {
   val compact = tileHeight < 88.dp
@@ -396,9 +388,9 @@ private fun PlayerControlTile(
   Surface(
     modifier =
       modifier
-        .tvFocusHighlight(RoundedCornerShape(18.dp), focusedScale = 1.02f)
+        .tvFocusHighlight(shape, focusedScale = 1.02f)
         .height(tileHeight),
-    shape = RoundedCornerShape(18.dp),
+    shape = shape,
     color = containerColor,
     contentColor = contentColor,
     tonalElevation = if (active) 2.dp else 0.dp,
@@ -440,7 +432,6 @@ private fun PlayerControlTile(
 private val EdgeTouchWidth = 48.dp
 private val EdgePullThreshold = 64.dp
 private val EdgePullMaximum = 92.dp
-private val PanelTileSpacing = 8.dp
 private const val PanelIconScale = 1.24f
 private const val EdgeTouchHeightFraction = 0.34f
 private const val PanelColumnCount = 3

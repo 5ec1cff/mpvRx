@@ -239,7 +239,7 @@ fun PlayerSheet(
     val sheetShape = MaterialTheme.shapes.extraLargeIncreased.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize)
     val baseContainerColor = surfaceColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
     val expressiveContainerColor =
-      baseContainerColor.copy(alpha = minOf(baseContainerColor.alpha, 0.88f))
+      baseContainerColor.copy(alpha = 1f)
     val glassModifier = Modifier.playerGlassSurface(
       backdrop = playerBackdrop.takeIf { isFrosted },
       shape = sheetShape,

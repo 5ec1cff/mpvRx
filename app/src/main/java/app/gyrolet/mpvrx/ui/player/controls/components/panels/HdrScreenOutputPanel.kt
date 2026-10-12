@@ -16,13 +16,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -32,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +40,9 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.HdrScreenMode
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.spacing
 
 @Composable
@@ -56,26 +58,10 @@ fun HdrScreenOutputPanel(
   DraggablePanel(
     modifier = modifier,
     header = {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = MaterialTheme.spacing.medium)
-            .padding(top = MaterialTheme.spacing.small),
-      ) {
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.ui_hdr_output),
-          style = MaterialTheme.typography.titleLarge,
-        )
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onDismissRequest) {
-          Icon(Icons.RoundedFilled.Close, null, modifier = Modifier.size(32.dp))
-        }
-      }
+      DraggablePanelHeader(
+        title = stringResource(app.gyrolet.mpvrx.R.string.ui_hdr_output),
+        onDismissRequest = onDismissRequest,
+      )
     },
   ) {
     Column(
@@ -87,13 +73,16 @@ fun HdrScreenOutputPanel(
       }
       // OFF is the default state controlled by the HDR toggle button, not shown here.
       // Only the four selectable HDR modes are presented in the panel.
-      HdrScreenMode.selectableModes.forEach { option ->
-        HdrModeOption(
-          mode = option,
-          selected = mode == option,
-          enabled = pipelineReady && (option != HdrScreenMode.LINEAR || isLinearHdrAvailable),
-          onClick = { viewModel.setHdrScreenMode(option) },
-        )
+      Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+        HdrScreenMode.selectableModes.forEachIndexed { index, option ->
+          HdrModeOption(
+            mode = option,
+            selected = mode == option,
+            enabled = pipelineReady && (option != HdrScreenMode.LINEAR || isLinearHdrAvailable),
+            onClick = { viewModel.setHdrScreenMode(option) },
+            shape = rememberConnectedShape(index, HdrScreenMode.selectableModes.size, ConnectedLayout.Vertical),
+          )
+        }
       }
     }
   }
@@ -162,6 +151,7 @@ private fun HdrModeOption(
   selected: Boolean,
   enabled: Boolean,
   onClick: () -> Unit,
+  shape: Shape,
   modifier: Modifier = Modifier,
 ) {
   val colors = MaterialTheme.colorScheme
@@ -186,9 +176,9 @@ private fun HdrModeOption(
     modifier =
       modifier
         .fillMaxWidth()
-        .clip(AppShapeScale.largeIncreased)
+        .clip(shape)
         .clickable(enabled = enabled, onClick = onClick),
-    shape = AppShapeScale.largeIncreased,
+      shape = shape,
     color = containerColor,
     contentColor = contentColor,
     border = BorderStroke(1.dp, borderColor),
