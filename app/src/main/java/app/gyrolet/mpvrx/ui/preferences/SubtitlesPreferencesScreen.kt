@@ -194,7 +194,7 @@ object SubtitlesPreferencesScreen : Screen {
         val subtitleHubSourceValues =
           remember(allKeylessSourcesLabel) {
             MpvRxSubtitleHubSources.ALL.toMutableMap().apply {
-              this["all"] = allKeylessSourcesLabel
+              if (containsKey("all")) this["all"] = allKeylessSourcesLabel
             }
           }
         val subtitleHubSourceDescriptions =

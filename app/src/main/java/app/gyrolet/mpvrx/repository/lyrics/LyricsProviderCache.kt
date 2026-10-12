@@ -25,7 +25,7 @@ internal class LyricsProviderCache(private val directory: File) {
     if (mediaPath.isBlank()) return emptyMap()
     val trackKey = trackKey(mediaPath)
     return buildMap {
-      LyricsProvider.entries.forEach { provider ->
+      LyricsProvider.available.forEach { provider ->
         val file = File(directory, "${trackKey}_${provider.name}.json")
         if (!file.exists() && !File("${file.path}.bak").exists()) return@forEach
         val atomicFile = AtomicFile(file)

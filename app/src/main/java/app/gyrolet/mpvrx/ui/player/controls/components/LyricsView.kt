@@ -586,6 +586,7 @@ fun LyricsView(
           verticalAlignment = Alignment.CenterVertically,
         ) {
           // Translate button on Left (40.dp square with rounded corners)
+          if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
           Surface(
             onClick = { showTranslateDialog = true },
             shape = RoundedCornerShape(12.dp),
@@ -611,6 +612,7 @@ fun LyricsView(
           }
 
           Spacer(modifier = Modifier.width(8.dp))
+          }
 
           // Sync Section on the Right (pinned to right when collapsed, expands leftwards across remaining space)
           Box(

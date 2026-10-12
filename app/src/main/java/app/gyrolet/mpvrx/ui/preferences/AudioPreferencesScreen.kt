@@ -608,6 +608,7 @@ object AudioPreferencesScreen : Screen {
                 },
               )
 
+              if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
               PreferenceDivider()
               Text(
                 text = stringResource(R.string.pref_lyrics_translation_category),
@@ -696,6 +697,7 @@ object AudioPreferencesScreen : Screen {
                   }
                 },
               )
+              }
               }
             }
           }

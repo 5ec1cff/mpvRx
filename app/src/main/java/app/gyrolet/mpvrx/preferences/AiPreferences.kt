@@ -9,9 +9,15 @@
 
 package app.gyrolet.mpvrx.preferences
 
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.PreferenceStore
 import app.gyrolet.mpvrx.preferences.preference.getEnum
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 
 enum class AiProvider(
   val displayName: String,
@@ -24,10 +30,37 @@ enum class AiProvider(
   TOGETHER("Together"),
 }
 
+/** Always off and ignores restored values, so a distribution can omit a feature outright. */
+private class DisabledPreference(
+  private val key: String,
+) : Preference<Boolean> {
+  override fun key(): String = key
+
+  override fun get(): Boolean = false
+
+  override fun set(value: Boolean) = Unit
+
+  override fun isSet(): Boolean = false
+
+  override fun delete() = Unit
+
+  override fun defaultValue(): Boolean = false
+
+  override fun changes(): Flow<Boolean> = flowOf(false)
+
+  override fun stateIn(scope: CoroutineScope): StateFlow<Boolean> = MutableStateFlow(false)
+}
+
 class AiPreferences(
   preferenceStore: PreferenceStore,
 ) {
-  val enabled = preferenceStore.getBoolean("ai_enabled", false)
+  // Play requires in-app reporting of AI output, which mpvRx does not provide.
+  val enabled: Preference<Boolean> =
+    if (BuildConfig.IS_PLAY_STORE_BUILD) {
+      DisabledPreference("ai_enabled")
+    } else {
+      preferenceStore.getBoolean("ai_enabled", false)
+    }
 
   val provider = preferenceStore.getEnum("ai_provider", AiProvider.OPENCODE)
 

@@ -444,7 +444,7 @@ class LyricsRepository(
       val lyrics = answers[provider] ?: return null
       return OnlineLyricsResult(provider, lyrics, false, answers)
     }
-    val candidates = LyricsProvider.entries.mapNotNull { source -> answers[source]?.let { source to it } }
+    val candidates = LyricsProvider.available.mapNotNull { source -> answers[source]?.let { source to it } }
     val winner = candidates.firstOrNull { (_, lyrics) -> lyrics.synced.orEmpty().any { !it.words.isNullOrEmpty() } }
       ?: candidates.firstOrNull { (_, lyrics) -> !lyrics.synced.isNullOrEmpty() }
       ?: candidates.firstOrNull()
@@ -481,6 +481,7 @@ class LyricsRepository(
    */
   private suspend fun withRecording(query: LyricsFetchQuery): LyricsFetchQuery {
     if (!query.isrc.isNullOrBlank()) return query
+    if (LyricsProvider.BINI_LYRICS !in LyricsProvider.available) return query
     val key = recordingKey(query) ?: return query
     isrcs.get(key)?.let { return query.copy(isrc = it) }
     val found =
@@ -507,7 +508,7 @@ class LyricsRepository(
   ): OnlineLyricsResult =
     coroutineScope {
       val jobs =
-        LyricsProvider.entries.map { provider ->
+        LyricsProvider.available.map { provider ->
           val start = if (provider in LyricsProvider.LAZY_PROVIDERS) CoroutineStart.LAZY else CoroutineStart.DEFAULT
           provider to async(Dispatchers.IO, start = start) {
             cached[provider]?.let(ProviderOutcome::Found) ?: fetchProvider(provider, query, mediaPath)

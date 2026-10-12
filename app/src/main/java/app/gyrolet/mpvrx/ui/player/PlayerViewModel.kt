@@ -1601,6 +1601,8 @@ class PlayerViewModel : ViewModel(),
   }
 
   fun translateLyrics(targetLang: String? = null) {
+    // Play builds omit translation: it relies on Google Translate's unofficial web endpoint.
+    if (app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) return
     val current = lyricsUiState.value
     val baseLyrics = current.originalLyrics ?: current.lyrics ?: return
     val lang = targetLang ?: audioPreferences.lyricsTargetLanguage.get().ifBlank { "en" }

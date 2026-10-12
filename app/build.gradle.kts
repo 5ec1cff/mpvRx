@@ -44,6 +44,9 @@ val activeAbis =
     listOf("arm64-v8a", "armeabi-v7a") + x86Abis
   }
 val universalOnlyDistributions = setOf("noVulkan", "fongmi")
+// AGP cannot build an app bundle while ABI splits produce multiple APKs (issuetracker 402800800).
+val isBundleBuild =
+  gradle.startParameter.taskNames.any { it.substringAfterLast(':').startsWith("bundle") }
 val releaseVersionCode = 272
 val versionCodeBandSize = 10_000
 val stableVersionCode = releaseVersionCode * versionCodeBandSize + (versionCodeBandSize - 1)
@@ -110,6 +113,7 @@ android {
     create("standard") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
+      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"standard\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
@@ -120,6 +124,8 @@ android {
     create("playstore") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "true")
+      // Play forbids downloading executable code; setup.py fetches yt-dlp from GitHub.
+      buildConfigField("boolean", "ENABLE_YTDLP", "false")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "false")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"standard\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "true")
@@ -130,6 +136,7 @@ android {
     create("noVulkan") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
+      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"no-vulkan\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
@@ -140,6 +147,7 @@ android {
     create("fongmi") {
       dimension = "distribution"
       buildConfigField("boolean", "IS_PLAY_STORE_BUILD", "false")
+      buildConfigField("boolean", "ENABLE_YTDLP", "true")
       buildConfigField("boolean", "ENABLE_UPDATE_FEATURE", "true")
       buildConfigField("String", "UPDATE_APK_VARIANT", "\"fongmi\"")
       buildConfigField("boolean", "SCOPED_STORAGE_ONLY", "false")
@@ -155,7 +163,7 @@ android {
 
   splits {
     abi {
-      isEnable = true
+      isEnable = !isBundleBuild
       reset()
       include(*activeAbis.toTypedArray())
       isUniversalApk = activeAbis.size > 1

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="ui_no_saved_media_description">الصق رابط بث أو احفظ من الروابط الأخيرة لبناء مجموعتك.</string>
+  <string name="ui_no_recent_links">لا توجد روابط بث حديثة حتى الآن. الصق رابط بث أعلاه للبدء.</string>
+  <string name="pref_section_p2p_streaming">البث</string>
+  <string name="pref_network_summary">البث ووكيل HLS</string>
+</resources>

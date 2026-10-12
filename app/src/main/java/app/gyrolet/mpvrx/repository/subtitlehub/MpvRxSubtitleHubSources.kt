@@ -17,6 +17,13 @@ object MpvRxSubtitleHubSources {
   const val SUBS_RO_KEY = "subs_ro"
   const val SUBX_KEY = "subx"
 
+  private val SCRAPED_SOURCES =
+    setOf("subtitlecat_com", "moviesubtitles_org", "moviesubtitlesrt_com", "my_subs_co", "tvsubtitles_net")
+
+  // Play forbids using sites against their terms, so its builds keep only official APIs.
+  private val UNAVAILABLE_SOURCES =
+    if (app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) SCRAPED_SOURCES + "all" else emptySet()
+
   val ALL =
     linkedMapOf(
       "all" to "All sources without an API key",
@@ -31,7 +38,7 @@ object MpvRxSubtitleHubSources {
       SUBSOURCE_KEY to "SubSource.net",
       SUBS_RO_KEY to "Subs.ro",
       SUBX_KEY to "SubX",
-    )
+    ).apply { keys.removeAll(UNAVAILABLE_SOURCES) }
 
   val DEFAULT = setOf("all")
 
@@ -49,7 +56,7 @@ object MpvRxSubtitleHubSources {
       SUBSOURCE_KEY,
       SUBS_RO_KEY,
       SUBX_KEY,
-    )
+    ) - UNAVAILABLE_SOURCES
 
   val AUTHENTICATED_SOURCES =
     setOf(

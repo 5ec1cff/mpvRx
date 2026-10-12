@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.domain.download
 
 import android.net.Uri
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.utils.media.HttpUtils
 
@@ -30,6 +31,12 @@ class LinkDownloadCoordinator(
     if (scheme != "http" && scheme != "https") return Route.UNSUPPORTED
     val path = uri.path?.lowercase().orEmpty()
     return when {
+      !BuildConfig.ENABLE_YTDLP ->
+        if (path.endsWith(".m3u8") || path.endsWith(".mpd") || !HttpUtils.isDirectMediaUrl(uri)) {
+          Route.UNSUPPORTED
+        } else {
+          Route.DIRECT
+        }
       // Manifests play directly in mpv but need yt-dlp to be downloaded as one file.
       path.endsWith(".m3u8") || path.endsWith(".mpd") -> Route.YTDLP
       YtdlpManager.requiresYtdlp(url) -> Route.YTDLP

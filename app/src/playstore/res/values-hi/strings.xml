@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="ui_no_saved_media_description">अपना मीडिया संग्रह बनाने के लिए स्ट्रीम URL पेस्ट करें या हाल के लिंक से सहेजें।</string>
+  <string name="ui_no_recent_links">अभी तक कोई हालिया स्ट्रीम लिंक नहीं है। शुरू करने के लिए ऊपर स्ट्रीम URL चिपकाएँ।</string>
+  <string name="pref_section_p2p_streaming">स्ट्रीमिंग</string>
+  <string name="pref_network_summary">स्ट्रीमिंग और HLS प्रॉक्सी</string>
+</resources>

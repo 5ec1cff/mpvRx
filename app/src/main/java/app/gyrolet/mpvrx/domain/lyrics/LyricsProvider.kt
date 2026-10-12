@@ -104,6 +104,10 @@ enum class LyricsProvider(
   ;
 
   companion object {
+    /** Play builds may only call LRCLIB's public API; the others are unofficial or scraped endpoints. */
+    val available: List<LyricsProvider> =
+      if (app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) listOf(LRCLIB) else LyricsProvider.entries
+
     /**
      * Contacted only when nothing above [GENIUS] has answered: it is a plain
      * web scrape, so it stays out of the way of the sources that can be asked

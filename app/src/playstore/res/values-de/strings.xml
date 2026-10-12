@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="ui_no_saved_media_description">Fügen Sie eine Stream-URL ein oder speichern Sie aus den letzten Links, um Ihre Mediensammlung aufzubauen.</string>
+  <string name="ui_no_recent_links">Noch keine aktuellen Stream-Links. Füge oben eine Stream-URL ein, um zu beginnen.</string>
+  <string name="pref_section_p2p_streaming">Streaming</string>
+  <string name="pref_network_summary">Streaming und HLS-Proxy</string>
+</resources>

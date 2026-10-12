@@ -134,6 +134,8 @@ fun isTorrentSource(
   source: String,
   mimeType: String? = null,
 ): Boolean {
+  // Play builds omit P2P streaming, so no source is ever routed to the torrent engine.
+  if (app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) return false
   val value = source.trim()
   if (value.isEmpty()) return false
   val normalizedMimeType = mimeType?.substringBefore(';')?.trim()?.lowercase()
@@ -163,6 +165,7 @@ fun isTorrentSource(
  * Magnet parameters are preserved; raw and torrent:// v1 hashes are converted to magnets.
  */
 fun normalizeTorrentSource(source: String): String? {
+  if (app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) return null
   val value = source.trim()
   if (value.isEmpty()) return null
 

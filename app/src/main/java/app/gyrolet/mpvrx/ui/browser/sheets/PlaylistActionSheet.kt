@@ -479,7 +479,13 @@ fun PlaylistActionSheet(
             Text(
               text =
                 androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.playlist_remote_url_hint),
+                  .stringResource(
+                    if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) {
+                      app.gyrolet.mpvrx.R.string.playlist_remote_url_hint
+                    } else {
+                      app.gyrolet.mpvrx.R.string.playlist_url_hint
+                    },
+                  ),
               style = MaterialTheme.typography.bodySmall,
               color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

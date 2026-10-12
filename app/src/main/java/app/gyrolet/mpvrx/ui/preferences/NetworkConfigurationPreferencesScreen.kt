@@ -91,11 +91,13 @@ object NetworkConfigurationPreferencesScreen : Screen {
         ) {
           // Streaming tools live directly on Network. YT-DLP intentionally comes first,
           // followed by P2P, matching the order in which users choose a stream source.
-          YtdlpManagerSections()
+          if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) YtdlpManagerSections()
 
           PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
           ExpressivePreferenceGroup {
-            SwitchPreference(
+            val p2pAvailable = !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD
+            if (p2pAvailable) {
+              SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_enable_p2p_streaming_title),
                 value = enableP2pStreaming,
                 onValueChange = preferences.enableP2pStreaming::set,
@@ -104,14 +106,15 @@ object NetworkConfigurationPreferencesScreen : Screen {
                 groupIndex = 0,
                 groupSize = 2,
               )
+            }
             SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_enable_hls_proxy_title),
                 value = enableHlsProxy,
                 onValueChange = preferences.enableHlsProxy::set,
                 title = { Text(stringResource(R.string.pref_enable_hls_proxy_title)) },
                 summary = { Text(stringResource(R.string.pref_enable_hls_proxy_summary), color = MaterialTheme.colorScheme.outline) },
-                groupIndex = 1,
-                groupSize = 2,
+                groupIndex = if (p2pAvailable) 1 else 0,
+                groupSize = if (p2pAvailable) 2 else 1,
               )
           }
         }

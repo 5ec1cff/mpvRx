@@ -219,7 +219,7 @@ object PreferencesScreen : Screen {
     val colorScheme = MaterialTheme.colorScheme
     val secureFolderPreferences = koinInject<SecureFolderPreferences>()
     val isSecureFolderEntryHidden by secureFolderPreferences.isEntryPointHidden.collectAsState()
-    return listOf(
+    return listOfNotNull(
       SettingsSection(
         title = stringResource(R.string.pref_section_appearance),
         tint = colorScheme.onSurfaceVariant,
@@ -355,7 +355,7 @@ object PreferencesScreen : Screen {
               screen = AiIntegrationScreen,
             ),
           ),
-      ),
+      ).takeUnless { app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD },
       SettingsSection(
         title = stringResource(R.string.pref_section_advanced),
         tint = colorScheme.onSurfaceVariant,

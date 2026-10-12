@@ -60,6 +60,7 @@ internal class LyricsProviderRegistry(
     provider: LyricsProvider,
     query: LyricsFetchQuery,
   ): ProviderOutcome {
+    if (provider !in LyricsProvider.available) return ProviderOutcome.Missing
     val client = clients[provider] ?: return ProviderOutcome.Missing
     return withTimeoutOrNull(budgetFor(provider)) {
       try {

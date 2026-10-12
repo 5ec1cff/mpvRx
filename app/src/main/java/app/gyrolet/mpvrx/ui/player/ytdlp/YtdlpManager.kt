@@ -13,6 +13,7 @@ import android.content.Context
 import android.net.Uri
 import android.system.Os
 import android.util.Log
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.network.AndroidCookieJar
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
 import app.gyrolet.mpvrx.preferences.YtdlPreferences
@@ -112,6 +113,7 @@ object YtdlpManager {
     }
 
   fun requiresYtdlp(source: String): Boolean {
+    if (!BuildConfig.ENABLE_YTDLP) return false
     val uri = Uri.parse(source)
     if (!uri.scheme.equals("http", ignoreCase = true) && !uri.scheme.equals("https", ignoreCase = true)) {
       return false
@@ -121,6 +123,7 @@ object YtdlpManager {
   }
 
   fun isPotentialPlaylistUrl(source: String): Boolean {
+    if (!BuildConfig.ENABLE_YTDLP) return false
     val uri = runCatching { Uri.parse(source) }.getOrNull() ?: return false
     if (!uri.scheme.equals("http", true) && !uri.scheme.equals("https", true)) return false
     if (uri.queryParameterNames.any { name ->
@@ -444,6 +447,10 @@ object YtdlpManager {
    * Python/yt-dlp installation and network operations remain deferred to web playback.
    */
   fun configureMpvHookBeforeInit(context: Context) {
+    if (!BuildConfig.ENABLE_YTDLP) {
+      PlaybackSession.setIntegrationOptionString("ytdl", "no")
+      return
+    }
     val ytdlBinaryPath = getExecutablePath(context)
     val allFormats = "yes"
     // Configure the bundled hook before MPVLib.init(), otherwise it caches an empty path.
@@ -510,6 +517,7 @@ object YtdlpManager {
     ytdlPreferences: YtdlPreferences,
     subtitlesPreferences: SubtitlesPreferences,
   ) {
+    if (!BuildConfig.ENABLE_YTDLP) return
     val nativeLibDir = context.applicationInfo.nativeLibraryDir
     val ytdlBinaryPath = File(nativeLibDir, "libytdl.so").absolutePath
     val ytdlDir = getYtdlDir(context).absolutePath
@@ -624,6 +632,7 @@ object YtdlpManager {
         val ytdlDir = getYtdlDir(context)
         val pythonBinary = getExecutablePath(context)
         val ytDlp = File(ytdlDir, "yt-dlp").absolutePath
+        if (!BuildConfig.ENABLE_YTDLP) return@withLock false
         val command = mutableListOf(pythonBinary, ytDlp, "--update")
         val updated = runPythonProcess("Updating yt-dlp...", command, context, onLog)
         if (updated) {
@@ -648,6 +657,7 @@ object YtdlpManager {
         val ytdlDir = getYtdlDir(context)
         val pythonBinary = getExecutablePath(context)
         val ytDlp = File(ytdlDir, "yt-dlp").absolutePath
+        if (!BuildConfig.ENABLE_YTDLP) return@withLock false
         val command = mutableListOf(pythonBinary, ytDlp, "--update-to", "nightly")
         val updated = runPythonProcess("Updating to yt-dlp nightly...", command, context, onLog)
         if (updated) {
@@ -760,6 +770,7 @@ object YtdlpManager {
     context: Context,
     onLog: (String) -> Unit,
   ): Boolean {
+    if (!BuildConfig.ENABLE_YTDLP) return false
     val ytdlDir = getYtdlDir(context)
     val nativeLibDir = context.applicationInfo.nativeLibraryDir
     val pythonBinary = getExecutablePath(context)

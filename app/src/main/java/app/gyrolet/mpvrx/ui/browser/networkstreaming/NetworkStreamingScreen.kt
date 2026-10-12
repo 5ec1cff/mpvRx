@@ -701,16 +701,22 @@ private fun AddMediaDialog(
     title = { Text(stringResource(R.string.ui_saved_media)) },
     text = {
       Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        val p2pAvailable = !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD
         Text(
-          text = "Paste a torrent magnet link, direct video stream (HLS, MP4, MKV), or YouTube URL to save and play.",
+          text =
+            if (p2pAvailable) {
+              "Paste a torrent magnet link, direct video stream (HLS, MP4, MKV), or YouTube URL to save and play."
+            } else {
+              "Paste a direct video stream (HLS, MP4, MKV) to save and play."
+            },
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         OutlinedTextField(
           value = inputUrl,
           onValueChange = { inputUrl = it },
-          label = { Text("Stream or Magnet URL") },
-          placeholder = { Text("magnet:?xt=... or https://...") },
+          label = { Text(if (p2pAvailable) "Stream or Magnet URL" else stringResource(R.string.ui_stream_url)) },
+          placeholder = { Text(if (p2pAvailable) "magnet:?xt=... or https://..." else "https://...") },
           modifier = Modifier.fillMaxWidth(),
           singleLine = true,
           trailingIcon = {

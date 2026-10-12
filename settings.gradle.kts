@@ -5,6 +5,8 @@ pluginManagement {
         includeGroupByRegex("com\\.android.*")
         includeGroupByRegex("com\\.google.*")
         includeGroupByRegex("androidx.*")
+        // KSP is published to the Plugin Portal and Maven Central, never Google Maven.
+        excludeGroup("com.google.devtools.ksp")
       }
     }
     mavenCentral()

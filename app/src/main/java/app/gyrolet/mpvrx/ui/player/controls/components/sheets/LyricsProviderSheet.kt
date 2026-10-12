@@ -76,11 +76,11 @@ fun LyricsProviderSheet(
           },
           trailing = { ProviderStatusChip(status) },
           groupIndex = 0,
-          groupSize = LyricsProvider.entries.size + 1,
+          groupSize = LyricsProvider.available.size + 1,
         )
       }
 
-      itemsIndexed(LyricsProvider.entries, key = { _, provider -> provider.name }) { index, provider ->
+      itemsIndexed(LyricsProvider.available, key = { _, provider -> provider.name }) { index, provider ->
         AudioTrackRow(
           title = provider.label,
           details = provider.detail.takeIf { it.isNotBlank() },
@@ -91,7 +91,7 @@ fun LyricsProviderSheet(
           },
           trailing = { ProviderStatusChip(providerStatus(provider, state)) },
           groupIndex = index + 1,
-          groupSize = LyricsProvider.entries.size + 1,
+          groupSize = LyricsProvider.available.size + 1,
         )
       }
     }
