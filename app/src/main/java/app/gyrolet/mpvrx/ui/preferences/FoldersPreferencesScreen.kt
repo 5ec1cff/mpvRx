@@ -88,6 +88,8 @@ import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
@@ -764,30 +766,15 @@ internal fun getSimplifiedStoragePath(uriString: String): String =
     uriString
   }
 
-private suspend fun scanAllMediaFolders(context: Application): List<VideoFolder> {
-  val repoFolders = app.gyrolet.mpvrx.repository.MediaFileRepository
-    .getAllVideoFoldersFast(context = context, includeAudioOverride = true)
+// Same sources as the Videos and Music folder tabs, so the video scan reuses their cache.
+private suspend fun scanAllMediaFolders(context: Application): List<VideoFolder> =
+  coroutineScope {
+    val repository = app.gyrolet.mpvrx.repository.MediaFileRepository
+    val videoFolders = async { repository.getAllVideoFoldersFast(context = context) }
+    val hiddenFolders = async { repository.getIndexedNoMediaFolders() }
+    val audioFolders = async { repository.getAllAudioFolders(context = context) }
 
-  val songs = try {
-    app.gyrolet.mpvrx.ui.browser.music.MusicLibraryScanner.scanSongs(context)
-  } catch (_: Exception) {
-    emptyList()
+    (videoFolders.await() + hiddenFolders.await() + audioFolders.await())
+      .distinctBy { it.path.lowercase() }
+      .sortedBy { it.name.lowercase() }
   }
-
-  val audioFolderPaths = songs.mapNotNull { java.io.File(it.path).parent }.toSet()
-  val existingPaths = repoFolders.map { it.path.lowercase() }.toSet()
-
-  val extraAudioFolders = audioFolderPaths.filter { path -> path.lowercase() !in existingPaths }.map { path ->
-    VideoFolder(
-      bucketId = path,
-      name = leafStorageName(path),
-      path = path,
-      videoCount = 0,
-      totalSize = 0L,
-      totalDuration = 0L,
-      lastModified = 0L,
-    )
-  }
-
-  return (repoFolders + extraAudioFolders).sortedBy { it.name.lowercase() }
-}

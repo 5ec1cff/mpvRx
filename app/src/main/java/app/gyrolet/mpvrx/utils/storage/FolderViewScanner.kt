@@ -943,6 +943,7 @@ object FolderViewScanner {
       val files = directory.listFiles() ?: return
 
       val mediaFiles = mutableListOf<File>()
+      val audioDurations = mutableMapOf<File, Long>()
       val subdirectories = mutableListOf<File>()
 
       for (file in files) {
@@ -959,11 +960,12 @@ object FolderViewScanner {
                 continue
               }
               if (FileTypeUtils.isSupportedMediaFile(file, options)) {
-                val isAudio = FileTypeUtils.isAudioFile(file)
-                val duration = if (isAudio) FileTypeUtils.getDurationMs(file) else 0L
-                if (!isAudio || options.includesAudioDuration(duration)) {
-                  mediaFiles.add(file)
+                if (options.minimumAudioDurationSeconds > 0 && FileTypeUtils.isAudioFile(file)) {
+                  val duration = FileTypeUtils.getDurationMs(file)
+                  if (!options.includesAudioDuration(duration)) continue
+                  audioDurations[file] = duration
                 }
+                mediaFiles.add(file)
               }
             }
           }
@@ -985,7 +987,9 @@ object FolderViewScanner {
           var totalDuration = 0L
           for (media in mediaFiles) {
             totalSize += media.length()
-            if (FileTypeUtils.isAudioFile(media)) totalDuration += FileTypeUtils.getDurationMs(media)
+            if (FileTypeUtils.isAudioFile(media)) {
+              totalDuration += audioDurations[media] ?: FileTypeUtils.getDurationMs(media)
+            }
             val modified = media.lastModified()
             if (modified > lastModified) {
               lastModified = modified
