@@ -183,6 +183,7 @@ import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsContainer
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -411,6 +412,8 @@ fun PlayerControls(
     val speedPresets by playerPreferences.speedPresets.collectAsState()
     val sortedSpeedPresets = remember(speedPresets) { speedPresets.map { it.toFloat() }.sorted() }
 
+    // Only sheets and panels sample this layer; the controls would otherwise sample themselves.
+    val audioBackdrop = rememberLayerBackdrop()
     Box(modifier = modifier.fillMaxSize()) {
       AudioPlayerControls(
         viewModel = viewModel,
@@ -418,8 +421,12 @@ fun PlayerControls(
         onBackPress = onBackPress,
         onOpenSheet = onOpenSheet,
         onOpenPanel = onOpenPanel,
+        modifier = if (enableLiquidGlass) Modifier.layerBackdrop(audioBackdrop) else Modifier,
       )
 
+      CompositionLocalProvider(
+        LocalKyantPlayerBackdrop provides audioBackdrop.takeIf { enableLiquidGlass },
+      ) {
       PlayerSheets(
         viewModel = viewModel,
         sheetShown = sheetShown,
@@ -467,6 +474,7 @@ fun PlayerControls(
         viewModel = viewModel,
         onDismissRequest = { onOpenPanel(Panels.None) },
       )
+      }
     }
     return
   }

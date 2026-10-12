@@ -70,8 +70,8 @@ data class ConnectedCornerRadii(
 /**
  * Calculates the logical corner radii for one item in a connected group.
  *
- * Grid indices are row-major in logical layout order. Incomplete final rows get rounded bottom
- * corners on their first and last visible items, while a single visible item is fully rounded.
+ * Grid indices are row-major in logical layout order. A corner is only tightened where it touches
+ * a neighbouring item, so every exposed corner stays rounded, including in incomplete final rows.
  * Filtered, sorted, or resized groups therefore only need to pass their current index, count, and
  * column count; no shape state is retained between layouts.
  */
@@ -116,19 +116,17 @@ fun connectedCornerRadii(
 
     ConnectedLayout.Grid -> {
       val effectiveColumns = columns.coerceAtMost(itemCount)
-      val row = index / effectiveColumns
       val column = index % effectiveColumns
-      val lastRow = (itemCount - 1) / effectiveColumns
-      val rowStart = row * effectiveColumns
-      val itemsInRow = minOf(effectiveColumns, itemCount - rowStart)
-      val isFirstColumn = column == 0
-      val isLastVisibleColumn = column == itemsInRow - 1
+      val hasTop = index >= effectiveColumns
+      val hasBottom = index + effectiveColumns < itemCount
+      val hasStart = column > 0
+      val hasEnd = column < effectiveColumns - 1 && index + 1 < itemCount
 
       ConnectedCornerRadii(
-        topStart = if (row == 0 && isFirstColumn) outer else inner,
-        topEnd = if (row == 0 && isLastVisibleColumn) outer else inner,
-        bottomEnd = if (row == lastRow && isLastVisibleColumn) outer else inner,
-        bottomStart = if (row == lastRow && isFirstColumn) outer else inner,
+        topStart = if (hasTop || hasStart) inner else outer,
+        topEnd = if (hasTop || hasEnd) inner else outer,
+        bottomEnd = if (hasBottom || hasEnd) inner else outer,
+        bottomStart = if (hasBottom || hasStart) inner else outer,
       )
     }
   }
