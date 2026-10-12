@@ -38,6 +38,7 @@ import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.PermissionStatus
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -150,8 +151,31 @@ object PermissionUtils {
    */
   @OptIn(ExperimentalPermissionsApi::class)
   @Composable
-  fun rememberStoragePermissionState(audioOnly: Boolean = false): PermissionState =
-    rememberPermissionState(getStoragePermission(audioOnly))
+  fun rememberStoragePermissionState(audioOnly: Boolean = false): PermissionState {
+    val storagePermission = getStoragePermission(audioOnly)
+    if (BuildConfig.IS_PLAY_STORE_BUILD &&
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+      !audioOnly
+    ) {
+      val mediaPermissionsState =
+        rememberMultiplePermissionsState(
+          listOf(storagePermission, android.Manifest.permission.READ_MEDIA_AUDIO),
+        )
+      val videoPermissionState =
+        mediaPermissionsState.permissions.first { it.permission == storagePermission }
+      return remember(mediaPermissionsState, videoPermissionState) {
+        object : PermissionState {
+          override val permission = storagePermission
+          override val status: PermissionStatus
+            get() = videoPermissionState.status
+
+          override fun launchPermissionRequest() =
+            mediaPermissionsState.launchMultiplePermissionRequest()
+        }
+      }
+    }
+    return rememberPermissionState(storagePermission)
+  }
 
   /**
    * Handles storage permission and invokes [onPermissionGranted] when granted.
