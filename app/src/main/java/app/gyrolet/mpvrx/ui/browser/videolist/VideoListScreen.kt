@@ -769,7 +769,7 @@ data class VideoListScreen(
 
       // Private Space Completion Dialog
       if (showPrivateSpaceCompletionDialog.value) {
-        androidx.compose.material3.AlertDialog(
+        app.gyrolet.mpvrx.presentation.components.AppAlertDialog(
           onDismissRequest = { showPrivateSpaceCompletionDialog.value = false },
           title = {
             Text(

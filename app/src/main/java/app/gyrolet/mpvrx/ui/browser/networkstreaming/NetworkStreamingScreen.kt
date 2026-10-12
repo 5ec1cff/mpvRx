@@ -696,7 +696,7 @@ private fun AddMediaDialog(
   val clipboard = androidx.compose.ui.platform.LocalClipboard.current
   val coroutineScope = rememberCoroutineScope()
 
-  androidx.compose.material3.AlertDialog(
+  app.gyrolet.mpvrx.presentation.components.AppAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.ui_saved_media)) },
     text = {
@@ -751,7 +751,7 @@ private fun AddMediaDialog(
       }
     },
     dismissButton = {
-      androidx.compose.material3.TextButton(onClick = onDismiss) {
+      app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(onClick = onDismiss) {
         Text(stringResource(R.string.generic_cancel))
       }
     },

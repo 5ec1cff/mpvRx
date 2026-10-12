@@ -67,6 +67,8 @@ fun ExposedTextDropDownMenu(
     )
 
     ExposedDropdownMenu(
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
       expanded = expanded,
       onDismissRequest = { expanded = false },
       modifier = Modifier.heightIn(max = 300.dp),

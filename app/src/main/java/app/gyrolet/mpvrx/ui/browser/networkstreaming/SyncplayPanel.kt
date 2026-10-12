@@ -156,7 +156,10 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
             },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
           )
-          ExposedDropdownMenu(expanded = serversExpanded, onDismissRequest = { serversExpanded = false }) {
+          ExposedDropdownMenu(
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+      expanded = serversExpanded, onDismissRequest = { serversExpanded = false }) {
             val endpoints = (listOf(savedCredentials.host to savedCredentials.port) +
               (8995..8999).map { "syncplay.pl" to it }).distinct()
             endpoints.forEach { (server, serverPort) ->

@@ -158,7 +158,9 @@ fun AddXtreamPlaylistDialog(
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
           )
           ExposedDropdownMenu(
-            expanded = serversExpanded && serverSuggestions.isNotEmpty(),
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+      expanded = serversExpanded && serverSuggestions.isNotEmpty(),
             onDismissRequest = { serversExpanded = false },
           ) {
             serverSuggestions.forEach { url ->

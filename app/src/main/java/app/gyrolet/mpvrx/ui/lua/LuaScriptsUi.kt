@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,6 +129,7 @@ fun LuaRuntimeStatusCard(
   availableScriptsCount: Int,
   onEnabledChange: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
+  shape: Shape = MaterialTheme.shapes.extraLargeIncreased,
 ) {
   val colors = MaterialTheme.colorScheme
   val containerColor =
@@ -158,7 +159,7 @@ fun LuaRuntimeStatusCard(
 
   Surface(
     modifier = modifier.fillMaxWidth(),
-    shape = MaterialTheme.shapes.extraLarge,
+    shape = shape,
     color = containerColor,
     contentColor = contentColor,
     border = BorderStroke(1.dp, borderColor),
@@ -173,7 +174,7 @@ fun LuaRuntimeStatusCard(
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
       Surface(
-        shape = CircleShape,
+        shape = MaterialTheme.shapes.largeIncreased,
         color =
           if (enabled && hasStorageLocation) {
             colors.primary.copy(alpha = 0.14f)
@@ -262,7 +263,7 @@ fun LuaScriptsEmptyState(
       verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
       Surface(
-        shape = CircleShape,
+        shape = MaterialTheme.shapes.largeIncreased,
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 0.dp,
       ) {
@@ -300,6 +301,7 @@ fun LuaScriptToggleCard(
   onToggle: () -> Unit,
   modifier: Modifier = Modifier,
   trailingContent: (@Composable RowScope.() -> Unit)? = null,
+  shape: Shape = MaterialTheme.shapes.extraLargeIncreased,
 ) {
   val colors = MaterialTheme.colorScheme
   val active = selected && controlsEnabled
@@ -326,9 +328,9 @@ fun LuaScriptToggleCard(
     modifier =
       modifier
         .fillMaxWidth()
-        .clip(MaterialTheme.shapes.large)
+        .clip(shape)
         .clickable(onClick = onToggle),
-    shape = MaterialTheme.shapes.large,
+    shape = shape,
     color = containerColor,
     border = BorderStroke(1.dp, borderColor),
     tonalElevation = 0.dp,
@@ -342,7 +344,7 @@ fun LuaScriptToggleCard(
       horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       Surface(
-        shape = CircleShape,
+        shape = MaterialTheme.shapes.largeIncreased,
         color =
           if (active) {
             colors.primary.copy(alpha = 0.14f)
@@ -404,6 +406,7 @@ fun LuaScriptToggleCard(
 
 @Composable
 fun LuaSelectionFootnote(modifier: Modifier = Modifier) {
+  Surface(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLargeIncreased, color = MaterialTheme.colorScheme.surfaceContainerLow) {
   Text(
     text =
       androidx.compose.ui.res.stringResource(
@@ -414,6 +417,7 @@ fun LuaSelectionFootnote(modifier: Modifier = Modifier) {
     modifier =
       modifier
         .fillMaxWidth()
-        .padding(horizontal = 4.dp),
+        .padding(16.dp),
   )
+  }
 }

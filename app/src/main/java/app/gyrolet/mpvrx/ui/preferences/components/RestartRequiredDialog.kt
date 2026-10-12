@@ -1,8 +1,8 @@
 package app.gyrolet.mpvrx.ui.preferences.components
 
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import app.gyrolet.mpvrx.R

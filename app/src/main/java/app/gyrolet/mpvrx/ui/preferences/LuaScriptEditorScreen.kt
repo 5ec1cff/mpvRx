@@ -473,7 +473,7 @@ data class LuaScriptEditorScreen(
                   containerColor = MaterialTheme.colorScheme.surfaceVariant,
                   contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-              shape = RoundedCornerShape(8.dp),
+              shape = MaterialTheme.shapes.largeIncreased,
             ) {
               Icon(
                 Icons.RoundedFilled.Share,
@@ -497,7 +497,7 @@ data class LuaScriptEditorScreen(
                   containerColor = MaterialTheme.colorScheme.errorContainer,
                   contentColor = MaterialTheme.colorScheme.onErrorContainer,
                 ),
-              shape = RoundedCornerShape(8.dp),
+              shape = MaterialTheme.shapes.largeIncreased,
             ) {
               Icon(
                 Icons.RoundedFilled.Delete,
@@ -533,7 +533,7 @@ data class LuaScriptEditorScreen(
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
                 disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
               ),
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.largeIncreased,
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Check,
@@ -546,12 +546,10 @@ data class LuaScriptEditorScreen(
       )
 
       // Editor content with IME padding
-      Box(
-        modifier =
-          Modifier
-            .fillMaxSize()
-            .weight(1f)
-            .imePadding(),
+      Surface(
+        modifier = Modifier.weight(1f).fillMaxSize().imePadding().padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = MaterialTheme.shapes.extraLargeIncreased,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
       ) {
         MpvScriptEditor(
           content = scriptContent,

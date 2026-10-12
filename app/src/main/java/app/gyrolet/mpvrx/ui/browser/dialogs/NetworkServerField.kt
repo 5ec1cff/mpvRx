@@ -114,7 +114,9 @@ internal fun NetworkServerField(
         modifier = modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
       )
       ExposedDropdownMenu(
-        expanded = expanded,
+      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
+      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
+      expanded = expanded,
         onDismissRequest = { expanded = false },
         modifier = Modifier.heightIn(max = 280.dp),
       ) {

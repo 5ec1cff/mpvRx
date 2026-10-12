@@ -69,9 +69,9 @@ import me.zhanghai.compose.preference.TextFieldPreference
 import org.koin.compose.koinInject
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue

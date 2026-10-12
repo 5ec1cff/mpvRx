@@ -1295,7 +1295,7 @@ private fun StreamUrlDialog(
   onDismiss: () -> Unit,
   onCopy: () -> Unit,
 ) {
-  androidx.compose.material3.AlertDialog(
+  app.gyrolet.mpvrx.presentation.components.AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(
@@ -1311,7 +1311,7 @@ private fun StreamUrlDialog(
       )
     },
     confirmButton = {
-      androidx.compose.material3.TextButton(
+      app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(
         onClick = {
           onCopy()
           onDismiss()
@@ -1329,7 +1329,7 @@ private fun StreamUrlDialog(
       }
     },
     dismissButton = {
-      androidx.compose.material3.TextButton(onClick = onDismiss) {
+      app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(onClick = onDismiss) {
         Text(
           androidx.compose.ui.res
             .stringResource(app.gyrolet.mpvrx.R.string.ui_close),
@@ -1349,7 +1349,7 @@ private fun RemoveFromPlaylistDialog(
   if (!isOpen) return
 
 
-  androidx.compose.material3.AlertDialog(
+  app.gyrolet.mpvrx.presentation.components.AppAlertDialog(
     onDismissRequest = onDismiss,
     title = {
       Text(
@@ -1403,7 +1403,7 @@ private fun RemoveFromPlaylistDialog(
       }
     },
     dismissButton = {
-      androidx.compose.material3.TextButton(
+      app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(
         onClick = onDismiss,
         shape = MaterialTheme.shapes.extraLarge,
       ) {

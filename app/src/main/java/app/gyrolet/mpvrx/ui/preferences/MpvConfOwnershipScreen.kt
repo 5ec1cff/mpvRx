@@ -9,8 +9,15 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,14 +35,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -83,20 +87,9 @@ object MpvConfOwnershipScreen : Screen {
 
     Scaffold(
       topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(R.string.pref_mpv_conf_overrides_title),
-              style = MaterialTheme.typography.titleLarge,
-              fontWeight = FontWeight.Bold,
-            )
-          },
-          navigationIcon = {
-            IconButton(onClick = { backStack.popSafely() }) {
-              Icon(Icons.RoundedFilled.ArrowBack, contentDescription = stringResource(R.string.back))
-            }
-          },
-          colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+        SettingsTopAppBar(
+          title = stringResource(R.string.pref_mpv_conf_overrides_title),
+          onBack = { backStack.popSafely() },
         )
       },
     ) { padding ->
@@ -105,7 +98,7 @@ object MpvConfOwnershipScreen : Screen {
           .fillMaxSize()
           .padding(padding),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         item(key = "header") {
           OwnershipSummaryCard(
@@ -122,6 +115,7 @@ object MpvConfOwnershipScreen : Screen {
           val override = MpvConfigOverride.entries[index]
           OwnershipGroupCard(
             override = override,
+            shape = rememberConnectedShape(index, MpvConfigOverride.entries.size, ConnectedLayout.Vertical),
             selectedOptions = selectedOptions,
             isExpanded = expandedGroup == override.preferenceKey,
             onExpand = { expanded ->
@@ -143,7 +137,7 @@ private fun OwnershipSummaryCard(
 ) {
   Card(
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    shape = MaterialTheme.shapes.large,
+    shape = MaterialTheme.shapes.extraLargeIncreased,
   ) {
     Row(
       modifier = Modifier
@@ -222,6 +216,7 @@ private fun OwnershipGroupCard(
   isExpanded: Boolean,
   onExpand: (Boolean) -> Unit,
   onSelectionChange: (Set<String>) -> Unit,
+  shape: androidx.compose.ui.graphics.Shape,
 ) {
   val selectedCount = override.optionNames.count(selectedOptions::contains)
   val toggleState =
@@ -234,6 +229,7 @@ private fun OwnershipGroupCard(
   ExpandableCard(
     isExpanded = isExpanded,
     onExpand = onExpand,
+    shape = shape,
     colors =
       CardDefaults.cardColors(
         containerColor =
@@ -278,24 +274,29 @@ private fun OwnershipGroupCard(
       }
     },
     content = {
-      Column {
+      Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
         Text(
           text = stringResource(override.summaryRes()),
           style = MaterialTheme.typography.bodySmall,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.padding(bottom = 6.dp),
         )
-        override.optionNames.sorted().forEach { optionName ->
+        val options = override.optionNames.sorted()
+        options.forEachIndexed { index, optionName ->
+          val optionShape = rememberConnectedShape(index, options.size, ConnectedLayout.Vertical)
           val checked = optionName in selectedOptions
           Row(
             modifier = Modifier
               .fillMaxWidth()
-              .clickable {
+              .clip(optionShape)
+              .background(if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerHigh)
+              .toggleable(value = checked, role = Role.Checkbox) {
                 onSelectionChange(
                   if (checked) selectedOptions - optionName else selectedOptions + optionName,
                 )
               }
-              .padding(vertical = 2.dp),
+              .heightIn(min = 48.dp)
+              .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
           ) {
             Checkbox(checked = checked, onCheckedChange = null)

@@ -9,6 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -177,7 +180,7 @@ object LuaScriptsScreen : Screen {
       floatingActionButton = {
         FloatingActionButton(
           onClick = { backStack.navigateTo(LuaScriptEditorScreen(scriptName = null)) },
-          containerColor = MaterialTheme.colorScheme.primary,
+          containerColor = MaterialTheme.colorScheme.primaryContainer,
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Add,
@@ -185,7 +188,7 @@ object LuaScriptsScreen : Screen {
               androidx.compose.ui.res.stringResource(
                 app.gyrolet.mpvrx.R.string.ui_create_new_script,
               ),
-            tint = MaterialTheme.colorScheme.onPrimary,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
           )
         }
       },
@@ -203,7 +206,7 @@ object LuaScriptsScreen : Screen {
             // Extra clearance so the FAB doesn't overlap the last item
             bottom = MaterialTheme.spacing.medium + 80.dp,
           ),
-        verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         item {
           LuaRuntimeStatusCard(
@@ -212,6 +215,7 @@ object LuaScriptsScreen : Screen {
             enabledScriptsCount = enabledScriptsCount,
             availableScriptsCount = catalog.availableScripts.size,
             onEnabledChange = preferences.enableLuaScripts::set,
+            shape = rememberConnectedShape(0, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
           )
         }
 
@@ -238,9 +242,10 @@ object LuaScriptsScreen : Screen {
             }
           }
           else -> {
-            items(catalog.availableScripts, key = { it }) { scriptName ->
+            itemsIndexed(catalog.availableScripts, key = { _, name -> name }) { index, scriptName ->
               LuaScriptToggleCard(
                 scriptName = scriptName,
+                shape = rememberConnectedShape(index + 1, catalog.availableScripts.size + 1, ConnectedLayout.Vertical),
                 selected = selectedScripts.contains(scriptName),
                 controlsEnabled = scriptsListEnabled,
                 onToggle = { toggleScriptSelection(scriptName) },
