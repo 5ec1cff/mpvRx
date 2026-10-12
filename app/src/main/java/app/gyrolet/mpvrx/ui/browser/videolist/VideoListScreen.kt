@@ -155,6 +155,15 @@ data class VideoListScreen(
         key = "VideoListViewModel_${bucketId}_${isAudio}",
         factory = VideoListViewModel.factory(context.applicationContext as android.app.Application, bucketId, isAudio),
       )
+    androidx.lifecycle.compose.LifecycleResumeEffect(viewModel) {
+      if (app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
+        // SAF providers do not produce FileObserver events; re-read the selected folder on resume.
+        viewModel.refresh()
+      } else {
+        viewModel.startWatching()
+      }
+      onPauseOrDispose { viewModel.stopWatching() }
+    }
     val videos by viewModel.videos.collectAsState()
     val videosWithPlaybackInfo by viewModel.videosWithPlaybackInfo.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

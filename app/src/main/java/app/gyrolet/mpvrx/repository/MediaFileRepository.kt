@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.database.MpvRxDatabase
 import app.gyrolet.mpvrx.domain.browser.FileSystemItem
 import app.gyrolet.mpvrx.domain.browser.PathComponent
@@ -24,6 +25,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.utils.media.MediaInfoOps
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
 import app.gyrolet.mpvrx.utils.storage.INTERNAL_STORAGE_LABEL
@@ -63,7 +65,9 @@ object MediaFileRepository : KoinComponent {
 
   private fun currentScanOptions(includeAudioOverride: Boolean? = null): MediaScanOptions =
     MediaScanOptions(
-      includeNoMediaFolders = foldersPreferences.includeNoMediaFolders.get(),
+      // Scoped Play Store builds cannot recursively discover .nomedia directories.
+      // Their explicit SAF grants are handled independently below.
+      includeNoMediaFolders = !BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get(),
       hiddenFolderMarkerNames = foldersPreferences.hiddenFolderMarkerNames.get(),
       includeAudio = includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
       minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
@@ -109,6 +113,17 @@ object MediaFileRepository : KoinComponent {
   // FOLDER OPERATIONS (Album View)
   // =============================================================================
 
+  suspend fun getScopedHiddenVideoFolders(context: Context, includeAudioOverride: Boolean? = null): List<VideoFolder> =
+    if (BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get()) {
+      ScopedHiddenFolderScanner.getFolders(
+        context,
+        foldersPreferences.scopedHiddenFolderUris.get(),
+        includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
+      )
+    } else {
+      emptyList()
+    }
+
   /**
    * Scans all storage volumes to find all folders containing videos
    */
@@ -130,7 +145,7 @@ object MediaFileRepository : KoinComponent {
             currentScanOptions(includeAudioOverride),
             database.directoryScanDao(),
           )
-        (mediaStoreFolders + indexedFolders)
+        (mediaStoreFolders + indexedFolders + getScopedHiddenVideoFolders(context, includeAudioOverride))
           .distinctBy { it.path.lowercase(Locale.ROOT) }
           .sortedBy { it.name.lowercase(Locale.getDefault()) }
       } catch (e: Exception) {
@@ -154,7 +169,8 @@ object MediaFileRepository : KoinComponent {
           options = options,
           forceFileSystemCheck = forceFileSystemCheck,
         )
-      folders.distinctBy { it.path.lowercase(Locale.ROOT) }
+      (folders + getScopedHiddenVideoFolders(context, includeAudioOverride))
+        .distinctBy { it.path.lowercase(Locale.ROOT) }
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
         .also { onProgress?.invoke(it.size) }
     }
@@ -351,12 +367,26 @@ object MediaFileRepository : KoinComponent {
   ): List<Video> =
     withContext(Dispatchers.IO) {
       try {
-        VideoScanUtils.getVideosInFolder(
-          context,
-          bucketId,
-          currentScanOptions(includeAudioOverride),
-          forceFileSystemCheck,
-        )
+        if (BuildConfig.SCOPED_STORAGE_ONLY &&
+          foldersPreferences.includeNoMediaFolders.get() &&
+          ScopedHiddenFolderScanner.isScopedFolder(bucketId) &&
+          bucketId in foldersPreferences.scopedHiddenFolderUris.get()
+        ) {
+          ScopedHiddenFolderScanner.getVideos(
+            context,
+            bucketId,
+            includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
+          )
+        } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
+          emptyList()
+        } else {
+          VideoScanUtils.getVideosInFolder(
+            context,
+            bucketId,
+            currentScanOptions(includeAudioOverride),
+            forceFileSystemCheck,
+          )
+        }
       } catch (e: Exception) {
         Log.e(TAG, "Error getting videos for bucket $bucketId", e)
         emptyList()

@@ -23,6 +23,8 @@ import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
+import app.gyrolet.mpvrx.utils.media.VisibleDirectoryWatcher
 import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.media.PlaybackStateOps
@@ -145,6 +147,20 @@ class VideoListViewModel(
   private var playbackIndexByIdentifier: Map<String, Int> = emptyMap()
 
   private val tag = "VideoListViewModel"
+  private val liveFolderWatcher = VisibleDirectoryWatcher { MediaLibraryEvents.notifyChanged() }
+
+  fun startWatching() {
+    if (!ZipArchiveMedia.isBrowserPath(bucketId) && !ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
+      liveFolderWatcher.watch(bucketId)
+    }
+  }
+
+  fun stopWatching() = liveFolderWatcher.stop()
+
+  override fun onCleared() {
+    liveFolderWatcher.stop()
+    super.onCleared()
+  }
 
   init {
     loadVideos()
@@ -152,7 +168,8 @@ class VideoListViewModel(
     // Listen for global media library changes and refresh this list when they occur
     viewModelScope.launch(Dispatchers.IO) {
       MediaLibraryEvents.changes.collectLatest {
-        loadVideos()
+        // A newly copied file may not be indexed in MediaStore yet.
+        loadVideos(forceFileSystemCheck = true)
       }
     }
 
@@ -178,7 +195,7 @@ class VideoListViewModel(
     FolderViewScanner.clearCache()
 
     // Trigger media scan before loading to ensure MediaStore is up-to-date
-    if (!ZipArchiveMedia.isBrowserPath(bucketId)) triggerMediaScan()
+    if (!ZipArchiveMedia.isBrowserPath(bucketId) && !ScopedHiddenFolderScanner.isScopedFolder(bucketId)) triggerMediaScan()
 
     loadVideos(forceFileSystemCheck = true)
   }
@@ -200,7 +217,8 @@ class VideoListViewModel(
 
         // ZIP entries need basic metadata even when optional metadata chips are disabled.
         val archiveFolder = ZipArchiveMedia.isBrowserPath(bucketId)
-        if (archiveFolder || MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+        if (!ScopedHiddenFolderScanner.isScopedFolder(bucketId) &&
+          (archiveFolder || MetadataRetrieval.isVideoMetadataNeeded(browserPreferences))) {
           Log.d(tag, "Enriching ${videoList.size} videos with metadata")
           videoList =
             MetadataRetrieval.enrichVideosIfNeeded(
@@ -225,7 +243,7 @@ class VideoListViewModel(
         // Update previous count
         previousVideoCount = videoList.size
 
-        if (videoList.isEmpty() && !archiveFolder) {
+        if (videoList.isEmpty() && !archiveFolder && !ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           Log.d(tag, "No videos found for bucket $bucketId - attempting media rescan")
           triggerMediaScan()
           delay(1000)
@@ -367,7 +385,7 @@ class VideoListViewModel(
   }
 
   private fun triggerMediaScan() {
-    if (ZipArchiveMedia.isBrowserPath(bucketId)) return
+    if (ZipArchiveMedia.isBrowserPath(bucketId) || ScopedHiddenFolderScanner.isScopedFolder(bucketId)) return
     try {
       // Trigger a targeted media scan for the specific folder
       val folder = File(bucketId)

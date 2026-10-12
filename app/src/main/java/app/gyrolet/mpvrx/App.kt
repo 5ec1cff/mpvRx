@@ -75,6 +75,7 @@ class App :
   private val imageCacheCleanupStarted = AtomicBoolean(false)
   private val settingsAutoBackupRunning = AtomicBoolean(false)
   private var startedActivityCount = 0
+  private val mediaStoreLiveMonitor by lazy { app.gyrolet.mpvrx.utils.media.MediaStoreLiveMonitor(this, applicationScope) }
 
   private data class WidgetAppearanceState(
     val darkMode: DarkMode,
@@ -278,6 +279,7 @@ class App :
   override fun onActivityStarted(activity: Activity) {
     if (activity is PlayerActivity) PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_STARTED")
     if (startedActivityCount++ == 0) {
+      mediaStoreLiveMonitor.start()
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppForegrounded()
       scheduleFastThumbnailWarmupOnce()
       scheduleMetadataMaintenanceOnce()
@@ -289,6 +291,7 @@ class App :
     if (activity is PlayerActivity) PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_STOPPED")
     startedActivityCount = (startedActivityCount - 1).coerceAtLeast(0)
     if (startedActivityCount == 0 && !activity.isChangingConfigurations) {
+      mediaStoreLiveMonitor.stop()
       pauseVideoWhenBackgroundPlaybackDisabled(activity)
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppBackgrounded()
       scheduleSettingsAutoBackup()

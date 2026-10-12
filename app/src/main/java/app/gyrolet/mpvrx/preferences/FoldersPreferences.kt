@@ -41,6 +41,8 @@ class FoldersPreferences(
     pinnedVideos.set(if (current.containsAll(paths)) current - paths.toSet() else current + paths)
   }
   val includeNoMediaFolders = preferenceStore.getBoolean("include_nomedia_folders", false)
+  /** Persisted SAF tree grants for the Play Store (scoped-storage) distribution. */
+  val scopedHiddenFolderUris = preferenceStore.getStringSet("scoped_hidden_folder_uris", emptySet())
   val hiddenFolderMarkerNames =
     preferenceStore.getStringSet("hidden_folder_marker_names", setOf(".nomedia"))
 

@@ -24,6 +24,7 @@ import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
+import app.gyrolet.mpvrx.utils.media.VisibleDirectoryWatcher
 import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.media.PlaybackStateOps
@@ -126,6 +127,23 @@ class FileSystemBrowserViewModel(
   // Track previous item count per path to detect if folder became empty
   private val itemCountByPath = mutableMapOf<String, Int>()
   private var directoryLoadJob: Job? = null
+  private var watchActive = false
+  private val liveDirectoryWatcher = VisibleDirectoryWatcher { MediaLibraryEvents.notifyChanged() }
+
+  fun startWatching() {
+    watchActive = true
+    liveDirectoryWatcher.watch(_currentPath.value)
+  }
+
+  fun stopWatching() {
+    watchActive = false
+    liveDirectoryWatcher.stop()
+  }
+
+  override fun onCleared() {
+    liveDirectoryWatcher.stop()
+    super.onCleared()
+  }
 
   companion object {
     private const val TAG = "FileSystemBrowserVM"
@@ -166,6 +184,12 @@ class FileSystemBrowserViewModel(
       loadCurrentDirectory()
     }
 
+    viewModelScope.launch {
+      _currentPath.collect { path ->
+        if (watchActive) liveDirectoryWatcher.watch(path)
+      }
+    }
+
     // Refresh on global media library changes
     // Similar to Fossify's media scan completion listener
     viewModelScope.launch(Dispatchers.IO) {
@@ -174,7 +198,7 @@ class FileSystemBrowserViewModel(
         // Drops the persisted tree snapshot too, so a mutation that did not move MediaStore's
         // generation (an in-app rename, a move, a new .nomedia folder) cannot be served from it.
         MediaStoreGenerationGuard.invalidate(getApplication())
-        loadCurrentDirectory()
+        loadCurrentDirectory(forceFileSystemCheck = true)
       }
     }
 

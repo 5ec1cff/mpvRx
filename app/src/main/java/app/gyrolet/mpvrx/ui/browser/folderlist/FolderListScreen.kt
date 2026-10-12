@@ -932,7 +932,7 @@ object FolderListScreen : Screen {
                   selectionManager = selectionManager,
                   onRefresh = { viewModel.refresh() },
                   onFolderClick = { folder ->
-                    if (selectionManager.isInSelectionMode && !ZipArchiveMedia.isBrowserPath(folder.path)) {
+                    if (selectionManager.isInSelectionMode && !ZipArchiveMedia.isBrowserPath(folder.path) && !app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)) {
                       selectionManager.toggleFromUser(folder)
                     } else if (!selectionManager.isInSelectionMode) {
                       if (isDualPaneActive) {
@@ -947,7 +947,7 @@ object FolderListScreen : Screen {
                     }
                   },
                   onFolderLongClick = { folder ->
-                    if (!ZipArchiveMedia.isBrowserPath(folder.path)) selectionManager.handleLongClick(folder)
+                    if (!ZipArchiveMedia.isBrowserPath(folder.path) && !app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)) selectionManager.handleLongClick(folder)
                   },
                   onTogglePin = { folder ->
                     coroutineScope.launch {

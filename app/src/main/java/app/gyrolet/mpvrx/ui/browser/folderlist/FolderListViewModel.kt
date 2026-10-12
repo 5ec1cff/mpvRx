@@ -26,6 +26,7 @@ import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils.StorageOps
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
 import app.gyrolet.mpvrx.utils.storage.MediaStoreGenerationGuard
 import kotlinx.coroutines.CancellationException
@@ -532,7 +533,7 @@ class FolderListViewModel(
             if (skipMediaStoreScan && hasExistingData) {
               Log.d(TAG, "Reusing cached MediaStore folders, generation unchanged")
               previousFolders.values
-                .filterNot { folderKey(it) in indexedKeys }
+                .filterNot { folderKey(it) in indexedKeys || ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) }
                 .sortedBy { it.name.lowercase(Locale.getDefault()) }
             } else {
               MediaFileRepository.getAllVideoFoldersFast(
@@ -554,7 +555,12 @@ class FolderListViewModel(
             _hasCompletedInitialLoad.value = true
           }
 
-          var visibleFolders = mergeFolders(mediaStoreFolders, indexedFolders)
+          val scopedFolders = if (skipMediaStoreScan) {
+            MediaFileRepository.getScopedHiddenVideoFolders(getApplication(), includeAudioOverride = if (audioOnly) true else null)
+          } else {
+            emptyList()
+          }
+          var visibleFolders = mergeFolders(mediaStoreFolders, indexedFolders, scopedFolders)
           if (!hasExistingData) {
             _allVideoFolders.value = visibleFolders
           }
@@ -583,7 +589,7 @@ class FolderListViewModel(
               }
 
             // Replace the old indexed snapshot after the scan, removing deleted/stale folders.
-            visibleFolders = mergeFolders(mediaStoreFolders, MediaFileRepository.getIndexedNoMediaFolders())
+            visibleFolders = mergeFolders(mediaStoreFolders, MediaFileRepository.getIndexedNoMediaFolders(), scopedFolders)
             ensureActive()
             if (!hasExistingData) {
               _allVideoFolders.value = visibleFolders
@@ -623,7 +629,7 @@ class FolderListViewModel(
             val enrichedFolders =
               MetadataRetrieval.enrichFoldersIfNeeded(
                 context = getApplication(),
-                folders = foldersForEnrichment,
+                folders = foldersForEnrichment.filterNot { ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) },
                 browserPreferences = browserPreferences,
                 metadataCache = metadataCache,
                 onProgress = { processed, total ->

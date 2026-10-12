@@ -193,6 +193,11 @@ fun FileSystemBrowserScreen(path: String? = null) {
 
   // State collection
   val currentPath by viewModel.currentPath.collectAsState()
+  val isActiveBrowserPage = app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive.current
+  androidx.lifecycle.compose.LifecycleResumeEffect(viewModel, isActiveBrowserPage, currentPath) {
+    if (isActiveBrowserPage) viewModel.startWatching()
+    onPauseOrDispose { viewModel.stopWatching() }
+  }
   val sortedItems by viewModel.items.collectAsState()
   val foldersPreferences = koinInject<app.gyrolet.mpvrx.preferences.FoldersPreferences>()
   val pinnedVideoPaths by foldersPreferences.pinnedVideos.collectAsState()

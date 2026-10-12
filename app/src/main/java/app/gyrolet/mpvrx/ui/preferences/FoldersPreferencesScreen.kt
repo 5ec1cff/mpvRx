@@ -12,6 +12,9 @@
 package app.gyrolet.mpvrx.ui.preferences
 
 import android.app.Application
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.animateColorAsState
@@ -70,6 +73,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.HorizontalDivider
@@ -93,6 +97,7 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
+import app.gyrolet.mpvrx.utils.media.openPersistedTreeDocument
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
 import kotlinx.coroutines.Dispatchers
@@ -116,11 +121,28 @@ object FoldersPreferencesScreen : Screen {
     val blacklistedAudioFolders by preferences.blacklistedAudioFolders.collectAsState()
     val includeNoMediaFolders by preferences.includeNoMediaFolders.collectAsState()
     val hiddenFolderMarkerNames by preferences.hiddenFolderMarkerNames.collectAsState()
+    val scopedHiddenFolderUris by preferences.scopedHiddenFolderUris.collectAsState()
     var availableFolders by remember { mutableStateOf<List<VideoFolder>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var selectionState by remember { mutableStateOf(SelectionState<String>()) }
     var showClearAllDialog by remember { mutableStateOf(false) }
+    val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+      if (uri != null) {
+        val granted = runCatching {
+          context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          openPersistedTreeDocument(context, uri.toString()) != null
+        }.getOrDefault(false)
+        if (granted) {
+          preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris + uri.toString())
+          preferences.includeNoMediaFolders.set(true)
+          app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+          MediaLibraryEvents.notifyChanged()
+        } else {
+          android.widget.Toast.makeText(context, R.string.pref_playstore_hidden_grant_failed, android.widget.Toast.LENGTH_LONG).show()
+        }
+      }
+    }
     val settingsHighlight =
       rememberSettingsSearchHighlight(FoldersPreferencesScreen, MaterialTheme.colorScheme.primary)
 
@@ -189,23 +211,48 @@ object FoldersPreferencesScreen : Screen {
             topPadding = 8.dp,
           )
 
-          NoMediaPreferenceCard(
-            modifier = Modifier.settingsSearchTarget(R.string.pref_folders_include_hidden_title),
-            includeNoMediaFolders = includeNoMediaFolders,
-            markerNames = hiddenFolderMarkerNames,
-            onIncludeNoMediaFoldersChanged = { enabled ->
-              preferences.includeNoMediaFolders.set(enabled)
-              app.gyrolet.mpvrx.repository.MediaFileRepository
-                .clearCache()
-              MediaLibraryEvents.notifyChanged()
-            },
-            onMarkerNamesChanged = { markerNames ->
-              preferences.hiddenFolderMarkerNames.set(markerNames)
-              app.gyrolet.mpvrx.repository.MediaFileRepository
-                .clearCache()
-              MediaLibraryEvents.notifyChanged()
-            },
-          )
+          if (BuildConfig.SCOPED_STORAGE_ONLY) {
+            // This Play Store-only UI intentionally cannot request broad storage access.
+            PlayStoreHiddenFolderCard(
+              enabled = includeNoMediaFolders,
+              grantedTreeUris = scopedHiddenFolderUris,
+              onEnabledChange = { enabled ->
+                preferences.includeNoMediaFolders.set(enabled)
+                app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+                MediaLibraryEvents.notifyChanged()
+              },
+              onAddFolder = { scopedTreePicker.launch(null) },
+              onRemoveFolder = { treeUri ->
+                preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris - treeUri)
+                runCatching {
+                  context.contentResolver.releasePersistableUriPermission(
+                    Uri.parse(treeUri),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                  )
+                }
+                app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+                MediaLibraryEvents.notifyChanged()
+              },
+            )
+          } else {
+            NoMediaPreferenceCard(
+              modifier = Modifier.settingsSearchTarget(R.string.pref_folders_include_hidden_title),
+              includeNoMediaFolders = includeNoMediaFolders,
+              markerNames = hiddenFolderMarkerNames,
+              onIncludeNoMediaFoldersChanged = { enabled ->
+                preferences.includeNoMediaFolders.set(enabled)
+                app.gyrolet.mpvrx.repository.MediaFileRepository
+                  .clearCache()
+                MediaLibraryEvents.notifyChanged()
+              },
+              onMarkerNamesChanged = { markerNames ->
+                preferences.hiddenFolderMarkerNames.set(markerNames)
+                app.gyrolet.mpvrx.repository.MediaFileRepository
+                  .clearCache()
+                MediaLibraryEvents.notifyChanged()
+              },
+            )
+          }
 
           Spacer(modifier = Modifier.height(16.dp))
 
@@ -348,6 +395,83 @@ object FoldersPreferencesScreen : Screen {
             Text(stringResource(R.string.generic_cancel))
           }
         },
+      )
+    }
+  }
+}
+
+/**
+ * Scoped-storage Play Store build: only explicitly user-selected folders can be scanned.
+ * Other distributions keep the configurable .nomedia marker scanner unchanged.
+ */
+@Composable
+private fun PlayStoreHiddenFolderCard(
+  enabled: Boolean,
+  grantedTreeUris: Set<String>,
+  onEnabledChange: (Boolean) -> Unit,
+  onAddFolder: () -> Unit,
+  onRemoveFolder: (String) -> Unit,
+) {
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    shape = MaterialTheme.shapes.large,
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth().padding(16.dp),
+      verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
+          Text(
+            text = stringResource(R.string.pref_playstore_hidden_title),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+          )
+          Text(
+            text = stringResource(R.string.pref_playstore_hidden_summary),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+        IconSwitch(checked = enabled, onCheckedChange = onEnabledChange)
+      }
+
+      if (grantedTreeUris.isNotEmpty()) {
+        Text(
+          text = stringResource(R.string.pref_playstore_hidden_selected),
+          style = MaterialTheme.typography.labelLarge,
+        )
+        grantedTreeUris.sorted().forEach { treeUri ->
+          val displayPath = remember(treeUri) {
+            Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':')?.takeIf(String::isNotBlank)
+              ?: treeUri
+          }
+          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.RoundedFilled.Folder, contentDescription = null)
+            Text(displayPath, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            IconButton(onClick = { onRemoveFolder(treeUri) }) {
+              Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.pref_playstore_hidden_remove))
+            }
+          }
+        }
+      }
+      Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onAddFolder),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(14.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(Icons.RoundedFilled.Add, contentDescription = null)
+          Text(stringResource(R.string.pref_playstore_hidden_add), style = MaterialTheme.typography.titleSmall)
+        }
+      }
+      Text(
+        text = stringResource(R.string.pref_playstore_hidden_limitations),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
   }
