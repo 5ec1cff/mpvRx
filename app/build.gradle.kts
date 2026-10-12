@@ -43,7 +43,7 @@ val activeAbis =
   } else {
     listOf("arm64-v8a", "armeabi-v7a") + x86Abis
   }
-val universalOnlyDistributions = setOf("noVulkan", "fongmi")
+val universalOnlyDistributions = setOf("noVulkan", "fongmi", "playstore")
 // Distributions outside Google Play. Play forbids downloaded executable code (yt-dlp) and torrent
 // streaming, so only these flavors enable yt-dlp and ship yt-dlp and libtorrent native payloads.
 val sideloadDistributions = setOf("standard", "noVulkan", "fongmi")

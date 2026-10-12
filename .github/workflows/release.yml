@@ -80,6 +80,13 @@ jobs:
             name: Play Store
             gradle: Playstore
             dir: playstore
+            abis: universal
+            asset: playstore
+            package: apk
+          - id: playstore_bundle
+            name: Play Store
+            gradle: Playstore
+            dir: playstore
             abis: ''
             asset: playstore
             package: aab
@@ -251,7 +258,7 @@ jobs:
         run: |
           set -euo pipefail
           : > checksums.txt
-          variants=(universal arm64-v8a armeabi-v7a x86 x86_64 fongmi no-vulkan)
+          variants=(universal arm64-v8a armeabi-v7a x86 x86_64 fongmi no-vulkan playstore)
           for variant in "${variants[@]}"; do
             asset="release-assets/mpvRx-${variant}-${VERSION_TAG}.apk"
             if [[ ! -f "$asset" ]]; then
@@ -293,12 +300,12 @@ jobs:
           variant_guide = """
           ### APK variants
 
-          All variants contain the same mpvRx app version and features, with their native backends built from [mpvlib Android](https://github.com/Riteshp2001/mpvlibAndroid). Choose the package that best matches your device:
+          All variants contain the same mpvRx app version, with their native backends built from [mpvlib Android](https://github.com/Riteshp2001/mpvlibAndroid). Choose the package that best matches your device:
 
           - **Standard** (`mpvRx-<architecture>-<version>.apk`): Recommended for most devices. Available as Universal and architecture-specific APKs with the standard Vulkan-capable playback backend.
           - **FongMi** (`mpvRx-fongmi-<version>.apk`): Universal package using the FongMi native profile for Vulkan, direct MediaCodec, and Dolby Vision playback.
           - **Non-Vulkan** (`mpvRx-no-vulkan-<version>.apk`): Universal OpenGL-only package for devices without compatible Vulkan support or with unstable legacy GPU drivers.
-          - **Play Store** (`mpvRx-playstore-<version>.aab`): Google Play app bundle for Play Console upload. It cannot be installed directly; use an APK above instead.
+          - **Play Store** (`mpvRx-playstore-<version>.apk`): Universal APK of the Google Play build, which leaves out features Google Play does not allow, such as yt-dlp, torrent streaming, and in-app updates. `mpvRx-playstore-<version>.aab` is the same build as an app bundle for Play Console upload.
           """.strip()
           Path('release-notes.md').write_text(
               latest + '\n\n---\n' + variant_guide + '\n\n### SHA-256 checksums\n\n```text\n',

@@ -186,10 +186,11 @@ class UpdateManager(
   private fun String.matchesApkVariant(variant: String): Boolean {
     val isFongMi = hasAssetToken("fongmi")
     val isNoVulkan = hasAssetToken("no-vulkan")
+    val isPlayStore = hasAssetToken("playstore")
     return when (variant) {
       "fongmi" -> isFongMi
       "no-vulkan" -> isNoVulkan
-      "standard" -> !isFongMi && !isNoVulkan
+      "standard" -> !isFongMi && !isNoVulkan && !isPlayStore
       else -> false
     }
   }

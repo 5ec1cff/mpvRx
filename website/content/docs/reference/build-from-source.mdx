@@ -27,7 +27,7 @@ On Windows PowerShell:
 | Flavor | Gradle task prefix |
 | --- | --- |
 | Standard | `assembleStandard...` |
-| Play Store | `bundlePlaystore...` |
+| Play Store | `assemblePlaystore...` or `bundlePlaystore...` |
 | No Vulkan | `assembleNoVulkan...` |
 | FongMi | `assembleFongmi...` |
 
@@ -35,12 +35,13 @@ Examples:
 
 ```bash
 ./gradlew :app:assembleStandardRelease
+./gradlew :app:assemblePlaystoreRelease
 ./gradlew :app:bundlePlaystoreRelease
 ./gradlew :app:assembleNoVulkanRelease
 ./gradlew :app:assembleFongmiRelease
 ```
 
-The Play Store flavor uses the Standard mpv native library while disabling APK self-updates and enforcing scoped storage. Upload its Android App Bundle rather than a Standard APK.
+The Play Store flavor uses the Standard mpv native library while disabling APK self-updates and enforcing scoped storage. `assemblePlaystoreRelease` builds a universal APK for direct installs; upload the Android App Bundle from `bundlePlaystoreRelease` to Play Console.
 
 The mpv native libraries are resolved from the pinned mpvlib release declared in `gradle/libs.versions.toml`. Gradle caches downloaded artifacts, so they do not need to be copied into `app/libs/` for each build.
 
