@@ -16,6 +16,11 @@ import java.util.IdentityHashMap
 import java.util.Locale
 import java.util.UUID
 
+// threadId() exists only from API 36, below which getId() is the sole source.
+@Suppress("DEPRECATION")
+private val Thread.stableId: Long
+  get() = if (Build.VERSION.SDK_INT >= 36) threadId() else id
+
 internal object CrashReportStore {
   // Called by the app's native exception handler, before the crashing process exits.
   fun capture(
@@ -33,7 +38,7 @@ internal object CrashReportStore {
       writer.appendLine("Captured: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ROOT).format(Date())}")
       writer.appendLine("Process ID: ${Process.myPid()}")
       writer.appendLine("Device uptime: ${SystemClock.elapsedRealtime()} ms since boot")
-      writer.appendLine("Crash thread: ${thread.name} (id=${thread.id}, state=${thread.state})")
+      writer.appendLine("Crash thread: ${thread.name} (id=${thread.stableId}, state=${thread.state})")
       writer.appendLine()
       writer.appendLine(deviceInfo())
       writer.appendLine()
@@ -44,7 +49,7 @@ internal object CrashReportStore {
       try {
         Thread.getAllStackTraces().entries.sortedBy { it.key.name }.forEach { (currentThread, stack) ->
           writer.appendLine(
-            "${currentThread.name} (id=${currentThread.id}, state=${currentThread.state}, " +
+            "${currentThread.name} (id=${currentThread.stableId}, state=${currentThread.state}, " +
               "daemon=${currentThread.isDaemon}, priority=${currentThread.priority})",
           )
           stack.forEach { writer.appendLine("    at $it") }
@@ -98,7 +103,7 @@ internal object CrashReportStore {
     val reportId = runCatching { UUID.fromString(crashId) }.getOrNull() ?: UUID.randomUUID()
     val report = File(directory, "mpvrx-crash-$reportId.txt")
     val matchingCapture = crashId.isNotBlank() && metadata?.optString("reportId") == crashId
-    if (matchingCapture && metadata?.optBoolean("completed") == true && report.isFile) return report
+    if (matchingCapture && metadata.optBoolean("completed") && report.isFile) return report
     val hasFullException = matchingCapture && File(directory, "exception.txt").isFile
     writeAtomically(report) { writer ->
       if (hasFullException) {

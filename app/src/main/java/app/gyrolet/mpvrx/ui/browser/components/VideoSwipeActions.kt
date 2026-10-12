@@ -241,7 +241,6 @@ internal fun rememberVideoSwipeActions(
                   Toast.makeText(context, R.string.video_swipe_recent_disabled, Toast.LENGTH_SHORT).show()
                 }
               }
-              else -> Unit
             }
             currentOnChanged()
           } catch (cancelled: CancellationException) {

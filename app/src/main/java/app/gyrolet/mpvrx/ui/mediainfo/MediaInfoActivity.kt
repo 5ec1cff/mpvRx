@@ -902,7 +902,7 @@ class MediaInfoActivity : AppCompatActivity() {
               )
               QuickStatCard(
                 title = stringResource(R.string.media_info_stat_channels),
-                value = primaryAudio?.channels?.ifBlank { "Unknown" } ?: "Unknown",
+                value = primaryAudio.channels.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.VolumeUp,
                 accentColor = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.weight(1f),
@@ -914,7 +914,7 @@ class MediaInfoActivity : AppCompatActivity() {
             ) {
               QuickStatCard(
                 title = stringResource(R.string.media_info_stat_sample_rate),
-                value = primaryAudio?.samplingRate?.ifBlank { "Unknown" } ?: "Unknown",
+                value = primaryAudio.samplingRate.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Tune,
                 accentColor = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.weight(1f),

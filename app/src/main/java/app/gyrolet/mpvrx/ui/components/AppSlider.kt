@@ -64,13 +64,13 @@ fun AppSlider(
     val pressed by interactionSource.collectIsPressedAsState()
     val dragged by interactionSource.collectIsDraggedAsState()
     LaunchedEffect(pressed, dragged) { onInteractionChange(pressed || dragged) }
+    val materialState = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
+    materialState.value = value
     androidx.compose.material3.Slider(
-      value = value,
+      state = materialState,
       onValueChange = onValueChange,
       modifier = modifier,
       enabled = enabled,
-      valueRange = valueRange,
-      steps = steps,
       onValueChangeFinished = onValueChangeFinished,
       colors = colors,
       interactionSource = interactionSource,
@@ -189,20 +189,20 @@ fun AppRangeSlider(
 ) {
   val preferences = koinInject<AppearancePreferences>()
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val state = remember(steps, valueRange) { RangeSliderState(value.start, value.endInclusive, steps, valueRange) }
   if (!glassEnabled) {
+    state.startValue = value.start
+    state.endValue = value.endInclusive
     androidx.compose.material3.RangeSlider(
-      value = value,
+      state = state,
       onValueChange = onValueChange,
       modifier = modifier,
       enabled = enabled,
-      valueRange = valueRange,
-      steps = steps,
       onValueChangeFinished = onValueChangeFinished,
       colors = colors,
     )
     return
   }
-  val state = remember(steps, valueRange) { RangeSliderState(value.start, value.endInclusive, steps, valueRange) }
   SideEffect {
     state.startValue = value.start
     state.endValue = value.endInclusive

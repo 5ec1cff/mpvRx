@@ -64,6 +64,8 @@ data class ServerDiscoveryState(
 class LocalServerDiscovery(context: Context) {
   private val context = context.applicationContext
 
+  // allNetworks has no synchronous replacement; NetworkCallback cannot back this one-shot query.
+  @Suppress("DEPRECATION")
   fun localAddresses(): List<ServerSuggestion> {
     val addresses = mutableListOf(
       ServerSuggestion("", "127.0.0.1", source = ServerSuggestionSource.LOOPBACK),

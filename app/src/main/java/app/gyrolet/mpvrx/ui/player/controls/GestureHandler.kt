@@ -1151,7 +1151,7 @@ fun GestureHandler(
 
                     selectedSubtitle = if (pinchToZoomSubtitles) {
                       val regions = subtitleRegions(sw, sh)
-                      regions.find { it.target == firstTouchedSubtitle?.target && it.trackId == firstTouchedSubtitle?.trackId }
+                      regions.find { it.target == firstTouchedSubtitle?.target && it.trackId == firstTouchedSubtitle.trackId }
                         ?: findSubtitleGestureTarget(regions, midX, midY, 12.dp.toPx())
                     } else null
 
@@ -1270,7 +1270,7 @@ fun GestureHandler(
               val stillSameTrack = selected != null && PlaybackSession.state.value.generation == subtitleGestureGeneration &&
                 getTrackSelectionId(selected.target.selectionProperty) == selected.trackId
               if (scaleChanged && stillSameTrack) {
-                if (selectedSubtitle?.target == SubtitleGestureTarget.Secondary) {
+                if (selectedSubtitle.target == SubtitleGestureTarget.Secondary) {
                   subtitlesPreferences.secondarySubScale.set(lastCalculatedSubScale)
                 } else {
                   subtitlesPreferences.subScale.set(lastCalculatedSubScale)

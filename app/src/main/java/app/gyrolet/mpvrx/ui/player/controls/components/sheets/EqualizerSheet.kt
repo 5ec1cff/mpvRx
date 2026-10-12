@@ -567,7 +567,7 @@ private fun BandColumn(
   onGainChanged: (Float) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  var sliderValue by remember(gainDb) { mutableFloatStateOf(gainDb.toFloat()) }
+  var sliderValue by remember(gainDb) { mutableFloatStateOf(gainDb) }
   val gainHaptics = app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics(EQ_MIN_DB, EQ_MAX_DB)
 
   Column(

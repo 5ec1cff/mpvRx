@@ -181,14 +181,14 @@ data class CustomThemeEditorScreen(
                 val definition =
                   CustomThemeDefinition(
                     name = trimmedName,
-                    primaryLight = parsedPrimaryLight!!,
-                    primaryDark = parsedPrimaryDark!!,
-                    secondaryLight = parsedSecondaryLight!!,
-                    secondaryDark = parsedSecondaryDark!!,
-                    tertiaryLight = parsedTertiaryLight!!,
-                    tertiaryDark = parsedTertiaryDark!!,
-                    backgroundLight = parsedBackgroundLight!!,
-                    backgroundDark = parsedBackgroundDark!!,
+                    primaryLight = parsedPrimaryLight,
+                    primaryDark = parsedPrimaryDark,
+                    secondaryLight = parsedSecondaryLight,
+                    secondaryDark = parsedSecondaryDark,
+                    tertiaryLight = parsedTertiaryLight,
+                    tertiaryDark = parsedTertiaryDark,
+                    backgroundLight = parsedBackgroundLight,
+                    backgroundDark = parsedBackgroundDark,
                   )
                 val updatedThemes =
                   if (existingTheme == null) {

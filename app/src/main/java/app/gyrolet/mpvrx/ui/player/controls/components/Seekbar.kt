@@ -634,7 +634,7 @@ private fun SeekbarContent(
           when (event.key) {
             Key.DirectionLeft, Key.DirectionRight -> {
               if (event.type == KeyEventType.KeyDown) {
-                val repeats = event.nativeKeyEvent?.repeatCount ?: 0
+                val repeats = event.nativeKeyEvent.repeatCount
                 val step = if (repeats > 0) dpadBigStep else dpadStep
                 val dir = if (event.key == Key.DirectionLeft) -1f else 1f
                 isDpadScrubbing = true
@@ -664,9 +664,9 @@ private fun SeekbarContent(
     if (waveSeekbarActive) {
       val waveTrackHeight = if (seekbarStyle == SeekbarStyle.Wavy) 5.dp else overlayTrackHeight
       WaveVisualizerOverlay(
-        palette = wavePalette!!,
+        palette = wavePalette,
         isSheetOpen = waveSheetOpen,
-        features = waveFeatures!!,
+        features = waveFeatures,
         isPlaying = !paused && !isVisuallyInteracting,
         progressProvider = {
           if (safeDuration > 0f) (positionProvider() / safeDuration).coerceIn(0f, 1f) else 0f

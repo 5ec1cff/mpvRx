@@ -1499,7 +1499,7 @@ class PlayerViewModel : ViewModel(),
           .distinct(),
         errorMessage = null,
       )
-      if (autoTranslate && activeLyrics?.synced?.isNotEmpty() == true) translateLyrics(defaultTargetLang)
+      if (autoTranslate && activeLyrics.synced?.isNotEmpty() == true) translateLyrics(defaultTargetLang)
       return
     }
 

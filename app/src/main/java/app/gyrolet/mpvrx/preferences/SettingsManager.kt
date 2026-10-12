@@ -194,7 +194,7 @@ class SettingsManager(
           lastFailure = restored.exceptionOrNull()
         }
         if (candidates.isNotEmpty() && lastFailure != null) {
-          Result.failure(lastFailure!!)
+          Result.failure(lastFailure)
         } else {
           Result.success(null)
         }

@@ -26,8 +26,7 @@ object DeviceFormFactor {
       cachedTelevisionFeature ?: context.packageManager.let { packageManager ->
         (
           packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
-            packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK_ONLY) ||
-            packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+            packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK_ONLY)
         ).also { cachedTelevisionFeature = it }
       }
     }

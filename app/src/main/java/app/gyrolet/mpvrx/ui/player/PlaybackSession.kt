@@ -1371,7 +1371,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     val state = _state.value
     val item = loadedPlaybackItem ?: return@withReadyCore null
     if (state.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND) || loadedGeneration != state.generation ||
-      state.currentItem?.stableId != item.stableId || state.currentItem?.audiobook != item.audiobook ||
+      state.currentItem?.stableId != item.stableId || state.currentItem.audiobook != item.audiobook ||
       MPVLib.getPropertyBoolean("seekable") == false
     ) return@withReadyCore null
     val position = MPVLib.getPropertyDouble("time-pos")?.takeIf { it.isFinite() && it >= 0 } ?: return@withReadyCore null

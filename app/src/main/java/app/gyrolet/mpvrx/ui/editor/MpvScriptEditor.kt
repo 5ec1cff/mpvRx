@@ -468,7 +468,7 @@ private class MpvLanguageWrapper(
   ) {
     base.requireAutoComplete(content, position, publisher, extraArguments)
     val prefix = CompletionHelper.computePrefix(content, position, ::isMpvCompletionChar)
-    val beforeCaret = content.getLine(position.line).take(position.column).toString()
+    val beforeCaret = content.getLine(position.line).take(position.column)
     val assignment =
       if (completionMode == MpvCompletionMode.MPV_CONF &&
         !beforeCaret.trimStart().startsWith("#")

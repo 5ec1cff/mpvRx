@@ -229,7 +229,6 @@ object PlayerControlsPreferencesScreen : Screen {
                   // OFF, selected, and a single available option have identical curvature.
                   ExpressivePreferenceItem(selected = isSelected, standalone = true) {
                     ListItem(
-                      headlineContent = { Text(style.name) },
                       trailingContent = {
                         RadioButton(selected = isSelected, onClick = null)
                       },
@@ -241,7 +240,9 @@ object PlayerControlsPreferencesScreen : Screen {
                         role = Role.RadioButton,
                         onClick = { appearancePrefs.seekbarStyle.set(style) },
                       ),
-                    )
+                    ) {
+                      Text(style.name)
+                    }
                   }
                 }
               }

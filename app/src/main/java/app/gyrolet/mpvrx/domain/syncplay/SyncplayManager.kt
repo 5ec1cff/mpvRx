@@ -237,15 +237,15 @@ class SyncplayManager(
       handshakeJob?.cancel()
       handshakeJob = null
       loggedIn = true
-      val acceptedUsername = hello.username ?: _state.value.username
-      val acceptedRoom = hello.room?.name ?: _state.value.room
+      val acceptedUsername = hello.username
+      val acceptedRoom = hello.room.name
       _state.value =
         _state.value.copy(
           isConnected = true,
           isConnecting = false,
           username = acceptedUsername,
           room = acceptedRoom,
-          users = (_state.value.users + listOfNotNull(acceptedUsername)).distinct(),
+          users = (_state.value.users + acceptedUsername).distinct(),
         )
 
       startPingLoop()

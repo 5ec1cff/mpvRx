@@ -524,9 +524,6 @@ open class MainActivity : AppCompatActivity() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       window.isNavigationBarContrastEnforced = false
     }
-    if (Build.VERSION.SDK_INT >= 35) {
-      window.isStatusBarContrastEnforced = false
-    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
       // Draw into camera-cutout areas too, so the wallpaper covers the whole screen.
       window.attributes =

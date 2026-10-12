@@ -97,7 +97,7 @@ class YtdlpDownloadService : Service() {
     val progress = job?.progressPercent?.toInt() ?: 0
     val text =
       when {
-        running && job != null -> {
+        running -> {
           val queueSuffix = if (queued > 0) " (+$queued)" else ""
           "$progress% ${job.detail}$queueSuffix".trim()
         }

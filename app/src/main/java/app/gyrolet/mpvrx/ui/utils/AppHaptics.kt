@@ -71,6 +71,8 @@ private object AppVibration {
           ?: view.hasWindowFocus()
       if (!resumed) return@runCatching false
       val resolver = view.context.contentResolver
+      // Custom vibrations bypass USAGE_TOUCH, so the user's system haptics toggle is read directly.
+      @Suppress("DEPRECATION")
       val systemEnabled = Settings.System.getInt(resolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1) != 0
       val systemIntensity = Settings.System.getInt(resolver, SYSTEM_HAPTIC_FEEDBACK_INTENSITY, -1)
       if (!systemEnabled || systemIntensity == 0) {

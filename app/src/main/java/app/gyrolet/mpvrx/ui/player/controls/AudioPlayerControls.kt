@@ -1978,7 +1978,7 @@ fun AudioPlayerControls(
               }
 
               AnimatedContent(
-                targetState = Triple(currentLine, syncedLines?.getOrNull(activeIndex + 1)?.time, displayText),
+                targetState = Triple(currentLine, syncedLines.getOrNull(activeIndex + 1)?.time, displayText),
                 transitionSpec = {
                   (fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
                     slideInVertically(animationSpec = tween(300, easing = FastOutSlowInEasing)) { height -> (height * 0.4f).toInt() })
