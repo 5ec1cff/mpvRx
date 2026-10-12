@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,7 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddXtreamPlaylistDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -320,24 +319,21 @@ fun PlaylistActionSheet(
     var playlistName by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
-    Dialog(onDismissRequest = { showCreateDialog = false }) {
-      Card(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
+    AppAlertDialog(
+      onDismissRequest = { showCreateDialog = false },
+      title = {
+        Text(
+          text =
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_create_playlist),
+          style = MaterialTheme.typography.headlineSmall,
+        )
+      },
+      text = {
         Column(
-          modifier = Modifier.padding(24.dp),
+          modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-            text =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.ui_create_playlist),
-            style = MaterialTheme.typography.headlineSmall,
-          )
           OutlinedTextField(
             value = playlistName,
             onValueChange = { playlistName = it },
@@ -350,56 +346,54 @@ fun PlaylistActionSheet(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
           )
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-          ) {
-            TextButton(
-              onClick = { showCreateDialog = false },
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-              )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-              onClick = {
-                if (playlistName.isNotBlank()) {
-                  coroutineScope.launch {
-                    try {
-                      onCreatePlaylist(playlistName.trim())
-                      android.widget.Toast
-                        .makeText(
-                          context,
-                          context.getString(app.gyrolet.mpvrx.R.string.ui_playlist_created_successfully),
-                          android.widget.Toast.LENGTH_SHORT,
-                        ).show()
-                      showCreateDialog = false
-                    } catch (e: Exception) {
-                      android.widget.Toast
-                        .makeText(
-                          context,
-                          "Failed to create playlist: ${e.message}",
-                          android.widget.Toast.LENGTH_LONG,
-                        ).show()
-                    }
-                  }
-                }
-              },
-              enabled = playlistName.isNotBlank(),
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_create),
-              )
-            }
-          }
         }
-      }
-    }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showCreateDialog = false },
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          )
+        }
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            if (playlistName.isNotBlank()) {
+              coroutineScope.launch {
+                try {
+                  onCreatePlaylist(playlistName.trim())
+                  android.widget.Toast
+                    .makeText(
+                      context,
+                      context.getString(app.gyrolet.mpvrx.R.string.ui_playlist_created_successfully),
+                      android.widget.Toast.LENGTH_SHORT,
+                    ).show()
+                  showCreateDialog = false
+                } catch (e: Exception) {
+                  android.widget.Toast
+                    .makeText(
+                      context,
+                      "Failed to create playlist: ${e.message}",
+                      android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                }
+              }
+            }
+          },
+          enabled = playlistName.isNotBlank(),
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_create),
+          )
+        }
+      },
+    )
   }
 
   // M3U Playlist Dialog
@@ -451,25 +445,21 @@ fun PlaylistActionSheet(
         }
       }
 
-    Dialog(onDismissRequest = { showM3UDialog = false }) {
-      Card(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
+    AppAlertDialog(
+      onDismissRequest = { showM3UDialog = false },
+      title = {
+        Text(
+          text =
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.playlist_add_remote_title),
+          style = MaterialTheme.typography.headlineSmall,
+        )
+      },
+      text = {
         Column(
-          modifier = Modifier.padding(24.dp),
+          modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-            text =
-              androidx.compose.ui.res
-                .stringResource(app.gyrolet.mpvrx.R.string.playlist_add_remote_title),
-            style = MaterialTheme.typography.headlineSmall,
-          )
-
           Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
               value = playlistUrl,
@@ -556,69 +546,66 @@ fun PlaylistActionSheet(
               }
             }
           }
-
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-          ) {
-            TextButton(
-              onClick = { showM3UDialog = false },
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
-              )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Button(
-              onClick = {
-                val normalizedPlaylistUrl = SharedUrlExtractor.normalizeInput(playlistUrl)
-                if (normalizedPlaylistUrl.isNotBlank()) {
-                  isLoading = true
-                  coroutineScope.launch {
-                    val result =
-                      onCreateM3UPlaylist(
-                        normalizedPlaylistUrl,
-                        playlistUserAgent.trim().takeIf { it.isNotEmpty() },
-                      )
-                    result
-                      .onSuccess {
-                        android.widget.Toast
-                          .makeText(
-                            context,
-                            context.getString(app.gyrolet.mpvrx.R.string.playlist_import_success),
-                            android.widget.Toast.LENGTH_SHORT,
-                          ).show()
-                        showM3UDialog = false
-                        onDismiss()
-                      }.onFailure { error ->
-                        android.widget.Toast
-                          .makeText(
-                            context,
-                            context.getString(
-                              app.gyrolet.mpvrx.R.string.playlist_import_error,
-                              error.message ?: context.getString(app.gyrolet.mpvrx.R.string.generic_unknown_error),
-                            ),
-                            android.widget.Toast.LENGTH_LONG,
-                          ).show()
-                      }
-                    isLoading = false
-                  }
-                }
-              },
-              enabled = playlistUrl.isNotBlank() && !isLoading,
-              shape = MaterialTheme.shapes.extraLarge,
-            ) {
-              Text(
-                androidx.compose.ui.res
-                  .stringResource(app.gyrolet.mpvrx.R.string.ui_add_from_url),
-              )
-            }
-          }
         }
-      }
-    }
+      },
+      dismissButton = {
+        TextButton(
+          onClick = { showM3UDialog = false },
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.generic_cancel),
+          )
+        }
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            val normalizedPlaylistUrl = SharedUrlExtractor.normalizeInput(playlistUrl)
+            if (normalizedPlaylistUrl.isNotBlank()) {
+              isLoading = true
+              coroutineScope.launch {
+                val result =
+                  onCreateM3UPlaylist(
+                    normalizedPlaylistUrl,
+                    playlistUserAgent.trim().takeIf { it.isNotEmpty() },
+                  )
+                result
+                  .onSuccess {
+                    android.widget.Toast
+                      .makeText(
+                        context,
+                        context.getString(app.gyrolet.mpvrx.R.string.playlist_import_success),
+                        android.widget.Toast.LENGTH_SHORT,
+                      ).show()
+                    showM3UDialog = false
+                    onDismiss()
+                  }.onFailure { error ->
+                    android.widget.Toast
+                      .makeText(
+                        context,
+                        context.getString(
+                          app.gyrolet.mpvrx.R.string.playlist_import_error,
+                          error.message ?: context.getString(app.gyrolet.mpvrx.R.string.generic_unknown_error),
+                        ),
+                        android.widget.Toast.LENGTH_LONG,
+                      ).show()
+                  }
+                isLoading = false
+              }
+            }
+          },
+          enabled = playlistUrl.isNotBlank() && !isLoading,
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Text(
+            androidx.compose.ui.res
+              .stringResource(app.gyrolet.mpvrx.R.string.ui_add_from_url),
+          )
+        }
+      },
+    )
   }
 
   AddXtreamPlaylistDialog(
