@@ -53,7 +53,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.LeftSideOvalShape
@@ -87,12 +86,10 @@ fun DoubleTapToSeekOvals(
 ) {
   val gesturePreferences = koinInject<GesturePreferences>()
   val doubleTapSeekAreaWidth by gesturePreferences.doubleTapSeekAreaWidth.collectAsState()
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
   val reducedMotion = AppMotion.playerReducedMotion()
   val seekAreaFraction = (doubleTapSeekAreaWidth / 100f).coerceIn(0.01f, 0.5f)
   // Reset active waves when feedback/motion settings change, without replaying the last tap.
-  val waves = remember(showOvals, reducedMotion, liquidGlassEnabled) { mutableStateListOf<SeekRippleRequest>() }
+  val waves = remember(showOvals, reducedMotion) { mutableStateListOf<SeekRippleRequest>() }
   LaunchedEffect(rippleRequest) {
     if (showOvals && rippleRequest != null) {
       // Bound overdraw and coroutine count during rapid multi-tap seeking.
@@ -122,7 +119,6 @@ fun DoubleTapToSeekOvals(
       key(wave) {
         SeekRippleWave(
           request = wave,
-          liquidGlass = liquidGlassEnabled,
           reducedMotion = reducedMotion,
           onFinished = { waves.remove(wave) },
           modifier = Modifier
@@ -182,7 +178,6 @@ fun DoubleTapToSeekOvals(
 @Composable
 private fun SeekRippleWave(
   request: SeekRippleRequest,
-  liquidGlass: Boolean,
   reducedMotion: Boolean,
   onFinished: () -> Unit,
   modifier: Modifier = Modifier,
@@ -194,7 +189,7 @@ private fun SeekRippleWave(
       // A short, stationary touch cue; no expanding halo, bouncing label or moving chevrons.
       delay(160)
     } else {
-      progress.animateTo(1f, tween(if (liquidGlass) 560 else 460, easing = LinearEasing))
+      progress.animateTo(1f, tween(460, easing = LinearEasing))
     }
     currentOnFinished()
   }
@@ -211,19 +206,7 @@ private fun SeekRippleWave(
         val staticRadius = min(56.dp.toPx(), maxRadius)
         // Unit-radius brushes are cached and scaled in the draw phase. No per-frame shaders,
         // bitmap capture or backdrop sampling is needed for this translucent touch feedback.
-        val brush = if (liquidGlass) {
-          Brush.radialGradient(
-            0f to Color.White.copy(alpha = 0.025f),
-            0.50f to Color.Transparent,
-            0.72f to Color.Black.copy(alpha = 0.10f),
-            0.81f to Color.Black.copy(alpha = 0.04f),
-            0.88f to Color.White.copy(alpha = 0.32f),
-            0.94f to Color.White.copy(alpha = 0.12f),
-            1f to Color.Transparent,
-            center = Offset.Zero,
-            radius = 1f,
-          )
-        } else {
+        val brush =
           Brush.radialGradient(
             0f to Color.White.copy(alpha = 0.20f),
             0.65f to Color.White.copy(alpha = 0.18f),
@@ -233,7 +216,6 @@ private fun SeekRippleWave(
             center = Offset.Zero,
             radius = 1f,
           )
-        }
         onDrawBehind {
           val p = progress.value
           val expansion = LinearOutSlowInEasing.transform(p)

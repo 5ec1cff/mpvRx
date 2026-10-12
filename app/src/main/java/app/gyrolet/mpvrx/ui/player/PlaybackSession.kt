@@ -256,6 +256,7 @@ object PlaybackSession : MPVLib.EventObserver {
   private var attachedSurfaceHeight = 0
   private var surfaceAttachmentToken = 0L
   private var rendererOutputReady = false
+  private val surfaceCallbackHandler = Handler(Looper.getMainLooper())
   private var lastSurfaceVideoTrack: SuspendedVideoTrack? = null
   private var activeNetworkStream: NetworkStreamRegistration? = null
   private val auxiliaryNetworkStreams = linkedMapOf<String, NetworkStreamRegistration>()
@@ -443,6 +444,8 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     height: Int? = null,
     owner: Any,
     ownerIsActive: () -> Boolean = { true },
+    onRendererReady: (() -> Unit)? = null,
+    onRendererFailed: (() -> Unit)? = null,
   ): Boolean =
     withCore(default = false) {
       if (!ownerIsActive() || !surface.isValid) {
@@ -476,40 +479,74 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       // "Missing surface pointer", dropping the video track and a permanent black screen.
       // Never request gpu-next or select a video decoder until wid is observable.
       nativeEvents.launch {
-        repeat(60) {
-          delay(16)
-          val finished = nativeLock.withLock {
-            if (token != surfaceAttachmentToken || attachedSurfaceOwner !== owner ||
-              !_state.value.surfaceAttached || !surface.isValid ||
-              !initialized || _state.value.phase == PlaybackPhase.STOPPING
-            ) return@withLock true
-            // The JNI Int accessor truncates int64 values. wid is a native reference,
-            // so its low 32 bits must never decide whether the Surface is attached.
-            val windowId = MPVLib.getPropertyString("wid")?.toLongOrNull() ?: 0L
-            if (windowId == 0L || windowId == -1L) return@withLock false
+        var activated = false
+        try {
+          // Waking a suspended process/driver can take longer than a second. Readiness has one
+          // owner here; a separate View timer must not give up before this job finishes.
+          repeat(300) {
+            delay(16)
+            val ready = nativeLock.withLock {
+              if (token != surfaceAttachmentToken || attachedSurfaceOwner !== owner ||
+                !_state.value.surfaceAttached || !surface.isValid ||
+                !initialized
+              ) return@withLock null
+              if (_state.value.phase == PlaybackPhase.STOPPING) return@withLock false
+              // The JNI Int accessor truncates int64 values. wid is a native reference,
+              // so its low 32 bits must never decide whether the Surface is attached.
+              val windowId = MPVLib.getPropertyString("wid")?.toLongOrNull() ?: 0L
+              if (windowId == 0L || windowId == -1L) return@withLock false
 
-            val activated = runCatching {
-              MPVLib.setPropertyString("force-window", "yes")
-              MPVLib.setPropertyString("vo", desiredVideoOutput)
-              rendererOutputReady = true
-              restoreSuspendedVideoTrackLocked()
-              applyDeferredVideoSelectionLocked()
-              // A failed VO can deselect vid while leaving audio alive. Restore only
-              // the track that was actually selected before this Surface was lost.
-              lastSurfaceVideoTrack?.takeIf { it.generation == _state.value.generation }?.let { saved ->
-                if ((MPVLib.getPropertyString("vid")?.toIntOrNull() ?: -1) <= 0) {
-                  MPVLib.setPropertyInt("vid", saved.id)
-                  Log.w(TAG, "Recovered video track ${saved.id} after renderer handoff")
+              val activated = runCatching {
+                MPVLib.setPropertyString("force-window", "yes")
+                MPVLib.setPropertyString("vo", desiredVideoOutput)
+                restoreSuspendedVideoTrackLocked()
+                applyDeferredVideoSelectionLocked()
+                // A failed VO can deselect vid while leaving audio alive. Restore only
+                // the track that was actually selected before this Surface was lost.
+                lastSurfaceVideoTrack?.takeIf { it.generation == _state.value.generation }?.let { saved ->
+                  if ((MPVLib.getPropertyString("vid")?.toIntOrNull() ?: -1) <= 0) {
+                    MPVLib.setPropertyInt("vid", saved.id)
+                    Log.w(TAG, "Recovered video track ${saved.id} after renderer handoff")
+                  }
+                }
+                lastSurfaceVideoTrack = null
+                rendererOutputReady = true
+                Log.d(TAG, "Android renderer ready: generation=${_state.value.generation}, wid=$windowId")
+              }.onFailure { Log.e(TAG, "Could not activate video output after Surface attachment", it) }
+              activated.isSuccess
+            }
+            if (ready == null) return@launch
+            if (ready) {
+              activated = true
+              onRendererReady?.let { callback ->
+                surfaceCallbackHandler.post {
+                  val stillCurrent = nativeLock.withLock {
+                    token == surfaceAttachmentToken && attachedSurfaceOwner === owner && rendererOutputReady
+                  }
+                  if (stillCurrent) callback()
                 }
               }
-              lastSurfaceVideoTrack = null
-              Log.d(TAG, "Android renderer ready: generation=${_state.value.generation}, wid=$windowId")
-            }.onFailure { Log.e(TAG, "Could not activate video output after Surface attachment", it) }
-            activated.isSuccess
+              return@launch
+            }
           }
-          if (finished) return@launch
+        } finally {
+          if (!activated) {
+            val detached = nativeLock.withLock {
+              if (token != surfaceAttachmentToken || attachedSurfaceOwner !== owner || !initialized) {
+                false
+              } else {
+                // A failed bind must be retryable. Leaving surfaceAttached=true strands every
+                // later ensureSurfaceAttached() call behind an attachment that never became ready.
+                detachRendererSurfaceLocked()
+                true
+              }
+            }
+            if (detached) {
+              Log.e(TAG, "Native Android renderer did not become ready; released failed attachment")
+              onRendererFailed?.let { callback -> surfaceCallbackHandler.post { callback() } }
+            }
+          }
         }
-        Log.e(TAG, "Timed out waiting for native Android Surface wid; renderer left disabled")
       }
       Log.d(TAG, "Android Surface attached; waiting for native window: generation=${_state.value.generation}, " +
         "phase=${_state.value.phase}, size=${attachedSurfaceWidth}x$attachedSurfaceHeight")

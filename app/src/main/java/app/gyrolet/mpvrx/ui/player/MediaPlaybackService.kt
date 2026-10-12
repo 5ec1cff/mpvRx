@@ -163,6 +163,7 @@ class MediaPlaybackService :
           } else {
             service.handingBackToActivity = false
           }
+          service.updatePlaybackWakeLock()
         }
       }
 
@@ -187,6 +188,7 @@ class MediaPlaybackService :
       activeInstance?.let { service ->
         service.handingBackToActivity = true
         service.abandonAudioOwnership()
+        service.updatePlaybackWakeLock()
       }
     }
 
@@ -284,6 +286,7 @@ class MediaPlaybackService :
   @Volatile private var isCurrentFavorite = false
   private var usesAudioBackgroundPlayback = false
   private var externalDisplayWakeLock: PowerManager.WakeLock? = null
+  private var playbackWakeLock: PowerManager.WakeLock? = null
   private val audioManager by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
 
   // Mutated from the framework's audio-focus callback thread as well as serviceScope and the
@@ -304,6 +307,10 @@ class MediaPlaybackService :
   private var playbackObserversStarted = false
   @Volatile
   private var foregroundReady = false
+    set(value) {
+      field = value
+      updatePlaybackWakeLock()
+    }
   private val audioFocusChangeListener =
     AudioManager.OnAudioFocusChangeListener { change ->
       if (mpvAccessReleased || handingBackToActivity) return@OnAudioFocusChangeListener
@@ -370,6 +377,27 @@ class MediaPlaybackService :
     }
   }
 
+  /** The foreground notification alone does not keep the CPU running with the screen off. */
+  @Synchronized
+  private fun updatePlaybackWakeLock() {
+    val state = PlaybackSession.state.value
+    val shouldHold = foregroundReady && !mpvAccessReleased && !activityForeground &&
+      !handingBackToActivity && !state.paused && state.currentItem != null &&
+      state.phase in setOf(PlaybackPhase.LOADING, PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
+    runCatching {
+      if (shouldHold) {
+        val wakeLock = playbackWakeLock ?: (getSystemService(POWER_SERVICE) as PowerManager)
+          .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG:background-playback")
+          .apply { setReferenceCounted(false) }
+          .also { playbackWakeLock = it }
+        // A movie can outlive any fixed timeout; pause/stop/handoff/shutdown release this lock.
+        if (!wakeLock.isHeld) wakeLock.acquire()
+      } else {
+        playbackWakeLock?.let { if (it.isHeld) it.release() }
+      }
+    }.onFailure { error -> Log.e(TAG, "Could not update background playback wake lock", error) }
+  }
+
   private fun deactivateMediaSession() {
     foregroundReady = false
     if (::mediaSession.isInitialized) mediaSession.isActive = false
@@ -399,6 +427,11 @@ class MediaPlaybackService :
       ContextCompat.RECEIVER_NOT_EXPORTED,
     )
     noisyReceiverRegistered = true
+
+    serviceScope.launch {
+      // Includes pause, EOF, error, stop and native shutdown; no periodic wake-up timer.
+      PlaybackSession.state.collect { updatePlaybackWakeLock() }
+    }
 
     serviceScope.launch {
       combine(
@@ -1939,6 +1972,7 @@ class MediaPlaybackService :
   private fun releaseMpvAccessBeforeShutdown() {
     if (mpvAccessReleased) return
     mpvAccessReleased = true
+    updatePlaybackWakeLock()
 
     runCatching { savePlaybackStateNow() }
       .onFailure { error -> Log.e(TAG, "Error saving playback state before MPV shutdown", error) }

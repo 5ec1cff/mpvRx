@@ -77,6 +77,7 @@ class MPVView(
   private var lastRequestedFrameRate = Float.NaN
   var forceOpenGlFallback = false
   private var renderCallbacksEnabled = true
+  private var surfaceRecovery: Runnable? = null
   private val surfaceReadiness = MutableStateFlow(false)
   var isSurfaceReady: Boolean
     get() = surfaceReadiness.value
@@ -132,7 +133,10 @@ class MPVView(
     if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || !surface.isValid) return false
     // A Surface can be JNI-attached while mpv is still processing its nonzero wid.
     // Do not reattach it during that window: JNI replacement briefly resets wid=0.
-    if (PlaybackSession.isSurfaceAttachedTo(this)) return isSurfaceReady
+    if (PlaybackSession.isSurfaceAttachedTo(this)) {
+      if (PlaybackSession.isRendererReadyFor(this)) notifyRendererReady()
+      return isSurfaceReady
+    }
     onRenderSurfaceAvailable(surface, width, height)
     return isSurfaceReady
   }
@@ -203,6 +207,7 @@ class MPVView(
 
   fun releaseSurface() {
     renderCallbacksEnabled = false
+    cancelSurfaceRecovery()
     surfaceAttachmentGeneration++
     lastRequestedFrameRate = Float.NaN
     if (isSurfaceReady || PlaybackSession.state.value.surfaceAttached) {
@@ -216,6 +221,19 @@ class MPVView(
     isSurfaceReady = false
     PlaybackSession.unbindSurface(this)
     ensureSurfaceAttached()
+  }
+
+  private fun cancelSurfaceRecovery() {
+    surfaceRecovery?.let(::removeCallbacks)
+    surfaceRecovery = null
+  }
+
+  private fun notifyRendererReady() {
+    if (isSurfaceReady) return
+    isSurfaceReady = true
+    applyFrameRate()
+    redrawPausedFrame()
+    onSurfaceReady?.invoke()
   }
 
   private data class StartupShaderSelection(
@@ -609,37 +627,47 @@ class MPVView(
   }
 
   override fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int) {
+    attachRenderSurface(surface, width, height, retriesRemaining = 2)
+  }
+
+  private fun attachRenderSurface(surface: Surface, width: Int, height: Int, retriesRemaining: Int) {
     if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || renderSurface !== surface) return
     if (PlaybackSession.isSurfaceAttachedTo(this)) return
+    cancelSurfaceRecovery()
     isSurfaceReady = false
-    val bound =
-      PlaybackSession.bindSurface(surface, width, height, this, ownerIsActive = {
-        surfaceBindingEnabled && renderCallbacksEnabled && renderSurface === surface
-      })
-    if (!bound) return
     surfaceAttachmentGeneration++
     val attachedGeneration = surfaceAttachmentGeneration
 
-    fun notifyWhenRendererReady(attempt: Int) {
-      // Ignore checks queued for a Surface that has since been destroyed/replaced.
-      if (isExiting || !surfaceBindingEnabled || !surface.isValid || renderSurface !== surface ||
-        surfaceAttachmentGeneration != attachedGeneration || !PlaybackSession.isSurfaceAttachedTo(this)
-      ) return
-      if (PlaybackSession.isRendererReadyFor(this)) {
-        isSurfaceReady = true
-        applyFrameRate()
-        redrawPausedFrame()
-        onSurfaceReady?.invoke()
-      } else if (attempt < 60) {
-        postDelayed({ notifyWhenRendererReady(attempt + 1) }, 16L)
-      } else {
-        android.util.Log.e("MPVView", "Native window never became renderer-ready")
-      }
-    }
-    post { notifyWhenRendererReady(0) }
+    fun isCurrentSurface(): Boolean =
+      !isExiting && surfaceBindingEnabled && renderCallbacksEnabled && surface.isValid &&
+        renderSurface === surface && surfaceAttachmentGeneration == attachedGeneration
+
+    PlaybackSession.bindSurface(
+      surface, width, height, this,
+      ownerIsActive = ::isCurrentSurface,
+      onRendererReady = {
+        if (isCurrentSurface() && PlaybackSession.isRendererReadyFor(this)) notifyRendererReady()
+      },
+      onRendererFailed = {
+        if (isCurrentSurface() && retriesRemaining > 0 && windowVisibility == VISIBLE) {
+          val retry = Runnable {
+            surfaceRecovery = null
+            if (isCurrentSurface() && windowVisibility == VISIBLE &&
+              !PlaybackSession.state.value.surfaceAttached
+            ) {
+              Log.w(TAG, "Retrying playback Surface after native window activation failed")
+              attachRenderSurface(surface, this.width, this.height, retriesRemaining - 1)
+            }
+          }
+          surfaceRecovery = retry
+          postDelayed(retry, SURFACE_RETRY_MS)
+        }
+      },
+    )
   }
 
   override fun onRenderSurfaceDestroyed() {
+    cancelSurfaceRecovery()
     surfaceAttachmentGeneration++
     isSurfaceReady = false
     lastRequestedFrameRate = Float.NaN
