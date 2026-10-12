@@ -9,27 +9,34 @@
 
 package app.gyrolet.mpvrx.ui.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SearchBar
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SearchBarValue
+import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
- * Material 3 search bar used inline at the top of list screens.
+ * Material 3 Expressive search field used inline at the top of list screens.
  *
- * Wraps the M3 [SearchBar]/[SearchBarDefaults.InputField] pair in its collapsed state so
- * every screen gets proper search semantics, the IME Search action (which submits and
- * hides the keyboard) and standard M3 styling from a single component.
+ * Built from [SearchBarDefaults.InputField] on a search-bar surface so every screen gets
+ * search semantics, the IME Search action and Expressive styling while typing in place.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InlineSearchBar(
   query: String,
@@ -46,36 +53,53 @@ fun InlineSearchBar(
   windowInsets: WindowInsets = SearchBarDefaults.windowInsets,
 ) {
   val keyboardController = LocalSoftwareKeyboardController.current
+  val textFieldState = rememberTextFieldState(query)
+  val searchBarState = rememberSearchBarState()
+  val interactionSource = remember { MutableInteractionSource() }
+  val focused by interactionSource.collectIsFocusedAsState()
+  val currentOnQueryChange by rememberUpdatedState(onQueryChange)
+  // Last text this field reported, so the caller echoing it back is not re-applied mid-typing.
+  val lastReported = remember { arrayOf(query) }
 
-  SearchBar(
-    inputField = {
-      SearchBarDefaults.InputField(
-        query = query,
-        onQueryChange = onQueryChange,
-        onSearch = { submitted ->
-          keyboardController?.hide()
-          onSearch(submitted)
-        },
-        expanded = false,
-        onExpandedChange = {},
-        modifier = inputFieldModifier.fillMaxWidth(),
-        placeholder = placeholder,
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-      )
-    },
-    expanded = false,
-    onExpandedChange = {},
-    // M3 SearchBar applied status-bar insets by default; keep that plus breathing room so
-    // top-bar usages don't render under (or hug) the status bar / display cutout.
-    modifier =
-      Modifier
-        .windowInsetsPadding(windowInsets)
-        .then(modifier),
+  LaunchedEffect(textFieldState) {
+    snapshotFlow { textFieldState.text.toString() }.collect { text ->
+      if (text != lastReported[0]) {
+        lastReported[0] = text
+        currentOnQueryChange(text)
+      }
+    }
+  }
+  LaunchedEffect(query) {
+    if (query != lastReported[0]) {
+      lastReported[0] = query
+      textFieldState.setTextAndPlaceCursorAtEnd(query)
+    }
+  }
+  // There is no expanded results view; collapse after focus leaves so semantics stay accurate.
+  LaunchedEffect(focused) {
+    if (!focused && searchBarState.currentValue != SearchBarValue.Collapsed) searchBarState.snapTo(0f)
+  }
+
+  Surface(
+    modifier = Modifier.windowInsetsPadding(windowInsets).then(modifier),
     shape = shape,
+    color = SearchBarDefaults.colors().containerColor,
     tonalElevation = tonalElevation,
     shadowElevation = shadowElevation,
-    windowInsets = WindowInsets(0.dp),
-    content = {},
-  )
+  ) {
+    SearchBarDefaults.InputField(
+      textFieldState = textFieldState,
+      searchBarState = searchBarState,
+      onSearch = { submitted ->
+        keyboardController?.hide()
+        onSearch(submitted)
+      },
+      modifier = inputFieldModifier.fillMaxWidth(),
+      placeholder = placeholder,
+      leadingIcon = leadingIcon,
+      trailingIcon = trailingIcon,
+      shape = shape,
+      interactionSource = interactionSource,
+    )
+  }
 }
