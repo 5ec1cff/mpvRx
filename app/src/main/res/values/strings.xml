@@ -2225,6 +2225,10 @@
   <string name="secure_folder_hide_settings_summary">Remove this entry from Settings</string>
   <string name="secure_folder_unhide_settings">Unhide Secure Folder Settings</string>
   <string name="secure_folder_unhide_settings_summary">Show this entry in Settings again</string>
+  <string name="secure_folder_biometric_enable_confirm">Enter your Secure Folder PIN to enable biometric unlock</string>
+  <string name="secure_folder_error_pin_incomplete">Enter the full PIN</string>
+  <string name="secure_folder_pin_length">PIN length</string>
+  <string name="secure_folder_pin_length_option">%1$d digits</string>
   <string name="secure_folder_proceed">Proceed</string>
   <string name="secure_folder_destroy_title">Destroy Secure Folder</string>
   <string name="secure_folder_destroy_summary">Permanently delete all secured videos and reset PIN</string>

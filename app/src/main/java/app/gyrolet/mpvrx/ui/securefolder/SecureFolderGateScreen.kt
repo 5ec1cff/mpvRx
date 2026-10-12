@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.preferences.SecureFolderPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.ExposedTextDropDownMenu
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
@@ -131,6 +132,7 @@ data object SecureFolderGateScreen : Screen {
     val gateStep by viewModel.gateStep.collectAsState()
     val gateError by viewModel.gateError.collectAsState()
     val isSettingsEntryHidden by viewModel.preferences.isEntryPointHidden.collectAsState()
+    val storedPinLength by viewModel.preferences.pinLength.collectAsState()
     val pinChangedMessage = stringResource(R.string.secure_folder_pin_changed)
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -249,6 +251,7 @@ data object SecureFolderGateScreen : Screen {
                       ok
                     },
                     onForgotPin = { viewModel.startForgotPinFlow() },
+                    pinLength = storedPinLength,
                     isBiometricAvailable = isBiometricAvailable,
                     isBiometricEnabled = isBiometricEnabled,
                     canAuthenticateBiometric = canAuthenticateBiometric,
@@ -298,6 +301,7 @@ private fun EnterPinContent(
   error: String?,
   onSubmit: (String) -> Boolean,
   onForgotPin: () -> Unit,
+  pinLength: Int,
   isBiometricAvailable: Boolean,
   isBiometricEnabled: Boolean,
   canAuthenticateBiometric: Boolean,
@@ -339,9 +343,9 @@ private fun EnterPinContent(
     return ok
   }
 
-  // PIN is fixed at 4 digits now, so there's no ambiguity — verify the instant it's complete.
+  // The PIN length is known up front (4 or 6), so verify the instant it's complete.
   LaunchedEffect(pin) {
-    if (pin.length == 4) {
+    if (pin.length == pinLength) {
       submit()
     }
   }
@@ -404,11 +408,11 @@ private fun EnterPinContent(
           .height(32.dp)
           .offset { IntOffset(shakeOffset.value.toInt(), 0) },
     ) {
-      PinDots(filledCount = pin.length)
+      PinDots(filledCount = pin.length, total = pinLength)
 
       BasicTextField(
         value = pin,
-        onValueChange = { pin = it.filter(Char::isDigit).take(4) },
+        onValueChange = { pin = it.filter(Char::isDigit).take(pinLength) },
         modifier =
           Modifier
             .matchParentSize()
@@ -470,10 +474,11 @@ private fun EnterPinContent(
   }
 }
 
-/** Row of 4 dot placeholders — filled solid as each digit of the (fixed 4-digit) PIN is typed. */
+/** Row of [total] dot placeholders — filled solid as each digit of the PIN is typed. */
 @Composable
 private fun PinDots(
   filledCount: Int,
+  total: Int,
   modifier: Modifier = Modifier,
 ) {
   Row(
@@ -481,7 +486,7 @@ private fun PinDots(
     horizontalArrangement = Arrangement.spacedBy(20.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    repeat(4) { index ->
+    repeat(total) { index ->
       val filled = index < filledCount
       Box(
         modifier =
@@ -514,6 +519,7 @@ private fun SetupContent(
   var pin by rememberSaveable { mutableStateOf("") }
   var confirmPin by rememberSaveable { mutableStateOf("") }
   var showPin by rememberSaveable { mutableStateOf(false) }
+  var pinLength by rememberSaveable { mutableStateOf(SecureFolderPreferences.DEFAULT_PIN_LENGTH) }
   var question by rememberSaveable(presets) { mutableStateOf(presets.first()) }
   var answer by rememberSaveable { mutableStateOf("") }
   var validationErrorRes by remember { mutableStateOf<Int?>(null) }
@@ -569,10 +575,20 @@ private fun SetupContent(
 
     Spacer(modifier = Modifier.height(28.dp))
 
+    PinLengthSelector(
+      selected = pinLength,
+      onSelected = {
+        pinLength = it
+        pin = ""
+        confirmPin = ""
+        validationErrorRes = null
+      },
+    )
+
     PinField(
       value = pin,
       onValueChange = {
-        pin = it.filter(Char::isDigit).take(4)
+        pin = it.filter(Char::isDigit).take(pinLength)
         validationErrorRes = null
       },
       showPin = showPin,
@@ -583,7 +599,7 @@ private fun SetupContent(
     PinField(
       value = confirmPin,
       onValueChange = {
-        confirmPin = it.filter(Char::isDigit).take(4)
+        confirmPin = it.filter(Char::isDigit).take(pinLength)
         validationErrorRes = null
       },
       showPin = showPin,
@@ -626,7 +642,7 @@ private fun SetupContent(
     Button(
       onClick = {
         when {
-          pin.length < 4 -> validationErrorRes = R.string.secure_folder_error_pin_min_digits
+          pin.length != pinLength -> validationErrorRes = R.string.secure_folder_error_pin_incomplete
           pin != confirmPin -> validationErrorRes = R.string.secure_folder_error_pins_dont_match
           answer.isBlank() -> validationErrorRes = R.string.secure_folder_error_answer_question
           else -> onSubmit(pin, question, answer)
@@ -654,6 +670,7 @@ private fun ChoosePinContent(
   var pin by rememberSaveable { mutableStateOf("") }
   var confirmPin by rememberSaveable { mutableStateOf("") }
   var showPin by rememberSaveable { mutableStateOf(false) }
+  var pinLength by rememberSaveable { mutableStateOf(SecureFolderPreferences.DEFAULT_PIN_LENGTH) }
   var mismatchErrorRes by remember { mutableStateOf<Int?>(null) }
 
   Column(
@@ -707,10 +724,20 @@ private fun ChoosePinContent(
 
     Spacer(modifier = Modifier.height(28.dp))
 
+    PinLengthSelector(
+      selected = pinLength,
+      onSelected = {
+        pinLength = it
+        pin = ""
+        confirmPin = ""
+        mismatchErrorRes = null
+      },
+    )
+
     PinField(
       value = pin,
       onValueChange = {
-        pin = it.filter(Char::isDigit).take(4)
+        pin = it.filter(Char::isDigit).take(pinLength)
         mismatchErrorRes = null
       },
       showPin = showPin,
@@ -721,7 +748,7 @@ private fun ChoosePinContent(
     PinField(
       value = confirmPin,
       onValueChange = {
-        confirmPin = it.filter(Char::isDigit).take(4)
+        confirmPin = it.filter(Char::isDigit).take(pinLength)
         mismatchErrorRes = null
       },
       showPin = showPin,
@@ -745,7 +772,7 @@ private fun ChoosePinContent(
     Button(
       onClick = {
         when {
-          pin.length < 4 -> mismatchErrorRes = R.string.secure_folder_error_pin_min_digits
+          pin.length != pinLength -> mismatchErrorRes = R.string.secure_folder_error_pin_incomplete
           pin != confirmPin -> mismatchErrorRes = R.string.secure_folder_error_pins_dont_match
           else -> onSubmit(pin)
         }

@@ -77,6 +77,7 @@ data object SecureFolderSettingsScreen : Screen {
     var changeSecurityQuestionOpen by remember { mutableStateOf(false) }
     var forgotPinOpen by remember { mutableStateOf(false) }
     var hideConfirmOpen by remember { mutableStateOf(false) }
+    var biometricPinOpen by remember { mutableStateOf(false) }
 
     val pinChangedMessage = stringResource(R.string.secure_folder_pin_changed)
     val securityQuestionChangedMessage = stringResource(R.string.secure_folder_security_question_changed)
@@ -137,7 +138,10 @@ data object SecureFolderSettingsScreen : Screen {
         PreferenceCard {
           SwitchPreference(
             value = isBiometricEnabled,
-            onValueChange = { viewModel.setBiometricEnabled(it) },
+            onValueChange = { enable ->
+              // Turning biometric unlock on needs the Secure Folder PIN; turning it off is instant.
+              if (enable) requirePin { biometricPinOpen = true } else viewModel.setBiometricEnabled(false)
+            },
             title = { Text(stringResource(R.string.secure_folder_biometric_title)) },
             summary = { Text(stringResource(R.string.secure_folder_biometric_summary)) },
             icon = { SettingsIcon(Icons.RoundedFilled.Fingerprint) },
@@ -245,6 +249,14 @@ data object SecureFolderSettingsScreen : Screen {
       preferences = preferences,
       onDismiss = { changeSecurityQuestionOpen = false },
       onChanged = { toast(securityQuestionChangedMessage) },
+    )
+
+    VerifyPinDialog(
+      isOpen = biometricPinOpen,
+      title = stringResource(R.string.secure_folder_biometric_enable_confirm),
+      preferences = preferences,
+      onDismiss = { biometricPinOpen = false },
+      onVerified = { viewModel.setBiometricEnabled(true) },
     )
 
     ForgotPinDialog(

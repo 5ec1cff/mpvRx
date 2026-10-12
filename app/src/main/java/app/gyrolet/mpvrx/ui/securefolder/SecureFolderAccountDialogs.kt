@@ -17,6 +17,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.runtime.Composable
@@ -57,6 +60,7 @@ fun ChangePinDialog(
   var newPin by rememberSaveable(isOpen) { mutableStateOf("") }
   var confirmPin by rememberSaveable(isOpen) { mutableStateOf("") }
   var showPin by rememberSaveable(isOpen) { mutableStateOf(false) }
+  var newLength by rememberSaveable(isOpen) { mutableStateOf(preferences.pinLength.get()) }
   var errorRes by rememberSaveable(isOpen) { mutableStateOf<Int?>(null) }
 
   fun submit() {
@@ -71,7 +75,7 @@ fun ChangePinDialog(
       }
       AccountDialogStep.ENTER_NEW -> {
         when {
-          newPin.length < 4 -> errorRes = R.string.secure_folder_error_pin_min_digits
+          newPin.length != newLength -> errorRes = R.string.secure_folder_error_pin_incomplete
           newPin != confirmPin -> errorRes = R.string.secure_folder_error_pins_dont_match
           else -> {
             preferences.setPin(newPin)
@@ -102,7 +106,7 @@ fun ChangePinDialog(
             PinField(
               value = currentPin,
               onValueChange = {
-                currentPin = it.filter(Char::isDigit).take(4)
+                currentPin = it.filter(Char::isDigit).take(preferences.pinLength.get())
                 errorRes = null
               },
               showPin = showPin,
@@ -111,10 +115,19 @@ fun ChangePinDialog(
               onDone = ::submit,
             )
           AccountDialogStep.ENTER_NEW -> {
+            PinLengthSelector(
+              selected = newLength,
+              onSelected = {
+                newLength = it
+                newPin = ""
+                confirmPin = ""
+                errorRes = null
+              },
+            )
             PinField(
               value = newPin,
               onValueChange = {
-                newPin = it.filter(Char::isDigit).take(4)
+                newPin = it.filter(Char::isDigit).take(newLength)
                 errorRes = null
               },
               showPin = showPin,
@@ -124,7 +137,7 @@ fun ChangePinDialog(
             PinField(
               value = confirmPin,
               onValueChange = {
-                confirmPin = it.filter(Char::isDigit).take(4)
+                confirmPin = it.filter(Char::isDigit).take(newLength)
                 errorRes = null
               },
               showPin = showPin,
@@ -221,7 +234,7 @@ fun ChangeSecurityQuestionDialog(
             PinField(
               value = currentPin,
               onValueChange = {
-                currentPin = it.filter(Char::isDigit).take(4)
+                currentPin = it.filter(Char::isDigit).take(preferences.pinLength.get())
                 errorRes = null
               },
               showPin = showPin,
@@ -293,6 +306,7 @@ fun ForgotPinDialog(
   var newPin by rememberSaveable(isOpen) { mutableStateOf("") }
   var confirmPin by rememberSaveable(isOpen) { mutableStateOf("") }
   var showPin by rememberSaveable(isOpen) { mutableStateOf(false) }
+  var newLength by rememberSaveable(isOpen) { mutableStateOf(preferences.pinLength.get()) }
   var errorRes by rememberSaveable(isOpen) { mutableStateOf<Int?>(null) }
 
   fun submit() {
@@ -307,7 +321,7 @@ fun ForgotPinDialog(
       }
       ForgotPinStep.ENTER_NEW_PIN -> {
         when {
-          newPin.length < 4 -> errorRes = R.string.secure_folder_error_pin_min_digits
+          newPin.length != newLength -> errorRes = R.string.secure_folder_error_pin_incomplete
           newPin != confirmPin -> errorRes = R.string.secure_folder_error_pins_dont_match
           else -> {
             preferences.setPin(newPin)
@@ -351,10 +365,19 @@ fun ForgotPinDialog(
             )
           }
           ForgotPinStep.ENTER_NEW_PIN -> {
+            PinLengthSelector(
+              selected = newLength,
+              onSelected = {
+                newLength = it
+                newPin = ""
+                confirmPin = ""
+                errorRes = null
+              },
+            )
             PinField(
               value = newPin,
               onValueChange = {
-                newPin = it.filter(Char::isDigit).take(4)
+                newPin = it.filter(Char::isDigit).take(newLength)
                 errorRes = null
               },
               showPin = showPin,
@@ -364,7 +387,7 @@ fun ForgotPinDialog(
             PinField(
               value = confirmPin,
               onValueChange = {
-                confirmPin = it.filter(Char::isDigit).take(4)
+                confirmPin = it.filter(Char::isDigit).take(newLength)
                 errorRes = null
               },
               showPin = showPin,
@@ -397,6 +420,98 @@ fun ForgotPinDialog(
             stringResource(R.string.secure_folder_save)
           }
         )
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }
+    },
+  )
+}
+
+/** 4 / 6 digit chooser shown wherever a new PIN is created. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PinLengthSelector(
+  selected: Int,
+  onSelected: (Int) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val options = SecureFolderPreferences.SUPPORTED_PIN_LENGTHS
+  Column(modifier = modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+    Text(
+      text = stringResource(R.string.secure_folder_pin_length),
+      style = MaterialTheme.typography.labelLarge,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.padding(bottom = 4.dp),
+    )
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+      options.forEachIndexed { index, length ->
+        SegmentedButton(
+          selected = length == selected,
+          onClick = { onSelected(length) },
+          shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+        ) {
+          Text(stringResource(R.string.secure_folder_pin_length_option, length))
+        }
+      }
+    }
+  }
+}
+
+/** Asks for the current Secure Folder PIN and calls [onVerified] once it matches. */
+@Composable
+fun VerifyPinDialog(
+  isOpen: Boolean,
+  title: String,
+  preferences: SecureFolderPreferences,
+  onDismiss: () -> Unit,
+  onVerified: () -> Unit,
+) {
+  if (!isOpen) return
+
+  var pin by rememberSaveable(isOpen) { mutableStateOf("") }
+  var showPin by rememberSaveable(isOpen) { mutableStateOf(false) }
+  var errorRes by rememberSaveable(isOpen) { mutableStateOf<Int?>(null) }
+
+  fun submit() {
+    if (preferences.verifyPin(pin)) {
+      onVerified()
+      onDismiss()
+    } else {
+      errorRes = R.string.secure_folder_error_incorrect_pin
+    }
+  }
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    icon = { Icon(Icons.RoundedFilled.Lock, contentDescription = null) },
+    title = { Text(title) },
+    text = {
+      Column {
+        PinField(
+          value = pin,
+          onValueChange = {
+            pin = it.filter(Char::isDigit).take(preferences.pinLength.get())
+            errorRes = null
+          },
+          showPin = showPin,
+          onToggleShowPin = { showPin = !showPin },
+          label = stringResource(R.string.secure_folder_pin),
+          onDone = ::submit,
+        )
+        if (errorRes != null) {
+          Text(
+            stringResource(errorRes!!),
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 8.dp),
+          )
+        }
+      }
+    },
+    confirmButton = {
+      Button(onClick = ::submit, enabled = pin.isNotEmpty()) {
+        Text(stringResource(R.string.secure_folder_verify))
       }
     },
     dismissButton = {

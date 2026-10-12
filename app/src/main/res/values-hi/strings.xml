@@ -1802,6 +1802,10 @@
   <string name="secure_folder_hide_settings_summary">इस एंट्री को सेटिंग्स से हटाएं</string>
   <string name="secure_folder_unhide_settings">सिक्योर फोल्डर सेटिंग्स दिखाएं</string>
   <string name="secure_folder_unhide_settings_summary">इस एंट्री को सेटिंग्स में फिर से दिखाएं</string>
+  <string name="secure_folder_biometric_enable_confirm">बायोमेट्रिक अनलॉक चालू करने के लिए अपना सिक्योर फोल्डर PIN डालें</string>
+  <string name="secure_folder_error_pin_incomplete">पूरा PIN डालें</string>
+  <string name="secure_folder_pin_length">PIN की लंबाई</string>
+  <string name="secure_folder_pin_length_option">%1$d अंक</string>
   <string name="secure_folder_proceed">आगे बढ़ें</string>
   <string name="secure_folder_destroy_title">सिक्योर फोल्डर नष्ट करें</string>
   <string name="secure_folder_destroy_summary">सभी सुरक्षित वीडियो हमेशा के लिए हटाएं और PIN रीसेट करें</string>

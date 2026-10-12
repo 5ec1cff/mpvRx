@@ -22,11 +22,21 @@ import app.gyrolet.mpvrx.utils.security.PinHasher
 class SecureFolderPreferences(
   preferenceStore: PreferenceStore,
 ) {
+  companion object {
+    const val DEFAULT_PIN_LENGTH = 4
+
+    /** PIN lengths the user can pick when creating a PIN. */
+    val SUPPORTED_PIN_LENGTHS = listOf(4, 6)
+  }
+
   // ============================================================================
   // PIN
   // ============================================================================
   private val pinHash = preferenceStore.getString("secure_folder_pin_hash", "")
   private val pinSalt = preferenceStore.getString("secure_folder_pin_salt", "")
+
+  /** Length of the stored PIN. Defaults to 4 so PINs created before 6-digit support keep working. */
+  val pinLength = preferenceStore.getInt("secure_folder_pin_length", DEFAULT_PIN_LENGTH)
 
   fun isPinSet(): Boolean = pinHash.get().isNotBlank()
 
@@ -35,6 +45,7 @@ class SecureFolderPreferences(
     val salt = PinHasher.generateSalt()
     pinSalt.set(salt)
     pinHash.set(PinHasher.hash(pin, salt))
+    pinLength.set(pin.length)
   }
 
   fun verifyPin(pin: String): Boolean = PinHasher.verify(pin, pinSalt.get(), pinHash.get())
@@ -87,6 +98,7 @@ class SecureFolderPreferences(
   fun resetAll() {
     pinHash.set("")
     pinSalt.set("")
+    pinLength.set(DEFAULT_PIN_LENGTH)
     securityQuestion.set("")
     securityAnswerHash.set("")
     securityAnswerSalt.set("")
