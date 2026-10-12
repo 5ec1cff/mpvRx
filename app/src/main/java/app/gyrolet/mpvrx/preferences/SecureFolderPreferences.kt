@@ -14,7 +14,7 @@ import app.gyrolet.mpvrx.utils.security.PinHasher
 
 /**
  * Preferences backing the Secure Folder feature: PIN gate, forgot-PIN security question,
- * whether the entry point itself is hidden from Preferences, and per-action "don't ask again"
+ * whether the settings entry point is hidden from Preferences, and per-action "don't ask again"
  * flags for the confirm dialogs (Step 4).
  *
  * Only salted hashes are ever persisted — never the raw PIN or the raw answer text.
@@ -65,7 +65,10 @@ class SecureFolderPreferences(
   // Visibility of the Secure Folder entry point
   // ============================================================================
 
-  /** When true, the "Secure Folder" row is hidden from the Preferences screen (still reachable via title double-tap etc., wired in Step 5). */
+  /**
+   * When true, the "Secure Folder Settings" row is hidden from the Preferences screen. The settings stay
+   * reachable via the settings icon on the Secure Folder PIN gate (opened by double-tapping a header).
+   */
   val isEntryPointHidden = preferenceStore.getBoolean("secure_folder_entry_hidden", false)
 
   // ============================================================================
@@ -79,6 +82,18 @@ class SecureFolderPreferences(
   val dontAskBeforeMove = preferenceStore.getBoolean("secure_folder_dont_ask_move", false)
   val dontAskBeforeRestore = preferenceStore.getBoolean("secure_folder_dont_ask_restore", false)
   val dontAskBeforeDelete = preferenceStore.getBoolean("secure_folder_dont_ask_delete", false)
-  val dontAskBeforeHideEntryPoint = preferenceStore.getBoolean("secure_folder_dont_ask_hide_entry_point", false)
 
+  /** Wipes the PIN, security question and every Secure Folder flag back to first-run defaults. */
+  fun resetAll() {
+    pinHash.set("")
+    pinSalt.set("")
+    securityQuestion.set("")
+    securityAnswerHash.set("")
+    securityAnswerSalt.set("")
+    isBiometricEnabled.set(false)
+    isEntryPointHidden.set(false)
+    dontAskBeforeMove.set(false)
+    dontAskBeforeRestore.set(false)
+    dontAskBeforeDelete.set(false)
+  }
 }

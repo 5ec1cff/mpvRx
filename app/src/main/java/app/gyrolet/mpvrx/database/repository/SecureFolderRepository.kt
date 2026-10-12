@@ -313,6 +313,32 @@ class SecureFolderRepository(
     }
 
   // ============================================================================
+  // Destroy — wipe the whole Secure Folder
+  // ============================================================================
+
+  /**
+   * Permanently deletes every secured file, then sweeps any orphaned files left in the secure
+   * directory. Fails (without partial success) if anything could not be removed, so the caller
+   * only resets the PIN once nothing recoverable is left behind.
+   */
+  suspend fun destroyAll(context: Context): Result<Int> =
+    withContext(Dispatchers.IO) {
+      val entities = dao.getAll()
+      if (entities.isNotEmpty()) {
+        val batch = deleteForever(entities).getOrElse { return@withContext Result.failure(it) }
+        if (batch.failedIds.isNotEmpty()) {
+          return@withContext Result.failure(IOException("Failed to delete ${batch.failedIds.size} file(s)"))
+        }
+      }
+
+      val leftovers = secureDir(context).listFiles().orEmpty().count { !it.delete() }
+      if (leftovers > 0) {
+        return@withContext Result.failure(IOException("Failed to delete $leftovers leftover file(s)"))
+      }
+      Result.success(entities.size)
+    }
+
+  // ============================================================================
   // Reads
   // ============================================================================
 

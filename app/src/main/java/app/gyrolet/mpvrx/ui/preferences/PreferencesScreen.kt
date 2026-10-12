@@ -65,9 +65,9 @@ import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusReq
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
-import app.gyrolet.mpvrx.ui.securefolder.SecureFolderGateScreen
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.securefolder.SecureFolderSettingsScreen
 import app.gyrolet.mpvrx.ui.theme.LocalEmphasizedTypography
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -314,10 +314,10 @@ object PreferencesScreen : Screen {
             ),
             if (!isSecureFolderEntryHidden) {
               SettingsDestination(
-                title = stringResource(R.string.secure_folder_title),
-                summary = stringResource(R.string.secure_folder_summary),
+                title = stringResource(R.string.secure_folder_settings_title),
+                summary = stringResource(R.string.secure_folder_settings_summary),
                 icon = Icons.RoundedFilled.Lock,
-                screen = SecureFolderGateScreen,
+                screen = SecureFolderSettingsScreen,
               )
             } else {
               null

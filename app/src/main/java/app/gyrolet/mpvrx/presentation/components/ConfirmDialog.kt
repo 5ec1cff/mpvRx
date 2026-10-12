@@ -36,6 +36,7 @@ fun ConfirmDialog(
   onCancel: () -> Unit,
   modifier: Modifier = Modifier,
   customContent: (@Composable () -> Unit)? = null,
+  confirmText: String = stringResource(R.string.generic_confirm),
 ) {
   val initialFocusRequester = rememberTvInitialFocusRequester(requestKey = title)
   AppAlertDialog(
@@ -62,7 +63,7 @@ fun ConfirmDialog(
       AppDialogTextButton(
         onClick = onConfirm,
         modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.04f),
-      ) { Text(stringResource(R.string.generic_confirm), fontWeight = FontWeight.Bold) }
+      ) { Text(confirmText, fontWeight = FontWeight.Bold) }
     },
   )
 }

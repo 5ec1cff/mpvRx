@@ -214,9 +214,33 @@ class SecureFolderViewModel(
     preferences.isBiometricEnabled.set(enabled)
   }
 
-  /** Toggles whether the "Secure Folder" entry point is hidden from the Preferences screen. */
-  fun toggleEntryPointHidden() {
-    preferences.isEntryPointHidden.set(!preferences.isEntryPointHidden.get())
+  /** Sets whether the "Secure Folder Settings" entry point is hidden from the Preferences screen. */
+  fun setEntryPointHidden(hidden: Boolean) {
+    preferences.isEntryPointHidden.set(hidden)
+  }
+
+  /**
+   * Permanently deletes all secured videos and resets the PIN/question/flags. Preferences are
+   * only reset when every file was actually removed. [onFinished] receives the success flag.
+   */
+  fun destroySecureFolder(onFinished: (Boolean) -> Unit) {
+    if (_isBusy.value) return
+    viewModelScope.launch {
+      _isBusy.value = true
+      val success =
+        runCatching { repository.destroyAll(getApplication()) }
+          .getOrElse { Result.failure<Int>(it) }
+          .onFailure { Log.e(TAG, "Destroy failed", it) }
+          .isSuccess
+      if (success) {
+        preferences.resetAll()
+        _selectedIds.value = emptySet()
+        _gateError.value = null
+        _gateStep.value = GateStep.SETUP
+      }
+      _isBusy.value = false
+      onFinished(success)
+    }
   }
 
   fun restoreSelected() {

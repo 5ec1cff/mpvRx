@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.ExposedTextDropDownMenu
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -87,6 +88,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
+import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.ui.utils.replaceTop
 import androidx.biometric.BiometricManager
@@ -128,6 +130,7 @@ data object SecureFolderGateScreen : Screen {
 
     val gateStep by viewModel.gateStep.collectAsState()
     val gateError by viewModel.gateError.collectAsState()
+    val isSettingsEntryHidden by viewModel.preferences.isEntryPointHidden.collectAsState()
     val pinChangedMessage = stringResource(R.string.secure_folder_pin_changed)
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -192,6 +195,24 @@ data object SecureFolderGateScreen : Screen {
             backstack.popSafely()
           },
           onCancelSelection = {},
+          additionalActions = {
+            // Once the settings row is hidden from Preferences, this icon is the way back to it.
+            if (isSettingsEntryHidden) {
+              IconButton(
+                onClick = {
+                  keyboardController?.hide()
+                  backstack.navigateTo(SecureFolderSettingsScreen)
+                },
+              ) {
+                Icon(
+                  Icons.RoundedFilled.Settings,
+                  contentDescription = stringResource(R.string.secure_folder_settings_title),
+                  modifier = Modifier.size(24.dp),
+                  tint = MaterialTheme.colorScheme.secondary,
+                )
+              }
+            }
+          },
         )
       },
     ) { padding ->
