@@ -7975,6 +7975,11 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     }
 
     val sourceUri = extractUriFromIntent(intent)
+    // SAF document URIs are canonical in the Play Store build: a provider path is not a
+    // filesystem path and must use the identical playback key in the player and browser.
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+      sourceUri?.scheme == "content" && DocumentsContract.isDocumentUri(this, sourceUri)
+    ) return PlaybackIdentity.forUri(sourceUri.toString())
     val localPath =
       intent.getStringExtra("local_media_path")?.takeIf { it.isNotBlank() }
         ?: sourceUri?.resolveLocalPath(this)
@@ -8111,7 +8116,14 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         PlaybackItem.fromUri(
           uri = uri.toString(),
           stableId =
-            if (networkSource == null) uri.resolveLocalPath(this)?.let(PlaybackIdentity::forLocalPath) else null,
+            if (networkSource == null &&
+              app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+              uri.scheme == "content" && DocumentsContract.isDocumentUri(this, uri)
+            ) {
+              PlaybackIdentity.forUri(uri.toString())
+            } else if (networkSource == null) {
+              uri.resolveLocalPath(this)?.let(PlaybackIdentity::forLocalPath)
+            } else null,
           title = title,
           artist = existingItem?.artist,
           mimeType =
@@ -8157,7 +8169,10 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     uri: Uri,
     @Suppress("UNUSED_PARAMETER") fileName: String,
   ): String =
-    uri.resolveLocalPath(this)?.let(PlaybackIdentity::forLocalPath)
+    (if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+      uri.scheme == "content" && DocumentsContract.isDocumentUri(this, uri)
+    ) PlaybackIdentity.forUri(uri.toString()) else null)
+      ?: uri.resolveLocalPath(this)?.let(PlaybackIdentity::forLocalPath)
       ?: NetworkPlaybackUri.parse(uri.toString())
       ?.let { reference -> PlaybackIdentity.forNetwork(reference.connectionId, reference.path.value) }
       ?: PlaybackIdentity.forUri(uri.toString())

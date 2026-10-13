@@ -42,7 +42,7 @@ object PlaybackStateOps {
         database.playlistDao().clearResumePositionForFile(video.path)
       }
     } finally {
-      PlaybackStateEvents.notifyChanged(videos.singleOrNull()?.let { PlaybackIdentity.forLocalPath(it.path) }.orEmpty())
+      PlaybackStateEvents.notifyChanged(videos.singleOrNull()?.let { videoPlaybackIdentifiers(it).first() }.orEmpty())
     }
   }
 
@@ -66,7 +66,7 @@ object PlaybackStateOps {
       videos.forEach { video ->
         currentCoroutineContext().ensureActive()
         persistWatched(video, watched = false, newLabelOverride = markAsNew)
-        val identifier = PlaybackIdentity.forLocalPath(video.path)
+        val identifier = videoPlaybackIdentifiers(video).first()
         videoPlaybackIdentifiers(video).filterNot { it == identifier }.forEach { repository.deleteByTitle(it) }
         RecentlyPlayedOps.removeVideoHistory(video)
         database.playlistDao().clearPlayHistoryForFile(video.path)
@@ -96,7 +96,7 @@ object PlaybackStateOps {
   }
 
   private suspend fun persistWatched(video: Video, watched: Boolean, newLabelOverride: Boolean? = null) {
-    val identifier = PlaybackIdentity.forLocalPath(video.path)
+    val identifier = videoPlaybackIdentifiers(video).first()
     val existing = videoPlaybackIdentifiers(video).firstNotNullOfOrNull { repository.getVideoDataByTitle(it) }
     val durationSeconds = (video.duration / 1000L).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     val state = existing ?: PlaybackStateEntity(

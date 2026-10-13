@@ -55,12 +55,20 @@ data class VideoWithPlaybackInfo(
 )
 
 internal fun videoPlaybackIdentifiers(video: Video): Set<String> =
-  linkedSetOf(
-    PlaybackIdentity.forLocalPath(video.path),
-    PlaybackIdentity.forUri(video.uri.toString()),
-    PlaybackIdentity.forUri(video.path),
-    PlaybackIdentity.forUri("file://${video.path}"),
-  )
+  if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content") {
+    linkedSetOf(
+      PlaybackIdentity.forUri(video.uri.toString()),
+      PlaybackIdentity.forUri(video.path),
+      PlaybackIdentity.forLocalPath(video.path),
+    )
+  } else {
+    linkedSetOf(
+      PlaybackIdentity.forLocalPath(video.path),
+      PlaybackIdentity.forUri(video.uri.toString()),
+      PlaybackIdentity.forUri(video.path),
+      PlaybackIdentity.forUri("file://${video.path}"),
+    )
+  }
 
 internal fun buildVideoWithPlaybackInfo(
   video: Video,
@@ -69,7 +77,13 @@ internal fun buildVideoWithPlaybackInfo(
   newLabelDays: Int,
   watchedThreshold: Int,
 ): VideoWithPlaybackInfo {
-  val durationSeconds = video.duration / 1000L
+  // MediaStore cannot see .nomedia files, and a SAF provider may not report their
+  // duration. The player can still supply total seconds through saved position + remaining.
+  val recordedDuration =
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content") {
+      playbackState?.let { (it.lastPosition.toLong() + it.timeRemaining.toLong()).takeIf { total -> total > 0L } }
+    } else null
+  val durationSeconds = (video.duration / 1000L).takeIf { it > 0L } ?: recordedDuration ?: 0L
   val progressValue =
     if (playbackState != null && durationSeconds > 0L) {
       val watchedSeconds = durationSeconds - playbackState.timeRemaining.toLong()
