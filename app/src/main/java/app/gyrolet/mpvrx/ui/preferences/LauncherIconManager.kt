@@ -46,6 +46,7 @@ internal enum class IconMark(
   Gradient("Gradient", R.drawable.ic_launcher_purple_foreground, R.string.app_icon_logo_gradient),
   White("White", R.drawable.ic_launcher_white_foreground, R.string.app_icon_logo_white),
   Black("Black", R.drawable.ic_launcher_black_foreground, R.string.app_icon_logo_black),
+  Classic("Classic", R.drawable.ic_launcher_classic_foreground, R.string.app_icon_logo_classic),
 }
 
 /**
@@ -92,6 +93,14 @@ internal class LauncherIcon(
       LauncherIcon(IconBackground.Mint, IconMark.Black, R.mipmap.ic_launcher_mint_black, R.style.Theme_mpvrx_Splash_MintBlack),
       LauncherIcon(IconBackground.Ember, IconMark.White, R.mipmap.ic_launcher_ember_white, R.style.Theme_mpvrx_Splash_EmberWhite),
       LauncherIcon(IconBackground.Ember, IconMark.Black, R.mipmap.ic_launcher_ember_black, R.style.Theme_mpvrx_Splash_EmberBlack),
+      LauncherIcon(IconBackground.Black, IconMark.Classic, R.mipmap.ic_launcher_black_classic, R.style.Theme_mpvrx_Splash_BlackClassic),
+      LauncherIcon(IconBackground.White, IconMark.Classic, R.mipmap.ic_launcher_white_classic, R.style.Theme_mpvrx_Splash_WhiteClassic),
+      LauncherIcon(IconBackground.Charcoal, IconMark.Classic, R.mipmap.ic_launcher_charcoal_classic, R.style.Theme_mpvrx_Splash_CharcoalClassic),
+      LauncherIcon(IconBackground.Indigo, IconMark.Classic, R.mipmap.ic_launcher_indigo_classic, R.style.Theme_mpvrx_Splash_IndigoClassic),
+      LauncherIcon(IconBackground.Violet, IconMark.Classic, R.mipmap.ic_launcher_violet_classic, R.style.Theme_mpvrx_Splash_VioletClassic),
+      LauncherIcon(IconBackground.Azure, IconMark.Classic, R.mipmap.ic_launcher_azure_classic, R.style.Theme_mpvrx_Splash_AzureClassic),
+      LauncherIcon(IconBackground.Lilac, IconMark.Classic, R.mipmap.ic_launcher_lilac_classic, R.style.Theme_mpvrx_Splash_LilacClassic),
+      LauncherIcon(IconBackground.Mint, IconMark.Classic, R.mipmap.ic_launcher_mint_classic, R.style.Theme_mpvrx_Splash_MintClassic),
     )
 
     /** Black with the solid purple ribbon: what the app has always shipped with. */
@@ -110,7 +119,10 @@ internal class LauncherIcon(
   }
 }
 
-/** Icons from before the builder, kept declared in the manifest only to carry a choice over. */
+/**
+ * The fixed icons from before the builder. They stay declared in the manifest, off, only so a
+ * user's old choice can be read once and moved to the builder icon that looks the same.
+ */
 private enum class LegacyIcon(val phoneAlias: String, val tvAlias: String, val becomes: LauncherIcon) {
   SolidPurple(
     "app.gyrolet.mpvrx.SolidPurpleLauncher", "app.gyrolet.mpvrx.TvSolidPurpleLauncher", LauncherIcon.Default,
@@ -121,7 +133,7 @@ private enum class LegacyIcon(val phoneAlias: String, val tvAlias: String, val b
   ),
   Classic(
     "app.gyrolet.mpvrx.ClassicLauncher", "app.gyrolet.mpvrx.TvClassicLauncher",
-    LauncherIcon.of(IconBackground.Black, IconMark.Gradient)!!,
+    LauncherIcon.of(IconBackground.Black, IconMark.Classic)!!,
   ),
 }
 
@@ -138,15 +150,14 @@ internal object LauncherIconManager {
   private fun stateOf(context: Context, name: String) =
     context.packageManager.getComponentEnabledSetting(component(context, name))
 
-  /** What the package manager says is shown, with a manifest-default alias counting as on. */
+  /** What the package manager says is shown. An explicit pick beats the manifest default. */
   private fun readCurrent(context: Context): LauncherIcon {
     val explicit = LauncherIcon.entries.firstOrNull { stateOf(context, it.aliasName) == ENABLED }
     if (explicit != null) return explicit
     val legacy = LegacyIcon.entries.firstOrNull {
       stateOf(context, it.phoneAlias) == ENABLED || stateOf(context, it.tvAlias) == ENABLED
     }
-    if (legacy != null) return legacy.becomes
-    return LauncherIcon.Default
+    return legacy?.becomes ?: LauncherIcon.Default
   }
 
   fun current(context: Context): LauncherIcon =
@@ -159,14 +170,14 @@ internal object LauncherIconManager {
   @Synchronized
   fun reconcile(context: Context) {
     val choice = readCurrent(context)
-    val enabledNow = LauncherIcon.entries.filter {
+    val on = LauncherIcon.entries.filter {
       val state = stateOf(context, it.aliasName)
       state == ENABLED || (state == DEFAULT_STATE && it == LauncherIcon.Default)
     }
     val legacyOn = LegacyIcon.entries.any {
       stateOf(context, it.phoneAlias) == ENABLED || stateOf(context, it.tvAlias) == ENABLED
     }
-    if (!legacyOn && enabledNow.size == 1 && enabledNow.first() == choice) {
+    if (!legacyOn && on.size == 1 && on.first() == choice) {
       cachedCurrent = choice
       return
     }

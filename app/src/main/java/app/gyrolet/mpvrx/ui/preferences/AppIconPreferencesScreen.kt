@@ -309,7 +309,7 @@ private fun MarkTile(
     verticalArrangement = Arrangement.spacedBy(6.dp),
   ) {
     Box(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
-      IconPreview(background, mark, 44.dp)
+      IconPreview(background, mark, 40.dp)
     }
     Text(
       text = stringResource(mark.label),

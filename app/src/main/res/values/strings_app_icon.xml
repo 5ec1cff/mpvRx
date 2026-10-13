@@ -24,4 +24,5 @@
   <string name="app_icon_logo_gradient">Gradient purple</string>
   <string name="app_icon_logo_white">White</string>
   <string name="app_icon_logo_black">Black</string>
+  <string name="app_icon_logo_classic">Classic</string>
 </resources>
