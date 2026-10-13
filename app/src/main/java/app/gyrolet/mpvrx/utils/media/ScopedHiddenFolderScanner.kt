@@ -5,6 +5,7 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
 import android.util.Log
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
@@ -16,12 +17,14 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.ArrayDeque
 import java.util.Locale
 
 /**
  * Play Store-safe explicit folder grants. Never tries to translate a SAF URI into a raw file path:
- * every playable item retains its content:// URI. Only immediate children of user-picked folders
- * are scanned; the user can explicitly add another nested folder without recursive storage walks.
+ * every playable item retains its content:// URI. A single user-picked tree grant also covers
+ * its nested directories. Each directory with playable media appears as its own folder, using a
+ * document URI under the original grant; no raw paths or broad storage permissions are needed.
  * Metadata is read through the same grants, not filesystem paths or MediaStore permissions.
  * The player also uses this scan to rebuild sibling queues for history and other single-item launches.
  */
@@ -31,44 +34,147 @@ object ScopedHiddenFolderScanner {
   fun isScopedFolder(bucketId: String): Boolean =
     bucketId.startsWith("content://") && Uri.parse(bucketId).path?.startsWith("/tree/") == true
 
+
+  // Keep walks bounded even if a document provider exposes cyclic or excessively deep trees.
+  private const val MAX_DIRECTORY_DEPTH = 64
+
+  private data class DirectoryVisit(
+    val document: DocumentFile,
+    val bucketId: String,
+    val displayName: String,
+    val depth: Int,
+  )
+
+  /**
+   * Child folder buckets are document URIs anchored to the *original* granted tree, not new
+   * grants. URI matching here is only a fast filter; getVideos still finds the child by walking
+   * an accessible persisted tree, so a fabricated document URI cannot bypass the grant.
+   */
+  fun isGrantedFolder(bucketId: String, grantedTreeUris: Set<String>): Boolean {
+    if (!isScopedFolder(bucketId)) return false
+    val requested = Uri.parse(bucketId)
+    val parts = requested.pathSegments
+    if (parts.size != 2 && !(parts.size == 4 && parts[2] == "document")) return false
+    return grantedTreeUris.any { granted ->
+      val root = Uri.parse(granted)
+      val rootParts = root.pathSegments
+      rootParts.size == 2 &&
+        rootParts[0] == "tree" &&
+        requested.scheme == root.scheme &&
+        requested.authority == root.authority &&
+        parts[1] == rootParts[1]
+    }
+  }
+
   suspend fun getFolders(
     context: Context,
     grantedTreeUris: Set<String>,
     includeAudio: Boolean,
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
-    grantedTreeUris.sorted().mapNotNull { treeUri ->
+    val folders = mutableListOf<VideoFolder>()
+    for (treeUri in grantedTreeUris.sorted()) {
       currentCoroutineContext().ensureActive()
-      val root = openPersistedTreeDocument(context, treeUri) ?: return@mapNotNull null
-      val videos = readVideos(context, treeUri, includeAudio)
-      if (videos.isEmpty()) return@mapNotNull null
-      VideoFolder(
-        bucketId = treeUri,
-        name = root.name ?: Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':') ?: "Selected folder",
-        path = treeUri,
-        videoCount = videos.size,
-        totalSize = videos.sumOf { it.size },
-        totalDuration = videos.sumOf { it.duration },
-        lastModified = videos.maxOfOrNull { it.dateModified } ?: 0L,
-      )
-    }.sortedBy { it.name.lowercase(Locale.ROOT) }
+      val root = openPersistedTreeDocument(context, treeUri) ?: continue
+      val rootName = root.name ?: Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':') ?: "Selected folder"
+      val pending = ArrayDeque<DirectoryVisit>()
+      val visited = hashSetOf<String>()
+      pending.addLast(DirectoryVisit(root, treeUri, rootName, 0))
+
+      while (pending.isNotEmpty()) {
+        currentCoroutineContext().ensureActive()
+        val folder = pending.removeFirst()
+        if (!visited.add(folder.document.uri.toString())) continue
+        val children = listTreeFilesSafely(folder.document)
+        val videos = readVideosFromFiles(context, children, folder.bucketId, folder.displayName, includeAudio)
+        if (videos.isNotEmpty()) {
+          folders += VideoFolder(
+            bucketId = folder.bucketId,
+            name = folder.displayName,
+            path = folder.bucketId,
+            videoCount = videos.size,
+            totalSize = videos.sumOf { it.size },
+            totalDuration = videos.sumOf { it.duration },
+            lastModified = videos.maxOfOrNull { it.dateModified } ?: 0L,
+          )
+        }
+
+        if (folder.depth < MAX_DIRECTORY_DEPTH) {
+          for (child in children) {
+            currentCoroutineContext().ensureActive()
+            if (!child.isDirectory) continue
+            val childName = child.name ?: continue
+            pending.addLast(
+              DirectoryVisit(
+                child,
+                child.uri.toString(),
+                "${folder.displayName} / $childName",
+                folder.depth + 1,
+              ),
+            )
+          }
+        }
+      }
+    }
+    folders.distinctBy { it.bucketId }.sortedBy { it.name.lowercase(Locale.ROOT) }
   }
 
   suspend fun getVideos(
     context: Context,
-    treeUri: String,
+    bucketId: String,
     includeAudio: Boolean,
+    grantedTreeUris: Set<String>,
   ): List<Video> = withContext(Dispatchers.IO) {
-    readVideos(context, treeUri, includeAudio)
+    if (!isGrantedFolder(bucketId, grantedTreeUris)) return@withContext emptyList()
+
+    // Resolve the requested directory from the actual persisted grant rather than treating its
+    // URI as a separate tree permission. Only directories discovered beneath the grant are used.
+    for (treeUri in grantedTreeUris.sorted()) {
+      if (!isGrantedFolder(bucketId, setOf(treeUri))) continue
+      val root = openPersistedTreeDocument(context, treeUri) ?: continue
+      val rootName = root.name ?: "Selected folder"
+      val pending = ArrayDeque<DirectoryVisit>()
+      val visited = hashSetOf<String>()
+      pending.addLast(DirectoryVisit(root, treeUri, rootName, 0))
+
+      while (pending.isNotEmpty()) {
+        currentCoroutineContext().ensureActive()
+        val folder = pending.removeFirst()
+        if (!visited.add(folder.document.uri.toString())) continue
+        val children = listTreeFilesSafely(folder.document)
+        if (folder.bucketId == bucketId) {
+          return@withContext readVideosFromFiles(
+            context, children, folder.bucketId, folder.displayName, includeAudio,
+          )
+        }
+        if (folder.depth < MAX_DIRECTORY_DEPTH) {
+          for (child in children) {
+            currentCoroutineContext().ensureActive()
+            if (child.isDirectory) {
+              val childName = child.name ?: continue
+              pending.addLast(
+                DirectoryVisit(
+                  child,
+                  child.uri.toString(),
+                  "${folder.displayName} / $childName",
+                  folder.depth + 1,
+                ),
+              )
+            }
+          }
+        }
+      }
+    }
+    emptyList()
   }
 
-  private suspend fun readVideos(
+  private suspend fun readVideosFromFiles(
     context: Context,
-    treeUri: String,
+    children: Array<DocumentFile>,
+    bucketId: String,
+    folderName: String,
     includeAudio: Boolean,
-  ): List<Video> {
-    val root = openPersistedTreeDocument(context, treeUri) ?: return emptyList()
-    val folderName = root.name ?: "Selected folder"
-    return listTreeFilesSafely(root).mapNotNull { document ->
+  ): List<Video> =
+    children.mapNotNull { document ->
       currentCoroutineContext().ensureActive()
       run {
         val name = document.name ?: return@run null
@@ -104,7 +210,7 @@ object ScopedHiddenFolderScanner {
             dateModified = modified,
             dateAdded = modified,
             mimeType = document.type ?: if (isAudio) "audio/*" else "video/*",
-            bucketId = treeUri,
+            bucketId = bucketId,
             bucketDisplayName = folderName,
             width = metadata?.width ?: 0,
             height = metadata?.height ?: 0,

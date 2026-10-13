@@ -369,13 +369,13 @@ object MediaFileRepository : KoinComponent {
       try {
         if (BuildConfig.SCOPED_STORAGE_ONLY &&
           foldersPreferences.includeNoMediaFolders.get() &&
-          ScopedHiddenFolderScanner.isScopedFolder(bucketId) &&
-          bucketId in foldersPreferences.scopedHiddenFolderUris.get()
+          ScopedHiddenFolderScanner.isGrantedFolder(bucketId, foldersPreferences.scopedHiddenFolderUris.get())
         ) {
           ScopedHiddenFolderScanner.getVideos(
             context,
             bucketId,
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
+            foldersPreferences.scopedHiddenFolderUris.get(),
           )
         } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           emptyList()
