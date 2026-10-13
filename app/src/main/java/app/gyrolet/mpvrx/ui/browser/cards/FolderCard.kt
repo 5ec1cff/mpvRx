@@ -237,10 +237,14 @@ fun FolderCard(
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
 
+  // Scoped document-tree folders can be swiped for playback, playlists and watched state,
+  // but Delete must not target a directory in the Play Store flavor.
+  val scopedFolder = app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+    app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)
   VideoSwipeSurface(
     identity = folder.path,
-    leftAction = swipeLeft,
-    rightAction = swipeRight,
+    leftAction = if (scopedFolder && swipeLeft == VideoSwipeAction.Delete) VideoSwipeAction.None else swipeLeft,
+    rightAction = if (scopedFolder && swipeRight == VideoSwipeAction.Delete) VideoSwipeAction.None else swipeRight,
     isWatched = null,
     enabled = !isGridMode && !isSelected &&
       (folder.path.startsWith('/') ||

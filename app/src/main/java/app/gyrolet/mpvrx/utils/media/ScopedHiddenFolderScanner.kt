@@ -192,22 +192,6 @@ object ScopedHiddenFolderScanner {
     videos.distinctBy { it.uri }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
   }
 
-  /** Delete a specifically selected SAF folder, never an ungranted path or other build flavor. */
-  suspend fun deleteGrantedFolder(
-    context: Context,
-    bucketId: String,
-    grantedTreeUris: Set<String>,
-  ): Boolean = withContext(Dispatchers.IO) {
-    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return@withContext false
-    val folder = findGrantedDirectory(context, bucketId, grantedTreeUris, requireWrite = true)
-      ?: return@withContext false
-    val deleted = runCatching { folder.document.delete() }
-      .onFailure { Log.w(TAG, "SAF folder deletion failed for $bucketId", it) }
-      .getOrDefault(false)
-    if (deleted) indexedDirectories = emptyMap()
-    deleted
-  }
-
   /** Only return a real directory visited beneath a persisted SAF grant. */
   private suspend fun findGrantedDirectory(
     context: Context,

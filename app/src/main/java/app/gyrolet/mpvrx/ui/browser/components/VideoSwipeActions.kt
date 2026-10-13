@@ -273,7 +273,11 @@ internal fun rememberVideoSwipeActions(
       }
     },
     folder = { folder, action ->
-      if (!busy && !collecting && deleteTarget == null && playlistTarget == null && action != VideoSwipeAction.None) {
+      val isScopedDirectory = app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+        app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)
+      if (!busy && !collecting && deleteTarget == null && playlistTarget == null &&
+        action != VideoSwipeAction.None && !(isScopedDirectory && action == VideoSwipeAction.Delete)
+      ) {
         collecting = true
         scanJob = scope.launch {
           try {
