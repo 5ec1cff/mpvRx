@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import me.zhanghai.compose.preference.preferenceTheme
@@ -20,7 +21,10 @@ import me.zhanghai.compose.preference.preferenceTheme
  * back to the library defaults.
  */
 @Composable
-internal fun ProvideExpressivePreferenceLocals(content: @Composable () -> Unit) {
+internal fun ProvideExpressivePreferenceLocals(
+  horizontalSpacing: Dp = 16.dp,
+  content: @Composable () -> Unit,
+) {
   val colors = MaterialTheme.colorScheme
   val typography = MaterialTheme.typography
   ProvidePreferenceLocals(
@@ -30,7 +34,7 @@ internal fun ProvideExpressivePreferenceLocals(content: @Composable () -> Unit) 
         categoryColor = colors.primary,
         categoryTextStyle = typography.titleLarge.copy(fontWeight = FontWeight.Bold),
         padding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-        horizontalSpacing = 16.dp,
+        horizontalSpacing = horizontalSpacing,
         verticalSpacing = 6.dp,
         iconContainerMinWidth = 52.dp,
         iconColor = colors.primary,

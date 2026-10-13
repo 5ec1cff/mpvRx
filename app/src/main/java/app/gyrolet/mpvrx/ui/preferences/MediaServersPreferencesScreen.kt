@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -114,7 +115,7 @@ object MediaServersPreferencesScreen : Screen {
         )
       },
     ) { padding ->
-      ProvideExpressivePreferenceLocals {
+      ProvideExpressivePreferenceLocals(horizontalSpacing = 24.dp) {
         val (settingsListState, settingsHighlight) =
           rememberSettingsSearchList(MediaServersPreferencesScreen, MaterialTheme.colorScheme.primary)
 
@@ -1117,11 +1118,11 @@ private fun ServerPreferenceItem(
       modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(horizontal = 16.dp, vertical = 12.dp),
+        .padding(horizontal = 20.dp, vertical = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Box(
-      modifier = Modifier.padding(end = 16.dp),
+      modifier = Modifier.padding(end = 24.dp).width(52.dp),
       contentAlignment = Alignment.Center,
     ) {
       icon()
@@ -1132,7 +1133,7 @@ private fun ServerPreferenceItem(
         Modifier
           .weight(1f)
           .padding(end = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(2.dp),
+          verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
       title()
       summary()

@@ -19,21 +19,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -54,7 +53,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,8 +65,12 @@ import app.gyrolet.mpvrx.repository.JellyfinRepository
 import app.gyrolet.mpvrx.repository.NavidromeRepository
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicTrackListItem
+import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
@@ -77,7 +79,7 @@ import app.gyrolet.mpvrx.ui.browser.music.MusicSortField
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavidromeContent(
   viewModel: NavidromeViewModel,
@@ -171,10 +173,11 @@ fun NavidromeContent(
             .padding(horizontal = 16.dp, vertical = 6.dp),
           verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = viewModel::onSearchQueryChanged,
-            placeholder = { Text("Search songs, albums, artists...") },
+          InlineSearchBar(
+            query = uiState.searchQuery,
+            onQueryChange = viewModel::onSearchQueryChanged,
+            onSearch = { },
+            placeholder = { Text(stringResource(R.string.settings_search_title)) },
             leadingIcon = {
               IconButton(onClick = {
                 isSearching = false
@@ -198,19 +201,8 @@ fun NavidromeContent(
                 }
               }
             },
-            singleLine = true,
-            shape = RoundedCornerShape(28.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-              focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-              unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-              focusedBorderColor = Color.Transparent,
-              unfocusedBorderColor = Color.Transparent,
-            ),
-            modifier = Modifier
-              .fillMaxWidth()
-              .focusRequester(searchFocusRequester),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { }),
+            modifier = Modifier.fillMaxWidth(),
+            inputFieldModifier = Modifier.focusRequester(searchFocusRequester),
           )
         }
       } else {
@@ -241,22 +233,34 @@ fun NavidromeContent(
           contentColor = MaterialTheme.colorScheme.onSurface,
           edgePadding = 8.dp,
           divider = {},
+          indicator = {},
         ) {
           musicTabs.forEachIndexed { index, tab ->
+            val selected = selectedTabIndex == index
+            val tabShape = rememberConnectedShape(
+              index = index,
+              itemCount = musicTabs.size,
+              layout = ConnectedLayout.Horizontal,
+            )
             Tab(
-              selected = selectedTabIndex == index,
+              selected = selected,
               onClick = { navigateMusicTab(index) },
+              modifier = Modifier
+                .clip(tabShape)
+                .background(
+                  if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                ),
               text = {
                 Text(
                   text = tab.title,
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium,
+                  style = if (selected) MaterialTheme.typography.titleSmallEmphasized else MaterialTheme.typography.titleSmall,
+                  modifier = Modifier.padding(horizontal = 4.dp),
                   maxLines = 1,
                   softWrap = false,
                   overflow = TextOverflow.Ellipsis,
                 )
               },
-              selectedContentColor = MaterialTheme.colorScheme.onSurface,
+              selectedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
               unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
           }
@@ -274,39 +278,32 @@ fun NavidromeContent(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center,
       ) {
-        androidx.compose.material3.Card(
-          shape = RoundedCornerShape(24.dp),
-          colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-          ),
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-          ) {
-            androidx.compose.material3.Icon(
-              painter = painterResource(R.drawable.ic_navidrome),
-              contentDescription = null,
-              modifier = Modifier.size(56.dp),
-              tint = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-              text = stringResource(R.string.pref_navidrome_title),
-              style = MaterialTheme.typography.titleLarge,
-              fontWeight = FontWeight.Bold,
-            )
-            Text(
-              text = stringResource(R.string.pref_navidrome_no_server),
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            FilledTonalButton(
-              onClick = { isAddDialogOpen = true },
-            ) {
-              Text(stringResource(R.string.generic_configure))
+          Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.secondaryContainer) {
+            Box(Modifier.size(88.dp), contentAlignment = Alignment.Center) {
+              androidx.compose.material3.Icon(
+                painter = painterResource(R.drawable.ic_navidrome),
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+              )
             }
+          }
+          Text(
+            text = stringResource(R.string.pref_navidrome_title),
+            style = MaterialTheme.typography.titleLargeEmphasized,
+          )
+          Text(
+            text = stringResource(R.string.pref_navidrome_no_server),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+          )
+          FilledTonalButton(onClick = { isAddDialogOpen = true }, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.generic_configure))
           }
         }
       }
@@ -316,6 +313,7 @@ fun NavidromeContent(
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 8.dp, bottom = navigationBarHeight + 84.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         if (result.songs.isNotEmpty()) {
           item {
@@ -326,13 +324,16 @@ fun NavidromeContent(
               modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
           }
-          items(result.songs, key = { it.id }) { song ->
+          itemsIndexed(result.songs, key = { _, song -> "song_${song.id}" }) { index, song ->
             SharedMusicTrackListItem(
               title = song.title,
               subtitle = song.artist,
               durationSeconds = song.durationSeconds.toLong(),
               artworkUrl = navidromeRepository.getSongCoverArtUrl(server, song),
               onClick = { viewModel.playSong(context, song) },
+              modifier = Modifier.padding(horizontal = 16.dp),
+              shape = rememberConnectedShape(index, result.songs.size, ConnectedLayout.Vertical),
+              containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             )
           }
         }
@@ -346,13 +347,16 @@ fun NavidromeContent(
               modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
           }
-          items(result.albums, key = { it.id }) { album ->
+          itemsIndexed(result.albums, key = { _, album -> "album_${album.id}" }) { index, album ->
             SharedMusicTrackListItem(
               title = album.title,
               subtitle = album.artist,
               durationSeconds = null,
               artworkUrl = navidromeRepository.getCoverArtUrl(server, album.coverArtId),
               onClick = { viewModel.openAlbumDetail(album) },
+              modifier = Modifier.padding(horizontal = 16.dp),
+              shape = rememberConnectedShape(index, result.albums.size, ConnectedLayout.Vertical),
+              containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             )
           }
         }
@@ -366,13 +370,16 @@ fun NavidromeContent(
               modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
           }
-          items(result.artists, key = { it.id }) { artist ->
+          itemsIndexed(result.artists, key = { _, artist -> "artist_${artist.id}" }) { index, artist ->
             SharedMusicTrackListItem(
               title = artist.name,
               subtitle = "${artist.albumCount} albums",
               durationSeconds = null,
               artworkUrl = navidromeRepository.getArtistImageUrl(server, artist),
               onClick = { viewModel.openArtistDetail(artist) },
+              modifier = Modifier.padding(horizontal = 16.dp),
+              shape = rememberConnectedShape(index, result.artists.size, ConnectedLayout.Vertical),
+              containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             )
           }
         }

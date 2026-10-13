@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -44,12 +46,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import app.gyrolet.mpvrx.presentation.components.AppDropdownMenuItem as DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
@@ -61,8 +66,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetState
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
@@ -82,6 +89,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -111,6 +120,7 @@ import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.dialogs.AudiobookSortDialog
+import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -122,6 +132,9 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -157,6 +170,7 @@ fun AudiobookLibraryContent(
   var query by rememberSaveable { mutableStateOf("") }
   var filter by rememberSaveable { mutableStateOf(0) }
   var search by rememberSaveable { mutableStateOf(false) }
+  val searchFocusRequester = remember { FocusRequester() }
   var importMenu by remember { mutableStateOf(false) }
   var detailsId by rememberSaveable { mutableStateOf<Long?>(null) }
   var absDetailsBook by remember { mutableStateOf<AudiobookshelfBook?>(null) }
@@ -272,8 +286,17 @@ fun AudiobookLibraryContent(
   LaunchedEffect(isAbsSource, importing) {
     if (isAbsSource || importing != null) importMenu = false
   }
+  LaunchedEffect(search) {
+    if (search) searchFocusRequester.requestFocus()
+  }
   val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
 
+  val filters = listOf(
+    R.string.audiobook_all,
+    R.string.audiobook_in_progress,
+    R.string.audiobook_finished,
+    R.string.audiobook_not_started,
+  )
   Scaffold(
     containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
     topBar = {
@@ -291,7 +314,10 @@ fun AudiobookLibraryContent(
         onBackClick = if (isMusicTabMode) null else { { backStack.popSafely() } },
         onCancelSelection = { },
         onSortClick = { isSortMenuExpanded = true },
-        onSearchClick = { search = !search },
+        onSearchClick = {
+          search = !search
+          if (!search) query = ""
+        },
         onSettingsClick = { backStack.navigateTo(PreferencesScreen) },
         titleTrailing = if (isMusicTabMode) {
           { app.gyrolet.mpvrx.ui.browser.music.MusicSourceDropdown() }
@@ -338,6 +364,9 @@ fun AudiobookLibraryContent(
                       style = MaterialTheme.typography.labelMedium,
                       fontWeight = FontWeight.Bold,
                       color = MaterialTheme.colorScheme.onSecondaryContainer,
+                      modifier = Modifier.widthIn(max = 144.dp),
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.width(2.dp))
                     Icon(
@@ -375,6 +404,7 @@ fun AudiobookLibraryContent(
                     leadingIcon = {
                       Icon(Icons.RoundedFilled.Folder, contentDescription = null)
                     },
+                    selected = currentSource == AudiobookSourceProvider.LOCAL,
                     onClick = {
                       mediaServerPreferences.audiobookSourceProvider.set(AudiobookSourceProvider.LOCAL)
                       isSourceDropdownOpen = false
@@ -408,6 +438,7 @@ fun AudiobookLibraryContent(
                         tint = MaterialTheme.colorScheme.primary,
                       )
                     },
+                    selected = currentSource == AudiobookSourceProvider.AUDIOBOOKSHELF,
                     onClick = {
                       mediaServerPreferences.audiobookSourceProvider.set(AudiobookSourceProvider.AUDIOBOOKSHELF)
                       isSourceDropdownOpen = false
@@ -446,6 +477,7 @@ fun AudiobookLibraryContent(
                           }
                         }
                       },
+                      selected = lib.id == absState.activeLibrary?.id,
                       onClick = {
                         absModel.selectLibrary(lib)
                         isLibDropdownOpen = false
@@ -506,14 +538,20 @@ fun AudiobookLibraryContent(
     ) { padding ->
       Column(Modifier.fillMaxSize().padding(padding)) {
         if (search) {
-          OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            singleLine = true,
+          InlineSearchBar(
+            query = query,
+            onQueryChange = { query = it },
+            onSearch = { },
             placeholder = { Text(stringResource(R.string.audiobook_search)) },
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 16.dp, vertical = 8.dp)
+            leadingIcon = { Icon(Icons.RoundedFilled.Search, contentDescription = null) },
+            trailingIcon = {
+              if (query.isNotEmpty()) {
+                AudiobookIconButton(Icons.RoundedFilled.Close, stringResource(R.string.pref_clear_content_desc)) { query = "" }
+              }
+            },
+            inputFieldModifier = Modifier.focusRequester(searchFocusRequester),
+            windowInsets = WindowInsets(0, 0, 0, 0),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
           )
         }
 
@@ -522,21 +560,21 @@ fun AudiobookLibraryContent(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 4.dp),
-          horizontalArrangement = Arrangement.spacedBy(8.dp)
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
         ) {
-          listOf(R.string.audiobook_all, R.string.audiobook_in_progress, R.string.audiobook_finished, R.string.audiobook_not_started)
-            .forEachIndexed { index, label ->
-              FilterChip(
-                selected = filter == index,
-                onClick = {
-                  if (filter != index) {
-                    filter = index
-                    haptics.selection(true)
-                  }
-                },
-                label = { Text(stringResource(label)) }
-              )
-            }
+          filters.forEachIndexed { index, label ->
+            FilterChip(
+              selected = filter == index,
+              shape = rememberConnectedShape(index, filters.size, ConnectedLayout.Horizontal),
+              onClick = {
+                if (filter != index) {
+                  filter = index
+                  haptics.selection(true)
+                }
+              },
+              label = { Text(stringResource(label)) },
+            )
+          }
         }
 
         if (isAbsSource) {
@@ -548,18 +586,26 @@ fun AudiobookLibraryContent(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
               ) {
-                androidx.compose.material3.Icon(
-                  painter = painterResource(R.drawable.ic_audiobookshelf),
-                  contentDescription = null,
-                  modifier = Modifier.size(64.dp),
-                  tint = MaterialTheme.colorScheme.secondary,
-                )
+                Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
+                  Box(Modifier.size(84.dp), contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(
+                      painter = painterResource(R.drawable.ic_audiobookshelf),
+                      contentDescription = null,
+                      modifier = Modifier.size(42.dp),
+                      tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                  }
+                }
                 Text(
                   stringResource(R.string.pref_audiobookshelf_no_server),
                   modifier = Modifier.padding(16.dp),
-                  style = MaterialTheme.typography.titleMedium,
+                  style = MaterialTheme.typography.titleLargeEmphasized,
+                  textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
-                Button(onClick = { backStack.navigateTo(MediaServersPreferencesScreen) }) {
+                Button(
+                  onClick = { backStack.navigateTo(MediaServersPreferencesScreen) },
+                  shapes = ButtonDefaults.shapes(),
+                ) {
                   Text(stringResource(R.string.pref_audiobookshelf_add_server))
                 }
               }
@@ -576,11 +622,7 @@ fun AudiobookLibraryContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
               ) {
                 Icon(Icons.RoundedFilled.MenuBook, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.secondary)
-                Text(
-                  stringResource(R.string.audiobook_empty),
-                  modifier = Modifier.padding(16.dp),
-                  style = MaterialTheme.typography.titleMedium,
-                )
+                Text(stringResource(R.string.audiobook_empty), modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLargeEmphasized)
                 Button(onClick = { absModel.refresh() }) {
                   Text(stringResource(R.string.ui_refresh))
                 }
@@ -655,12 +697,14 @@ fun AudiobookLibraryContent(
             visibleLocalBooks.isEmpty() -> Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center,
               horizontalAlignment = Alignment.CenterHorizontally) {
               Icon(Icons.RoundedFilled.MenuBook, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.secondary)
-              Text(stringResource(R.string.audiobook_empty), modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+              Text(stringResource(R.string.audiobook_empty), modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLargeEmphasized)
               if (books.orEmpty().isEmpty()) {
-                Button(onClick = { files.launch(arrayOf("*/*")) }, enabled = importing == null) {
+                Button(onClick = { files.launch(arrayOf("*/*")) }, enabled = importing == null, shapes = ButtonDefaults.shapes()) {
                   Text(stringResource(R.string.audiobook_import_files))
                 }
-                TextButton(onClick = { folder.launch(null) }, enabled = importing == null) { Text(stringResource(R.string.audiobook_import_folder)) }
+                FilledTonalButton(onClick = { folder.launch(null) }, enabled = importing == null, shapes = ButtonDefaults.shapes()) {
+                  Text(stringResource(R.string.audiobook_import_folder))
+                }
               }
             }
             layoutMode == MediaLayoutMode.GRID -> LazyVerticalGrid(
@@ -756,9 +800,27 @@ fun AudiobookLibraryContent(
         },
         toggleFinishedEnabled = PlaybackSession.state.value.currentItem?.audiobook?.bookId != book.book.id,
         extraActions = {
-          TextButton(onClick = { editing = book.book; detailsId = null }) { Text(stringResource(R.string.audiobook_edit)) }
-          TextButton(onClick = { removeId = book.book.id; detailsId = null }) {
-            Text(stringResource(R.string.audiobook_remove), color = MaterialTheme.colorScheme.error)
+          FilledTonalButton(
+            onClick = { editing = book.book; detailsId = null },
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+          ) {
+            Icon(Icons.RoundedFilled.DriveFileRenameOutline, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.audiobook_edit))
+          }
+          FilledTonalButton(
+            onClick = { removeId = book.book.id; detailsId = null },
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+            colors = ButtonDefaults.filledTonalButtonColors(
+              containerColor = MaterialTheme.colorScheme.errorContainer,
+              contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
+          ) {
+            Icon(Icons.RoundedFilled.Delete, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.audiobook_remove))
           }
         },
       )
@@ -818,7 +880,7 @@ fun AudiobookLibraryContent(
           FilledTonalButton(
             onClick = { absSearchOnlineBook = book },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shapes = ButtonDefaults.shapes(),
           ) {
             Icon(Icons.RoundedFilled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
@@ -865,7 +927,7 @@ fun AudiobookLibraryContent(
     }
   }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AudiobookDetailsBottomSheet(
   coverUri: String?,
@@ -885,60 +947,156 @@ private fun AudiobookDetailsBottomSheet(
   toggleFinishedEnabled: Boolean = true,
   extraActions: (@Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit)? = null,
 ) {
-  ModalBottomSheet(onDismissRequest = onDismiss) {
-    Column(
-      Modifier
-        .fillMaxWidth()
-        .heightIn(max = 620.dp)
-        .verticalScroll(rememberScrollState())
-        .padding(20.dp),
-      verticalArrangement = Arrangement.spacedBy(12.dp),
+  val sheetState = rememberBottomSheetState(
+    initialValue = SheetValue.Expanded,
+    enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+  )
+  ModalBottomSheet(
+    onDismissRequest = onDismiss,
+    sheetState = sheetState,
+    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    dragHandle = { BottomSheetDefaults.DragHandle() },
+  ) {
+    LazyColumn(
+      modifier = Modifier.fillMaxWidth(),
+      contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
+      verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
     ) {
-      Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        AudiobookArtwork(uri = coverUri, modifier = Modifier.size(92.dp).clip(RoundedCornerShape(6.dp)))
-        Column(Modifier.weight(1f)) {
-          Text(title, style = MaterialTheme.typography.titleLarge)
-          if (author.isNotBlank() && author != "null") {
-            Text(author, style = MaterialTheme.typography.bodyLarge)
-          }
-          Text(bookTime(durationMs), style = MaterialTheme.typography.labelMedium)
-        }
-      }
-
-      Button(onClick = onPlay, enabled = !opening, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(if (isFinished) R.string.audiobook_start_over else R.string.audiobook_continue))
-      }
-      if (hasProgress) {
-        TextButton(onClick = onPlayFromBeginning, enabled = !opening, modifier = Modifier.fillMaxWidth()) {
-          Text(stringResource(R.string.audiobook_start_over))
-        }
-      }
-
-      details.forEach { (label, value) ->
-        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-          Text(stringResource(label), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
-          Text(value, style = MaterialTheme.typography.bodyMedium)
-        }
-      }
-
-      if (itemsTitleRes != null && items.isNotEmpty()) {
-        HorizontalDivider()
-        Text(stringResource(itemsTitleRes), style = MaterialTheme.typography.titleSmall)
-        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 180.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-          items(items.size, key = { it }) { index ->
-            val (itemTitle, itemDuration) = items[index]
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-              Text(itemTitle, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-              Text(itemDuration, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+      item(key = "book_header") {
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          AudiobookArtwork(
+            uri = coverUri,
+            modifier = Modifier.width(96.dp).aspectRatio(0.76f).clip(MaterialTheme.shapes.large),
+          )
+          Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+              title,
+              style = MaterialTheme.typography.headlineSmallEmphasized,
+              maxLines = 3,
+              overflow = TextOverflow.Ellipsis,
+            )
+            if (author.isNotBlank() && author != "null") {
+              Text(
+                author,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+            Text(bookTime(durationMs), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+            Surface(
+              shape = MaterialTheme.shapes.large,
+              color = if (isFinished) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
+            ) {
+              Text(
+                text = stringResource(if (isFinished) R.string.audiobook_finished else if (hasProgress) R.string.audiobook_in_progress else R.string.audiobook_not_started),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelMediumEmphasized,
+                color = if (isFinished) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+              )
             }
           }
         }
       }
 
-      HorizontalDivider()
-      extraActions?.invoke(this)
-      TextButton(onClick = onToggleFinished, enabled = toggleFinishedEnabled) {
-        Text(stringResource(if (isFinished) R.string.audiobook_mark_unfinished else R.string.audiobook_mark_finished))
+      item(key = "playback_actions") {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+          Button(
+            onClick = onPlay,
+            enabled = !opening,
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+          ) {
+            Icon(Icons.RoundedFilled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(if (isFinished) R.string.audiobook_start_over else R.string.audiobook_continue))
+          }
+          if (hasProgress) {
+            FilledTonalButton(
+              onClick = onPlayFromBeginning,
+              enabled = !opening,
+              modifier = Modifier.fillMaxWidth(),
+              shapes = ButtonDefaults.shapes(),
+            ) {
+              Icon(Icons.RoundedFilled.Restore, contentDescription = null, modifier = Modifier.size(20.dp))
+              Spacer(Modifier.width(8.dp))
+              Text(stringResource(R.string.audiobook_start_over))
+            }
+          }
+        }
+      }
+
+      if (details.isNotEmpty()) {
+        item(key = "metadata_heading") {
+          Text(
+            stringResource(R.string.audiobook_details),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+          )
+        }
+        items(details.size, key = { "metadata_$it" }, contentType = { "metadata" }) { index ->
+          val (label, value) = details[index]
+          Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = rememberConnectedShape(index, details.size, ConnectedLayout.Vertical),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+          ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+              Text(stringResource(label), style = MaterialTheme.typography.labelMediumEmphasized, color = MaterialTheme.colorScheme.primary)
+              Text(value, style = MaterialTheme.typography.bodyMedium)
+            }
+          }
+        }
+      }
+
+      if (itemsTitleRes != null && items.isNotEmpty()) {
+        item(key = "tracks_heading") {
+          Text(
+            stringResource(itemsTitleRes),
+            style = MaterialTheme.typography.titleMediumEmphasized,
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+          )
+        }
+        items(items.size, key = { "track_$it" }, contentType = { "track" }) { index ->
+          val (itemTitle, itemDuration) = items[index]
+          Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = rememberConnectedShape(index, items.size, ConnectedLayout.Vertical),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+          ) {
+            Row(
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+              horizontalArrangement = Arrangement.spacedBy(12.dp),
+              verticalAlignment = Alignment.CenterVertically,
+            ) {
+              Text(itemTitle, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+              Text(itemDuration, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+          }
+        }
+      }
+
+      item(key = "book_actions") {
+        Column(
+          modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          extraActions?.invoke(this)
+          FilledTonalButton(
+            onClick = onToggleFinished,
+            enabled = toggleFinishedEnabled,
+            modifier = Modifier.fillMaxWidth(),
+            shapes = ButtonDefaults.shapes(),
+          ) {
+            Text(stringResource(if (isFinished) R.string.audiobook_mark_unfinished else R.string.audiobook_mark_finished))
+          }
+        }
       }
     }
   }
@@ -1350,6 +1508,7 @@ internal fun AudiobookIconButton(
   )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AudiobookGridCard(
   title: String,
@@ -1365,16 +1524,16 @@ private fun AudiobookGridCard(
 ) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(12.dp),
-    color = MaterialTheme.colorScheme.surfaceContainer,
+    shape = RoundedCornerShape(16.dp),
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
     modifier = modifier.fillMaxWidth(),
   ) {
     Column(Modifier.fillMaxWidth().padding(8.dp)) {
       Box(
         Modifier
           .fillMaxWidth()
-          .aspectRatio(1f)
-          .clip(RoundedCornerShape(8.dp)),
+          .aspectRatio(0.76f)
+          .clip(RoundedCornerShape(12.dp)),
       ) {
         AudiobookArtwork(coverUri, Modifier.fillMaxSize())
         if (progressPercent > 0f) {
@@ -1390,8 +1549,7 @@ private fun AudiobookGridCard(
       Spacer(Modifier.height(8.dp))
       Text(
         title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.titleSmallEmphasized,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
@@ -1419,16 +1577,15 @@ private fun AudiobookGridCard(
           overflow = TextOverflow.Ellipsis,
           modifier = Modifier.weight(1f, fill = false),
         )
-        IconButton(
+        FilledTonalIconButton(
           onClick = onPlay,
           enabled = !opening,
-          modifier = Modifier.size(28.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(
             Icons.RoundedFilled.PlayArrow,
-            contentDescription = stringResource(R.string.audiobook_continue),
+            contentDescription = stringResource(if (isFinished) R.string.audiobook_start_over else R.string.audiobook_continue),
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.primary,
           )
         }
       }
@@ -1436,6 +1593,7 @@ private fun AudiobookGridCard(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AudiobookListRow(
   title: String,
@@ -1451,8 +1609,8 @@ private fun AudiobookListRow(
 ) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(10.dp),
-    color = MaterialTheme.colorScheme.surfaceContainer,
+    shape = RoundedCornerShape(16.dp),
+    color = MaterialTheme.colorScheme.surfaceContainerLow,
     modifier = modifier.fillMaxWidth(),
   ) {
     Row(
@@ -1460,9 +1618,9 @@ private fun AudiobookListRow(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-      AudiobookArtwork(coverUri, Modifier.size(76.dp).clip(RoundedCornerShape(6.dp)))
+      AudiobookArtwork(coverUri, Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)))
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(title, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (author.isNotBlank()) {
           Text(author, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1471,10 +1629,18 @@ private fun AudiobookListRow(
           else stringResource(R.string.audiobook_remaining, bookTime(remainingMs)),
           style = MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.secondary,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
         )
         LinearProgressIndicator(progress = { progressPercent }, modifier = Modifier.fillMaxWidth().height(3.dp))
       }
-      AudiobookIconButton(Icons.RoundedFilled.PlayArrow, stringResource(R.string.audiobook_continue), !opening, onPlay)
+      FilledTonalIconButton(onClick = onPlay, enabled = !opening, modifier = Modifier.size(48.dp)) {
+        Icon(
+          Icons.RoundedFilled.PlayArrow,
+          contentDescription = stringResource(if (isFinished) R.string.audiobook_start_over else R.string.audiobook_continue),
+          modifier = Modifier.size(24.dp),
+        )
+      }
     }
   }
 }
