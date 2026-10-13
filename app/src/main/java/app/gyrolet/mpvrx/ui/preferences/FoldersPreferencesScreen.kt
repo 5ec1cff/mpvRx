@@ -368,6 +368,7 @@ object FoldersPreferencesScreen : Screen {
         }
       }
     }
+    }
 
     if (showAddDialog) {
       AddFolderDialog(
