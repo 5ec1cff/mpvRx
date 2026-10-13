@@ -347,6 +347,13 @@ class FolderListViewModel(
                 val videoAge = currentTime - (video.dateModified * 1000)
                 val isRecent = videoAge <= thresholdMillis
 
+                if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+                  val state = app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(video)
+                    .firstNotNullOfOrNull { playbackStateRepository.getVideoDataByTitle(it) }
+                  return@count app.gyrolet.mpvrx.ui.browser.videolist.buildVideoWithPlaybackInfo(
+                    video, state, currentTime, appearancePreferences.unplayedOldVideoDays.get(), watchedThreshold,
+                  ).isOldAndUnplayed
+                }
                 val playbackState = playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forLocalPath(video.path))
                   ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.uri.toString()))
                   ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.path))

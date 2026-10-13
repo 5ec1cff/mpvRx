@@ -543,6 +543,11 @@ object FolderListScreen : Screen {
         onPermissionGranted = { viewModel.refresh() },
       )
 
+    val selectedTreeUris by foldersPreferences.scopedHiddenFolderUris.collectAsState()
+    val includeSelectedFolders by foldersPreferences.includeNoMediaFolders.collectAsState()
+    val canBrowseSelectedFolders = BuildConfig.SCOPED_STORAGE_ONLY && includeSelectedFolders &&
+      selectedTreeUris.isNotEmpty()
+
     var isPermissionSetupCompleted by androidx.compose.runtime.saveable.rememberSaveable {
       androidx.compose.runtime.mutableStateOf(
         permissionState.status == PermissionStatus.Granted || browserPreferences.onboardingCompleted.get(),
@@ -869,7 +874,7 @@ object FolderListScreen : Screen {
         },
       ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-          if (isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) {
+          if ((isPermissionSetupCompleted && permissionState.status == PermissionStatus.Granted) || canBrowseSelectedFolders) {
               if (effectiveIsSearching) {
                 // Show search results
                 Box(modifier = Modifier.fillMaxSize()) {

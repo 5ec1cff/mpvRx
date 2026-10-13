@@ -273,8 +273,7 @@ internal fun rememberVideoSwipeActions(
       }
     },
     folder = { folder, action ->
-      val isScopedDirectory = app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
-        app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)
+      val isScopedDirectory = app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY
       if (!busy && !collecting && deleteTarget == null && playlistTarget == null &&
         action != VideoSwipeAction.None && !(isScopedDirectory && action == VideoSwipeAction.Delete)
       ) {
@@ -295,6 +294,19 @@ internal fun rememberVideoSwipeActions(
                     audioOnly = audioOnly,
                     minimumAudioDurationSeconds = preferences.minimumAudioDurationSeconds.get(),
                   )
+              }
+              if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+                val folders = if (audioOnly) {
+                  MediaFileRepository.getAllAudioFolders(context, preferences.minimumAudioDurationSeconds.get())
+                } else {
+                  MediaFileRepository.getAllVideoFolders(context, includeAudioOverride = preferences.includeAudioBrowser.get())
+                }
+                val buckets = folders.filter {
+                  app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(it.path, folder.path)
+                }.mapTo(mutableSetOf()) { it.bucketId }
+                return@withContext MediaFileRepository.getVideosForBuckets(
+                  context, buckets, includeAudioOverride = audioOnly || preferences.includeAudioBrowser.get(),
+                ).filter { !audioOnly || it.isAudio }
               }
               val root = File(folder.path).canonicalFile
               require(root.isDirectory && root.canRead())

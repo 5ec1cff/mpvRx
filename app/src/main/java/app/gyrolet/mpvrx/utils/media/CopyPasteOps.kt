@@ -320,11 +320,27 @@ object CopyPasteOps {
         }
 
         resetOperation()
-        val copiedUris = performTreeCopyOperation(context, videos, destinationTreeUri)
+        val copiedUris = performTreeCopyOperation(
+          context, videos, destinationTreeUri,
+          completeOnCopy = !app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY,
+        )
 
         // Delete all source files in a single batch to show one permission dialog
         checkCancellation()
-        val (deleted, failed) = PermissionUtils.StorageOps.deleteVideos(context, videos)
+        val moved = mutableListOf<Video>()
+        val (deleted, failed) = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          PermissionUtils.StorageOps.deleteScopedVideosForMove(context, videos) { moved += it }
+        } else {
+          PermissionUtils.StorageOps.deleteVideos(context, videos)
+        }
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          moved.forEach { video ->
+            val newUri = copiedUris[videos.indexOf(video)]
+            val newName = DocumentFile.fromSingleUri(context, newUri)?.name ?: video.displayName
+            PlaybackStateOps.onScopedVideoRenamed(video, newUri.toString(), newUri, newName)
+          }
+          MediaLibraryEvents.notifyChanged()
+        }
         if (deleted != videos.size || failed > 0) {
           throw IOException("Failed to delete source files after move: deleted=$deleted, failed=$failed")
         }
@@ -335,12 +351,17 @@ object CopyPasteOps {
           historyUpdates.add(video.path to newPath)
         }
 
-        historyUpdates.forEach { (oldPath, newPath) ->
-          RecentlyPlayedOps.onVideoRenamed(oldPath, newPath)
-          PlaybackStateOps.onVideoRenamed(oldPath, newPath)
+        if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          historyUpdates.forEach { (oldPath, newPath) ->
+            RecentlyPlayedOps.onVideoRenamed(oldPath, newPath)
+            PlaybackStateOps.onVideoRenamed(oldPath, newPath)
+          }
         }
 
         MediaLibraryEvents.notifyChanged()
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          _operationProgress.value = _operationProgress.value.copy(isComplete = true)
+        }
         Log.d(TAG, "Move (tree) completed successfully. Moved ${videos.size} files")
         Result.success(Unit)
       } catch (e: Exception) {
@@ -384,6 +405,7 @@ object CopyPasteOps {
     context: Context,
     videos: List<Video>,
     destinationTreeUri: Uri,
+    completeOnCopy: Boolean = true,
   ): List<Uri> {
     val destinationRoot =
       DocumentFile.fromTreeUri(context, destinationTreeUri)
@@ -458,7 +480,7 @@ object CopyPasteOps {
 
     _operationProgress.value =
       _operationProgress.value.copy(
-        isComplete = true,
+        isComplete = completeOnCopy,
         overallProgress = 1f,
         bytesProcessed = totalBytes,
       )

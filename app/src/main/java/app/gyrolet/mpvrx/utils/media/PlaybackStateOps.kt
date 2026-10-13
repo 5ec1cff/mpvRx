@@ -56,6 +56,11 @@ object PlaybackStateOps {
     videos.filter { video ->
       val state = videoPlaybackIdentifiers(video).firstNotNullOfOrNull(states::get)
       val duration = video.duration / 1000.0
+      if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        return@filter app.gyrolet.mpvrx.ui.browser.videolist.buildVideoWithPlaybackInfo(
+          video, state, System.currentTimeMillis(), 0, threshold,
+        ).isWatched
+      }
       state != null && (state.hasBeenWatched ||
         (threshold > 0 && duration > 0 && (duration - state.timeRemaining) / duration >= threshold / 100.0))
     }.mapTo(mutableSetOf()) { it.path }
@@ -98,7 +103,11 @@ object PlaybackStateOps {
   private suspend fun persistWatched(video: Video, watched: Boolean, newLabelOverride: Boolean? = null) {
     val identifier = videoPlaybackIdentifiers(video).first()
     val existing = videoPlaybackIdentifiers(video).firstNotNullOfOrNull { repository.getVideoDataByTitle(it) }
-    val durationSeconds = (video.duration / 1000L).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+    val recordedDuration = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+      existing?.let { it.lastPosition.toLong() + it.timeRemaining.toLong() } ?: 0L
+    } else 0L
+    val durationSeconds = ((video.duration / 1000L).takeIf { it > 0L } ?: recordedDuration)
+      .coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     val state = existing ?: PlaybackStateEntity(
       mediaTitle = identifier,
       lastPosition = 0,
@@ -119,6 +128,27 @@ object PlaybackStateOps {
         newLabelOverride = newLabelOverride,
       ),
     )
+  }
+
+  /** Provider-aware history migration for scoped rename/move operations. */
+  suspend fun onScopedVideoRenamed(video: Video, newPath: String, newUri: android.net.Uri, newName: String) {
+    val oldKeys = videoPlaybackIdentifiers(video)
+    val destination = video.copy(path = newPath, uri = newUri, displayName = newName)
+    val newKey = videoPlaybackIdentifiers(destination).first()
+    val state = oldKeys.firstNotNullOfOrNull { repository.getVideoDataByTitle(it) }
+    if (state != null) repository.upsert(state.copy(mediaTitle = newKey))
+    oldKeys.filterNot { it == newKey }.forEach { repository.deleteByTitle(it) }
+    setOf(video.path, video.uri.toString()).forEach { oldPath ->
+      RecentlyPlayedOps.onVideoRenamed(oldPath, newPath, newName)
+      database.playlistDao().updateFileLocation(oldPath, newPath, newName)
+    }
+    PlaybackStateEvents.notifyChanged("")
+  }
+
+  suspend fun onScopedVideoDeleted(video: Video) {
+    videoPlaybackIdentifiers(video).forEach { repository.deleteByTitle(it) }
+    RecentlyPlayedOps.removeVideoHistory(video)
+    PlaybackStateEvents.notifyChanged("")
   }
 
   /**

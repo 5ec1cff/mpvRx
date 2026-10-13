@@ -335,10 +335,20 @@ object PermissionUtils {
     /**
      * Delete videos via scoped storage (Play Store flavor / no MANAGE_EXTERNAL_STORAGE)
      */
+    internal suspend fun deleteScopedVideosForMove(
+      context: Context,
+      videos: List<Video>,
+      onDeleted: (Video) -> Unit,
+    ): Pair<Int, Int> {
+      check(BuildConfig.SCOPED_STORAGE_ONLY)
+      return deleteVideosScoped(context, videos, onDeleted, preserveHistory = true)
+    }
+
     private suspend fun deleteVideosScoped(
       context: Context,
       videos: List<Video>,
       onDeleted: (Video) -> Unit,
+      preserveHistory: Boolean = false,
     ): Pair<Int, Int> =
       withContext(Dispatchers.IO) {
         var deleted = 0
@@ -364,8 +374,7 @@ object PermissionUtils {
               batch.forEach { video ->
                 deleted++
                 onDeleted(video)
-                RecentlyPlayedOps.onVideoDeleted(video.path)
-                PlaybackStateOps.onVideoDeleted(video.path)
+                if (!preserveHistory) PlaybackStateOps.onScopedVideoDeleted(video)
                 Log.d(TAG, "✓ Deleted (scoped request): ${video.displayName}")
               }
             } else {
@@ -391,8 +400,7 @@ object PermissionUtils {
               if (rows > 0) {
                 deleted++
                 onDeleted(video)
-                RecentlyPlayedOps.onVideoDeleted(video.path)
-                PlaybackStateOps.onVideoDeleted(video.path)
+                if (!preserveHistory) PlaybackStateOps.onScopedVideoDeleted(video)
                 Log.d(TAG, "✓ Deleted (scoped): ${video.displayName}")
               } else {
                 failed++
@@ -413,8 +421,7 @@ object PermissionUtils {
             check(DocumentsContract.deleteDocument(context.contentResolver, video.uri)) { "Document deletion failed" }
             deleted++
             onDeleted(video)
-            RecentlyPlayedOps.onVideoDeleted(video.path)
-            PlaybackStateOps.onVideoDeleted(video.path)
+            if (!preserveHistory) PlaybackStateOps.onScopedVideoDeleted(video)
           } catch (error: CancellationException) {
             throw error
           } catch (error: Exception) {
@@ -430,8 +437,7 @@ object PermissionUtils {
               deleted++
               deletedFilePaths += video.path
               onDeleted(video)
-              RecentlyPlayedOps.onVideoDeleted(video.path)
-              PlaybackStateOps.onVideoDeleted(video.path)
+              if (!preserveHistory) PlaybackStateOps.onScopedVideoDeleted(video)
               Log.d(TAG, "✓ Deleted (file fallback): ${video.displayName}")
             } else {
               failed++
@@ -599,8 +605,7 @@ object PermissionUtils {
             check(DocumentsContract.isDocumentUri(context, video.uri)) { "Unsupported content provider" }
             val renamedUri = DocumentsContract.renameDocument(context.contentResolver, video.uri, newDisplayName)
               ?: return@withContext Result.failure(IllegalStateException("Document rename failed"))
-            RecentlyPlayedOps.onVideoRenamed(video.path, renamedUri.toString())
-            PlaybackStateOps.onVideoRenamed(video.path, renamedUri.toString())
+            PlaybackStateOps.onScopedVideoRenamed(video, renamedUri.toString(), renamedUri, newDisplayName)
             MediaLibraryEvents.notifyChanged()
             return@withContext Result.success(Unit)
           }
@@ -632,11 +637,10 @@ object PermissionUtils {
           }
           if (updated > 0) {
             val oldPath = video.path
-            val parent = File(oldPath).parentFile
-            val newPath = parent?.let { File(it, newDisplayName).absolutePath } ?: oldPath
+            val parent = oldPath.takeIf { it.startsWith('/') }?.let { File(it).parentFile }
+            val newPath = parent?.let { File(it, newDisplayName).absolutePath } ?: video.uri.toString()
 
-            RecentlyPlayedOps.onVideoRenamed(oldPath, newPath)
-            PlaybackStateOps.onVideoRenamed(oldPath, newPath)
+            PlaybackStateOps.onScopedVideoRenamed(video, newPath, video.uri, newDisplayName)
             MediaLibraryEvents.notifyChanged()
 
             Log.d(TAG, "✓ Renamed (scoped): ${video.displayName} -> $newDisplayName")

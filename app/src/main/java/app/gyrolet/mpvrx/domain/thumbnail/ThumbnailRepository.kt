@@ -400,6 +400,9 @@ class ThumbnailRepository(
     "video-thumb-v2|${diskVideoBaseKey(video)}|${thumbnailModeKey()}|${thumbnailQualityKey()}"
 
   private fun canonicalLocalPath(video: Video): String {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content") {
+      return video.uri.toString()
+    }
     val raw = video.path.ifBlank { video.uri.toString() }
     if (isNetworkUrl(raw)) return raw
     if (ZipArchiveMedia.isPlaybackUri(raw)) return raw
@@ -740,6 +743,8 @@ class ThumbnailRepository(
   ) {
     val canonicalPath = canonicalLocalPath(video)
     when {
+      app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content" ->
+        retriever.setDataSource(context, video.uri)
       canonicalPath.isNotBlank() && !canonicalPath.contains("://") && File(canonicalPath).exists() ->
         retriever.setDataSource(canonicalPath)
       video.path.isNotBlank() && !video.path.contains("://") -> retriever.setDataSource(video.path)

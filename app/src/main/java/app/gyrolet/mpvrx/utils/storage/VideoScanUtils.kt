@@ -87,8 +87,10 @@ object VideoScanUtils : KoinComponent {
         val v = videosMap[key] ?: continue
         try {
           val file = File(v.path)
-          if (!file.exists()) continue
-          val meta = metadataCache.getOrExtractMetadata(file, v.uri, v.displayName)
+          if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
+          val meta = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+            app.gyrolet.mpvrx.utils.media.MediaInfoOps.extractBasicMetadata(context, v.uri, v.displayName).getOrNull()
+          } else metadataCache.getOrExtractMetadata(file, v.uri, v.displayName)
           if (meta != null && meta.durationMs > 0L) {
             videosMap[key] =
               v.copy(

@@ -306,9 +306,12 @@ object ScopedHiddenFolderScanner {
         try {
           if (!document.isFile) return@run null
           val fakeFile = File(name)
-          val isAudio = FileTypeUtils.isAudioFile(fakeFile)
+          val mimeType = document.type.orEmpty()
+          val isAudio = mimeType.startsWith("audio/") ||
+            (!mimeType.startsWith("video/") && FileTypeUtils.isAudioFile(fakeFile))
+          val isVideo = mimeType.startsWith("video/") || (!isAudio && FileTypeUtils.isVideoFile(fakeFile))
           if (audioOnly && !isAudio) return@run null
-          if (!(FileTypeUtils.isVideoFile(fakeFile) || (includeAudio && isAudio))) return@run null
+          if (!(isVideo || (includeAudio && isAudio))) return@run null
           val documentUri = document.uri
           val uriString = documentUri.toString()
           val length = document.length().coerceAtLeast(0L)
@@ -320,6 +323,7 @@ object ScopedHiddenFolderScanner {
                 Log.w(TAG, "Cannot read metadata in a selected folder: $name", error)
               }.getOrNull()
           val duration = metadata?.durationMs ?: 0L
+          val size = length.takeIf { it > 0L } ?: metadata?.sizeBytes ?: 0L
           if (isAudio && duration < minimumAudioDurationSeconds.coerceAtLeast(0).toLong() * 1_000L) return@run null
           if (metadata != null && duration <= 0L) {
             Log.w(TAG, "No duration available for an item in a selected folder: $name")
@@ -332,11 +336,12 @@ object ScopedHiddenFolderScanner {
             uri = documentUri,
             duration = duration,
             durationFormatted = VideoScanUtils.formatDuration(duration),
-            size = length,
-            sizeFormatted = VideoScanUtils.formatFileSize(length),
+            size = size,
+            sizeFormatted = VideoScanUtils.formatFileSize(size),
             dateModified = modified,
             dateAdded = modified,
-            mimeType = document.type ?: if (isAudio) "audio/*" else "video/*",
+            mimeType = mimeType.takeIf { it.startsWith("audio/") || it.startsWith("video/") }
+              ?: if (isAudio) "audio/*" else "video/*",
             bucketId = bucketId,
             bucketDisplayName = folderName,
             width = metadata?.width ?: 0,

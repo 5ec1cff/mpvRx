@@ -8014,6 +8014,9 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   ): String? {
     val explicitIdentifier = intent.getStringExtra("media_identifier")?.takeIf { it.isNotBlank() }
     val uri = extractUriFromIntent(intent)
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && uri?.scheme == "content" &&
+      DocumentsContract.isDocumentUri(this, uri)
+    ) return PlaybackIdentity.forLocalPath(uri.toString())
     val hasLocalPath =
       intent.getStringExtra("local_media_path")?.isNotBlank() == true ||
         uri?.resolveLocalPath(this) != null

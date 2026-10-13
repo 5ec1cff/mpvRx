@@ -54,8 +54,12 @@ data class VideoWithPlaybackInfo(
   val isWatched: Boolean = false, // true once the configured watched threshold is reached
 )
 
+// Match PlayerActivity: MediaStore items with a real path use local identity; SAF documents
+// retain their URI identity. Legacy alternatives remain readable after earlier queue launches.
 internal fun videoPlaybackIdentifiers(video: Video): Set<String> =
-  if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content") {
+  if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content" &&
+    (video.uri.authority != android.provider.MediaStore.AUTHORITY || !video.path.startsWith('/'))
+  ) {
     linkedSetOf(
       PlaybackIdentity.forUri(video.uri.toString()),
       PlaybackIdentity.forUri(video.path),

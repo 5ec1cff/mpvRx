@@ -651,25 +651,32 @@ class FileSystemBrowserViewModel(
 
     videoFiles.forEach { videoFile ->
       val video = videoFile.video
-      val playbackIdentifiers =
-        linkedSetOf(
+      val playbackIdentifiers = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(video)
+      } else linkedSetOf(
           PlaybackIdentity.forLocalPath(video.path),
           PlaybackIdentity.forUri(video.uri.toString()),
           PlaybackIdentity.forUri(video.path),
           PlaybackIdentity.forUri("file://${video.path}"),
         )
       val playbackState = playbackIdentifiers.firstNotNullOfOrNull { playbackStates[it] }
+      val scopedInfo = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        app.gyrolet.mpvrx.ui.browser.videolist.buildVideoWithPlaybackInfo(
+          video, playbackState, currentTime, appearancePreferences.unplayedOldVideoDays.get(), watchedThreshold,
+        )
+      } else null
       val progressValue =
-        if (playbackState != null && video.duration > 0) {
+        if (scopedInfo != null) scopedInfo.progressPercentage ?: 0f
+        else if (playbackState != null && video.duration > 0) {
           val durationSeconds = video.duration / 1000.0
           val watched = durationSeconds - playbackState.timeRemaining.toDouble()
           (watched / durationSeconds).toFloat().coerceIn(0f, 1f)
         } else {
           0f
         }
-      val isWatched =
+      val isWatched = scopedInfo?.isWatched ?: (
         playbackState?.hasBeenWatched == true ||
-          (watchedThreshold > 0 && progressValue >= watchedThreshold / 100f)
+          (watchedThreshold > 0 && progressValue >= watchedThreshold / 100f))
       if (isWatched) watchedIds += video.id
 
       if (playbackState != null && progressValue in 0.01f..0.99f) {

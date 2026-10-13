@@ -20,6 +20,7 @@ import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 /**
@@ -92,6 +93,7 @@ object MetadataRetrieval {
 
       val metadataMap =
         extractMetadataByVideoPath(
+          context = context,
           videos = videosNeedingMetadata,
           metadataCache = metadataCache,
           includeVideoCodec = browserPreferences.showCodecSupportIndicator.get(),
@@ -99,7 +101,15 @@ object MetadataRetrieval {
 
       // Update videos with metadata
       videos.map { video ->
-        val metadata = metadataMap[video.path]
+        val extracted = metadataMap[video.path]
+        val metadata = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && extracted != null) {
+          extracted.copy(
+            durationMs = extracted.durationMs.takeIf { it > 0 } ?: video.duration,
+            width = extracted.width.takeIf { it > 0 } ?: video.width,
+            height = extracted.height.takeIf { it > 0 } ?: video.height,
+            fps = extracted.fps.takeIf { it > 0 } ?: video.fps,
+          )
+        } else extracted
         if (metadata != null) {
           video.copy(
             duration = metadata.durationMs,
@@ -120,14 +130,25 @@ object MetadataRetrieval {
     }
 
   private suspend fun extractMetadataByVideoPath(
+    context: Context,
     videos: List<Video>,
     metadataCache: VideoMetadataCacheRepository,
     includeVideoCodec: Boolean,
   ): Map<String, MediaInfoOps.VideoMetadata> {
     val metadataByVideoPath = mutableMapOf<String, MediaInfoOps.VideoMetadata>()
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+      for (video in videos.filter { it.uri.scheme == "content" }) {
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        MediaInfoOps.extractBasicMetadata(context, video.uri, video.displayName).getOrNull()?.let {
+          metadataByVideoPath[video.path] = it
+        }
+      }
+    }
     val localFiles =
       videos.mapNotNull { video ->
-        if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return@mapNotNull null
+        if (ZipArchiveMedia.isPlaybackUri(video.uri.toString()) ||
+          (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content")
+        ) return@mapNotNull null
         File(video.path).takeIf(File::isFile)?.let { file -> video to file }
       }
 
@@ -174,6 +195,16 @@ object MetadataRetrieval {
           return@withContext folder
         }
 
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          val videos = app.gyrolet.mpvrx.repository.MediaFileRepository.getVideosInFolder(context, folder.bucketId)
+          var totalDuration = 0L
+          for (video in videos) {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            totalDuration += video.duration.takeIf { it > 0 } ?: MediaInfoOps
+              .extractBasicMetadata(context, video.uri, video.displayName).getOrNull()?.durationMs ?: 0L
+          }
+          return@withContext folder.copy(totalDuration = totalDuration)
+        }
         val directory = File(folder.path)
         if (!directory.exists() || !directory.isDirectory) {
           return@withContext folder

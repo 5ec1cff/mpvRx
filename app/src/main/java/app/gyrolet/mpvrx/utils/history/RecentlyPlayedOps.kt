@@ -176,10 +176,11 @@ object RecentlyPlayedOps {
   suspend fun onVideoRenamed(
     oldPath: String,
     newPath: String,
+    displayName: String? = null,
   ) {
     if (oldPath.isBlank() || newPath.isBlank()) return
 
-    val newFileName = java.io.File(newPath).name
+    val newFileName = displayName ?: java.io.File(newPath).name
     kotlin
       .runCatching {
         repository.updateFilePath(oldPath, newPath, newFileName)

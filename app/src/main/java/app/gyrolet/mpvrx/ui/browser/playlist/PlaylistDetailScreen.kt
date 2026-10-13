@@ -325,7 +325,9 @@ data class PlaylistDetailScreen(
             val headersMap = headerExtra?.let { mapOf(it[0] to it[1]) }.orEmpty()
             PlaybackItem.fromUri(
               uri = uri.toString(),
-              stableId = playlistEntry.video.path.takeIf(String::isNotBlank)?.let(PlaybackIdentity::forLocalPath),
+              stableId = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && playlistEntry.video.uri.scheme == "content") {
+                app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(playlistEntry.video).first()
+              } else playlistEntry.video.path.takeIf(String::isNotBlank)?.let(PlaybackIdentity::forLocalPath),
               title = playlistEntry.playlistItem.fileName,
               mimeType = if (isAudio) "audio/*" else playlistEntry.video.mimeType,
               headers = headersMap,

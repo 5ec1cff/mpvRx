@@ -327,7 +327,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
     val queueItems = playlistVideos.map { item ->
       PlaybackItem.fromUri(
         uri = item.uri.toString(),
-        stableId = PlaybackIdentity.forLocalPath(item.path),
+        stableId = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && item.uri.scheme == "content") {
+          app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(item).first()
+        } else PlaybackIdentity.forLocalPath(item.path),
         title = item.displayName,
         mimeType = item.mimeType,
         durationSeconds = (item.duration / 1000L).toInt().takeIf { it > 0 },
