@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.browser.components
 
 import android.app.Activity
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -21,6 +22,7 @@ import android.view.SurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
@@ -55,7 +57,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -112,7 +113,7 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -123,7 +124,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun MiniPlayer(modifier: Modifier = Modifier) {
-  val isServiceRunning = MediaPlaybackService.isForegroundActive()
+  val isServiceRunning by MediaPlaybackService.foregroundActive.collectAsStateWithLifecycle()
   val context = LocalContext.current
   val sessionState by PlaybackSession.state.collectAsStateWithLifecycle()
   val playerPreferences: PlayerPreferences = koinInject()
@@ -155,15 +156,17 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   // A full-player collapse lands here before the service flips to foreground; showing the mini
   // player only after that would make it pop out and slide back in under the finished morph.
   val collapseHoldId = PlayerSheetTransitions.collapsedMediaId?.takeIf { it == currentItem?.stableId }
+  val expansionHoldId = PlayerSheetTransitions.expandingMediaId?.takeIf { it == currentItem?.stableId }
+  val sheetMotion = PlayerSheetTransitions.motion?.takeIf { it.endpoints.full.mediaId == currentItem?.stableId }
   LaunchedEffect(collapseHoldId) {
     val heldId = collapseHoldId ?: return@LaunchedEffect
     withTimeoutOrNull(2_000L) {
-      while (!MediaPlaybackService.isForegroundActive()) delay(50L)
+      MediaPlaybackService.foregroundActive.first { it }
     }
     PlayerSheetTransitions.releaseCollapsedHold(heldId)
   }
 
-  val isMediaActive = (isServiceRunning || collapseHoldId != null) && currentItem != null &&
+  val isMediaActive = (isServiceRunning || collapseHoldId != null || expansionHoldId != null) && currentItem != null &&
     !isSettingsScreen &&
     isMiniPlayerAllowed &&
     sessionState.phase != PlaybackPhase.IDLE &&
@@ -180,7 +183,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   val reduceMotion = AppMotion.shouldReduceMotion()
   AnimatedVisibility(
     visible = isMediaActive,
-    enter = if (collapseHoldId != null) {
+    enter = if (collapseHoldId != null || sheetMotion != null) {
       EnterTransition.None
     } else if (reduceMotion) {
       fadeIn(animationSpec = tween(120))
@@ -190,7 +193,9 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
         initialOffsetY = { it / 2 },
       ) + fadeIn(animationSpec = tween(240))
     },
-    exit = if (reduceMotion) {
+    exit = if (expansionHoldId != null || sheetMotion != null) {
+      ExitTransition.None
+    } else if (reduceMotion) {
       fadeOut(animationSpec = tween(120))
     } else {
       slideOutVertically(
@@ -205,7 +210,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
       enableVideoMiniPlayer = enableVideoMiniPlayer,
       isAudioOnlyItem = isAudioOnlyItem,
       hasRealVideo = hasRealVideo,
-      detachedPlaybackActive = isServiceRunning,
+      detachedPlaybackActive = isServiceRunning && expansionHoldId == null,
     )
   }
 }
@@ -248,16 +253,10 @@ private fun MiniPlayerContent(
       ?: currentItem?.title?.takeIf { it.isNotBlank() }
       ?: "Media Track"
 
-  val isVideoMode = detachedPlaybackActive && hasRealVideo && !isAudioOnlyItem && enableVideoMiniPlayer
-
-  DisposableEffect(isVideoMode) {
-    if (isVideoMode) {
-      PlaybackSession.setPropertyBoolean("sub-visibility", false)
-    }
-    onDispose {
-      PlaybackSession.setPropertyBoolean("sub-visibility", true)
-    }
-  }
+  // Service ownership changes before the Activity animation ends. Keep the same content/height
+  // through that handoff; changing to the audio row destroys the Surface and visibly resizes it.
+  val isVideoMode = !isAudioOnlyItem && enableVideoMiniPlayer &&
+    (hasRealVideo || currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.VIDEO)
 
   val coverArtPath =
     currentItem?.originalUri?.takeIf { it.isNotBlank() }
@@ -272,19 +271,18 @@ private fun MiniPlayerContent(
   val coverArt = artwork?.bitmap
 
   val coroutineScope = rememberCoroutineScope()
+  val videoSurface = remember { arrayOfNulls<MiniPlayerSurfaceView>(1) }
   var offsetX by remember { mutableFloatStateOf(0f) }
-  // Keep one player handoff per tap burst, without scheduling a recomposition.
-  val lastExpandAtMs = remember { longArrayOf(0L) }
   LaunchedEffect(currentItem?.stableId) { offsetX = 0f }
   val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
   val density = LocalDensity.current
   val dismissThresholdPx = with(density) { 100.dp.toPx() }
+  val reduceMotion = AppMotion.playerReducedMotion()
 
-  val launchPlayer = remember(context, isAudioOnlyItem) {
+  val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion) {
     launch@{
-      val now = android.os.SystemClock.elapsedRealtime()
-      if (now - lastExpandAtMs[0] < 650L) return@launch false
-      lastExpandAtMs[0] = now
+      if (!PlayerSheetTransitions.holdExpansion(PlaybackSession.state.value.currentItem?.stableId)) return@launch false
+      videoSurface[0]?.setPlaybackActive(false)
       val animateSheet = isAudioOnlyItem && PlayerSheetTransitions.begin(
         PlayerSheetDestination.FULL,
         PlaybackSession.state.value.currentItem?.stableId,
@@ -296,9 +294,18 @@ private fun MiniPlayerContent(
         putExtra("launch_source", "mini_player")
         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
       }
-      context.startActivity(intent)
+      val enterAnimation = if (animateSheet || reduceMotion) 0 else R.anim.slide_in_up
+      try {
+        // Supply the animation at launch; setting it only in the destination's onCreate can
+        // leave a default window animation running underneath the Compose sheet transition.
+        context.startActivity(intent, ActivityOptions.makeCustomAnimation(context, enterAnimation, 0).toBundle())
+      } catch (error: Exception) {
+        PlayerSheetTransitions.releaseExpansionHold()
+        if (animateSheet) PlayerSheetTransitions.motion?.let { PlayerSheetTransitions.finish(it.id) }
+        android.util.Log.e("MiniPlayer", "Unable to expand player", error)
+        return@launch false
+      }
       if (context is Activity && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        val enterAnimation = if (animateSheet) 0 else R.anim.slide_in_up
         @Suppress("DEPRECATION")
         context.overridePendingTransition(enterAnimation, 0)
       }
@@ -316,7 +323,6 @@ private fun MiniPlayerContent(
     }
   }
   val miniPlayerShape = AppShapeScale.largeIncreased
-  val reduceMotion = AppMotion.playerReducedMotion()
 
   LiquidGlassSurface(
     modifier = Modifier
@@ -402,40 +408,12 @@ private fun MiniPlayerContent(
         ) {
           AndroidView(
             modifier = Modifier.fillMaxSize(),
-            factory = { viewContext ->
-              SurfaceView(viewContext).apply {
-                // Render the video above the Compose window layers so the mini
-                // player's Surface/clip does not paint over the SurfaceView.
-                setZOrderMediaOverlay(true)
-                holder.addCallback(object : SurfaceHolder.Callback {
-                  override fun surfaceCreated(holder: SurfaceHolder) {
-                    val attached =
-                      PlaybackSession.bindSurface(
-                        surface = holder.surface,
-                        owner = this@apply,
-                        ownerIsActive = { MediaPlaybackService.isForegroundActive() },
-                      )
-                    if (attached) PlaybackSession.setPropertyBoolean("sub-visibility", false)
-                  }
-
-                  override fun surfaceChanged(
-                    holder: SurfaceHolder,
-                    format: Int,
-                    width: Int,
-                    height: Int,
-                  ) {
-                    if (holder.surface.isValid) {
-                      PlaybackSession.resizeSurface(width, height, owner = this@apply)
-                    }
-                  }
-
-                  override fun surfaceDestroyed(holder: SurfaceHolder) {
-                    if (PlaybackSession.unbindSurface(this@apply)) {
-                      PlaybackSession.setPropertyBoolean("sub-visibility", true)
-                    }
-                  }
-                })
-              }
+            factory = { MiniPlayerSurfaceView(it).also { surface -> videoSurface[0] = surface } },
+            onReset = null,
+            update = { it.setPlaybackActive(detachedPlaybackActive) },
+            onRelease = {
+              it.releaseRenderer()
+              if (videoSurface[0] === it) videoSurface[0] = null
             },
           )
         }
@@ -673,6 +651,82 @@ private fun MiniPlayerContent(
         }
       }
     }
+  }
+}
+
+/** A stable surface across the mini player's enter/exit animation and service handoff. */
+private class MiniPlayerSurfaceView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
+  private var playbackActive = false
+  private var previousSubtitleVisibility: Boolean? = null
+
+  init {
+    setZOrderMediaOverlay(true)
+    holder.addCallback(this)
+  }
+
+  fun setPlaybackActive(active: Boolean) {
+    playbackActive = active
+    if (active) {
+      attachIfReady()
+      if (PlaybackSession.isRendererReadyFor(this)) hideSubtitles()
+    } else {
+      restoreSubtitleVisibility()
+    }
+    // Keep the outgoing Surface until the fullscreen owner replaces it or Android destroys it.
+    // An ownership flag alone must not blank the source while its window is still visible.
+  }
+
+  private fun attachIfReady() {
+    if (!playbackActive || !isAttachedToWindow || !holder.surface.isValid ||
+      !MediaPlaybackService.isForegroundActive() || PlaybackSession.isSurfaceAttachedTo(this)
+    ) return
+    PlaybackSession.bindSurface(
+      surface = holder.surface,
+      width = width,
+      height = height,
+      owner = this,
+      ownerIsActive = { playbackActive && isAttachedToWindow && MediaPlaybackService.isForegroundActive() },
+      onRendererReady = {
+        if (playbackActive && MediaPlaybackService.isForegroundActive() && PlaybackSession.isRendererReadyFor(this)) {
+          hideSubtitles()
+          if (PlaybackSession.getPropertyBoolean("pause") == true) {
+            PlaybackSession.command("seek", "0", "relative+exact")
+          }
+        }
+      },
+    )
+  }
+
+  private fun hideSubtitles() {
+    if (previousSubtitleVisibility != null) return
+    previousSubtitleVisibility = PlaybackSession.getPropertyBoolean("sub-visibility") ?: true
+    PlaybackSession.setPropertyBoolean("sub-visibility", false)
+  }
+
+  private fun restoreSubtitleVisibility() {
+    val previous = previousSubtitleVisibility ?: return
+    previousSubtitleVisibility = null
+    if (PlaybackSession.isSurfaceAttachedTo(this)) {
+      PlaybackSession.setPropertyBoolean("sub-visibility", previous)
+    }
+  }
+
+  fun releaseRenderer() {
+    playbackActive = false
+    restoreSubtitleVisibility()
+    PlaybackSession.unbindSurface(this)
+  }
+
+  override fun surfaceCreated(holder: SurfaceHolder) = attachIfReady()
+
+  override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+    if (!PlaybackSession.resizeSurface(width, height, this)) attachIfReady()
+  }
+
+  override fun surfaceDestroyed(holder: SurfaceHolder) {
+    // Retain the active flag: Android can recreate this Surface without a Compose update.
+    restoreSubtitleVisibility()
+    PlaybackSession.unbindSurface(this)
   }
 }
 

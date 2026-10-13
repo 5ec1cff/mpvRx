@@ -18,8 +18,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -167,10 +165,10 @@ internal class PlayerSheetMotion(
   endpoints: PlayerSheetEndpoints,
   initialExpansion: Float,
   val initialVelocity: Float,
-  val fromGesture: Boolean,
 ) {
   var endpoints by mutableStateOf(endpoints)
   val expansion: Animatable<Float, AnimationVector1D> = Animatable(initialExpansion)
+  var hasStarted = false
   var renderDestination by mutableStateOf(
     if (destination == PlayerSheetDestination.FULL) PlayerSheetDestination.MINI else PlayerSheetDestination.FULL,
   )
@@ -198,6 +196,7 @@ internal object PlayerSheetTransitions {
   private val pendingReleases = mutableSetOf<PlayerSheetCapture>()
   private val handler = Handler(Looper.getMainLooper())
   private var timeout: Runnable? = null
+  private var expansionTimeout: Runnable? = null
   private var nextId = 0L
   var motion by mutableStateOf<PlayerSheetMotion?>(null)
     private set
@@ -206,7 +205,23 @@ internal object PlayerSheetTransitions {
   /** Keeps the collapsed mini player shown until the playback service reports foreground. */
   var collapsedMediaId by mutableStateOf<String?>(null)
     private set
+  /** Keep the source laid out until its window is covered, including native video transitions. */
+  var expandingMediaId by mutableStateOf<String?>(null)
+    private set
   var reducedMotion = false
+
+  fun holdExpansion(mediaId: String?): Boolean {
+    if (mediaId == null || expandingMediaId != null) return false
+    expandingMediaId = mediaId
+    expansionTimeout = Runnable { releaseExpansionHold() }.also { handler.postDelayed(it, 3_000L) }
+    return true
+  }
+
+  fun releaseExpansionHold() {
+    expandingMediaId = null
+    expansionTimeout?.let(handler::removeCallbacks)
+    expansionTimeout = null
+  }
 
   fun releaseCollapsedHold(mediaId: String) {
     if (collapsedMediaId == mediaId) collapsedMediaId = null
@@ -224,10 +239,10 @@ internal object PlayerSheetTransitions {
     val active = motion ?: return
     if (destination != active.destination || anchor.mediaId != active.endpoints.full.mediaId) return
     active.endpoints = if (destination == PlayerSheetDestination.FULL) {
-      active.endpoints.copy(full = anchor)
+      active.endpoints.copy(full = if (active.hasStarted) anchor.copy(bounds = active.endpoints.full.bounds) else anchor)
     } else {
-      // Keep the fixed placement as the target so the mini player's own layout cannot shift it.
-      active.endpoints.copy(mini = anchor.copy(bounds = active.endpoints.mini.bounds))
+      // Resolve the real target after the browser's insets/nav bar settle, then lock its geometry.
+      active.endpoints.copy(mini = if (active.hasStarted) anchor.copy(bounds = active.endpoints.mini.bounds) else anchor)
     }
     releaseUnusedCaptures()
   }
@@ -255,6 +270,8 @@ internal object PlayerSheetTransitions {
   /** Freezes the browser while MainActivity is still visible, before the player covers it. */
   fun captureBrowser() {
     if (motion != null || drag != null) return
+    // Video uses the native window transition; no full-browser GPU snapshot is needed there.
+    if (PlaybackSession.state.value.currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.VIDEO) return
     browserBackdrop = backdrop?.frozen()?.takeIf { it.snapshot != null }
     browserMini = miniAnchor?.takeIf { it.capture?.isRecorded == true }?.frozen()?.takeIf { it.snapshot != null }
   }
@@ -293,7 +310,9 @@ internal object PlayerSheetTransitions {
   }
 
   fun begin(destination: PlayerSheetDestination, mediaId: String?): Boolean {
-    if (mediaId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
+    // The mini player must be present even when this media uses the native Activity animation.
+    if (destination == PlayerSheetDestination.MINI) collapsedMediaId = mediaId
+    if (mediaId == null || reducedMotion || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
     val source = if (destination == PlayerSheetDestination.FULL) PlayerSheetDestination.MINI else PlayerSheetDestination.FULL
     val activeDrag = drag?.takeIf { it.mediaId == mediaId && it.source == source }
     val previous = motion?.takeIf { it.endpoints.full.mediaId == mediaId }
@@ -309,7 +328,7 @@ internal object PlayerSheetTransitions {
       sourcePair.copy(full = sourcePair.full.frozen())
     }
     val frozenSource = if (destination == PlayerSheetDestination.FULL) pair.backdrop else pair.full
-    if (frozenSource?.snapshot == null) {
+    if (frozenSource?.snapshot == null || (destination == PlayerSheetDestination.FULL && pair.mini.snapshot == null)) {
       Log.d(TAG, "Unable to freeze the source sheet for $destination; keeping the Activity transition")
       return false
     }
@@ -325,8 +344,7 @@ internal object PlayerSheetTransitions {
     val id = ++nextId
     motion = PlayerSheetMotion(
       id, destination, pair, expansion,
-      initialVelocity = -(activeDrag?.velocity ?: 0f) / pair.travel,
-      fromGesture = activeDrag != null,
+      initialVelocity = (-(activeDrag?.velocity ?: 0f) / pair.travel).coerceIn(-6f, 6f),
     )
     drag = null
     timeout?.let(handler::removeCallbacks)
@@ -373,7 +391,7 @@ internal object PlayerSheetTransitions {
     try {
       if (!reduceMotion) {
         val target = if (active.source == PlayerSheetDestination.FULL) 1f else 0f
-        Animatable(active.expansion).animateTo(target, spring(stiffness = 500f)) {
+        Animatable(active.expansion).animateTo(target, spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f)) {
           active.expansion = value
         }
       }
@@ -385,7 +403,9 @@ internal object PlayerSheetTransitions {
   fun isHidden(destination: PlayerSheetDestination, mediaId: String?): Boolean {
     val pair = motion?.endpoints ?: drag?.endpoints ?: return false
     val participatingAnchor = if (destination == PlayerSheetDestination.FULL) pair.full else pair.mini
-    return participatingAnchor.mediaId == mediaId && participatingAnchor.capture != null
+    // Frozen source anchors intentionally have no live capture. Their original content must still
+    // be hidden, otherwise it is drawn twice underneath the moving snapshot.
+    return participatingAnchor.mediaId == mediaId
   }
 
   private fun releaseUnusedCaptures() {
@@ -551,7 +571,6 @@ private fun DrawScope.drawPlayerSheet(
   }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun PlayerSheetTransitionOverlay(
   destination: PlayerSheetDestination,
@@ -563,7 +582,9 @@ internal fun PlayerSheetTransitionOverlay(
   val session by PlaybackSession.state.collectAsState()
   val lifecycle = LocalLifecycleOwner.current.lifecycle
   val reducedMotion = AppMotion.shouldReduceMotion()
-  val animationSpec = remember { MotionScheme.expressive().defaultSpatialSpec<Float>() }
+  val animationSpec = remember {
+    spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f, visibilityThreshold = 0.001f)
+  }
   val view = LocalView.current
   // Written during layout, which runs before draw in the same frame, so the first frame is placed.
   val origin = remember { arrayOf(Offset.Zero) }
@@ -580,37 +601,27 @@ internal fun PlayerSheetTransitionOverlay(
     if (active.destination != destination || !contentReady) return@LaunchedEffect
     lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
       try {
-        // The mini target is the fixed placement, so collapsing never waits on the mini player.
-        if (destination == PlayerSheetDestination.FULL) {
-          val target = withTimeoutOrNull(1_500L) {
-            snapshotFlow {
-              PlayerSheetTransitions.anchor(destination)?.takeIf {
-                it.mediaId == active.endpoints.full.mediaId && it.capture?.isRecorded == true
-              }
-            }.filterNotNull().first()
-          }
-          if (target == null) {
-            Log.w("PlayerSheetTransitions", "Destination $destination did not record a player sheet")
-            return@repeatOnLifecycle
-          }
+        // Both targets must have drawn once. Otherwise collapse lands on an empty/stale mini
+        // placement and then jumps when its real layout and navigation clearance arrive.
+        val target = withTimeoutOrNull(750L) {
+          snapshotFlow {
+            PlayerSheetTransitions.anchor(destination)?.takeIf {
+              it.mediaId == active.endpoints.full.mediaId && it.capture?.isRecorded == true
+            }
+          }.filterNotNull().first()
         }
-        // Hold the start pose through the destination's first heavy frames; a spring started
-        // during Activity startup gets frame-dropped and visibly jumps.
-        repeat(2) { withFrameNanos { } }
+        if (target == null) {
+          Log.w("PlayerSheetTransitions", "Destination $destination did not record a player sheet")
+          return@repeatOnLifecycle
+        }
+        withFrameNanos { }
+        active.hasStarted = true
         active.renderDestination = destination
         val targetExpansion = if (destination == PlayerSheetDestination.FULL) 1f else 0f
         if (reducedMotion) {
           active.expansion.snapTo(targetExpansion)
         } else {
-          val spec = if (active.fromGesture && destination == PlayerSheetDestination.MINI) {
-            spring<Float>(
-              dampingRatio = 1f - 0.5f * active.expansion.value.coerceIn(0f, 1f),
-              stiffness = Spring.StiffnessLow,
-            )
-          } else {
-            animationSpec
-          }
-          active.expansion.animateTo(targetExpansion, spec, active.initialVelocity)
+          active.expansion.animateTo(targetExpansion, animationSpec, active.initialVelocity)
         }
       } finally {
         PlayerSheetTransitions.finish(active.id)

@@ -670,7 +670,7 @@ class PlayerActivity :
         launchSource == "music_shuffle"
     val enterAnimation =
       when {
-        animateSheet -> 0
+        animateSheet || (launchSource == "mini_player" && PlayerSheetTransitions.reducedMotion) -> 0
         intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER || isMusicLibraryLaunch -> R.anim.slide_in_up
         else -> android.R.anim.fade_in
       }
@@ -2045,7 +2045,7 @@ class PlayerActivity :
     super.finish()
 
     if (isMiniPlayerEnabled()) {
-      val exitAnimation = if (animateSheet) 0 else R.anim.slide_out_down
+      val exitAnimation = if (animateSheet || PlayerSheetTransitions.reducedMotion) 0 else R.anim.slide_out_down
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, exitAnimation)
       } else {

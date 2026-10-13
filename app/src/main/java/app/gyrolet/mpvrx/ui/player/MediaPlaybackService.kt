@@ -67,6 +67,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -124,6 +126,13 @@ class MediaPlaybackService :
     @Volatile
     private var activeInstance: MediaPlaybackService? = null
 
+    private val _foregroundActive = MutableStateFlow(false)
+    internal val foregroundActive = _foregroundActive.asStateFlow()
+
+    private fun publishForegroundActive() {
+      _foregroundActive.value = isForegroundActive()
+    }
+
     /**
      * True only while playback is detached from the foreground Activity.
      *
@@ -165,6 +174,7 @@ class MediaPlaybackService :
           }
           service.updatePlaybackWakeLock()
         }
+        publishForegroundActive()
       }
 
     internal fun relinquishMediaSessionToActivity() {
@@ -299,6 +309,10 @@ class MediaPlaybackService :
 
   @Volatile
   private var handingBackToActivity = false
+    set(value) {
+      field = value
+      publishForegroundActive()
+    }
 
   @Volatile private var resumeAfterFocusGain = false
 
@@ -311,6 +325,7 @@ class MediaPlaybackService :
     set(value) {
       field = value
       updatePlaybackWakeLock()
+      publishForegroundActive()
     }
   private val audioFocusChangeListener =
     AudioManager.OnAudioFocusChangeListener { change ->

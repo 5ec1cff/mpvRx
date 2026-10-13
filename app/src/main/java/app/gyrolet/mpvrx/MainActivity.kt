@@ -450,6 +450,8 @@ open class MainActivity : AppCompatActivity() {
 
   override fun onStop() {
     super.onStop()
+    // The fullscreen window now covers the browser; its source mini player can leave composition.
+    PlayerSheetTransitions.releaseExpansionHold()
     pipHelper.onStop()
     val powerManager = getSystemService(android.os.PowerManager::class.java)
     val keyguardManager = getSystemService(android.app.KeyguardManager::class.java)
@@ -627,7 +629,9 @@ open class MainActivity : AppCompatActivity() {
           val isNavBarVisible = NavigationBarState.isNavBarVisible
           val isSelectionMode = NavigationBarState.isInSelectionMode
           val reducedMotion = AppMotion.shouldReduceMotion()
-          val placementAnimation = if (reducedMotion) snap() else tween<androidx.compose.ui.unit.Dp>(
+          val playerHandoff = PlayerSheetTransitions.motion != null ||
+            PlayerSheetTransitions.collapsedMediaId != null || PlayerSheetTransitions.expandingMediaId != null
+          val placementAnimation = if (reducedMotion || playerHandoff) snap() else tween<androidx.compose.ui.unit.Dp>(
             durationMillis = 320,
             easing = FastOutSlowInEasing,
           )
