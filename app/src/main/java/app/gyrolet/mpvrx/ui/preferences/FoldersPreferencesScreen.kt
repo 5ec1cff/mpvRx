@@ -130,7 +130,10 @@ object FoldersPreferencesScreen : Screen {
     val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
       if (uri != null) {
         val granted = runCatching {
-          context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+          context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+          )
           openPersistedTreeDocument(context, uri.toString()) != null
         }.getOrDefault(false)
         if (granted) {
@@ -232,7 +235,7 @@ object FoldersPreferencesScreen : Screen {
                 runCatching {
                   context.contentResolver.releasePersistableUriPermission(
                     Uri.parse(treeUri),
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
                   )
                 }
                 app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()

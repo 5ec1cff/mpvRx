@@ -155,12 +155,17 @@ internal fun rememberVideoSwipeActions(
               busy = true
               scope.launch {
                 try {
-                  val (deleted, failed) = StorageOps.deleteVideos(context, target.videos)
+                  val confirmedDeletes = mutableListOf<Video>()
+                  val (deleted, failed) = StorageOps.deleteVideos(context, target.videos) { confirmedDeletes += it }
                   if (deleted > 0) {
-                    metadataCache.invalidateVideos(target.videos.map { it.path })
-                    val deletedVideos = withContext(Dispatchers.IO) {
-                      target.videos.filter { video ->
-                        runCatching { Files.notExists(File(video.path).toPath()) }.getOrDefault(false)
+                    metadataCache.invalidateVideos(confirmedDeletes.map { it.path })
+                    val deletedVideos = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+                      confirmedDeletes
+                    } else {
+                      withContext(Dispatchers.IO) {
+                        confirmedDeletes.filter { video ->
+                          runCatching { Files.notExists(File(video.path).toPath()) }.getOrDefault(false)
+                        }
                       }
                     }
                     currentOnDeleted(deletedVideos)
@@ -259,7 +264,10 @@ internal fun rememberVideoSwipeActions(
   return VideoSwipeActions(
     video = { video, _, action ->
       if (!busy && !collecting && deleteTarget == null && playlistTarget == null &&
-        video.path.startsWith('/')) {
+        (video.path.startsWith('/') ||
+          (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+            video.uri.scheme == "content" &&
+            android.provider.DocumentsContract.isDocumentUri(context, video.uri)))) {
         perform(SwipeTarget(listOf(video)), action)
       }
     },
