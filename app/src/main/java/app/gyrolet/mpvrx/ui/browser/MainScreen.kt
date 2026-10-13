@@ -33,6 +33,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -129,7 +130,12 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
 import app.gyrolet.mpvrx.ui.utils.navigationDurationMillis
 import app.gyrolet.mpvrx.ui.utils.navigationTabAnimationSpec
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
@@ -678,68 +684,105 @@ object MainScreen : Screen {
                 .fillMaxWidth()
                 .align(Alignment.BottomStart),
           ) {
-            Box(
-              modifier =
-                Modifier
-                  .fillMaxWidth()
-                  .navigationBarsPadding()
-                  .padding(bottom = 8.dp),
-            ) {
-              val horizontalMargin by animateDpAsState(
-                targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
-                animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
-                label = "navigation_margin",
-              )
-              val centerFraction = animateFloatAsState(
-                targetValue = when {
-                  isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
-                  isMiniPlayerVisible && (isLandscape || isTablet) -> 0f
-                  else -> 0.5f
-                },
-                animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(duration, easing = FastOutSlowInEasing),
-                label = "pill_alignment",
-              )
+            Box(Modifier.fillMaxWidth()) {
+              Box(Modifier.matchParentSize()) {
+                ProgressiveNavigationBackdrop(
+                  state = navigationBackdrop,
+                  modifier =
+                    Modifier
+                      .fillMaxHeight()
+                      .fillMaxWidth(if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) 0.4f else 1f)
+                      .align(Alignment.BottomStart),
+                )
+              }
+              BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 24.dp, bottom = 8.dp),
+              ) {
+                val horizontalMargin by animateDpAsState(
+                  targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
+                  animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
+                  label = "navigation_margin",
+                )
+                val centerFraction = animateFloatAsState(
+                  targetValue = when {
+                    isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
+                    isMiniPlayerVisible && (isLandscape || isTablet) -> 0f
+                    else -> 0.5f
+                  },
+                  animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(duration, easing = FastOutSlowInEasing),
+                  label = "pill_alignment",
+                )
 
-              val navModifier = Modifier
-                .layout { measurable, constraints ->
-                  val margin = horizontalMargin.roundToPx()
-                  val paneWidth =
-                    if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) {
-                      (constraints.maxWidth * 0.4f).roundToInt()
-                    } else {
-                      constraints.maxWidth
+                val navModifier = Modifier
+                  .layout { measurable, constraints ->
+                    val margin = horizontalMargin.roundToPx()
+                    val paneWidth =
+                      if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) {
+                        (constraints.maxWidth * 0.4f).roundToInt()
+                      } else {
+                        constraints.maxWidth
+                      }
+                    val availableWidth = (paneWidth - margin * 2).coerceAtLeast(0)
+                    val maxNuvioWidth = minOf(400.dp.roundToPx(), availableWidth)
+                    val placeable =
+                      measurable.measure(
+                        constraints.copy(minWidth = 0, maxWidth = maxNuvioWidth),
+                      )
+                    layout(constraints.maxWidth, placeable.height) {
+                      val desired =
+                        (constraints.maxWidth * centerFraction.value - placeable.width / 2f)
+                          .roundToInt()
+                      val maxStart = (paneWidth - margin - placeable.width).coerceAtLeast(margin)
+                      val start = desired.coerceIn(margin, maxStart)
+                      placeable.placeRelative(start, 0)
                     }
-                  val availableWidth = (paneWidth - margin * 2).coerceAtLeast(0)
-                  val maxNuvioWidth = minOf(400.dp.roundToPx(), availableWidth)
-                  val placeable =
-                    measurable.measure(
-                      constraints.copy(minWidth = 0, maxWidth = maxNuvioWidth),
-                    )
-                  layout(constraints.maxWidth, placeable.height) {
-                    val desired =
-                      (constraints.maxWidth * centerFraction.value - placeable.width / 2f)
-                        .roundToInt()
-                    val maxStart = (paneWidth - margin - placeable.width).coerceAtLeast(margin)
-                    val start = desired.coerceIn(margin, maxStart)
-                    placeable.placeRelative(start, 0)
                   }
-                }
 
-              ExpressivePillNavigationBar(
-                visibleTabs = navigationTabs,
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-                pagerState = pagerState,
-                hazeBackdrop = navigationBackdrop,
-                kyantBackdrop = liquidLayerBackdrop,
-                liquidGlassEnabled = liquidGlassEnabled,
-                modifier = navModifier,
-              )
+                ExpressivePillNavigationBar(
+                  visibleTabs = navigationTabs,
+                  selectedTab = selectedTab,
+                  onTabSelected = onTabSelected,
+                  pagerState = pagerState,
+                  hazeBackdrop = navigationBackdrop,
+                  kyantBackdrop = liquidLayerBackdrop,
+                  liquidGlassEnabled = liquidGlassEnabled,
+                  modifier = navModifier,
+                )
+              }
             }
           }
         }
       }
     }
+  }
+}
+
+@Composable
+private fun ProgressiveNavigationBackdrop(
+  state: HazeState,
+  modifier: Modifier = Modifier,
+) {
+  val surfaceColor = MaterialTheme.colorScheme.surface
+  BoxWithConstraints(modifier = modifier) {
+    val heightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
+    val blurStyle = remember(surfaceColor, heightPx) {
+      HazeBlurStyle {
+        blurRadius(28.dp)
+        noiseFactor(0f)
+        backgroundColor(surfaceColor)
+        colorEffects(listOf(HazeColorEffect.tint(surfaceColor.copy(alpha = 0.16f))))
+        fallbackColorEffect(HazeColorEffect.tint(surfaceColor.copy(alpha = 0.85f)))
+        progressive(HazeProgressive.verticalGradient(endY = heightPx * 0.75f))
+        mask(
+          Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.5f to Color.Black,
+            1f to Color.Black,
+          ),
+        )
+      }
+    }
+    Box(Modifier.fillMaxSize().hazeBlur(input = HazeInput.Sources(state), style = blurStyle))
   }
 }
 
