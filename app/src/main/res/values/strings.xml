@@ -2876,4 +2876,41 @@
     <string name="pref_playstore_hidden_remove">Remove folder access</string>
     <string name="pref_playstore_hidden_grant_failed">Cannot access that folder. Choose a supported folder and grant read access.</string>
     <string name="pref_playstore_hidden_limitations">Only files directly inside selected folders are listed; select subfolders separately. Android may block storage roots, Download, Android/data and Android/obb. Pull to refresh after copying files into a selected folder.</string>
+  <string name="lyrics_provider_auto_best">Best match: %1$s</string>
+  <string name="lyrics_provider_row_current">Current provider</string>
+  <string name="lyrics_provider_row_fetching">Fetching…</string>
+  <string name="lyrics_provider_row_found">Fetched, tap to switch</string>
+  <string name="lyrics_provider_row_missing">Lyrics not found</string>
+  <string name="lyrics_provider_row_failed">Failed, tap to retry</string>
+  <string name="lyrics_provider_row_unfetched">Tap to fetch</string>
+  <string-array name="lyrics_loading_lines">
+    <item>Digging through the songbook</item>
+    <item>Hunting down the words</item>
+    <item>Asking around for the verses</item>
+    <item>Lyrics are on their way</item>
+    <item>Matching the right recording</item>
+    <item>Lining up every word</item>
+    <item>Checking the lyric sheet</item>
+    <item>Tuning the timing</item>
+    <item>Almost got the words</item>
+    <item>Syncing it to the beat</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>The beat is landing</item>
+    <item>Just the groove for now</item>
+    <item>Setting the mood</item>
+    <item>Bass first, words later</item>
+    <item>Wait for it</item>
+    <item>Feel that build</item>
+    <item>Cue the vocals</item>
+    <item>Let it breathe</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>No words, just the music</item>
+    <item>Nobody wrote this one down</item>
+    <item>This one speaks for itself</item>
+    <item>Let the melody do the talking</item>
+    <item>Lyrics went missing</item>
+    <item>Sing along from memory</item>
+  </string-array>
 </resources>

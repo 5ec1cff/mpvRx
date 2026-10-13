@@ -29,6 +29,12 @@ data class SyncedLine(
   val words: List<SyncedWord>? = null,
   val translation: String? = null,
   val romanization: String? = null,
+  /** When the line stops being sung, if the source says. Lets overlapping voices stay lit. */
+  val endTime: Int? = null,
+  /** The answering or backing voice, sung under (or over) this line. Drawn small beneath it. */
+  val background: SyncedLine? = null,
+  /** Second singer of a duet: drawn on the opposite edge from the lead. */
+  val alignEnd: Boolean = false,
 )
 
 @Serializable

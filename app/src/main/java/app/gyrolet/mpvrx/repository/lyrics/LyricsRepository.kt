@@ -14,6 +14,7 @@ import app.gyrolet.mpvrx.data.lyrics.providers.LyricsProviderRegistry
 import app.gyrolet.mpvrx.data.lyrics.providers.PaxSenixApi
 import app.gyrolet.mpvrx.data.lyrics.providers.ProviderOutcome
 import app.gyrolet.mpvrx.data.lyrics.providers.TrackRef
+import app.gyrolet.mpvrx.data.lyrics.providers.withBackgroundVocals
 import app.gyrolet.mpvrx.domain.lyrics.Lyrics
 import app.gyrolet.mpvrx.domain.lyrics.LyricsProvider
 import app.gyrolet.mpvrx.domain.lyrics.LyricsSourceType
@@ -130,6 +131,9 @@ class LyricsRepository(
     /** How many recordings to keep in hand. */
     private const val REMEMBERED_RECORDINGS = 100
 
+    /** How far past the end of the file a timed line may sit before the lyrics are another edit. */
+    private const val LENGTH_OVERRUN_MS = 12_000
+
     /** The video behind a playing path, when the path is a YouTube URL at all. */
     fun videoIdFrom(path: String?): String? =
       path
@@ -142,12 +146,14 @@ class LyricsRepository(
   private val registry = LyricsProviderRegistry(lrcLibApiService)
 
   /**
-   * The online provider to try first for this listening session. LRCLIB is the
-   * fresh-session default; null explicitly selects the automatic provider race.
-   * The choice remains session-scoped rather than becoming a persisted setting.
+   * The online provider to try first for this listening session. Null is the
+   * automatic provider race, which is the fresh-session default: it takes the
+   * best-timed answer that fits the playing track, with LRCLIB as the last
+   * resort when nothing else has words. The choice remains session-scoped
+   * rather than becoming a persisted setting.
    */
   @Volatile
-  var preferredProvider: LyricsProvider? = LyricsProvider.LRCLIB
+  var preferredProvider: LyricsProvider? = null
     private set
 
   private data class CacheKey(
@@ -160,7 +166,7 @@ class LyricsRepository(
     CacheKey(mediaPath, allowOnline, audioPreferences.lyricsAutoFetchOnline.get())
 
   private val cache = LruCache<CacheKey, LyricsResult>(64)
-  private val providerCache = LyricsProviderCache(File(context.cacheDir, "lyrics/providers-v1"))
+  private val providerCache = LyricsProviderCache(File(context.cacheDir, "lyrics/providers-v2"))
 
   /**
    * The recording behind a track, once something has worked it out.
@@ -399,7 +405,7 @@ class LyricsRepository(
   ): OnlineLyricsResult =
     withContext(Dispatchers.IO) {
       val saved = if (!forceRefresh && !mediaPath.isNullOrBlank()) providerCache.read(mediaPath) else emptyMap()
-      cachedOnlineResult(saved, provider)?.let { return@withContext it }
+      cachedOnlineResult(saved, provider, durationSeconds * 1000)?.let { return@withContext it }
       if (rawTitle.isNullOrBlank()) return@withContext OnlineLyricsResult()
 
       val query =
@@ -423,7 +429,7 @@ class LyricsRepository(
           return@withContext OnlineLyricsResult(provider, outcome.lyrics, false, answers)
         }
         Log.d(TAG, "${provider.label} had nothing; falling back to the automatic lookup")
-        val raced = raceProviders(resolved, mediaPath, saved)
+        val raced = raceWithLrcLibFallback(resolved, mediaPath, saved)
         val raceKnows = provider in raced.byProvider || provider in raced.missing || provider in raced.failed
         return@withContext raced.copy(
           byProvider = mediaPath?.let(providerCache::read).orEmpty() + raced.byProvider,
@@ -432,21 +438,24 @@ class LyricsRepository(
         )
       }
 
-      val result = raceProviders(resolved, mediaPath, saved)
+      val result = raceWithLrcLibFallback(resolved, mediaPath, saved)
       result.copy(byProvider = mediaPath?.let(providerCache::read).orEmpty() + result.byProvider)
     }
 
   private fun cachedOnlineResult(
     answers: Map<LyricsProvider, Lyrics>,
     provider: LyricsProvider?,
+    durationMs: Int,
   ): OnlineLyricsResult? {
     if (provider != null) {
       val lyrics = answers[provider] ?: return null
       return OnlineLyricsResult(provider, lyrics, false, answers)
     }
     val candidates = LyricsProvider.available.mapNotNull { source -> answers[source]?.let { source to it } }
-    val winner = candidates.firstOrNull { (_, lyrics) -> lyrics.synced.orEmpty().any { !it.words.isNullOrEmpty() } }
-      ?: candidates.firstOrNull { (_, lyrics) -> !lyrics.synced.isNullOrEmpty() }
+    val fitting = candidates.filter { (_, lyrics) -> lyrics.fitsLength(durationMs) }
+    val winner = fitting.firstOrNull { (_, lyrics) -> lyrics.synced.orEmpty().any { !it.words.isNullOrEmpty() } }
+      ?: fitting.firstOrNull { (_, lyrics) -> !lyrics.synced.isNullOrEmpty() }
+      ?: fitting.firstOrNull()
       ?: candidates.firstOrNull()
       ?: return null
     return OnlineLyricsResult(winner.first, winner.second, true, answers)
@@ -460,8 +469,9 @@ class LyricsRepository(
     when (val outcome = registry.fetch(provider, query)) {
       is ProviderOutcome.Found ->
         if (outcome.lyrics.isValid()) {
-          if (!mediaPath.isNullOrBlank()) providerCache.write(mediaPath, provider, outcome.lyrics)
-          outcome
+          val shaped = outcome.lyrics.withBackgroundVocals()
+          if (!mediaPath.isNullOrBlank()) providerCache.write(mediaPath, provider, shaped)
+          ProviderOutcome.Found(shaped)
         } else {
           ProviderOutcome.Missing
         }
@@ -500,6 +510,55 @@ class LyricsRepository(
     return "${ref.title}|${ref.artist}|${query.durationMs / 1000}"
   }
 
+  /**
+   * The automatic race, with LRCLIB as the safety net.
+   *
+   * When every provider missed or failed, LRCLIB gets one more go with the
+   * loosest question there is: the title alone, closest length wins. That is
+   * wrong more often than the exact lookups, so its answer is never written to
+   * the per-provider cache and only ever shown when nothing better exists.
+   */
+  private suspend fun raceWithLrcLibFallback(
+    query: LyricsFetchQuery,
+    mediaPath: String?,
+    cached: Map<LyricsProvider, Lyrics>,
+  ): OnlineLyricsResult {
+    val raced = raceProviders(query, mediaPath, cached)
+    if (raced.lyrics != null) return raced
+
+    val loose =
+      query.copy(
+        refs = query.candidates().map { TrackRef(it.title, "") }.distinctBy { it.key() },
+        isrc = null,
+      )
+    if (loose.refs.isEmpty()) return raced
+    val outcome = registry.fetch(LyricsProvider.LRCLIB, loose)
+    val lyrics = (outcome as? ProviderOutcome.Found)?.lyrics?.takeIf { it.isValid() && it.fitsLength(query.durationMs) }
+      ?: return raced
+    Log.d(TAG, "Nothing answered the race; using the loose LRCLIB title match")
+    return OnlineLyricsResult(
+      provider = LyricsProvider.LRCLIB,
+      lyrics = lyrics,
+      raced = true,
+      byProvider = raced.byProvider + (LyricsProvider.LRCLIB to lyrics),
+      missing = raced.missing - LyricsProvider.LRCLIB,
+      failed = raced.failed - LyricsProvider.LRCLIB,
+    )
+  }
+
+  /**
+   * Whether timed lyrics could belong to a file this long.
+   *
+   * A different edit of the same song drifts or runs on past the end; a line
+   * stamped well beyond the end of the file is proof it is not this recording.
+   * Untimed lyrics, and files whose length is unknown, always fit.
+   */
+  private fun Lyrics.fitsLength(durationMs: Int): Boolean {
+    if (durationMs <= 0) return true
+    val last = synced?.lastOrNull { it.line.isNotBlank() }?.time ?: return true
+    return last <= durationMs + LENGTH_OVERRUN_MS
+  }
+
   /** Every provider is asked together; actual timing quality wins, then provider priority. */
   private suspend fun raceProviders(
     query: LyricsFetchQuery,
@@ -519,6 +578,9 @@ class LyricsRepository(
         var wordTimed: Pair<LyricsProvider, Lyrics>? = null
         var lineTimed: Pair<LyricsProvider, Lyrics>? = null
         var plainFallback: Pair<LyricsProvider, Lyrics>? = null
+        // Timed answers that run well past the end of the playing file: very
+        // likely another edit of the song. Used only when nothing else exists.
+        var misfit: Pair<LyricsProvider, Lyrics>? = null
         val seen = mutableMapOf<LyricsProvider, Lyrics>()
         val missing = mutableSetOf<LyricsProvider>()
         val failed = mutableSetOf<LyricsProvider>()
@@ -546,6 +608,10 @@ class LyricsRepository(
           }
           seen[provider] = found
 
+          if (!found.fitsLength(query.durationMs)) {
+            if (misfit == null) misfit = provider to found
+            continue
+          }
           if (found.synced.orEmpty().any { !it.words.isNullOrEmpty() }) {
             wordTimed = provider to found
             break
@@ -554,7 +620,7 @@ class LyricsRepository(
           if (plainFallback == null) plainFallback = provider to found
         }
 
-        val winner = wordTimed ?: lineTimed ?: plainFallback
+        val winner = wordTimed ?: lineTimed ?: plainFallback ?: misfit
         if (winner != null) {
           seen[winner.first] = winner.second
           OnlineLyricsResult(

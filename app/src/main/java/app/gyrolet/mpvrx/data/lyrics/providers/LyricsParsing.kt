@@ -26,6 +26,8 @@ internal const val MIN_GAP_MS = 4_000
 internal data class TimedLine(
   val line: SyncedLine,
   val endMs: Int,
+  /** The paragraph's `ttm:agent`, when the document names its singers. */
+  val agent: String = "",
 )
 
 /** Wraps lines fetched from a provider into a valid [Lyrics], or null when there is nothing to show. */
@@ -284,4 +286,58 @@ internal object KaraokeLrc {
       ?.replace("&lt;", "<")
       ?.replace("&gt;", ">")
       ?.replace("&amp;", "&") ?: raw
+}
+
+/** A trailing "(answer)" or "[answer]" after the lead words of a line. */
+private val TRAILING_BRACKET = Regex("""^(.*\S)\s+[(\[]([^()\[\]]*\p{L}[^()\[\]]*)[)\]]\s*$""")
+
+/**
+ * Hangs a trailing bracket under its line as the backing voice.
+ *
+ * Only Apple's TTML says outright which voice is the backing one; everything
+ * else writes it into the line as "Lead words (answering words)". Left in place
+ * the bracket is dragged through the lead's own highlight, so it is split off
+ * and drawn small underneath instead. Word-synced lines keep the bracket's own
+ * timings; line-synced ones share the line's stamp. A line that is *only* a
+ * bracket, or whose bracket opens mid-word, is left exactly as it came.
+ */
+internal fun Lyrics.withBackgroundVocals(): Lyrics {
+  val lines = synced ?: return this
+  if (lines.none { it.background == null && TRAILING_BRACKET.containsMatchIn(it.line) }) return this
+  return copy(synced = lines.map(::splitTrailingBracket))
+}
+
+private fun splitTrailingBracket(line: SyncedLine): SyncedLine {
+  if (line.background != null || line.line.isBlank()) return line
+  val match = TRAILING_BRACKET.find(line.line) ?: return line
+  val lead = match.groupValues[1].trim()
+  val backing = match.groupValues[2].trim()
+  if (lead.isEmpty() || backing.isEmpty()) return line
+
+  val words = line.words
+  if (words.isNullOrEmpty()) {
+    return line.copy(line = lead, background = SyncedLine(time = line.time, line = backing, endTime = line.endTime))
+  }
+
+  val split = words.indexOfFirst { it.word.trimStart().startsWith("(") || it.word.trimStart().startsWith("[") }
+  if (split <= 0) return line
+  val backingWords =
+    words.drop(split).mapIndexedNotNull { index, word ->
+      var text = word.word
+      if (index == 0) text = text.trimStart('(', '[')
+      if (index == words.size - split - 1) text = text.trimEnd(')', ']')
+      text.takeIf { it.isNotBlank() }?.let { word.copy(word = it) }
+    }
+  if (backingWords.isEmpty()) return line
+  return line.copy(
+    line = lead,
+    words = words.take(split),
+    background =
+      SyncedLine(
+        time = backingWords.first().time,
+        line = backingWords.joinToString(" ") { it.word },
+        words = backingWords,
+        endTime = line.endTime,
+      ),
+  )
 }
