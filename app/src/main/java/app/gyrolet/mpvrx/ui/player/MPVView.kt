@@ -78,6 +78,7 @@ class MPVView(
   var forceOpenGlFallback = false
   private var renderCallbacksEnabled = true
   private var surfaceRecovery: Runnable? = null
+  private var pausedFrameRedraw: Runnable? = null
   private val surfaceReadiness = MutableStateFlow(false)
   var isSurfaceReady: Boolean
     get() = surfaceReadiness.value
@@ -209,6 +210,7 @@ class MPVView(
   fun releaseSurface() {
     renderCallbacksEnabled = false
     cancelSurfaceRecovery()
+    cancelPausedFrameRedraw()
     surfaceAttachmentGeneration++
     lastRequestedFrameRate = Float.NaN
     if (isSurfaceReady || PlaybackSession.state.value.surfaceAttached) {
@@ -233,8 +235,29 @@ class MPVView(
     if (isSurfaceReady) return
     isSurfaceReady = true
     applyFrameRate()
-    redrawPausedFrame()
+    // Restore BACKGROUND -> READY and the video's saved track before asking mpv to draw.
     onSurfaceReady?.invoke()
+    refreshPausedFrameAfterForegroundReturn()
+  }
+
+  private fun cancelPausedFrameRedraw() {
+    pausedFrameRedraw?.let(::removeCallbacks)
+    pausedFrameRedraw = null
+  }
+
+  /** Coalesces renderer-ready and Activity start/resume callbacks into a paused-frame redraw. */
+  internal fun refreshPausedFrameAfterForegroundReturn() {
+    if (isExiting || !isSurfaceReady) return
+    cancelPausedFrameRedraw()
+    val generation = surfaceAttachmentGeneration
+    val redraw = Runnable {
+      pausedFrameRedraw = null
+      if (generation == surfaceAttachmentGeneration && isAttachedToWindow &&
+        windowVisibility == VISIBLE
+      ) redrawPausedFrame()
+    }
+    pausedFrameRedraw = redraw
+    postDelayed(redraw, 150L)
   }
 
   private data class StartupShaderSelection(
@@ -669,6 +692,7 @@ class MPVView(
 
   override fun onRenderSurfaceDestroyed() {
     cancelSurfaceRecovery()
+    cancelPausedFrameRedraw()
     surfaceAttachmentGeneration++
     isSurfaceReady = false
     lastRequestedFrameRate = Float.NaN

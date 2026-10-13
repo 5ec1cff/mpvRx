@@ -461,6 +461,7 @@ class PlayerActivity :
   private var backgroundPlaybackShutdownIssued = false
   private var wasPlayingBeforePause = false // Track if video was playing before pause
   private var resumeAfterUnlockJob: Job? = null
+  private var rendererRecoveryWakeLock: PowerManager.WakeLock? = null
   private var jellyfinSessionReporter: JellyfinSessionReporter? = null
   private var jellyfinProgressJob: Job? = null
   private val screenUnlockPlaybackController = ScreenUnlockPlaybackController()
@@ -1701,6 +1702,7 @@ class PlayerActivity :
   }
 
   override fun onDestroy() {
+    releaseRendererRecoveryWakeLock()
     Log.d(TAG, "PlayerActivity onDestroy")
     val ownsPlaybackSession = ownsPlaybackSession()
     val playbackWasInitialized = mpvInitialized
@@ -2087,6 +2089,7 @@ class PlayerActivity :
   }
 
   override fun onStop() {
+    releaseRendererRecoveryWakeLock()
     if (scriptRuntimeRestartPending) {
       super.onStop()
       return
@@ -2166,11 +2169,16 @@ class PlayerActivity :
       Log.e(TAG, "Error during onStop", e)
     }
 
-    // TextureView can retain a valid Surface while its window is stopped. Its consumer no longer
-    // drains frames, so waiting for surfaceDestroyed can strand the GPU/decoder on screen wake.
-    // Disable this View's callbacks as well: a late size/available callback must not reattach it.
-    // unbindSurface is owner-checked, so a mini player or external display keeps its own Surface.
-    if (mpvInitialized && (!isInPictureInPictureMode || isDeviceScreenOffOrLocked())) {
+    // SurfaceView receives surfaceDestroyed when Android reclaims its renderer. Keep a valid
+    // paused native Surface across Recents instead of gratuitously resetting the decoder.
+    // TextureView, screen-off, Activity finish, and active background audio still detach.
+    val screenLocked = isDeviceScreenOffOrLocked()
+    val releaseStoppedRenderer = player.isTextureSurface || screenLocked ||
+      isFinishing || isUserFinishing ||
+      (isBackgroundPlaybackSessionActive && viewModel.paused != true)
+    if (mpvInitialized && ownsPlaybackSession() &&
+      (!isInPictureInPictureMode || screenLocked) && releaseStoppedRenderer
+    ) {
       runCatching { player.releaseSurface() }
         .onFailure { Log.e(TAG, "Could not release stopped playback surface", it) }
     }
@@ -2770,6 +2778,7 @@ class PlayerActivity :
   private fun setupMPV(initError: String?): String? {
     if (initError != null) return initError
     player.onSurfaceReady = {
+      releaseRendererRecoveryWakeLock()
       if (!isDeviceScreenOffOrLocked()) {
         enableVideoAfterBackground()
       }
@@ -3676,15 +3685,38 @@ class PlayerActivity :
     return keyguardManager.isDeviceLocked || !powerManager.isInteractive
   }
 
+  /**
+   * CPU stays awake only for bounded foreground renderer recovery. A partial wake lock cannot
+   * preserve Android's Surface and must not run during long paused background playback.
+   */
+  private fun acquireRendererRecoveryWakeLock() {
+    if (isDeviceScreenOffOrLocked() || isCurrentPlaybackAudio() || player.isSurfaceReady) return
+    runCatching {
+      val wakeLock = rendererRecoveryWakeLock ?: (getSystemService(POWER_SERVICE) as PowerManager)
+        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$TAG:foreground-renderer-recovery")
+        .apply { setReferenceCounted(false) }
+        .also { rendererRecoveryWakeLock = it }
+      if (!wakeLock.isHeld) wakeLock.acquire(RENDERER_RECOVERY_WAKE_TIMEOUT_MS)
+    }.onFailure { Log.w(TAG, "Unable to acquire renderer recovery wake lock", it) }
+  }
+
+  private fun releaseRendererRecoveryWakeLock() {
+    runCatching { rendererRecoveryWakeLock?.let { if (it.isHeld) it.release() } }
+      .onFailure { Log.w(TAG, "Unable to release renderer recovery wake lock", it) }
+  }
+
   private fun restoreForegroundVideoAndAmbientIfUnlocked(): Boolean {
     if (!mpvInitialized || !ownsPlaybackSession() || isDeviceScreenOffOrLocked()) return false
-    // Unlock can arrive after onStart/onResume. Complete the ownership handoff here too.
     if (!MediaPlaybackService.activityForeground) {
       MediaPlaybackService.activityForeground = true
       if (viewModel.paused != true) requestAudioFocus()
     }
+    if (!player.isSurfaceReady) acquireRendererRecoveryWakeLock()
     player.attachSessionSurface()
     enableVideoAfterBackground()
+    // If SurfaceView survived in Recents, no new creation callback will arrive.
+    player.refreshPausedFrameAfterForegroundReturn()
+    if (player.isSurfaceReady) releaseRendererRecoveryWakeLock()
     viewModel.setAmbientLifecycleActive(true)
     updateKeepScreenOn()
     return true
@@ -8533,18 +8565,15 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   }
 
   /**
-   * Disables video decoding to save battery when moving to background playback.
+   * Keep the selected track while Android's Surface/VO is suspended. Setting vid=no here
+   * dropped the track required for a paused foreground return after a long background stay.
    */
   private fun disableVideoForBackground() {
     if (!isReady || fileName.isBlank()) return
     if (isMiniPlayerEnabled() && !isDeviceScreenOffOrLocked()) return
-
-    val currentVid = PlaybackSession.getPropertyString("vid")?.toIntOrNull() ?: -1
-    if (currentVid > 0) {
-      PlaybackSession.setPropertyString("vid", "no")
-      isInBackgroundPlayback = true
-      Log.d(TAG, "Video disabled for background playback (saved vid: $currentVid)")
-    }
+    PlaybackSession.markBackground()
+    isInBackgroundPlayback = true
+    Log.d(TAG, "Background playback keeps selected video track for renderer restoration")
   }
 
   /**
@@ -8588,6 +8617,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
      * Milliseconds-to-seconds conversion factor.
      */
     private const val MILLISECONDS_TO_SECONDS = 1000
+    private const val RENDERER_RECOVERY_WAKE_TIMEOUT_MS = 20_000L
 
     /**
      * Factor to divide subtitle and audio delays to convert from ms to seconds.

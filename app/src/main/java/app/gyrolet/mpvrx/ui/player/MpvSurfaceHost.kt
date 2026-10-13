@@ -40,6 +40,9 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
   private var rendererEpoch = 0
   private var textureRendering: Boolean? = null
 
+  internal val isTextureSurface: Boolean
+    get() = textureRendering == true
+
   protected abstract fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int)
   protected abstract fun onRenderSurfaceSizeChanged(width: Int, height: Int)
   protected abstract fun onRenderSurfaceDestroyed()
