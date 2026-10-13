@@ -72,6 +72,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -87,6 +88,7 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.resolveLocalPath
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
@@ -550,9 +552,15 @@ class MediaInfoActivity : AppCompatActivity() {
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
       ) {
-        availableTabs.forEach { tab ->
+        availableTabs.forEachIndexed { index, tab ->
+          val tabShape = rememberConnectedShape(
+            index = index,
+            itemCount = availableTabs.size,
+            layout = ConnectedLayout.Horizontal,
+            tokens = AppConnectedControlShapeTokens,
+          )
           val isSelected = selectedTab == tab
           val containerColor by animateColorAsState(
             targetValue =
@@ -576,7 +584,7 @@ class MediaInfoActivity : AppCompatActivity() {
             onClick = { selectedTab = tab },
             color = containerColor,
             contentColor = contentColor,
-            shape = RoundedCornerShape(16.dp),
+            shape = tabShape,
             modifier = Modifier.animateContentSize(),
             border =
               BorderStroke(
@@ -618,15 +626,16 @@ class MediaInfoActivity : AppCompatActivity() {
   }
 
   @Composable
-  private fun GlassmorphicCard(
+  private fun ExpressiveInfoCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-    borderColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+    shape: Shape = MaterialTheme.shapes.extraLarge,
     content: @Composable ColumnScope.() -> Unit,
   ) {
     Card(
       modifier = modifier,
-      shape = RoundedCornerShape(24.dp),
+      shape = shape,
       colors = CardDefaults.cardColors(containerColor = containerColor),
       border = BorderStroke(1.dp, borderColor),
       content = content,
@@ -639,18 +648,27 @@ class MediaInfoActivity : AppCompatActivity() {
     value: String,
     icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
     accentColor: Color,
+    index: Int,
     modifier: Modifier = Modifier,
   ) {
     val context = LocalContext.current
-    GlassmorphicCard(
+    val shape = rememberConnectedShape(
+      index = index,
+      itemCount = 4,
+      layout = ConnectedLayout.Grid,
+      columns = 2,
+    )
+    ExpressiveInfoCard(
       modifier =
         modifier
-          .clip(RoundedCornerShape(24.dp))
+          .clip(shape)
           .clickable {
             SafeClipboard.copyPlainText(context, title, value)
             Toast.makeText(context, context.getString(R.string.toast_copied_value, value), Toast.LENGTH_SHORT).show()
           },
-      containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f),
+      containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+      borderColor = Color.Transparent,
+      shape = shape,
     ) {
       Row(
         modifier = Modifier.padding(16.dp),
@@ -804,36 +822,57 @@ class MediaInfoActivity : AppCompatActivity() {
           .padding(bottom = 24.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      // Neon Header Banner
-      GlassmorphicCard(
+      // Strong, readable Material Expressive hero anchored by the detected media type.
+      ExpressiveInfoCard(
         modifier = Modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
       ) {
-        Column(
-          modifier = Modifier.padding(20.dp),
-          verticalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+          modifier = Modifier.fillMaxWidth().padding(20.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
           Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
             contentColor = MaterialTheme.colorScheme.primary,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
           ) {
+            Box(modifier = Modifier.size(60.dp), contentAlignment = Alignment.Center) {
+              Icon(
+                imageVector = when {
+                  isImageFile -> Icons.RoundedFilled.Palette
+                  isAudioFile -> Icons.RoundedFilled.Audiotrack
+                  else -> Icons.RoundedFilled.Videocam
+                },
+                contentDescription = null,
+                modifier = Modifier.size(30.dp),
+              )
+            }
+          }
+          Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            Surface(
+              shape = MaterialTheme.shapes.small,
+              color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+              contentColor = MaterialTheme.colorScheme.primary,
+            ) {
+              Text(
+                text = formatLabel.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+              )
+            }
             Text(
-              text = formatLabel.uppercase(),
-              style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-              modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+              text = fileName,
+              style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+              color = MaterialTheme.colorScheme.onSurface,
+              maxLines = 2,
+              overflow = TextOverflow.Ellipsis,
             )
           }
-
-          Text(
-            text = fileName,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-          )
         }
       }
 
@@ -845,15 +884,16 @@ class MediaInfoActivity : AppCompatActivity() {
       // Quick Specs Grid (2 columns), adapted to the media kind so images and music never
       // show placeholder values such as "No Video".
       Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
         when {
           isImageFile -> {
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 0,
                 title = stringResource(R.string.ui_resolution),
                 value = imageResolution.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Palette,
@@ -861,6 +901,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 1,
                 title = stringResource(R.string.media_info_stat_format),
                 value = imageValue("Format").ifBlank { formatLabel },
                 icon = Icons.RoundedFilled.Info,
@@ -870,9 +911,10 @@ class MediaInfoActivity : AppCompatActivity() {
             }
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 2,
                 title = stringResource(R.string.media_info_stat_bit_depth),
                 value = imageValue("Bit depth").ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Tune,
@@ -880,6 +922,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 3,
                 title = stringResource(R.string.ui_file_size),
                 value = sizeLabel,
                 icon = Icons.RoundedFilled.SdCard,
@@ -891,9 +934,10 @@ class MediaInfoActivity : AppCompatActivity() {
           isAudioFile -> {
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 0,
                 title = stringResource(R.string.ui_duration),
                 value = durationLabel,
                 icon = Icons.RoundedFilled.Timer,
@@ -901,6 +945,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 1,
                 title = stringResource(R.string.media_info_stat_channels),
                 value = primaryAudio.channels.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.VolumeUp,
@@ -910,9 +955,10 @@ class MediaInfoActivity : AppCompatActivity() {
             }
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 2,
                 title = stringResource(R.string.media_info_stat_sample_rate),
                 value = primaryAudio.samplingRate.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Tune,
@@ -920,6 +966,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 3,
                 title = stringResource(R.string.ui_bitrate),
                 value = mediaInfo.general.overallBitRate.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Speed,
@@ -931,9 +978,10 @@ class MediaInfoActivity : AppCompatActivity() {
           else -> {
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 0,
                 title = stringResource(R.string.ui_resolution),
                 value = resolutionLabel,
                 icon = Icons.RoundedFilled.Videocam,
@@ -941,6 +989,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 1,
                 title = stringResource(R.string.ui_file_size),
                 value = sizeLabel,
                 icon = Icons.RoundedFilled.SdCard,
@@ -950,9 +999,10 @@ class MediaInfoActivity : AppCompatActivity() {
             }
             Row(
               modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+              horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               QuickStatCard(
+                index = 2,
                 title = stringResource(R.string.ui_duration),
                 value = durationLabel,
                 icon = Icons.RoundedFilled.Timer,
@@ -960,6 +1010,7 @@ class MediaInfoActivity : AppCompatActivity() {
                 modifier = Modifier.weight(1f),
               )
               QuickStatCard(
+                index = 3,
                 title = stringResource(R.string.ui_bitrate),
                 value = mediaInfo.general.overallBitRate.ifBlank { "Unknown" },
                 icon = Icons.RoundedFilled.Speed,
@@ -975,7 +1026,7 @@ class MediaInfoActivity : AppCompatActivity() {
       // display irrelevant zero-count rows.
       val imageCount = remember(sections) { sections.count { it.name.startsWith("Image", ignoreCase = true) } }
       if (videoCount + audioCount + subtitleCount + chapterCount + imageCount > 0) {
-        GlassmorphicCard(
+        ExpressiveInfoCard(
           modifier = Modifier.fillMaxWidth(),
         ) {
           Column(
@@ -991,8 +1042,8 @@ class MediaInfoActivity : AppCompatActivity() {
             )
 
             Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceAround,
+              modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+              horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
               if (videoCount > 0) {
                 TrackSummaryItem(videoCount, "Video", Icons.RoundedFilled.Videocam, MaterialTheme.colorScheme.primary)
@@ -1022,7 +1073,7 @@ class MediaInfoActivity : AppCompatActivity() {
       // Detailed metadata list: every General field MediaInfo reports, plus the resolved path.
       val generalSection = sections.firstOrNull { it.name.equals("General", ignoreCase = true) }
       if (generalSection != null || filePath != null) {
-        GlassmorphicCard(
+        ExpressiveInfoCard(
           modifier = Modifier.fillMaxWidth(),
         ) {
           Column(
@@ -1037,15 +1088,27 @@ class MediaInfoActivity : AppCompatActivity() {
               color = MaterialTheme.colorScheme.primary,
             )
 
+            val pathLabel = stringResource(R.string.media_info_file_path)
+            val generalEntries = buildList<Pair<String, String>> {
+              filePath?.let { add(pathLabel to it) }
+              generalSection?.properties?.let { addAll(it) }
+            }
             SelectionContainer {
-              Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-              ) {
-                filePath?.let { path ->
-                  PropertyRow(stringResource(R.string.media_info_file_path), path)
-                }
-                generalSection?.properties?.forEach { (key, value) ->
-                  PropertyRow(key, value)
+              Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+                generalEntries.forEachIndexed { index, (key, value) ->
+                  val itemShape = rememberConnectedShape(
+                    index = index,
+                    itemCount = generalEntries.size,
+                    layout = ConnectedLayout.Vertical,
+                  )
+                  Surface(
+                    shape = itemShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                  ) {
+                    Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                      PropertyRow(key, value)
+                    }
+                  }
                 }
               }
             }
@@ -1062,25 +1125,29 @@ class MediaInfoActivity : AppCompatActivity() {
     icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
     color: Color,
   ) {
-    Column(
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(4.dp),
+    Surface(
+      shape = MaterialTheme.shapes.large,
+      color = MaterialTheme.colorScheme.surfaceContainerLow,
+      contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
-      Surface(
-        shape = CircleShape,
-        color = color.copy(alpha = 0.12f),
-        contentColor = color,
-        modifier = Modifier.size(48.dp),
+      Row(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        Box(contentAlignment = Alignment.Center) {
-          Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = color)
+        Surface(
+          shape = MaterialTheme.shapes.medium,
+          color = color.copy(alpha = 0.12f),
+        ) {
+          Box(modifier = Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp), tint = color)
+          }
         }
+        Text(
+          text = "$count $label",
+          style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        )
       }
-      Text(
-        text = "$count $label",
-        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-      )
     }
   }
 
@@ -1097,7 +1164,7 @@ class MediaInfoActivity : AppCompatActivity() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    GlassmorphicCard(
+    ExpressiveInfoCard(
       modifier = modifier.fillMaxWidth(),
     ) {
       Column {
@@ -1325,7 +1392,7 @@ class MediaInfoActivity : AppCompatActivity() {
           .padding(bottom = 24.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      GlassmorphicCard(
+      ExpressiveInfoCard(
         modifier = Modifier.fillMaxWidth(),
       ) {
         Column(
@@ -1562,7 +1629,7 @@ class MediaInfoActivity : AppCompatActivity() {
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
       if (attachments.isNotEmpty()) {
-        GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+        ExpressiveInfoCard(modifier = Modifier.fillMaxWidth()) {
           Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1607,7 +1674,7 @@ class MediaInfoActivity : AppCompatActivity() {
           .verticalScroll(rememberScrollState())
           .padding(bottom = 24.dp),
     ) {
-      GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
+      ExpressiveInfoCard(modifier = Modifier.fillMaxWidth()) {
         SelectionContainer {
           Text(
             text = rawText,
