@@ -195,15 +195,20 @@ object FoldersPreferencesScreen : Screen {
         )
       },
     ) { padding ->
-      Column(
+      // One scrolling viewport: media settings, blacklisted folders and Add all travel
+      // together. A weighted inner list used to leave only two blacklist rows visible.
+      LazyColumn(
         modifier =
           Modifier
             .fillMaxSize()
             .padding(padding)
             .padding(16.dp)
             .then(settingsHighlight),
+        verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {
-        if (!selectionState.isInSelectionMode) {
+        item(key = "media-settings") {
+          Column {
+            if (!selectionState.isInSelectionMode) {
           // ── Media Library ─────────────────────────────────────────────
           PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
             title = stringResource(R.string.pref_media_library_section),
@@ -266,27 +271,22 @@ object FoldersPreferencesScreen : Screen {
           )
 
           Spacer(modifier = Modifier.height(8.dp))
+            }
+          }
         }
 
         if (allBlacklistedFolders.isEmpty()) {
-          Box(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .weight(1f),
-          ) {
-            EmptyState(
-              icon = Icons.RoundedFilled.FolderOff,
-              title = stringResource(R.string.pref_folders_empty_title),
-              message = stringResource(R.string.pref_folders_empty_message),
-            )
+          item(key = "blacklist-empty") {
+            Box(modifier = Modifier.fillMaxWidth()) {
+              EmptyState(
+                icon = Icons.RoundedFilled.FolderOff,
+                title = stringResource(R.string.pref_folders_empty_title),
+                message = stringResource(R.string.pref_folders_empty_message),
+              )
+            }
           }
         } else {
-          LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
-          ) {
-            itemsIndexed(allBlacklistedFolders, key = { _, path -> path }) { index, folderPath ->
+          itemsIndexed(allBlacklistedFolders, key = { _, path -> path }) { index, folderPath ->
               val isVideo = folderPath in blacklistedVideoFolders
               val isAudio = folderPath in blacklistedAudioFolders
               val scope = when {
@@ -312,14 +312,14 @@ object FoldersPreferencesScreen : Screen {
                   if (selectionState.isInSelectionMode) selectionState = selectionState.toggle(folderPath)
                 },
               )
-            }
           }
         }
 
         if (!selectionState.isInSelectionMode) {
-          Spacer(modifier = Modifier.height(16.dp))
-
-          Card(
+          item(key = "blacklist-add") {
+            Column {
+              Spacer(modifier = Modifier.height(16.dp))
+              Card(
             modifier =
               Modifier
                 .settingsSearchTarget(R.string.pref_folders_add_folder)
@@ -359,6 +359,7 @@ object FoldersPreferencesScreen : Screen {
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
               )
+              }
             }
           }
         }
