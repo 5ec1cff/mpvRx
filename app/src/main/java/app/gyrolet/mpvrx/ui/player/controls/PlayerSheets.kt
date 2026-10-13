@@ -138,6 +138,19 @@ fun PlayerSheets(
           if (it == null) return@rememberLauncherForActivityResult
           onAddSubtitle(it)
         }
+      val openSystemSubtitlePicker = {
+        subtitlesPicker.launch(
+          arrayOf(
+            "text/plain",
+            "text/srt",
+            "text/vtt",
+            "application/x-subrip",
+            "application/x-subtitle",
+            "text/x-ssa",
+            "*/*",
+          ),
+        )
+      }
 
       val subtitlesPreferences = koinInject<app.gyrolet.mpvrx.preferences.SubtitlesPreferences>()
       val savedPickerPath = subtitlesPreferences.pickerPath.get()
@@ -169,17 +182,7 @@ fun PlayerSheets(
           },
           onSystemPickerRequest = {
             showFilePicker = false
-            subtitlesPicker.launch(
-              arrayOf(
-                "text/plain",
-                "text/srt",
-                "text/vtt",
-                "application/x-subrip",
-                "application/x-subtitle",
-                "text/x-ssa",
-                "*/*",
-              ),
-            )
+            openSystemSubtitlePicker()
           },
           matchToName = matchToName,
         )
@@ -216,7 +219,13 @@ fun PlayerSheets(
         },
         isSubtitleSelected = isSubtitleSelected,
         subtitleSelectionIndicator = subtitleSelectionIndicator,
-        onAddSubtitle = { showFilePicker = true },
+        onAddSubtitle = {
+          if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+            openSystemSubtitlePicker()
+          } else {
+            showFilePicker = true
+          }
+        },
         onRemoveSubtitle = onRemoveSubtitle,
         onOpenSubtitleSettings = { onOpenPanel(Panels.SubtitleSettings) },
         onOpenSubtitleDelay = { onOpenPanel(Panels.SubtitleDelay) },
@@ -311,6 +320,18 @@ fun PlayerSheets(
 
       val audioPreferences = koinInject<app.gyrolet.mpvrx.preferences.AudioPreferences>()
       val savedPickerPath = audioPreferences.pickerPath.get()
+      val openSystemAudioPicker = {
+        audioPicker.launch(
+          arrayOf(
+            "audio/*",
+            "application/ogg",
+            "application/x-flac",
+            "video/x-matroska",
+            "video/*",
+            "*/*",
+          ),
+        )
+      }
 
       val currentMediaTitle = viewModel.currentMediaTitle
       val matchToName =
@@ -361,16 +382,7 @@ fun PlayerSheets(
           },
           onSystemPickerRequest = {
             showAudioFilePicker = false
-            audioPicker.launch(
-              arrayOf(
-                "audio/*",
-                "application/ogg",
-                "application/x-flac",
-                "video/x-matroska",
-                "video/*",
-                "*/*",
-              ),
-            )
+            openSystemAudioPicker()
           },
           matchToName = matchToName,
           allowedExtensions = audioAllowedExtensions,
@@ -383,7 +395,13 @@ fun PlayerSheets(
           onSelectAudio(track)
           if (isTelevision) onDismissRequest()
         },
-        onAddAudioTrack = { showAudioFilePicker = true },
+        onAddAudioTrack = {
+          if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+            openSystemAudioPicker()
+          } else {
+            showAudioFilePicker = true
+          }
+        },
         onOpenDelayPanel = { onOpenPanel(Panels.AudioDelay) },
         onOpenEqualizerSheet = { onShowSheet(Sheets.Equalizer) },
         delayControlEnabled = "audio-delay" !in configOwnedOptions,

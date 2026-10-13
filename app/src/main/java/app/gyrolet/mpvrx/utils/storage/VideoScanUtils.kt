@@ -105,6 +105,7 @@ object VideoScanUtils : KoinComponent {
       // Manual refreshes force a filesystem verification pass so new/deleted files are reflected
       // even before MediaStore catches up.
       if (
+        !app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
         folder.exists() &&
         folder.canRead() &&
         shouldRunFilesystemVideoCheck(forceFileSystemCheck, videosMap.size)
@@ -186,7 +187,7 @@ object VideoScanUtils : KoinComponent {
 
             // Only direct children
             if (!areEquivalentStoragePaths(file.parent, normalizedFolderPath)) continue
-            if (!file.exists()) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
             if (!FileTypeUtils.isVideoFile(file)) continue
             if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
 
@@ -288,7 +289,7 @@ object VideoScanUtils : KoinComponent {
             currentCoroutineContext().ensureActive()
             val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
-            if (!file.isFile) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.isFile) continue
             if (!areEquivalentStoragePaths(file.parent, normalizedFolderPath)) continue
             if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
             if (!FileTypeUtils.isAudioFile(file)) continue

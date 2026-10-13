@@ -943,7 +943,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
         unpinLabelRes = R.string.ui_unpin_videos,
         showDownscale =
           selectedVideos.isNotEmpty() && selectedVideos.none { it.isAudio } && selectedFolders.isEmpty(),
-        showRename = selectionManager.isSingleSelection,
+        showRename = selectionManager.isSingleSelection &&
+          (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY || onlyVideosSelected),
+        showDelete = !app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY || onlyVideosSelected,
         showAddToPlaylist = onlyVideosSelected,
         modifier = Modifier.padding(bottom = 0.dp),
       )

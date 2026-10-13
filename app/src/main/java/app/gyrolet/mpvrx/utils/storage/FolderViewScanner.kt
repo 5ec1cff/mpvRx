@@ -724,10 +724,10 @@ object FolderViewScanner {
           val videosByFolder = mutableMapOf<String, FolderAggregate>()
 
           while (cursor.moveToNext()) {
-            val videoPath = cursor.getString(dataColumn)
+            val videoPath = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(videoPath)
 
-            if (!file.exists()) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
             if (!FileTypeUtils.isVideoFile(file)) continue
             if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
 
@@ -821,8 +821,11 @@ object FolderViewScanner {
           val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
           val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
           while (cursor.moveToNext()) {
-            val file = File(cursor.getString(dataColumn))
-            if (!file.exists() || noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
+            val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
+            val file = File(path)
+            if ((!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) ||
+              noMediaPathFilter.shouldExcludeDirectory(file.parentFile)
+            ) continue
             if (!FileTypeUtils.isAudioFile(file)) continue
             val duration = cursor.getLong(durationColumn)
             if (!options.includesAudioDuration(duration)) continue
@@ -878,6 +881,7 @@ object FolderViewScanner {
     noMediaPathFilter: NoMediaPathFilter,
     forceFileSystemCheck: Boolean,
   ) {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return
     try {
       val rootsToScan = linkedSetOf<File>()
       val primaryStorageRoot = Environment.getExternalStorageDirectory()

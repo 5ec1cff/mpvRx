@@ -1047,7 +1047,7 @@ object FolderListScreen : Screen {
             },
           showCopy = true,
           showMove = true,
-          showRename = selectionManager.isSingleSelection,
+          showRename = selectionManager.isSingleSelection && !BuildConfig.SCOPED_STORAGE_ONLY,
           showDelete = !BuildConfig.SCOPED_STORAGE_ONLY,
           showDownscale = false,
           showAddToPlaylist = false,

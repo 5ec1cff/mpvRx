@@ -20,6 +20,7 @@ import app.gyrolet.mpvrx.domain.browser.PathComponent
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
@@ -62,6 +63,7 @@ class FileSystemBrowserViewModel(
   KoinComponent {
   private val playbackStateRepository: PlaybackStateRepository by inject()
   private val browserPreferences: BrowserPreferences by inject()
+  private val foldersPreferences: FoldersPreferences by inject()
   private val appearancePreferences: app.gyrolet.mpvrx.preferences.AppearancePreferences by inject()
 
   // Special marker for "show storage volumes" mode
@@ -217,9 +219,28 @@ class FileSystemBrowserViewModel(
         _unsortedItems,
         browserPreferences.folderSortType.changes(),
         browserPreferences.folderSortOrder.changes(),
-      ) { items, sortType, sortOrder ->
+        foldersPreferences.blacklistedFolders.changes(),
+        foldersPreferences.blacklistedAudioFolders.changes(),
+      ) { items, sortType, sortOrder, videoBlacklist, audioBlacklist ->
+        val visibleItems = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          items.filter { item ->
+            val videoHidden = videoBlacklist.any {
+              app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(item.path, it)
+            }
+            val audioHidden = audioBlacklist.any {
+              app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(item.path, it)
+            }
+            when (item) {
+              is FileSystemItem.VideoFile -> if (item.video.isAudio) !audioHidden else !videoHidden
+              is FileSystemItem.Folder ->
+                !videoHidden || (browserPreferences.includeAudioBrowser.get() && !audioHidden)
+            }
+          }
+        } else {
+          items
+        }
         // Sort using the same logic as Fossify's FileDirItem.sort()
-        SortUtils.sortFileSystemItems(items, sortType, sortOrder)
+        SortUtils.sortFileSystemItems(visibleItems, sortType, sortOrder)
       }.collectLatest { sortedItems ->
         _items.value = sortedItems
         Log.d(TAG, "Items sorted: ${sortedItems.size} items")
@@ -352,6 +373,10 @@ class FileSystemBrowserViewModel(
    * Based on Fossify's deleteFiles() logic with folder support
    */
   fun deleteFolders(folders: List<FileSystemItem.Folder>): Pair<Int, Int> {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+      Log.w(TAG, "Folder deletion is unavailable with scoped storage")
+      return 0 to folders.size
+    }
     var successCount = 0
     var failureCount = 0
     val deleteAll = browserPreferences.deleteFolderAllContents.get()

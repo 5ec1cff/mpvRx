@@ -864,6 +864,7 @@ class PlayerViewModel : ViewModel(),
   }
 
   private fun currentYouTubeSource(): String? {
+    if (!app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) return null
     val item = PlaybackSession.state.value.currentItem ?: return null
     return sequenceOf(item.originalUri, item.playableUri)
       .map(String::trim)

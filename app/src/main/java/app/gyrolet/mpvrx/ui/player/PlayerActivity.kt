@@ -4948,16 +4948,21 @@ class PlayerActivity :
     when (uri.scheme) {
       "file" -> uri.path ?: uri.toString()
       "content" ->
-        contentResolver
-          .query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
-          ?.use { cursor ->
-            if (cursor.moveToFirst()) {
-              val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-              if (columnIndex != -1) cursor.getString(columnIndex) else null
-            } else {
-              null
-            }
-          } ?: uri.toString()
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          // A provider grant authorizes the URI, not its potentially inaccessible _data path.
+          uri.toString()
+        } else {
+          contentResolver
+            .query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
+            ?.use { cursor ->
+              if (cursor.moveToFirst()) {
+                val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+                if (columnIndex != -1) cursor.getString(columnIndex) else null
+              } else {
+                null
+              }
+            } ?: uri.toString()
+        }
       else -> uri.toString()
     }
 

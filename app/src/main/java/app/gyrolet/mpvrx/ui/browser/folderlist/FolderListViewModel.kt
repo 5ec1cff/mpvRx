@@ -181,8 +181,7 @@ class FolderListViewModel(
         folders.filter { folder ->
           folderKey(folder) !in pendingDeletions &&
             blacklist.none { blacklisted ->
-              folder.path.equals(blacklisted, ignoreCase = true) ||
-                folder.path.startsWith(if (blacklisted.endsWith("/")) blacklisted else "$blacklisted/", ignoreCase = true)
+              app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(folder.path, blacklisted)
             }
         }
       }.collectLatest { filteredFolders ->
@@ -665,10 +664,14 @@ class FolderListViewModel(
   }
 
   private fun folderKey(folder: VideoFolder): String =
-    folder.path
-      .replace('\\', '/')
-      .trimEnd('/')
-      .lowercase(Locale.ROOT)
+    if (ScopedHiddenFolderScanner.isScopedFolder(folder.path)) {
+      folder.path
+    } else {
+      folder.path
+        .replace('\\', '/')
+        .trimEnd('/')
+        .lowercase(Locale.ROOT)
+    }
 
   private fun publishFinalFolders(folders: List<VideoFolder>) {
     val incomingKeys = folders.mapTo(mutableSetOf(), ::folderKey)

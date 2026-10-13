@@ -18,6 +18,7 @@ import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.browser.videolist.VideoWithPlaybackInfo
@@ -48,6 +49,7 @@ class MediaLibraryViewModel(
   KoinComponent {
   private val appearancePreferences: AppearancePreferences by inject()
   private val browserPreferences: BrowserPreferences by inject()
+  private val foldersPreferences: FoldersPreferences by inject()
   private val playbackStateRepository: PlaybackStateRepository by inject()
 
   private enum class DeletionState { Pending, Confirmed }
@@ -56,14 +58,24 @@ class MediaLibraryViewModel(
   private val scanMutex = Mutex()
   private val _videos = MutableStateFlow<List<Video>>(emptyList())
   val videos: StateFlow<List<Video>> =
-    combine(_videos, hiddenVideoPaths) { items, hidden ->
-      if (hidden.isEmpty()) items else items.filterNot { it.path in hidden }
+    combine(
+      _videos,
+      hiddenVideoPaths,
+      foldersPreferences.blacklistedFolders.changes(),
+      foldersPreferences.blacklistedAudioFolders.changes(),
+    ) { items, hidden, videoBlacklist, audioBlacklist ->
+      items.filter { isVisible(it, hidden, videoBlacklist, audioBlacklist) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
   private val _videosWithPlaybackInfo = MutableStateFlow<List<VideoWithPlaybackInfo>>(emptyList())
   val videosWithPlaybackInfo: StateFlow<List<VideoWithPlaybackInfo>> =
-    combine(_videosWithPlaybackInfo, hiddenVideoPaths) { items, hidden ->
-      if (hidden.isEmpty()) items else items.filterNot { it.video.path in hidden }
+    combine(
+      _videosWithPlaybackInfo,
+      hiddenVideoPaths,
+      foldersPreferences.blacklistedFolders.changes(),
+      foldersPreferences.blacklistedAudioFolders.changes(),
+    ) { items, hidden, videoBlacklist, audioBlacklist ->
+      items.filter { isVisible(it.video, hidden, videoBlacklist, audioBlacklist) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
   private val _isLoading = MutableStateFlow(false)
@@ -71,6 +83,21 @@ class MediaLibraryViewModel(
   private var playbackIndexByIdentifier: Map<String, Int> = emptyMap()
 
   private val tag = "MediaLibraryViewModel"
+
+  private fun isVisible(
+    video: Video,
+    hidden: Map<String, DeletionState>,
+    videoBlacklist: Set<String>,
+    audioBlacklist: Set<String>,
+  ): Boolean {
+    if (video.path in hidden) return false
+    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return true
+    val blacklist = if (video.isAudio) audioBlacklist else videoBlacklist
+    return blacklist.none { folder ->
+      app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.bucketId, folder) ||
+        app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.path, folder)
+    }
+  }
 
   init {
     // Try the persisted list first so an unchanged library needs no scan at all. Without this, every
@@ -102,6 +129,9 @@ class MediaLibraryViewModel(
  * which also means the scan runs regardless — the cache then only avoids an empty first frame.
  */
   private fun loadCachedVideos(): Boolean {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+      foldersPreferences.includeNoMediaFolders.get()
+    ) return false
     if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) return false
     if (!MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())) return false
     val cached = MediaLibraryCache.load(getApplication())
@@ -118,6 +148,7 @@ class MediaLibraryViewModel(
     // still matches the current MediaStore, or refresh() was asked to invalidate and rebuild. force
     // comes from refresh() and always re-reads.
     if (!force &&
+      !(app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get()) &&
       _videos.value.isNotEmpty() &&
       MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
     ) {
