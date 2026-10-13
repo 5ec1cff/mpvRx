@@ -647,6 +647,16 @@ fun AudioPlayerControls(
   onOpenPanel: (Panels) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  // The queue can move on while the app is in the background; catch the lyrics up on return.
+  val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+  androidx.compose.runtime.DisposableEffect(lifecycleOwner, viewModel) {
+    val observer =
+      androidx.lifecycle.LifecycleEventObserver { _, event ->
+        if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.syncLyricsWithPlayback()
+      }
+    lifecycleOwner.lifecycle.addObserver(observer)
+    onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+  }
   val speedConfigOwned = isMpvOptionOwnedByConfig("speed")
   val audioFiltersConfigOwned = isMpvOptionOwnedByConfig("af")
   val paused by PlaybackSession.propBoolean["pause"].collectAsState()
@@ -1930,12 +1940,17 @@ fun AudioPlayerControls(
                 color = MaterialTheme.colorScheme.primary,
               )
               Spacer(Modifier.width(8.dp))
+              val loadingLine =
+                app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(
+                  app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.LOADING,
+                  app.gyrolet.mpvrx.ui.player.controls.components.PLACEHOLDER_ROTATE_MS,
+                )
               Text(
-                text = stringResource(R.string.lyrics_loading_label),
+                text = loadingLine,
                 style = MaterialTheme.typography.titleMedium.copy(
                   fontSize = 18.sp,
                   fontWeight = FontWeight.Bold,
-                  fontFamily = fontFamilyForText(stringResource(R.string.lyrics_loading_label)),
+                  fontFamily = fontFamilyForText(loadingLine),
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -1956,12 +1971,19 @@ fun AudioPlayerControls(
                   modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(6.dp))
+                // Before the first line it is the intro, which deserves more than a label.
+                val gapLabel =
+                  if (activeIndex <= 0) {
+                    app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.INTRO)
+                  } else {
+                    stringResource(R.string.instrumental)
+                  }
                 Text(
-                  text = stringResource(R.string.instrumental),
+                  text = gapLabel,
                   style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
-                    fontFamily = fontFamilyForText(stringResource(R.string.instrumental)),
+                    fontFamily = fontFamilyForText(gapLabel),
                   ),
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                   maxLines = 1,
@@ -2125,12 +2147,18 @@ fun AudioPlayerControls(
                 modifier = Modifier.size(18.dp),
               )
               Spacer(Modifier.width(6.dp))
+              val emptyLine =
+                if (isAudiobook) {
+                  stringResource(R.string.audiobook_no_text)
+                } else {
+                  app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.EMPTY)
+                }
               Text(
-                text = if (isAudiobook) stringResource(R.string.audiobook_no_text) else stringResource(R.string.player_lyrics_title),
+                text = emptyLine,
                 style = MaterialTheme.typography.titleMedium.copy(
                   fontSize = 18.sp,
                   fontWeight = FontWeight.Normal,
-                  fontFamily = fontFamilyForText(stringResource(R.string.player_lyrics_title)),
+                  fontFamily = fontFamilyForText(emptyLine),
                 ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 maxLines = 1,

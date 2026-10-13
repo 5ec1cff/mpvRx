@@ -21,6 +21,11 @@ enum class LyricsProvider(
   val detail: String,
   val wordSynced: Boolean,
 ) {
+  LRC_RED(
+    label = "lrc.red",
+    detail = "Apple Music timings filed by recording, syllable by syllable",
+    wordSynced = true,
+  ),
   BINI_LYRICS(
     label = "BiniLyrics",
     detail = "Apple Music timings, matched against the recording itself",

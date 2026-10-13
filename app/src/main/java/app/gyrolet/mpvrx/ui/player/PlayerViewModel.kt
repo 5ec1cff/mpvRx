@@ -112,6 +112,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -1160,6 +1161,28 @@ class PlayerViewModel : ViewModel(),
   private var lyricsTranslateJob: Job? = null
   private var lastLyricsLoadRequest: LyricsLoadRequest? = null
 
+  /** The file the lyrics state on screen belongs to, so a track change nobody saw is noticed. */
+  private var lyricsStatePath: String? = null
+
+  /**
+   * Brings the lyrics back in line with what is actually playing.
+   *
+   * Lyrics are normally reloaded by [onVideoLoadCompleted], which only runs while the player
+   * screen is alive. With the app in the background the queue keeps advancing, so on return
+   * the panel still held the previous song's lyrics. This is called when the track changes
+   * and when the screen resumes, and does nothing if the lyrics already belong to this file.
+   */
+  fun syncLyricsWithPlayback() {
+    if (!isAudioOnly.value) return
+    val path = currentLyricsPath() ?: return
+    if (path == lyricsStatePath) return
+    lyricsLoadJob?.cancel()
+    lyricsTranslateJob?.cancel()
+    lastLyricsLoadRequest = null
+    lyricsUiState.value = LyricsUiState()
+    loadLyricsForCurrentTrack()
+  }
+
   fun setEqualizerEnabled(enabled: Boolean) {
     equalizerState.value = equalizerState.value.copy(isEnabled = enabled)
     audioPreferences.equalizerEnabled.set(enabled)
@@ -1256,6 +1279,7 @@ class PlayerViewModel : ViewModel(),
     )
     if (!forceRefresh && !forceOnline && request == lastLyricsLoadRequest) return
     lastLyricsLoadRequest = request
+    lyricsStatePath = path
 
     lyricsUiState.value = lyricsUiState.value.copy(
       isLoading = true,
@@ -2288,6 +2312,19 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   )
 
   init {
+    // A track change while nobody is looking at the player (app backgrounded, screen off)
+    // never reaches onVideoLoadCompleted; follow the session directly instead. The short
+    // wait lets mpv publish the new file's tags before they are used as the search query.
+    viewModelScope.launch {
+      PlaybackSession.state
+        .map { it.currentItem?.originalUri }
+        .distinctUntilChanged()
+        .drop(1)
+        .collectLatest {
+          delay(1_000)
+          syncLyricsWithPlayback()
+        }
+    }
     viewModelScope.launch {
       decoderPreferences.gpuNext.changes().collect { enabled ->
         _isGpuNextEnabled.value = enabled
@@ -2763,6 +2800,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     lyricsTranslateJob?.cancel()
     lyricsTranslateJob = null
     lastLyricsLoadRequest = null
+    lyricsStatePath = null
     lyricsUiState.value = LyricsUiState()
     stopRealtimeSubtitles(showToastMessage = false)
     introLookupJob?.cancel()

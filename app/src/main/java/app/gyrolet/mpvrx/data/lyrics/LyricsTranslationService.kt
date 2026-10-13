@@ -111,6 +111,9 @@ class LyricsTranslationService(
     private val BRACKET_PATTERN =
       Regex("""\[\s*(\d+)\s*\]\s*(.*?)(?=\[\s*\d+\s*\]|$)""", RegexOption.DOT_MATCHES_ALL)
     private val NUMERIC_ENTITY_REGEX = Regex("""&#(x?[0-9a-fA-F]+);""")
+
+    /** "[1]" as any engine may have written it: ASCII or full-width brackets, any script's digits. */
+    private val LOCALISED_MARKER_REGEX = Regex("""[\[\uFF3B\u3010]\s*(\p{Nd}+)\s*[\]\uFF3D\u3011]""")
   }
 
   // Fast timeout for translation calls (5s connect / 8s read)
@@ -169,22 +172,29 @@ class LyricsTranslationService(
     lines: List<SyncedLine>,
     targetLanguage: String,
   ): TranslatedLines<SyncedLine> {
-    val textsToTranslate = lines.map { it.line }
+    // The backing voices go in the same batch, after the leads, so they are
+    // translated or romanised with the lead they belong to rather than left in
+    // the original script under a translated line.
+    val backingIndices = lines.indices.filter { lines[it].background != null }
+    val textsToTranslate = lines.map { it.line } + backingIndices.map { lines[it].background!!.line }
     val translations = batchTranslate(textsToTranslate, targetLanguage)
+    val romanizing = targetLanguage == "romaji" || targetLanguage == "hinglish" || targetLanguage == "hinglish_casual"
 
-    val translatedLines = lines.mapIndexed { index, line ->
-      val res = translations.getOrNull(index)
-      if (res == null) return@mapIndexed line
+    fun SyncedLine.withResult(res: TranslationResult?): SyncedLine {
+      if (res == null) return this
       val translatedText = res.translation.takeIf(String::isNotBlank)
       val romanizedText = res.romanization?.takeIf(String::isNotBlank)
-      line.copy(
-        translation = when {
-          targetLanguage == "romaji" || targetLanguage == "hinglish" || targetLanguage == "hinglish_casual" ->
-            romanizedText ?: translatedText
-          else -> translatedText
-        },
+      return copy(
+        translation = if (romanizing) romanizedText ?: translatedText else translatedText,
         romanization = romanizedText,
       )
+    }
+
+    val backingResults = backingIndices.withIndex().associate { (n, lineIndex) -> lineIndex to translations.getOrNull(lines.size + n) }
+    val translatedLines = lines.mapIndexed { index, line ->
+      val translated = line.withResult(translations.getOrNull(index))
+      val backing = line.background
+      if (backing == null) translated else translated.copy(background = backing.withResult(backingResults[index]))
     }
     return TranslatedLines(
       lines = translatedLines,
@@ -255,27 +265,31 @@ class LyricsTranslationService(
    * fetches accurate Romanization (Romaji for Japanese, Pinyin for Chinese, etc.).
    */
   private suspend fun handleRomajiTransliteration(texts: List<String>): List<TranslationResult> = coroutineScope {
-    val isAlreadyLatin = isPredominantlyLatin(texts)
-    if (isAlreadyLatin) {
-      // Already written in Romaji / Hinglish / Latin script!
-      return@coroutineScope texts.map { line ->
+    // Per line, not per batch: a Hindi song with a few English lines must not skip the
+    // Devanagari ones just because the batch is mostly Latin (or the reverse).
+    val latinFlags = texts.map { isLatinLine(it) }
+    val nonLatinIndices = latinFlags.withIndex().filter { !it.value }.map { it.index }
+
+    val romanizedByIndex: Map<Int, TranslationResult> =
+      if (nonLatinIndices.isEmpty()) {
+        emptyMap()
+      } else {
+        val deferredChunks = nonLatinIndices.map { texts[it] }.chunked(CHUNK_SIZE).map { chunk ->
+          async(Dispatchers.IO) {
+            requestSemaphore.withPermit { romanizeChunk(chunk) }
+          }
+        }
+        nonLatinIndices.zip(deferredChunks.awaitAll().flatten()).toMap()
+      }
+
+    texts.mapIndexed { index, line ->
+      if (latinFlags[index]) {
         val trimmed = line.trim()
-        TranslationResult(
-          translation = trimmed,
-          romanization = trimmed,
-        )
+        TranslationResult(translation = trimmed, romanization = trimmed)
+      } else {
+        romanizedByIndex[index] ?: TranslationResult(translation = line.trim(), isResolved = false)
       }
     }
-
-    // Non-Latin script: fetch authentic Romanization (Romaji for Japanese, Pinyin for Chinese, etc.)
-    val chunks = texts.chunked(CHUNK_SIZE)
-    val deferredChunks = chunks.map { chunk ->
-      async(Dispatchers.IO) {
-        requestSemaphore.withPermit { romanizeChunk(chunk) }
-      }
-    }
-
-    deferredChunks.awaitAll().flatten()
   }
 
   /**
@@ -566,31 +580,6 @@ class LyricsTranslationService(
     }
     if (latinCount == 0 && nonLatinLetterCount == 0) return true // no letters at all (punctuation/blank) — leave untouched
     return latinCount >= nonLatinLetterCount
-  }
-
-  private fun isPredominantlyLatin(texts: List<String>): Boolean {
-    var latinCount = 0
-    var nonLatinLetterCount = 0
-    for (text in texts) {
-      for (c in text) {
-        if (Character.isLetter(c)) {
-          val block = Character.UnicodeBlock.of(c)
-          if (block == Character.UnicodeBlock.BASIC_LATIN ||
-            block == Character.UnicodeBlock.LATIN_1_SUPPLEMENT ||
-            block == Character.UnicodeBlock.LATIN_EXTENDED_A ||
-            block == Character.UnicodeBlock.LATIN_EXTENDED_B ||
-            block == Character.UnicodeBlock.LATIN_EXTENDED_ADDITIONAL
-          ) {
-            latinCount++
-          } else {
-            nonLatinLetterCount++
-          }
-        }
-      }
-    }
-    val total = latinCount + nonLatinLetterCount
-    if (total == 0) return true
-    return (latinCount.toFloat() / total) >= 0.60f
   }
 
   private suspend fun romanizeChunk(chunk: List<String>): List<TranslationResult> {
@@ -955,20 +944,21 @@ class LyricsTranslationService(
     return line.replace(Regex("""^\s*\[?\d+\]?[.:\- ]*"""), "").trim()
   }
 
-  private fun normalizeDigitsAndBrackets(text: String): String {
-    val sb = StringBuilder(text.length)
-    for (c in text) {
-      when (c) {
-        '［', '【', '(' -> sb.append('[')
-        '］', '】', ')' -> sb.append(']')
-        else -> {
+  /**
+   * Rewrites only the index markers an engine may have localised — "［１］", "【१】",
+   * "[١]" — back to "[1]", so the marker pattern can find them. Everything else is
+   * left exactly as the engine returned it: parentheses and brackets are part of the
+   * lyric ("(ooh yeah)"), and rewriting them turned every backing vocal into "[ooh yeah]".
+   */
+  private fun normalizeDigitsAndBrackets(text: String): String =
+    LOCALISED_MARKER_REGEX.replace(text) { match ->
+      val digits =
+        match.groupValues[1].map { c ->
           val digit = Character.digit(c, 10)
-          sb.append(if (digit >= 0) ('0'.code + digit).toChar() else c)
-        }
-      }
+          if (digit >= 0) ('0'.code + digit).toChar() else c
+        }.joinToString("")
+      "[$digits]"
     }
-    return sb.toString()
-  }
 
   private fun unescapeHtml(text: String): String {
     var result = text

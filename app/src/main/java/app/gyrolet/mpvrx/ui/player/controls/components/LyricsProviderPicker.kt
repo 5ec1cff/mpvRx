@@ -87,9 +87,10 @@ fun LyricsSourceLine(
   modifier: Modifier = Modifier,
 ) {
   val provider = preferredProvider ?: onlineProvider
+  val loadingLine = rememberPlaceholderLine(LyricsPlaceholders.LOADING, PLACEHOLDER_ROTATE_MS)
   val label =
     when {
-      isLoading -> stringResource(R.string.lyrics_loading_label)
+      isLoading -> loadingLine
       provider != null -> stringResource(R.string.lyrics_by, provider.label)
       else -> stringResource(R.string.lyrics_provider_auto)
     }

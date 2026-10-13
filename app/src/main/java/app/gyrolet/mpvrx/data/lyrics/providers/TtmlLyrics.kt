@@ -36,6 +36,9 @@ internal object TtmlLyrics {
   /** Roles that are not this line at all: alternate renderings of the same words. */
   private val SKIPPED_ROLES = setOf("x-translation", "x-roman")
 
+  /** Apple's marker for the backing or answering voice. */
+  private const val BACKGROUND_ROLE = "x-bg"
+
   fun looksLike(ttml: String): Boolean =
     unescapeTtml(ttml).let { content ->
       content.contains(Regex("""<tt(?:\s|>)""", RegexOption.IGNORE_CASE)) ||
@@ -66,7 +69,7 @@ internal object TtmlLyrics {
         val paragraph = paragraphs.item(i) as? Element ?: continue
         lineFrom(paragraph)?.let(lines::add)
       }
-      lines.withInstrumentalGaps()
+      lines.withDuetAlignment().withInstrumentalGaps()
     }.getOrNull()?.takeIf { lines -> lines.any { it.line.isNotBlank() } }
 
   /** One optional parser feature, set if this parser has it. */
@@ -95,10 +98,32 @@ internal object TtmlLyrics {
     return ""
   }
 
+  /**
+   * Second and later singers go to the opposite edge, but only when the document
+   * really has two of them. The group agent (`v1000`) is everybody at once and
+   * stays with the lead.
+   */
+  private fun List<TimedLine>.withDuetAlignment(): List<TimedLine> {
+    val voices = map { it.agent }.filter { it.isNotEmpty() && !it.endsWith("1000") }.distinct()
+    if (voices.size < 2) return this
+    val answering = voices.drop(1).toSet()
+    return map { timed ->
+      if (timed.agent in answering) timed.copy(line = timed.line.copy(alignEnd = true)) else timed
+    }
+  }
+
   private fun lineFrom(paragraph: Element): TimedLine? {
     val pieces = mutableListOf<Piece>()
-    collect(paragraph, pieces)
-    val words = mergeIntoWords(pieces)
+    val backing = mutableListOf<Piece>()
+    collect(paragraph, pieces, backing)
+    var words = mergeIntoWords(pieces)
+    var backingWords = mergeIntoWords(backing)
+    // A paragraph that is only the backing voice is just a line.
+    if (words.isEmpty() && backingWords.isNotEmpty()) {
+      words = backingWords
+      backingWords = emptyList()
+    }
+    val agent = paragraph.qualified("ttm:agent")
 
     if (words.isEmpty()) {
       // Line-synced TTML: a <p> with a stamp and bare text, no spans.
@@ -106,7 +131,7 @@ internal object TtmlLyrics {
       val begin = time(paragraph.getAttribute("begin")) ?: return null
       if (text.isEmpty()) return null
       val end = time(paragraph.getAttribute("end"))?.takeIf { it > begin } ?: begin
-      return TimedLine(SyncedLine(time = begin, line = text), end)
+      return TimedLine(SyncedLine(time = begin, line = text, endTime = end), end, agent)
     }
 
     // Prefer the paragraph's own stamp: Apple sets it a hair before the first
@@ -116,15 +141,40 @@ internal object TtmlLyrics {
     val end =
       time(paragraph.getAttribute("end"))
         ?: (words.lastOrNull()?.let { it.time + 1 } ?: begin)
+    val leadEnd = pieces.filterIsInstance<Piece.Timed>().maxOfOrNull { it.end }
+    val backingLine =
+      unbracketed(backingWords).takeIf { it.isNotEmpty() }?.let { bw ->
+        SyncedLine(
+          time = bw.first().time,
+          line = bw.joinToString(" ") { it.word },
+          words = bw,
+          endTime = backing.filterIsInstance<Piece.Timed>().maxOfOrNull { it.end },
+        )
+      }
     return TimedLine(
       line =
         SyncedLine(
           time = minOf(begin, words.first().time),
           line = words.joinToString(" ") { it.word },
           words = words,
+          endTime = leadEnd ?: end,
+          background = backingLine,
         ),
       endMs = maxOf(end, begin),
+      agent = agent,
     )
+  }
+
+  /** The backing voice is already set apart by size, so the brackets Apple wraps it in go. */
+  private fun unbracketed(words: List<SyncedWord>): List<SyncedWord> {
+    if (words.isEmpty()) return words
+    val last = words.lastIndex
+    return words.mapIndexedNotNull { index, word ->
+      var text = word.word
+      if (index == 0) text = text.trimStart('(', '[')
+      if (index == last) text = text.trimEnd(')', ']')
+      text.takeIf { it.isNotBlank() }?.let { word.copy(word = it) }
+    }
   }
 
   /**
@@ -136,18 +186,28 @@ internal object TtmlLyrics {
   private fun collect(
     node: Node,
     out: MutableList<Piece>,
+    backing: MutableList<Piece>,
   ) {
     val children = node.childNodes
     for (i in 0 until children.length) {
       when (val child = children.item(i)) {
         is Element -> {
-          if (child.qualified("ttm:role") in SKIPPED_ROLES) continue
+          val role = child.qualified("ttm:role")
+          if (role in SKIPPED_ROLES) continue
           val begin = time(child.getAttribute("begin"))
           val end = time(child.getAttribute("end"))
-          if (begin != null && end != null && !hasTimedChild(child)) {
+          if (role == BACKGROUND_ROLE) {
+            // The backing voice keeps its own timings rather than being folded
+            // into the lead, so the two can overlap.
+            if (begin != null && end != null && !hasTimedChild(child)) {
+              backing += Piece.Timed(child.textContent.orEmpty(), begin, end)
+            } else {
+              collect(child, backing, backing)
+            }
+          } else if (begin != null && end != null && !hasTimedChild(child)) {
             out += Piece.Timed(child.textContent.orEmpty(), begin, end)
           } else {
-            collect(child, out)
+            collect(child, out, backing)
           }
         }
         else ->
