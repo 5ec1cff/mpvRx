@@ -4,6 +4,9 @@
 
 package app.gyrolet.mpvrx.ui.player
 
+import android.graphics.Bitmap
+import android.graphics.Picture
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -30,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -40,13 +44,17 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsContext
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -57,7 +65,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -71,15 +82,53 @@ import kotlin.math.abs
 
 internal enum class PlayerSheetDestination { FULL, MINI }
 
-internal class PlayerSheetCapture(private val context: GraphicsContext) {
+internal class PlayerSheetCapture(
+  private val context: GraphicsContext,
+  val view: View,
+  val density: Density,
+  val layoutDirection: LayoutDirection,
+) {
   val layer = context.createGraphicsLayer()
   var isRecorded by mutableStateOf(false)
   private var isReleased = false
+
+  // Live layers belong to their own window; a stopping Activity may discard them, so anything
+  // drawn by the other Activity is copied into a hardware bitmap first.
+  fun snapshot(): ImageBitmap? {
+    if (isReleased || !isRecorded || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    if (layer.size.width <= 0 || layer.size.height <= 0) return null
+    // The overlay fades this layer while dragging; the frozen copy must be fully opaque.
+    layer.alpha = 1f
+    return runCatching {
+      Bitmap.createBitmap(LayerPicture(layer, density, layoutDirection)).asImageBitmap()
+    }.onFailure { Log.w("PlayerSheetTransitions", "Unable to snapshot player sheet", it) }.getOrNull()
+  }
 
   fun release() {
     if (isReleased) return
     isReleased = true
     context.releaseGraphicsLayer(layer)
+  }
+}
+
+private class LayerPicture(
+  private val layer: GraphicsLayer,
+  private val density: Density,
+  private val layoutDirection: LayoutDirection,
+) : Picture() {
+  override fun getWidth(): Int = layer.size.width
+
+  override fun getHeight(): Int = layer.size.height
+
+  override fun requiresHardwareAcceleration(): Boolean = true
+
+  override fun draw(canvas: android.graphics.Canvas) {
+    CanvasDrawScope().draw(
+      density,
+      layoutDirection,
+      androidx.compose.ui.graphics.Canvas(canvas),
+      layer.size.toSize(),
+    ) { drawLayer(layer) }
   }
 }
 
@@ -90,7 +139,15 @@ internal data class PlayerSheetAnchor(
   val cornerRadius: Float,
   val backgroundColor: Color,
   val capture: PlayerSheetCapture? = null,
-)
+  val snapshot: ImageBitmap? = null,
+) {
+  val hasContent: Boolean
+    get() = snapshot != null || capture?.isRecorded == true
+
+  /** Detaches the anchor from its window so another Activity can draw it safely. */
+  fun frozen(): PlayerSheetAnchor =
+    if (snapshot != null || capture == null) this else copy(snapshot = capture.snapshot(), capture = null)
+}
 
 internal data class PlayerSheetEndpoints(
   val full: PlayerSheetAnchor,
@@ -135,6 +192,9 @@ internal object PlayerSheetTransitions {
   private var miniAnchor by mutableStateOf<PlayerSheetAnchor?>(null)
   private var miniPlacement by mutableStateOf<PlayerSheetAnchor?>(null)
   private var backdrop by mutableStateOf<PlayerSheetAnchor?>(null)
+  // Browser content frozen while MainActivity was still visible, for gestures inside the player.
+  private var browserBackdrop: PlayerSheetAnchor? = null
+  private var browserMini: PlayerSheetAnchor? = null
   private val pendingReleases = mutableSetOf<PlayerSheetCapture>()
   private val handler = Handler(Looper.getMainLooper())
   private var timeout: Runnable? = null
@@ -143,7 +203,14 @@ internal object PlayerSheetTransitions {
     private set
   var drag by mutableStateOf<PlayerSheetDrag?>(null)
     private set
+  /** Keeps the collapsed mini player shown until the playback service reports foreground. */
+  var collapsedMediaId by mutableStateOf<String?>(null)
+    private set
   var reducedMotion = false
+
+  fun releaseCollapsedHold(mediaId: String) {
+    if (collapsedMediaId == mediaId) collapsedMediaId = null
+  }
 
   fun anchor(destination: PlayerSheetDestination): PlayerSheetAnchor? =
     if (destination == PlayerSheetDestination.FULL) fullAnchor else miniAnchor
@@ -159,7 +226,8 @@ internal object PlayerSheetTransitions {
     active.endpoints = if (destination == PlayerSheetDestination.FULL) {
       active.endpoints.copy(full = anchor)
     } else {
-      active.endpoints.copy(mini = anchor)
+      // Keep the fixed placement as the target so the mini player's own layout cannot shift it.
+      active.endpoints.copy(mini = anchor.copy(bounds = active.endpoints.mini.bounds))
     }
     releaseUnusedCaptures()
   }
@@ -184,29 +252,73 @@ internal object PlayerSheetTransitions {
     if (miniPlacement?.owner === owner) miniPlacement = null
   }
 
+  /** Freezes the browser while MainActivity is still visible, before the player covers it. */
+  fun captureBrowser() {
+    if (motion != null || drag != null) return
+    browserBackdrop = backdrop?.frozen()?.takeIf { it.snapshot != null }
+    browserMini = miniAnchor?.takeIf { it.capture?.isRecorded == true }?.frozen()?.takeIf { it.snapshot != null }
+  }
+
+  fun clearBrowserCache() {
+    browserBackdrop = null
+    browserMini = null
+  }
+
   private fun endpoints(source: PlayerSheetDestination, mediaId: String): PlayerSheetEndpoints? {
-    val sourceAnchor = anchor(source)?.takeIf {
-      it.mediaId == mediaId && it.capture?.isRecorded == true
-    } ?: return null
-    val mini = miniAnchor?.takeIf { it.mediaId == mediaId }
-      ?: miniPlacement?.copy(mediaId = mediaId)
-      ?: return null
-    val full = fullAnchor?.takeIf { it.mediaId == mediaId }
-      ?: backdrop?.copy(mediaId = mediaId, cornerRadius = 0f, capture = null)
-      ?: return null
-    if (sourceAnchor.bounds.isEmpty || mini.bounds.isEmpty || full.bounds.isEmpty) return null
-    return PlayerSheetEndpoints(full, mini, backdrop)
+    val placement = miniPlacement ?: return null
+    val sourceAnchor = anchor(source)?.takeIf { it.mediaId == mediaId && it.hasContent } ?: return null
+    val pair = if (source == PlayerSheetDestination.MINI) {
+      PlayerSheetEndpoints(
+        // Opaque stand-in until the player's own sheet registers, so the browser never ghosts through.
+        full = backdrop?.copy(
+          mediaId = mediaId,
+          cornerRadius = 0f,
+          backgroundColor = sourceAnchor.backgroundColor.copy(alpha = 1f),
+          capture = null,
+          snapshot = null,
+        ) ?: return null,
+        mini = sourceAnchor.copy(bounds = placement.bounds),
+        backdrop = backdrop,
+      )
+    } else {
+      PlayerSheetEndpoints(
+        full = sourceAnchor,
+        mini = browserMini?.takeIf { it.mediaId == mediaId }?.copy(bounds = placement.bounds)
+          ?: placement.copy(mediaId = mediaId),
+        backdrop = browserBackdrop,
+      )
+    }
+    if (pair.full.bounds.isEmpty || pair.mini.bounds.isEmpty) return null
+    return pair
   }
 
   fun begin(destination: PlayerSheetDestination, mediaId: String?): Boolean {
-    if (mediaId == null) return false
+    if (mediaId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return false
     val source = if (destination == PlayerSheetDestination.FULL) PlayerSheetDestination.MINI else PlayerSheetDestination.FULL
     val activeDrag = drag?.takeIf { it.mediaId == mediaId && it.source == source }
     val previous = motion?.takeIf { it.endpoints.full.mediaId == mediaId }
-    val pair = activeDrag?.endpoints ?: previous?.endpoints ?: endpoints(source, mediaId)
-    if (pair == null) {
+    val sourcePair = activeDrag?.endpoints ?: previous?.endpoints ?: endpoints(source, mediaId)
+    if (sourcePair == null) {
       Log.d(TAG, "No recorded player sheet for $destination; keeping the Activity transition")
       return false
+    }
+    // The destination Activity draws this motion, so detach the source window's live layers.
+    val pair = if (destination == PlayerSheetDestination.FULL) {
+      sourcePair.copy(mini = sourcePair.mini.frozen(), backdrop = sourcePair.backdrop?.frozen())
+    } else {
+      sourcePair.copy(full = sourcePair.full.frozen())
+    }
+    val frozenSource = if (destination == PlayerSheetDestination.FULL) pair.backdrop else pair.full
+    if (frozenSource?.snapshot == null) {
+      Log.d(TAG, "Unable to freeze the source sheet for $destination; keeping the Activity transition")
+      return false
+    }
+    if (destination == PlayerSheetDestination.FULL) {
+      browserBackdrop = pair.backdrop
+      browserMini = pair.mini.takeIf { it.snapshot != null }
+      collapsedMediaId = null
+    } else {
+      collapsedMediaId = mediaId
     }
     val expansion = activeDrag?.expansion ?: previous?.expansion?.value
       ?: if (source == PlayerSheetDestination.FULL) 1f else 0f
@@ -235,9 +347,11 @@ internal object PlayerSheetTransitions {
   }
 
   fun startDrag(source: PlayerSheetDestination, mediaId: String?): PlayerSheetDrag? {
-    if (mediaId == null) return null
+    if (mediaId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
     val previous = motion?.takeIf { it.endpoints.full.mediaId == mediaId }
     val pair = previous?.endpoints ?: endpoints(source, mediaId) ?: return null
+    // Without a frozen browser, dragging inside the player would expose its black video surface.
+    if (source == PlayerSheetDestination.FULL && pair.backdrop?.snapshot == null) return null
     val expansion = previous?.expansion?.value
       ?: if (source == PlayerSheetDestination.FULL) 1f else 0f
     val active = PlayerSheetDrag(source, mediaId, pair, expansion)
@@ -301,7 +415,9 @@ private fun Modifier.recordPlayerSheet(
   val view = LocalView.current
   val density = LocalDensity.current
   val direction = LocalLayoutDirection.current
-  val capture = remember(context, destination, mediaId) { PlayerSheetCapture(context) }
+  val capture = remember(context, view, destination, mediaId, density, direction) {
+    PlayerSheetCapture(context, view, density, direction)
+  }
   val owner = remember(capture) { Any() }
   var coordinates by remember(capture) { mutableStateOf<LayoutCoordinates?>(null) }
 
@@ -326,14 +442,10 @@ private fun Modifier.recordPlayerSheet(
       updateAnchor(it)
     }
     .drawWithContent {
+      // Keep recording while hidden so artwork and controls stay live under the morph.
+      capture.layer.record { this@drawWithContent.drawContent() }
+      capture.isRecorded = true
       val hidden = destination != null && PlayerSheetTransitions.isHidden(destination, mediaId)
-      val freezeBackdrop = destination == null &&
-        (PlayerSheetTransitions.motion != null || PlayerSheetTransitions.drag != null)
-      // Reuse the display list during the morph instead of recording the whole player each frame.
-      if (!capture.isRecorded || (!hidden && !freezeBackdrop)) {
-        capture.layer.record { this@drawWithContent.drawContent() }
-        capture.isRecorded = true
-      }
       if (!hidden) {
         capture.layer.alpha = 1f
         drawLayer(capture.layer)
@@ -375,19 +487,34 @@ internal fun Modifier.playerSheetMiniPlacement(shape: Shape, backgroundColor: Co
   }
 }
 
+private fun DrawScope.drawSheetContent(
+  anchor: PlayerSheetAnchor,
+  hostView: View,
+  left: Float,
+  top: Float,
+  alpha: Float,
+) {
+  if (alpha <= 0f) return
+  val snapshot = anchor.snapshot
+  if (snapshot != null) {
+    drawImage(snapshot, topLeft = Offset(left, top), alpha = alpha)
+    return
+  }
+  val capture = anchor.capture?.takeIf { it.isRecorded && it.view.rootView === hostView.rootView } ?: return
+  capture.layer.alpha = alpha
+  translate(left, top) { drawLayer(capture.layer) }
+}
+
 private fun DrawScope.drawPlayerSheet(
   endpoints: PlayerSheetEndpoints,
   expansion: Float,
+  hostView: View,
   origin: Offset,
   drawBackdrop: Boolean,
 ) {
   if (drawBackdrop) {
-    val backdrop = endpoints.backdrop
-    val capture = backdrop?.capture?.takeIf { it.isRecorded }
-    if (backdrop != null && capture != null) {
-      translate(backdrop.bounds.left - origin.x, backdrop.bounds.top - origin.y) {
-        drawLayer(capture.layer)
-      }
+    endpoints.backdrop?.let {
+      drawSheetContent(it, hostView, it.bounds.left - origin.x, it.bounds.top - origin.y, 1f)
     }
   }
   val fraction = expansion.coerceIn(0f, 1f)
@@ -408,21 +535,14 @@ private fun DrawScope.drawPlayerSheet(
       topLeft = sheetBounds.topLeft,
       size = sheetBounds.size,
     )
-    full.capture?.takeIf { it.isRecorded }?.let {
-      it.layer.alpha = fullAlpha
-      translate(
-        sheetBounds.center.x - full.bounds.width / 2f,
-        sheetBounds.top + 24.dp.toPx() * (1f - fullAlpha),
-      ) {
-        drawLayer(it.layer)
-      }
-    }
-    mini.capture?.takeIf { it.isRecorded }?.let {
-      it.layer.alpha = miniAlpha
-      translate(sheetBounds.center.x - mini.bounds.width / 2f, sheetBounds.top) {
-        drawLayer(it.layer)
-      }
-    }
+    drawSheetContent(
+      full,
+      hostView,
+      sheetBounds.center.x - full.bounds.width / 2f,
+      sheetBounds.top + 24.dp.toPx() * (1f - fullAlpha),
+      fullAlpha,
+    )
+    drawSheetContent(mini, hostView, sheetBounds.center.x - mini.bounds.width / 2f, sheetBounds.top, miniAlpha)
   }
 }
 
@@ -439,7 +559,8 @@ internal fun PlayerSheetTransitionOverlay(
   val reducedMotion = AppMotion.shouldReduceMotion()
   val animationSpec = remember { MotionScheme.expressive().defaultSpatialSpec<Float>() }
   val view = LocalView.current
-  var origin by remember { mutableStateOf<Offset?>(null) }
+  // Written during layout, which runs before draw in the same frame, so the first frame is placed.
+  val origin = remember { arrayOf(Offset.Zero) }
 
   SideEffect { PlayerSheetTransitions.reducedMotion = reducedMotion }
   LaunchedEffect(session.currentItem?.stableId) {
@@ -448,22 +569,28 @@ internal fun PlayerSheetTransitionOverlay(
     }
     drag?.takeIf { it.mediaId != session.currentItem?.stableId }?.let(PlayerSheetTransitions::cancelDrag)
   }
-  LaunchedEffect(motion?.id, lifecycle, origin != null) {
+  LaunchedEffect(motion?.id, lifecycle) {
     val active = motion ?: return@LaunchedEffect
-    if (active.destination != destination || origin == null) return@LaunchedEffect
+    if (active.destination != destination) return@LaunchedEffect
     lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
       try {
-        val target = withTimeoutOrNull(1_000L) {
-          snapshotFlow {
-            PlayerSheetTransitions.anchor(destination)?.takeIf {
-              it.mediaId == active.endpoints.full.mediaId && it.capture?.isRecorded == true
-            }
-          }.filterNotNull().first()
+        // The mini target is the fixed placement, so collapsing never waits on the mini player.
+        if (destination == PlayerSheetDestination.FULL) {
+          val target = withTimeoutOrNull(1_500L) {
+            snapshotFlow {
+              PlayerSheetTransitions.anchor(destination)?.takeIf {
+                it.mediaId == active.endpoints.full.mediaId && it.capture?.isRecorded == true
+              }
+            }.filterNotNull().first()
+          }
+          if (target == null) {
+            Log.w("PlayerSheetTransitions", "Destination $destination did not record a player sheet")
+            return@repeatOnLifecycle
+          }
         }
-        if (target == null) {
-          Log.w("PlayerSheetTransitions", "Destination $destination did not record a player sheet")
-          return@repeatOnLifecycle
-        }
+        // Hold the start pose through the destination's first heavy frames; a spring started
+        // during Activity startup gets frame-dropped and visibly jumps.
+        repeat(2) { withFrameNanos { } }
         active.renderDestination = destination
         val targetExpansion = if (destination == PlayerSheetDestination.FULL) 1f else 0f
         if (reducedMotion) {
@@ -490,13 +617,13 @@ internal fun PlayerSheetTransitionOverlay(
   val showDrag = drag?.source == destination && !reducedMotion
   if (!showMotion && !showDrag) return
   Canvas(
-    modifier = modifier.fillMaxSize().onGloballyPositioned { origin = it.sheetScreenBounds(view).topLeft },
+    modifier = modifier.fillMaxSize().onGloballyPositioned { origin[0] = it.sheetScreenBounds(view).topLeft },
   ) {
-    val positionedOrigin = origin ?: return@Canvas
+    val drawBackdrop = destination == PlayerSheetDestination.FULL
     if (showMotion && motion != null) {
-      drawPlayerSheet(motion.endpoints, motion.expansion.value, positionedOrigin, destination == PlayerSheetDestination.FULL)
+      drawPlayerSheet(motion.endpoints, motion.expansion.value, view, origin[0], drawBackdrop)
     } else if (showDrag && drag != null) {
-      drawPlayerSheet(drag.endpoints, drag.expansion, positionedOrigin, destination == PlayerSheetDestination.FULL)
+      drawPlayerSheet(drag.endpoints, drag.expansion, view, origin[0], drawBackdrop)
     }
   }
 }

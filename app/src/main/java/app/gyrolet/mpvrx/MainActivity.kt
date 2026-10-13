@@ -86,6 +86,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
 import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitionOverlay
+import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.playerSheetBackdrop
 import app.gyrolet.mpvrx.ui.player.playerSheetMiniPlacement
 import app.gyrolet.mpvrx.ui.player.PlayerLifecyclePolicy
@@ -332,6 +333,15 @@ open class MainActivity : AppCompatActivity() {
         }
       }
     }
+    // The browser is visible again; drop the frozen copy kept for in-player gestures.
+    PlayerSheetTransitions.clearBrowserCache()
+  }
+
+  override fun onPause() {
+    // Still on screen here, so this is the last point where the browser layer can be frozen
+    // for the player's swipe-down and predictive-back previews.
+    PlayerSheetTransitions.captureBrowser()
+    super.onPause()
   }
 
   override fun onWindowFocusChanged(hasFocus: Boolean) {

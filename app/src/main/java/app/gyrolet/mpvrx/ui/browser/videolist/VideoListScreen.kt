@@ -80,6 +80,7 @@ import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.MediaLayoutMode
 import app.gyrolet.mpvrx.preferences.SortOrder
 import app.gyrolet.mpvrx.preferences.SecureFolderPreferences
+import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
@@ -123,6 +124,7 @@ import app.gyrolet.mpvrx.utils.media.CopyPasteOps
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import app.gyrolet.mpvrx.utils.media.MediaSearchEngine
 import app.gyrolet.mpvrx.utils.media.OpenDocumentTreeContract
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.sort.SortUtils
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -145,6 +147,8 @@ data class VideoListScreen(
     val coroutineScope = rememberCoroutineScope()
     val backstack = LocalBackStack.current
     val browserPreferences = koinInject<BrowserPreferences>()
+    val playerPreferences = koinInject<PlayerPreferences>()
+    val playlistMode by playerPreferences.playlistMode.collectAsState()
     val appearancePreferences = koinInject<app.gyrolet.mpvrx.preferences.AppearancePreferences>()
     val showQuickPlayFab by appearancePreferences.showQuickPlayFab.collectAsState()
     val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
@@ -171,6 +175,7 @@ data class VideoListScreen(
     val lastPlayedInFolderPath by viewModel.lastPlayedInFolderPath.collectAsState()
     val videosWereDeletedOrMoved by viewModel.videosWereDeletedOrMoved.collectAsState()
     val archiveFolder = remember(bucketId) { ZipArchiveMedia.isBrowserPath(bucketId) }
+    val scopedFolder = remember(bucketId) { ScopedHiddenFolderScanner.isScopedFolder(bucketId) }
 
     // Sorting
     val videoSortType by browserPreferences.videoSortType.collectAsState()
@@ -469,6 +474,20 @@ data class VideoListScreen(
                   ),
               onClick = {
                 coroutineScope.launch {
+                  if (scopedFolder) {
+                    val folderPaths = sortedVideos.mapTo(hashSetOf()) { it.path }
+                    val lastPlayed =
+                      RecentlyPlayedOps.getRecentlyPlayed(limit = 100)
+                        .firstOrNull { it.filePath in folderPaths }
+                    val startIndex =
+                      sortedVideos.indexOfFirst { it.path == lastPlayed?.filePath }.coerceAtLeast(0)
+                    if (playlistMode) {
+                      MediaUtils.playFiles(sortedVideos, context, startIndex, "video_list")
+                    } else {
+                      MediaUtils.playFile(sortedVideos[startIndex], context, "video_list")
+                    }
+                    return@launch
+                  }
                   val folderPath =
                     sortedVideosWithInfo
                       .firstOrNull()
@@ -520,9 +539,14 @@ data class VideoListScreen(
             if (selectionManager.isInSelectionMode && !archiveFolder) {
               selectionManager.toggleFromUser(video)
             } else if (!selectionManager.isInSelectionMode) {
-              if (archiveFolder) {
-                val startIndex = sortedVideos.indexOfFirst { it.id == video.id }.coerceAtLeast(0)
-                MediaUtils.playFiles(sortedVideos, context, startIndex, "zip_folder")
+              if (archiveFolder || (scopedFolder && playlistMode)) {
+                val startIndex = sortedVideos.indexOfFirst { it.uri == video.uri }.coerceAtLeast(0)
+                MediaUtils.playFiles(
+                  sortedVideos,
+                  context,
+                  startIndex,
+                  if (archiveFolder) "zip_folder" else "video_list",
+                )
               } else {
                 MediaUtils.playFile(video, context, "video_list")
               }

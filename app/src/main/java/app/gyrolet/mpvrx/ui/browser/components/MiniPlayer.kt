@@ -20,6 +20,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
@@ -111,8 +112,10 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import kotlin.math.abs
@@ -149,7 +152,18 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
 
   val isMiniPlayerAllowed = isAudioOnlyItem || enableVideoMiniPlayer
 
-  val isMediaActive = isServiceRunning && currentItem != null &&
+  // A full-player collapse lands here before the service flips to foreground; showing the mini
+  // player only after that would make it pop out and slide back in under the finished morph.
+  val collapseHoldId = PlayerSheetTransitions.collapsedMediaId?.takeIf { it == currentItem?.stableId }
+  LaunchedEffect(collapseHoldId) {
+    val heldId = collapseHoldId ?: return@LaunchedEffect
+    withTimeoutOrNull(2_000L) {
+      while (!MediaPlaybackService.isForegroundActive()) delay(50L)
+    }
+    PlayerSheetTransitions.releaseCollapsedHold(heldId)
+  }
+
+  val isMediaActive = (isServiceRunning || collapseHoldId != null) && currentItem != null &&
     !isSettingsScreen &&
     isMiniPlayerAllowed &&
     sessionState.phase != PlaybackPhase.IDLE &&
@@ -166,7 +180,9 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   val reduceMotion = AppMotion.shouldReduceMotion()
   AnimatedVisibility(
     visible = isMediaActive,
-    enter = if (reduceMotion) {
+    enter = if (collapseHoldId != null) {
+      EnterTransition.None
+    } else if (reduceMotion) {
       fadeIn(animationSpec = tween(120))
     } else {
       slideInVertically(

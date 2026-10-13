@@ -10,6 +10,7 @@ import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -21,6 +22,8 @@ import java.util.Locale
  * Play Store-safe explicit folder grants. Never tries to translate a SAF URI into a raw file path:
  * every playable item retains its content:// URI. Only immediate children of user-picked folders
  * are scanned; the user can explicitly add another nested folder without recursive storage walks.
+ * Metadata is read through the same grants, not filesystem paths or MediaStore permissions.
+ * The player also uses this scan to rebuild sibling queues for history and other single-item launches.
  */
 object ScopedHiddenFolderScanner {
   private const val TAG = "ScopedHiddenFolderScanner"
@@ -58,7 +61,7 @@ object ScopedHiddenFolderScanner {
     readVideos(context, treeUri, includeAudio)
   }
 
-  private fun readVideos(
+  private suspend fun readVideos(
     context: Context,
     treeUri: String,
     includeAudio: Boolean,
@@ -66,6 +69,7 @@ object ScopedHiddenFolderScanner {
     val root = openPersistedTreeDocument(context, treeUri) ?: return emptyList()
     val folderName = root.name ?: "Selected folder"
     return listTreeFilesSafely(root).mapNotNull { document ->
+      currentCoroutineContext().ensureActive()
       run {
         val name = document.name ?: return@run null
         try {
@@ -77,14 +81,24 @@ object ScopedHiddenFolderScanner {
           val uriString = documentUri.toString()
           val length = document.length().coerceAtLeast(0L)
           val modified = (document.lastModified() / 1_000L).coerceAtLeast(0L)
+          val metadata =
+            MediaInfoOps.extractBasicMetadata(context, documentUri, name)
+              .onFailure { error ->
+                if (error is CancellationException) throw error
+                Log.w(TAG, "Cannot read metadata in a selected folder: $name", error)
+              }.getOrNull()
+          val duration = metadata?.durationMs ?: 0L
+          if (metadata != null && duration <= 0L) {
+            Log.w(TAG, "No duration available for an item in a selected folder: $name")
+          }
           Video(
             id = uriString.hashCode().toLong(),
             title = name.substringBeforeLast('.', name),
             displayName = name,
             path = uriString,
             uri = documentUri,
-            duration = 0L,
-            durationFormatted = VideoScanUtils.formatDuration(0L),
+            duration = duration,
+            durationFormatted = VideoScanUtils.formatDuration(duration),
             size = length,
             sizeFormatted = VideoScanUtils.formatFileSize(length),
             dateModified = modified,
@@ -92,12 +106,19 @@ object ScopedHiddenFolderScanner {
             mimeType = document.type ?: if (isAudio) "audio/*" else "video/*",
             bucketId = treeUri,
             bucketDisplayName = folderName,
-            width = 0,
-            height = 0,
-            fps = 0f,
-            resolution = "",
+            width = metadata?.width ?: 0,
+            height = metadata?.height ?: 0,
+            fps = metadata?.fps ?: 0f,
+            resolution =
+              metadata?.let { VideoScanUtils.formatResolutionWithFps(it.width, it.height, it.fps) }.orEmpty(),
+            hasEmbeddedSubtitles = metadata?.hasEmbeddedSubtitles ?: false,
+            subtitleCodec = metadata?.subtitleCodec.orEmpty(),
+            videoCodec = metadata?.videoCodec.orEmpty(),
+            videoCodecMimeType = metadata?.videoCodecMimeType.orEmpty(),
             isAudio = isAudio,
           )
+        } catch (error: CancellationException) {
+          throw error
         } catch (error: Exception) {
           Log.w(TAG, "Cannot read an item in a selected folder: $name", error)
           null

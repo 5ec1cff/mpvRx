@@ -35,6 +35,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -127,6 +128,7 @@ import app.gyrolet.mpvrx.utils.media.M3UParseResult
 import app.gyrolet.mpvrx.utils.media.M3UParser
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.media.SharedUrlExtractor
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.media.SubtitleOps
 import app.gyrolet.mpvrx.utils.media.listTreeFilesSafely
 import app.gyrolet.mpvrx.utils.media.openPersistedTreeDocument
@@ -8280,17 +8282,54 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     expectedGeneration: Long = mediaRequestGeneration,
   ): Boolean =
     runCatching {
-      val currentFile = File(currentPath)
-      if (!currentFile.exists()) return@runCatching false
-
       val launchSource = intent.getStringExtra("launch_source") ?: ""
-      val siblingFiles = resolveAutoPlaylistSiblingFiles(currentFile, launchSource)
-      if (siblingFiles.size <= 1) return@runCatching false
+      val scopedUri =
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          Uri.parse(currentPath).takeIf { ScopedHiddenFolderScanner.isScopedFolder(it.toString()) }
+            ?: intent.data?.takeIf { ScopedHiddenFolderScanner.isScopedFolder(it.toString()) }
+        } else {
+          null
+        }
+      val siblingUris =
+        if (scopedUri != null) {
+          val treeUri =
+            DocumentsContract.buildTreeDocumentUri(
+              scopedUri.authority,
+              DocumentsContract.getTreeDocumentId(scopedUri),
+            )
+          val isAudioTarget = isKnownAudioLaunch(intent)
+          val minimumAudioDurationMs = browserPreferences.minimumAudioDurationSeconds.get() * 1000L
+          val videos =
+            ScopedHiddenFolderScanner.getVideos(
+              this,
+              treeUri.toString(),
+              includeAudio = isAudioTarget || browserPreferences.includeAudioBrowser.get(),
+            ).filter { video ->
+              if (isAudioTarget) {
+                video.isAudio && video.duration >= minimumAudioDurationMs
+              } else {
+                !video.isAudio || browserPreferences.includeAudioBrowser.get()
+              }
+            }
+          app.gyrolet.mpvrx.utils.sort.SortUtils.sortVideos(
+            videos,
+            browserPreferences.videoSortType.get(),
+            browserPreferences.videoSortOrder.get(),
+          ).map { it.uri }
+        } else {
+          val currentFile = File(currentPath)
+          if (!currentFile.exists()) return@runCatching false
+          resolveAutoPlaylistSiblingFiles(currentFile, launchSource).map { it.toUri() }
+        }
+      if (siblingUris.size <= 1) return@runCatching false
 
-      val currentFilePath = normalizePlaylistFilePath(currentFile.absolutePath)
       val newIndex =
-        siblingFiles.indexOfFirst {
-          normalizePlaylistFilePath(it.absolutePath) == currentFilePath
+        siblingUris.indexOfFirst {
+          if (scopedUri != null) {
+            it == scopedUri
+          } else {
+            normalizePlaylistFilePath(it.path.orEmpty()) == normalizePlaylistFilePath(File(currentPath).absolutePath)
+          }
         }
       if (newIndex < 0) return@runCatching false
       if (!isCurrentMediaRequest(expectedGeneration)) return@runCatching false
@@ -8300,7 +8339,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         playlistEntity = null
         playlistItems = emptyList()
         isM3uPlaylist = false
-        playlist = siblingFiles.map { it.toUri() }
+        playlist = siblingUris
         // The temporary one-item queue already synced index-aligned metadata for the launched
         // file; clearing it stops its title/artwork from leaking onto the folder's first entry.
         networkPlaylistPaths = emptyList()
@@ -8320,6 +8359,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
       true
     }.onFailure { error ->
+      if (error is CancellationException) throw error
       Log.e(TAG, "Failed to auto-generate playlist", error)
     }.getOrDefault(false)
 
