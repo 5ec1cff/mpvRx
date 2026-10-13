@@ -3,6 +3,8 @@ package app.gyrolet.mpvrx.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +26,7 @@ fun AppDropdownMenu(
   offset: DpOffset = DpOffset(0.dp, 0.dp),
   scrollState: ScrollState = rememberScrollState(),
   properties: PopupProperties = PopupProperties(focusable = true),
-  shape: Shape = MaterialTheme.shapes.extraLargeIncreased,
+  shape: Shape = RoundedCornerShape(20.dp),
   containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
   tonalElevation: Dp = MenuDefaults.TonalElevation,
   shadowElevation: Dp = MenuDefaults.ShadowElevation,
@@ -32,7 +34,7 @@ fun AppDropdownMenu(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   androidx.compose.material3.DropdownMenu(
-    expanded = expanded, onDismissRequest = onDismissRequest, modifier = modifier,
+    expanded = expanded, onDismissRequest = onDismissRequest, modifier = modifier.widthIn(max = 320.dp),
     offset = offset, scrollState = scrollState, properties = properties, shape = shape,
     containerColor = containerColor, tonalElevation = tonalElevation, shadowElevation = shadowElevation,
     border = border, content = content,
