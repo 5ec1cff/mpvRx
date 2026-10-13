@@ -97,6 +97,7 @@ object TreeViewScanner {
     thresholdDays: Int = 7,
     maxAutoFlattenLevels: Int = -1,
     newLabelOverrides: Map<String, Boolean> = emptyMap(),
+    blacklistedPaths: Set<String> = emptySet(),
   ): List<FolderData> =
     withContext(Dispatchers.IO) {
       val allFolders =
@@ -110,7 +111,10 @@ object TreeViewScanner {
           newLabelOverrides = newLabelOverrides,
         )
 
-      getEffectiveChildren(parentPath, allFolders, maxAutoFlattenLevels)
+      // Recompute recursive counts after removing blacklisted branches, otherwise their
+      // old parent counters leave empty phantom folders visible in Tree view.
+      val visibleFolders = filterBlacklistedTree(context, allFolders, blacklistedPaths)
+      getEffectiveChildren(parentPath, visibleFolders, maxAutoFlattenLevels)
         .map(::toFolderData)
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -744,6 +748,27 @@ object TreeViewScanner {
     } catch (e: Exception) {
       Log.w(TAG, "Error scanning: ${directory.absolutePath}", e)
     }
+  }
+
+  /**
+   * Make a filtered copy: never mutate the shared MediaStore-backed tree cache, which is also
+   * used by the unfiltered scanner and other screens.
+   */
+  private fun filterBlacklistedTree(
+    context: Context,
+    allFolders: Map<String, FolderNode>,
+    blacklistedPaths: Set<String>,
+  ): Map<String, FolderNode> {
+    if (blacklistedPaths.isEmpty()) return allFolders
+    val visible = linkedMapOf<String, FolderNode>()
+    for ((key, node) in allFolders) {
+      if (blacklistedPaths.any { isMediaPathInFolder(node.path, it) }) continue
+      visible[key] = node.copy(isFlattened = false, hasDirectSubfolders = false)
+    }
+    buildParentHierarchy(visible)
+    markFlattenedFolders(visible, getStorageRootKeys(context))
+    visible.entries.removeIf { it.value.recursiveVideoCount <= 0 }
+    return visible
   }
 
   private fun buildParentHierarchy(folders: MutableMap<String, FolderNode>) {

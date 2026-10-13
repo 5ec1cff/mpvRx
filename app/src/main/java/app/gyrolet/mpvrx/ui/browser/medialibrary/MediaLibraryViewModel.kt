@@ -91,7 +91,6 @@ class MediaLibraryViewModel(
     audioBlacklist: Set<String>,
   ): Boolean {
     if (video.path in hidden) return false
-    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return true
     val blacklist = if (video.isAudio) audioBlacklist else videoBlacklist
     return blacklist.none { folder ->
       app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.bucketId, folder) ||

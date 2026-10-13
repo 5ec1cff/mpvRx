@@ -222,7 +222,7 @@ class FileSystemBrowserViewModel(
         foldersPreferences.blacklistedFolders.changes(),
         foldersPreferences.blacklistedAudioFolders.changes(),
       ) { items, sortType, sortOrder, videoBlacklist, audioBlacklist ->
-        val visibleItems = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        val visibleItems = run {
           items.filter { item ->
             val videoHidden = videoBlacklist.any {
               app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(item.path, it)
@@ -236,8 +236,6 @@ class FileSystemBrowserViewModel(
                 !videoHidden || (browserPreferences.includeAudioBrowser.get() && !audioHidden)
             }
           }
-        } else {
-          items
         }
         // Sort using the same logic as Fossify's FileDirItem.sort()
         SortUtils.sortFileSystemItems(visibleItems, sortType, sortOrder)
@@ -245,6 +243,17 @@ class FileSystemBrowserViewModel(
         _items.value = sortedItems
         Log.d(TAG, "Items sorted: ${sortedItems.size} items")
       }
+    }
+
+    // Blacklist changes must also refresh the cached hierarchy. Simply filtering the top
+    // directory's items leaves parent folders counted entirely from excluded descendants.
+    viewModelScope.launch {
+      combine(
+        foldersPreferences.blacklistedFolders.changes(),
+        foldersPreferences.blacklistedAudioFolders.changes(),
+      ) { video, audio -> video to audio }
+        .drop(1)
+        .collectLatest { loadCurrentDirectory() }
     }
 
     // Recalculate NEW badges when the appearance preference changes.

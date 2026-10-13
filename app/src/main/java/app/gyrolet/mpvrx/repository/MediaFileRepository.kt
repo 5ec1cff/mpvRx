@@ -625,6 +625,7 @@ object MediaFileRepository : KoinComponent {
             thresholdDays = thresholdDays,
             maxAutoFlattenLevels = browserPreferences.treeFlattenDepth.get().maxLevels,
             newLabelOverrides = newLabelOverrides,
+            blacklistedPaths = foldersPreferences.blacklistedFolders.get(),
           )
         folders.forEach { folderData ->
           items.add(
