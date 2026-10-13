@@ -593,17 +593,32 @@ class ThumbnailRepository(
       }
     }.getOrNull()
 
-  private fun generateEmbeddedArtwork(video: Video): Bitmap? =
-    runCatching {
-      val retriever = MediaMetadataRetriever()
-      try {
-        val canonicalPath = canonicalLocalPath(video)
-        setLocalDataSource(retriever, video)
-        EmbeddedArtworkResolver.decodeEmbeddedArtwork(canonicalPath, retriever)?.scaleToThumbnailMax(thumbnailMaxSize())
-      } finally {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) retriever.close() else retriever.release()
-      }
-    }.getOrNull()
+  private fun generateEmbeddedArtwork(video: Video): Bitmap? {
+    val canonicalPath = canonicalLocalPath(video)
+    // Some Android retrievers reject Matroska attachments or SAF providers. Their failure must
+    // not prevent the independent container/sidecar artwork paths from being tried.
+    val retrieverArtwork =
+      runCatching {
+        val retriever = MediaMetadataRetriever()
+        try {
+          setLocalDataSource(retriever, video)
+          EmbeddedArtworkResolver.decodeRetrieverArtwork(retriever)
+        } finally {
+          runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) retriever.close() else retriever.release()
+          }
+        }
+      }.getOrNull()
+    return (
+      retrieverArtwork
+        ?: EmbeddedArtworkResolver.decodeContainerOrSidecar(
+          videoPath = canonicalPath,
+          context = context,
+          videoUri = video.uri,
+          displayName = video.displayName,
+        )
+      )?.scaleToThumbnailMax(thumbnailMaxSize())
+  }
 
   private suspend fun generateWithFastThumbnails(
     video: Video,
@@ -631,10 +646,7 @@ class ThumbnailRepository(
       }
     val lastSafePosition = (durationSeconds - 0.1).coerceAtLeast(0.0)
     val positions =
-      when (mode) {
-        ThumbnailMode.Smart -> listOf(requestedPosition, 10.0, 20.0, 30.0)
-        else -> listOf(requestedPosition)
-      }.map { position ->
+      listOf(requestedPosition).map { position ->
         if (durationSeconds > 0.0) position.coerceIn(0.0, lastSafePosition) else position.coerceAtLeast(0.0)
       }.distinct()
 
@@ -970,7 +982,7 @@ class ThumbnailRepository(
         is ThumbnailStrategy.Hybrid -> decodeHybridFrame(retriever, strategy.percentage, targetWidth, targetHeight)
         is ThumbnailStrategy.EmbeddedOrHybrid ->
           embeddedPicture?.also { shouldRotate = false }
-            ?: decodeHybridFrame(retriever, strategy.percentage, targetWidth, targetHeight)
+            ?: getFrameAt(retriever, frameTimeMicros(retriever, strategy.percentage), targetWidth, targetHeight)
       } ?: return null
 
     return if (shouldRotate) rotateBitmapIfNeeded(retriever, raw) else raw

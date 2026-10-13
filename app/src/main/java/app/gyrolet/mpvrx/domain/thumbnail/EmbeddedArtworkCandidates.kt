@@ -100,10 +100,25 @@ internal object EmbeddedArtworkResolver {
   fun decodeEmbeddedArtwork(
     videoPath: String?,
     retriever: MediaMetadataRetriever,
-    pictureBytes: ByteArray? = retriever.embeddedPicture,
+    pictureBytes: ByteArray? = runCatching { retriever.embeddedPicture }.getOrNull(),
   ): Bitmap? =
     decodeRetrieverArtwork(retriever, pictureBytes)
-      ?: MatroskaEmbeddedArtworkExtractor.decode(videoPath)
+      ?: decodeContainerOrSidecar(videoPath)
+
+  fun decodeContainerOrSidecar(
+    videoPath: String?,
+    context: Context? = null,
+    videoUri: Uri? = null,
+    displayName: String? = null,
+  ): Bitmap? =
+    MatroskaEmbeddedArtworkExtractor.decode(videoPath)
+      ?: (if (context != null) {
+        videoUri?.takeIf { it.scheme == "content" }?.let { uri ->
+          MatroskaEmbeddedArtworkExtractor.decode(context, uri, displayName ?: videoPath)
+        }
+      } else {
+        null
+      })
       ?: decodeSidecar(videoPath)
 
   fun decodeSidecar(videoPath: String?): Bitmap? =
@@ -119,11 +134,23 @@ internal object EmbeddedArtworkResolver {
 
   fun decodeRetrieverArtwork(
     retriever: MediaMetadataRetriever,
-    pictureBytes: ByteArray? = retriever.embeddedPicture,
+    pictureBytes: ByteArray? = runCatching { retriever.embeddedPicture }.getOrNull(),
   ): Bitmap? {
     pictureBytes
       ?.takeIf { it.isNotEmpty() }
-      ?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }
+      ?.let { bytes ->
+        runCatching {
+          val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+          BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+          BitmapFactory.decodeByteArray(
+            bytes, 0, bytes.size,
+            BitmapFactory.Options().apply {
+              inSampleSize = calculateThumbnailSampleSize(bounds.outWidth, bounds.outHeight)
+              inPreferredConfig = Bitmap.Config.RGB_565
+            },
+          )
+        }.getOrNull()
+      }
       ?.let { return it }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

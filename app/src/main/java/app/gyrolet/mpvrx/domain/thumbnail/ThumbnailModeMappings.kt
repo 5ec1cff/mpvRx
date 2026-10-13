@@ -26,10 +26,10 @@ internal fun ThumbnailStrategy.prefersEmbeddedPicture(): Boolean =
 
 fun ThumbnailMode.thumbnailModeCacheKey(framePositionPercent: Float): String =
   when (this) {
-    ThumbnailMode.Smart -> "Smart_embedded_v2"
+    ThumbnailMode.Smart -> "Smart_embedded_v3_33pct"
     ThumbnailMode.FrameAtPosition ->
       "FrameAtPosition_${framePositionPercent.coerceIn(0f, 100f).roundToInt()}"
-    ThumbnailMode.EmbeddedThumbnail -> "EmbeddedThumbnail_v2"
+    ThumbnailMode.EmbeddedThumbnail -> "EmbeddedThumbnail_v3"
     else -> name
   }
 

@@ -11,7 +11,12 @@ package app.gyrolet.mpvrx.domain.thumbnail
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.content.Context
+import android.net.Uri
+import java.io.FileInputStream
 import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import kotlin.math.min
 
 internal object MatroskaEmbeddedArtworkExtractor {
@@ -28,13 +33,47 @@ internal object MatroskaEmbeddedArtworkExtractor {
     val localPath = path?.toLocalFilePath()?.takeIf { it.hasMatroskaExtension() } ?: return null
     return runCatching {
       RandomAccessFile(localPath, "r").use { file ->
-        findArtwork(file, start = 0L, end = file.length(), depth = 0)?.decode(file)
+        val reader = SeekableMedia(file.channel)
+        findArtwork(reader, start = 0L, end = reader.length(), depth = 0)?.decode(reader)
       }
     }.getOrNull()
   }
 
+  /** Read attachments from an Android document-tree grant without copying a whole video to disk. */
+  fun decode(context: Context, uri: Uri, displayName: String?): Bitmap? {
+    if (displayName?.hasMatroskaExtension() != true) return null
+    return runCatching {
+      context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+        FileInputStream(descriptor.fileDescriptor).channel.use { channel ->
+          val reader = SeekableMedia(channel)
+          findArtwork(reader, start = 0L, end = reader.length(), depth = 0)?.decode(reader)
+        }
+      }
+    }.getOrNull()
+  }
+
+  private class SeekableMedia(private val channel: FileChannel) {
+    private val oneByte = ByteBuffer.allocate(1)
+
+    fun length(): Long = channel.size()
+    fun position(): Long = channel.position()
+    fun seek(offset: Long) { channel.position(offset) }
+
+    fun read(): Int {
+      oneByte.clear()
+      return if (channel.read(oneByte) == 1) oneByte.array()[0].toInt() and 0xFF else -1
+    }
+
+    fun readFully(bytes: ByteArray) {
+      val buffer = ByteBuffer.wrap(bytes)
+      while (buffer.hasRemaining()) {
+        if (channel.read(buffer) <= 0) throw java.io.EOFException("Truncated Matroska attachment")
+      }
+    }
+  }
+
   private fun findArtwork(
-    file: RandomAccessFile,
+    file: SeekableMedia,
     start: Long,
     end: Long,
     depth: Int,
@@ -62,7 +101,7 @@ internal object MatroskaEmbeddedArtworkExtractor {
   }
 
   private fun parseAttachedFile(
-    file: RandomAccessFile,
+    file: SeekableMedia,
     start: Long,
     end: Long,
   ): Attachment? {
@@ -98,7 +137,7 @@ internal object MatroskaEmbeddedArtworkExtractor {
     ).takeIf { it.isImage && it.dataSize in 1..MAX_ATTACHMENT_BYTES }
   }
 
-  private fun Attachment.decode(file: RandomAccessFile): Bitmap? {
+  private fun Attachment.decode(file: SeekableMedia): Bitmap? {
     if (dataOffset < 0 || dataSize <= 0 || dataSize > MAX_ATTACHMENT_BYTES) return null
     val bytes = ByteArray(dataSize.toInt())
     file.seek(dataOffset)
@@ -117,19 +156,19 @@ internal object MatroskaEmbeddedArtworkExtractor {
     )
   }
 
-  private fun readElementHeader(file: RandomAccessFile): ElementHeader? {
-    val start = file.filePointer
+  private fun readElementHeader(file: SeekableMedia): ElementHeader? {
+    val start = file.position()
     val id = readEbmlId(file) ?: return null
     val size = readEbmlSize(file) ?: return null
     return ElementHeader(
       id = id,
       size = size,
-      dataOffset = file.filePointer,
-      headerSize = file.filePointer - start,
+      dataOffset = file.position(),
+      headerSize = file.position() - start,
     )
   }
 
-  private fun readEbmlId(file: RandomAccessFile): Long? {
+  private fun readEbmlId(file: SeekableMedia): Long? {
     val first = file.read()
     if (first < 0) return null
     val length = vintLength(first).takeIf { it in 1..4 } ?: return null
@@ -142,7 +181,7 @@ internal object MatroskaEmbeddedArtworkExtractor {
     return value
   }
 
-  private fun readEbmlSize(file: RandomAccessFile): Long? {
+  private fun readEbmlSize(file: SeekableMedia): Long? {
     val first = file.read()
     if (first < 0) return null
     val length = vintLength(first).takeIf { it in 1..8 } ?: return null
@@ -167,7 +206,7 @@ internal object MatroskaEmbeddedArtworkExtractor {
   }
 
   private fun readString(
-    file: RandomAccessFile,
+    file: SeekableMedia,
     offset: Long,
     size: Long,
   ): String? {
