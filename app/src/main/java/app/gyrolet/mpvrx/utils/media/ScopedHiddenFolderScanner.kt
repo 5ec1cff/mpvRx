@@ -5,8 +5,8 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
 import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
@@ -34,7 +34,6 @@ object ScopedHiddenFolderScanner {
   fun isScopedFolder(bucketId: String): Boolean =
     bucketId.startsWith("content://") && Uri.parse(bucketId).path?.startsWith("/tree/") == true
 
-
   // Keep walks bounded even if a document provider exposes cyclic or excessively deep trees.
   private const val MAX_DIRECTORY_DEPTH = 64
 
@@ -44,6 +43,17 @@ object ScopedHiddenFolderScanner {
     val displayName: String,
     val depth: Int,
   )
+
+  private data class IndexedDirectory(
+    val document: DocumentFile,
+    val grantedTreeUri: String,
+    val displayName: String,
+  )
+
+  // A folder list scan already visited every child. Reuse those DocumentFile handles for the
+  // library's per-folder counts and video pages instead of traversing the tree once per folder.
+  // listFiles() still queries current contents; the cache only holds directory locations.
+  @Volatile private var indexedDirectories: Map<String, IndexedDirectory> = emptyMap()
 
   /**
    * Child folder buckets are document URIs anchored to the *original* granted tree, not new
@@ -72,6 +82,7 @@ object ScopedHiddenFolderScanner {
     includeAudio: Boolean,
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
     val folders = mutableListOf<VideoFolder>()
+    val discovered = mutableMapOf<String, IndexedDirectory>()
     for (treeUri in grantedTreeUris.sorted()) {
       currentCoroutineContext().ensureActive()
       val root = openPersistedTreeDocument(context, treeUri) ?: continue
@@ -84,6 +95,7 @@ object ScopedHiddenFolderScanner {
         currentCoroutineContext().ensureActive()
         val folder = pending.removeFirst()
         if (!visited.add(folder.document.uri.toString())) continue
+        discovered[folder.bucketId] = IndexedDirectory(folder.document, treeUri, folder.displayName)
         val children = listTreeFilesSafely(folder.document)
         val videos = readVideosFromFiles(context, children, folder.bucketId, folder.displayName, includeAudio)
         if (videos.isNotEmpty()) {
@@ -115,6 +127,7 @@ object ScopedHiddenFolderScanner {
         }
       }
     }
+    indexedDirectories = discovered.toMap()
     folders.distinctBy { it.bucketId }.sortedBy { it.name.lowercase(Locale.ROOT) }
   }
 
@@ -125,6 +138,15 @@ object ScopedHiddenFolderScanner {
     grantedTreeUris: Set<String>,
   ): List<Video> = withContext(Dispatchers.IO) {
     if (!isGrantedFolder(bucketId, grantedTreeUris)) return@withContext emptyList()
+
+    val cached = indexedDirectories[bucketId]
+    if (cached != null && cached.grantedTreeUri in grantedTreeUris &&
+      openPersistedTreeDocument(context, cached.grantedTreeUri) != null
+    ) {
+      return@withContext readVideosFromFiles(
+        context, listTreeFilesSafely(cached.document), bucketId, cached.displayName, includeAudio,
+      )
+    }
 
     // Resolve the requested directory from the actual persisted grant rather than treating its
     // URI as a separate tree permission. Only directories discovered beneath the grant are used.
@@ -231,5 +253,4 @@ object ScopedHiddenFolderScanner {
         }
       }
     }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
-  }
 }

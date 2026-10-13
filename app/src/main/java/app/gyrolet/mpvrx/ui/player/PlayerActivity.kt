@@ -98,6 +98,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.AudioChannels
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
 import app.gyrolet.mpvrx.preferences.MpvConfigControlledFeatures
@@ -277,6 +278,7 @@ class PlayerActivity :
    * Preferences for browser settings.
    */
   private val browserPreferences: BrowserPreferences by inject()
+  private val foldersPreferences: FoldersPreferences by inject()
 
   /**
    * Preferences for appearance settings.
@@ -8304,6 +8306,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
               this,
               treeUri.toString(),
               includeAudio = isAudioTarget || browserPreferences.includeAudioBrowser.get(),
+              grantedTreeUris = foldersPreferences.scopedHiddenFolderUris.get(),
             ).filter { video ->
               if (isAudioTarget) {
                 video.isAudio && video.duration >= minimumAudioDurationMs
