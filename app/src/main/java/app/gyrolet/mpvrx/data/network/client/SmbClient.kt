@@ -253,7 +253,14 @@ class SmbClient(
             }
             val target = sharePath.resolve(directory)
 
-            val diskShare = sess.connectDiskShare(target.shareName)
+            val diskShare =
+              try {
+                withTimeout(15_000) {
+                  runInterruptible(Dispatchers.IO) { sess.connectDiskShare(target.shareName) }
+                }
+              } catch (_: TimeoutCancellationException) {
+                throw java.net.SocketTimeoutException("SMB share connection timed out")
+              }
 
             // The DiskShare returned by Session.connectShare() is cached and shared by
             // all requests on this session. Never close it from a per-request operation:
