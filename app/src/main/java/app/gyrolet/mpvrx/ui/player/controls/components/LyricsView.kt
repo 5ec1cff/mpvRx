@@ -295,7 +295,7 @@ fun LyricsView(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
               CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
               Spacer(modifier = Modifier.height(12.dp))
-              val loadingLine = rememberPlaceholderLine(R.array.lyrics_loading_lines, PLACEHOLDER_ROTATE_MS)
+              val loadingLine = rememberPlaceholderLine(LyricsPlaceholders.LOADING, PLACEHOLDER_ROTATE_MS)
               Text(
                 text = loadingLine,
                 fontFamily = fontFamilyForText(loadingLine),
@@ -605,7 +605,7 @@ fun LyricsView(
               verticalArrangement = Arrangement.Center,
             ) {
               val emptyLine =
-                if (isAudiobook) stringResource(R.string.audiobook_no_text) else rememberPlaceholderLine(R.array.lyrics_empty_lines)
+                if (isAudiobook) stringResource(R.string.audiobook_no_text) else rememberPlaceholderLine(LyricsPlaceholders.EMPTY)
               Text(
                 text = emptyLine,
                 fontFamily = fontFamilyForText(emptyLine),

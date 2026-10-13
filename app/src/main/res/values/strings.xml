@@ -2883,34 +2883,28 @@
   <string name="lyrics_provider_row_missing">Lyrics not found</string>
   <string name="lyrics_provider_row_failed">Failed, tap to retry</string>
   <string name="lyrics_provider_row_unfetched">Tap to fetch</string>
-  <string-array name="lyrics_loading_lines">
-    <item>Digging through the songbook</item>
-    <item>Hunting down the words</item>
-    <item>Asking around for the verses</item>
-    <item>Lyrics are on their way</item>
-    <item>Matching the right recording</item>
-    <item>Lining up every word</item>
-    <item>Checking the lyric sheet</item>
-    <item>Tuning the timing</item>
-    <item>Almost got the words</item>
-    <item>Syncing it to the beat</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>The beat is landing</item>
-    <item>Just the groove for now</item>
-    <item>Setting the mood</item>
-    <item>Bass first, words later</item>
-    <item>Wait for it</item>
-    <item>Feel that build</item>
-    <item>Cue the vocals</item>
-    <item>Let it breathe</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>No words, just the music</item>
-    <item>Nobody wrote this one down</item>
-    <item>This one speaks for itself</item>
-    <item>Let the melody do the talking</item>
-    <item>Lyrics went missing</item>
-    <item>Sing along from memory</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">Digging through the songbook</string>
+  <string name="lyrics_loading_line_2">Hunting down the words</string>
+  <string name="lyrics_loading_line_3">Asking around for the verses</string>
+  <string name="lyrics_loading_line_4">Lyrics are on their way</string>
+  <string name="lyrics_loading_line_5">Matching the right recording</string>
+  <string name="lyrics_loading_line_6">Lining up every word</string>
+  <string name="lyrics_loading_line_7">Checking the lyric sheet</string>
+  <string name="lyrics_loading_line_8">Tuning the timing</string>
+  <string name="lyrics_loading_line_9">Almost got the words</string>
+  <string name="lyrics_loading_line_10">Syncing it to the beat</string>
+  <string name="lyrics_intro_line_1">The beat is landing</string>
+  <string name="lyrics_intro_line_2">Just the groove for now</string>
+  <string name="lyrics_intro_line_3">Setting the mood</string>
+  <string name="lyrics_intro_line_4">Bass first, words later</string>
+  <string name="lyrics_intro_line_5">Wait for it</string>
+  <string name="lyrics_intro_line_6">Feel that build</string>
+  <string name="lyrics_intro_line_7">Cue the vocals</string>
+  <string name="lyrics_intro_line_8">Let it breathe</string>
+  <string name="lyrics_empty_line_1">No words, just the music</string>
+  <string name="lyrics_empty_line_2">Nobody wrote this one down</string>
+  <string name="lyrics_empty_line_3">This one speaks for itself</string>
+  <string name="lyrics_empty_line_4">Let the melody do the talking</string>
+  <string name="lyrics_empty_line_5">Lyrics went missing</string>
+  <string name="lyrics_empty_line_6">Sing along from memory</string>
 </resources>

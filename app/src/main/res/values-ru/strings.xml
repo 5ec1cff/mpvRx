@@ -2738,34 +2738,28 @@
   <string name="lyrics_provider_row_missing">Текст не найден</string>
   <string name="lyrics_provider_row_failed">Ошибка, нажмите, чтобы повторить</string>
   <string name="lyrics_provider_row_unfetched">Нажмите, чтобы загрузить</string>
-  <string-array name="lyrics_loading_lines">
-    <item>Листаем песенник</item>
-    <item>Ищем слова</item>
-    <item>Узнаём слова куплетов</item>
-    <item>Текст уже в пути</item>
-    <item>Подбираем нужную запись</item>
-    <item>Выстраиваем каждое слово</item>
-    <item>Сверяем текст песни</item>
-    <item>Настраиваем тайминг</item>
-    <item>Почти нашли слова</item>
-    <item>Синхронизируем с ритмом</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>Бит уже близко</item>
-    <item>Пока только грув</item>
-    <item>Создаём настроение</item>
-    <item>Сначала бас, потом слова</item>
-    <item>Подождите…</item>
-    <item>Почувствуйте нарастание</item>
-    <item>Сейчас вступит вокал</item>
-    <item>Дайте музыке дышать</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>Без слов, только музыка</item>
-    <item>Эту песню никто не записал</item>
-    <item>Эта песня говорит сама за себя</item>
-    <item>Пусть говорит мелодия</item>
-    <item>Текст потерялся</item>
-    <item>Подпевайте по памяти</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">Листаем песенник</string>
+  <string name="lyrics_loading_line_2">Ищем слова</string>
+  <string name="lyrics_loading_line_3">Узнаём слова куплетов</string>
+  <string name="lyrics_loading_line_4">Текст уже в пути</string>
+  <string name="lyrics_loading_line_5">Подбираем нужную запись</string>
+  <string name="lyrics_loading_line_6">Выстраиваем каждое слово</string>
+  <string name="lyrics_loading_line_7">Сверяем текст песни</string>
+  <string name="lyrics_loading_line_8">Настраиваем тайминг</string>
+  <string name="lyrics_loading_line_9">Почти нашли слова</string>
+  <string name="lyrics_loading_line_10">Синхронизируем с ритмом</string>
+  <string name="lyrics_intro_line_1">Бит уже близко</string>
+  <string name="lyrics_intro_line_2">Пока только грув</string>
+  <string name="lyrics_intro_line_3">Создаём настроение</string>
+  <string name="lyrics_intro_line_4">Сначала бас, потом слова</string>
+  <string name="lyrics_intro_line_5">Подождите…</string>
+  <string name="lyrics_intro_line_6">Почувствуйте нарастание</string>
+  <string name="lyrics_intro_line_7">Сейчас вступит вокал</string>
+  <string name="lyrics_intro_line_8">Дайте музыке дышать</string>
+  <string name="lyrics_empty_line_1">Без слов, только музыка</string>
+  <string name="lyrics_empty_line_2">Эту песню никто не записал</string>
+  <string name="lyrics_empty_line_3">Эта песня говорит сама за себя</string>
+  <string name="lyrics_empty_line_4">Пусть говорит мелодия</string>
+  <string name="lyrics_empty_line_5">Текст потерялся</string>
+  <string name="lyrics_empty_line_6">Подпевайте по памяти</string>
 </resources>

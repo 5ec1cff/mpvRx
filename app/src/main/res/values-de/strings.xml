@@ -2724,34 +2724,28 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="lyrics_provider_row_missing">Songtext nicht gefunden</string>
   <string name="lyrics_provider_row_failed">Fehlgeschlagen, zum Wiederholen tippen</string>
   <string name="lyrics_provider_row_unfetched">Zum Abrufen tippen</string>
-  <string-array name="lyrics_loading_lines">
-    <item>Das Liederbuch wird durchstöbert</item>
-    <item>Die Worte werden gesucht</item>
-    <item>Die Strophen werden erfragt</item>
-    <item>Der Songtext ist unterwegs</item>
-    <item>Die richtige Aufnahme wird gesucht</item>
-    <item>Jedes Wort wird ausgerichtet</item>
-    <item>Der Textzettel wird geprüft</item>
-    <item>Das Timing wird abgestimmt</item>
-    <item>Fast haben wir den Text</item>
-    <item>Wird auf den Beat synchronisiert</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>Der Beat setzt ein</item>
-    <item>Erst mal nur der Groove</item>
-    <item>Stimmung wird aufgebaut</item>
-    <item>Erst der Bass, dann die Worte</item>
-    <item>Warte ab…</item>
-    <item>Spür den Aufbau</item>
-    <item>Gleich kommt der Gesang</item>
-    <item>Lass es atmen</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>Keine Worte, nur Musik</item>
-    <item>Dieser Song wurde nie aufgeschrieben</item>
-    <item>Dieser Song spricht für sich</item>
-    <item>Lass die Melodie sprechen</item>
-    <item>Der Text ist verschwunden</item>
-    <item>Sing aus dem Gedächtnis mit</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">Das Liederbuch wird durchstöbert</string>
+  <string name="lyrics_loading_line_2">Die Worte werden gesucht</string>
+  <string name="lyrics_loading_line_3">Die Strophen werden erfragt</string>
+  <string name="lyrics_loading_line_4">Der Songtext ist unterwegs</string>
+  <string name="lyrics_loading_line_5">Die richtige Aufnahme wird gesucht</string>
+  <string name="lyrics_loading_line_6">Jedes Wort wird ausgerichtet</string>
+  <string name="lyrics_loading_line_7">Der Textzettel wird geprüft</string>
+  <string name="lyrics_loading_line_8">Das Timing wird abgestimmt</string>
+  <string name="lyrics_loading_line_9">Fast haben wir den Text</string>
+  <string name="lyrics_loading_line_10">Wird auf den Beat synchronisiert</string>
+  <string name="lyrics_intro_line_1">Der Beat setzt ein</string>
+  <string name="lyrics_intro_line_2">Erst mal nur der Groove</string>
+  <string name="lyrics_intro_line_3">Stimmung wird aufgebaut</string>
+  <string name="lyrics_intro_line_4">Erst der Bass, dann die Worte</string>
+  <string name="lyrics_intro_line_5">Warte ab…</string>
+  <string name="lyrics_intro_line_6">Spür den Aufbau</string>
+  <string name="lyrics_intro_line_7">Gleich kommt der Gesang</string>
+  <string name="lyrics_intro_line_8">Lass es atmen</string>
+  <string name="lyrics_empty_line_1">Keine Worte, nur Musik</string>
+  <string name="lyrics_empty_line_2">Dieser Song wurde nie aufgeschrieben</string>
+  <string name="lyrics_empty_line_3">Dieser Song spricht für sich</string>
+  <string name="lyrics_empty_line_4">Lass die Melodie sprechen</string>
+  <string name="lyrics_empty_line_5">Der Text ist verschwunden</string>
+  <string name="lyrics_empty_line_6">Sing aus dem Gedächtnis mit</string>
 </resources>

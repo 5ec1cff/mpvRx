@@ -2628,34 +2628,28 @@
   <string name="lyrics_provider_row_missing">बोल नहीं मिले</string>
   <string name="lyrics_provider_row_failed">विफल, दोबारा कोशिश के लिए टैप करें</string>
   <string name="lyrics_provider_row_unfetched">लाने के लिए टैप करें</string>
-  <string-array name="lyrics_loading_lines">
-    <item>गानों की किताब खंगाल रहे हैं</item>
-    <item>बोल ढूँढे जा रहे हैं</item>
-    <item>अंतरे तलाशे जा रहे हैं</item>
-    <item>लिरिक्स रास्ते में हैं</item>
-    <item>सही रिकॉर्डिंग मिलाई जा रही है</item>
-    <item>हर शब्द जोड़ा जा रहा है</item>
-    <item>सुरों से टाइमिंग मिलाई जा रही है</item>
-    <item>बस बोल मिलने ही वाले हैं</item>
-    <item>शब्दों की जाँच हो रही है</item>
-    <item>बोल और बीट मिलाए जा रहे हैं</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>बीट आने वाली है</item>
-    <item>अभी सिर्फ़ धुन चल रही है</item>
-    <item>माहौल बन रहा है</item>
-    <item>पहले बीट, फिर बोल</item>
-    <item>ज़रा रुकिए</item>
-    <item>आवाज़ आने ही वाली है</item>
-    <item>सुर धीरे-धीरे चढ़ रहे हैं</item>
-    <item>गायक की एंट्री बाकी है</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>बोल नहीं, सिर्फ़ संगीत</item>
-    <item>इस गाने के बोल नहीं मिले</item>
-    <item>धुन खुद ही बहुत कुछ कह देती है</item>
-    <item>बोल कहीं खो गए</item>
-    <item>याद से गुनगुना लीजिए</item>
-    <item>धुन पर ही झूम लीजिए</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">गानों की किताब खंगाल रहे हैं</string>
+  <string name="lyrics_loading_line_2">बोल ढूँढे जा रहे हैं</string>
+  <string name="lyrics_loading_line_3">अंतरे तलाशे जा रहे हैं</string>
+  <string name="lyrics_loading_line_4">लिरिक्स रास्ते में हैं</string>
+  <string name="lyrics_loading_line_5">सही रिकॉर्डिंग मिलाई जा रही है</string>
+  <string name="lyrics_loading_line_6">हर शब्द जोड़ा जा रहा है</string>
+  <string name="lyrics_loading_line_7">सुरों से टाइमिंग मिलाई जा रही है</string>
+  <string name="lyrics_loading_line_8">बस बोल मिलने ही वाले हैं</string>
+  <string name="lyrics_loading_line_9">शब्दों की जाँच हो रही है</string>
+  <string name="lyrics_loading_line_10">बोल और बीट मिलाए जा रहे हैं</string>
+  <string name="lyrics_intro_line_1">बीट आने वाली है</string>
+  <string name="lyrics_intro_line_2">अभी सिर्फ़ धुन चल रही है</string>
+  <string name="lyrics_intro_line_3">माहौल बन रहा है</string>
+  <string name="lyrics_intro_line_4">पहले बीट, फिर बोल</string>
+  <string name="lyrics_intro_line_5">ज़रा रुकिए</string>
+  <string name="lyrics_intro_line_6">आवाज़ आने ही वाली है</string>
+  <string name="lyrics_intro_line_7">सुर धीरे-धीरे चढ़ रहे हैं</string>
+  <string name="lyrics_intro_line_8">गायक की एंट्री बाकी है</string>
+  <string name="lyrics_empty_line_1">बोल नहीं, सिर्फ़ संगीत</string>
+  <string name="lyrics_empty_line_2">इस गाने के बोल नहीं मिले</string>
+  <string name="lyrics_empty_line_3">धुन खुद ही बहुत कुछ कह देती है</string>
+  <string name="lyrics_empty_line_4">बोल कहीं खो गए</string>
+  <string name="lyrics_empty_line_5">याद से गुनगुना लीजिए</string>
+  <string name="lyrics_empty_line_6">धुन पर ही झूम लीजिए</string>
 </resources>

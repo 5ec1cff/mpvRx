@@ -2724,34 +2724,28 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="lyrics_provider_row_missing">Letra não encontrada</string>
   <string name="lyrics_provider_row_failed">Falhou, toque para tentar de novo</string>
   <string name="lyrics_provider_row_unfetched">Toque para buscar</string>
-  <string-array name="lyrics_loading_lines">
-    <item>Vasculhando o cancioneiro</item>
-    <item>Caçando as palavras</item>
-    <item>Perguntando pelos versos</item>
-    <item>A letra está a caminho</item>
-    <item>Encontrando a gravação certa</item>
-    <item>Alinhando cada palavra</item>
-    <item>Conferindo a folha de letras</item>
-    <item>Ajustando o tempo</item>
-    <item>Quase achamos a letra</item>
-    <item>Sincronizando com a batida</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>A batida está chegando</item>
-    <item>Só o groove por enquanto</item>
-    <item>Criando o clima</item>
-    <item>Primeiro o baixo, depois as palavras</item>
-    <item>Espere…</item>
-    <item>Sinta a tensão crescer</item>
-    <item>Entra a voz</item>
-    <item>Deixe respirar</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>Sem palavras, só música</item>
-    <item>Ninguém anotou esta letra</item>
-    <item>Esta fala por si só</item>
-    <item>Deixe a melodia falar</item>
-    <item>A letra sumiu</item>
-    <item>Cante de memória</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">Vasculhando o cancioneiro</string>
+  <string name="lyrics_loading_line_2">Caçando as palavras</string>
+  <string name="lyrics_loading_line_3">Perguntando pelos versos</string>
+  <string name="lyrics_loading_line_4">A letra está a caminho</string>
+  <string name="lyrics_loading_line_5">Encontrando a gravação certa</string>
+  <string name="lyrics_loading_line_6">Alinhando cada palavra</string>
+  <string name="lyrics_loading_line_7">Conferindo a folha de letras</string>
+  <string name="lyrics_loading_line_8">Ajustando o tempo</string>
+  <string name="lyrics_loading_line_9">Quase achamos a letra</string>
+  <string name="lyrics_loading_line_10">Sincronizando com a batida</string>
+  <string name="lyrics_intro_line_1">A batida está chegando</string>
+  <string name="lyrics_intro_line_2">Só o groove por enquanto</string>
+  <string name="lyrics_intro_line_3">Criando o clima</string>
+  <string name="lyrics_intro_line_4">Primeiro o baixo, depois as palavras</string>
+  <string name="lyrics_intro_line_5">Espere…</string>
+  <string name="lyrics_intro_line_6">Sinta a tensão crescer</string>
+  <string name="lyrics_intro_line_7">Entra a voz</string>
+  <string name="lyrics_intro_line_8">Deixe respirar</string>
+  <string name="lyrics_empty_line_1">Sem palavras, só música</string>
+  <string name="lyrics_empty_line_2">Ninguém anotou esta letra</string>
+  <string name="lyrics_empty_line_3">Esta fala por si só</string>
+  <string name="lyrics_empty_line_4">Deixe a melodia falar</string>
+  <string name="lyrics_empty_line_5">A letra sumiu</string>
+  <string name="lyrics_empty_line_6">Cante de memória</string>
 </resources>

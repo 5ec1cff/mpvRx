@@ -2717,34 +2717,28 @@
   <string name="lyrics_provider_row_missing">歌詞が見つかりません</string>
   <string name="lyrics_provider_row_failed">失敗しました。タップして再試行</string>
   <string name="lyrics_provider_row_unfetched">タップして取得</string>
-  <string-array name="lyrics_loading_lines">
-    <item>歌集をめくっています</item>
-    <item>歌詞を探しています</item>
-    <item>歌詞を問い合わせています</item>
-    <item>歌詞をお届け中です</item>
-    <item>正しい音源を照合しています</item>
-    <item>一語ずつ揃えています</item>
-    <item>歌詞カードを確認しています</item>
-    <item>タイミングを調整しています</item>
-    <item>もうすぐ歌詞が見つかります</item>
-    <item>ビートに同期しています</item>
-  </string-array>
-  <string-array name="lyrics_intro_lines">
-    <item>ビートが近づいています</item>
-    <item>今はグルーヴだけ</item>
-    <item>雰囲気を作っています</item>
-    <item>まずはベース、歌詞はそのあと</item>
-    <item>もう少しお待ちください</item>
-    <item>盛り上がりを感じて</item>
-    <item>ボーカルの入りです</item>
-    <item>ゆっくり味わって</item>
-  </string-array>
-  <string-array name="lyrics_empty_lines">
-    <item>歌詞なし、音楽だけ</item>
-    <item>この曲の歌詞は書き残されていません</item>
-    <item>この曲は音だけで語ります</item>
-    <item>メロディに語らせましょう</item>
-    <item>歌詞が行方不明です</item>
-    <item>記憶を頼りに口ずさんで</item>
-  </string-array>
+  <string name="lyrics_loading_line_1">歌集をめくっています</string>
+  <string name="lyrics_loading_line_2">歌詞を探しています</string>
+  <string name="lyrics_loading_line_3">歌詞を問い合わせています</string>
+  <string name="lyrics_loading_line_4">歌詞をお届け中です</string>
+  <string name="lyrics_loading_line_5">正しい音源を照合しています</string>
+  <string name="lyrics_loading_line_6">一語ずつ揃えています</string>
+  <string name="lyrics_loading_line_7">歌詞カードを確認しています</string>
+  <string name="lyrics_loading_line_8">タイミングを調整しています</string>
+  <string name="lyrics_loading_line_9">もうすぐ歌詞が見つかります</string>
+  <string name="lyrics_loading_line_10">ビートに同期しています</string>
+  <string name="lyrics_intro_line_1">ビートが近づいています</string>
+  <string name="lyrics_intro_line_2">今はグルーヴだけ</string>
+  <string name="lyrics_intro_line_3">雰囲気を作っています</string>
+  <string name="lyrics_intro_line_4">まずはベース、歌詞はそのあと</string>
+  <string name="lyrics_intro_line_5">もう少しお待ちください</string>
+  <string name="lyrics_intro_line_6">盛り上がりを感じて</string>
+  <string name="lyrics_intro_line_7">ボーカルの入りです</string>
+  <string name="lyrics_intro_line_8">ゆっくり味わって</string>
+  <string name="lyrics_empty_line_1">歌詞なし、音楽だけ</string>
+  <string name="lyrics_empty_line_2">この曲の歌詞は書き残されていません</string>
+  <string name="lyrics_empty_line_3">この曲は音だけで語ります</string>
+  <string name="lyrics_empty_line_4">メロディに語らせましょう</string>
+  <string name="lyrics_empty_line_5">歌詞が行方不明です</string>
+  <string name="lyrics_empty_line_6">記憶を頼りに口ずさんで</string>
 </resources>

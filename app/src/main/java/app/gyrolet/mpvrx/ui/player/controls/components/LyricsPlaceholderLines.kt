@@ -4,19 +4,19 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components
 
-import androidx.annotation.ArrayRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
+import app.gyrolet.mpvrx.R
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 /**
- * One line out of a string-array, for the moments the lyrics panel has nothing
+ * One line out of a list of string resources, for the moments the lyrics panel has nothing
  * real to say: fetching, an instrumental intro, or no lyrics anywhere.
  *
  * The starting line is random so the panel doesn't open on the same sentence
@@ -26,22 +26,44 @@ import kotlin.random.Random
  */
 @Composable
 fun rememberPlaceholderLine(
-  @ArrayRes arrayId: Int,
+  lines: List<Int>,
   intervalMs: Long? = null,
 ): String {
-  val lines = stringArrayResource(arrayId)
-  var index by rememberSaveable(arrayId) {
+  var index by rememberSaveable(lines) {
     mutableIntStateOf(if (lines.isEmpty()) 0 else Random.nextInt(lines.size))
   }
   if (intervalMs != null && lines.size > 1) {
-    LaunchedEffect(arrayId, lines.size, intervalMs) {
+    LaunchedEffect(lines, intervalMs) {
       while (true) {
         delay(intervalMs)
         index = (index + 1) % lines.size
       }
     }
   }
-  return lines.getOrElse(index % lines.size.coerceAtLeast(1)) { "" }
+  if (lines.isEmpty()) return ""
+  return stringResource(lines[index % lines.size])
+}
+
+/** The lines the lyrics panel shows when it has nothing real to say. */
+object LyricsPlaceholders {
+  val LOADING: List<Int> =
+    listOf(
+      R.string.lyrics_loading_line_1, R.string.lyrics_loading_line_2, R.string.lyrics_loading_line_3,
+      R.string.lyrics_loading_line_4, R.string.lyrics_loading_line_5, R.string.lyrics_loading_line_6,
+      R.string.lyrics_loading_line_7, R.string.lyrics_loading_line_8, R.string.lyrics_loading_line_9,
+      R.string.lyrics_loading_line_10,
+    )
+  val INTRO: List<Int> =
+    listOf(
+      R.string.lyrics_intro_line_1, R.string.lyrics_intro_line_2, R.string.lyrics_intro_line_3,
+      R.string.lyrics_intro_line_4, R.string.lyrics_intro_line_5, R.string.lyrics_intro_line_6,
+      R.string.lyrics_intro_line_7, R.string.lyrics_intro_line_8,
+    )
+  val EMPTY: List<Int> =
+    listOf(
+      R.string.lyrics_empty_line_1, R.string.lyrics_empty_line_2, R.string.lyrics_empty_line_3,
+      R.string.lyrics_empty_line_4, R.string.lyrics_empty_line_5, R.string.lyrics_empty_line_6,
+    )
 }
 
 /** How long each fetching line stays up before the next one replaces it. */

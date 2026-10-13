@@ -1942,7 +1942,7 @@ fun AudioPlayerControls(
               Spacer(Modifier.width(8.dp))
               val loadingLine =
                 app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(
-                  R.array.lyrics_loading_lines,
+                  app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.LOADING,
                   app.gyrolet.mpvrx.ui.player.controls.components.PLACEHOLDER_ROTATE_MS,
                 )
               Text(
@@ -1974,7 +1974,7 @@ fun AudioPlayerControls(
                 // Before the first line it is the intro, which deserves more than a label.
                 val gapLabel =
                   if (activeIndex <= 0) {
-                    app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(R.array.lyrics_intro_lines)
+                    app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.INTRO)
                   } else {
                     stringResource(R.string.instrumental)
                   }
@@ -2151,7 +2151,7 @@ fun AudioPlayerControls(
                 if (isAudiobook) {
                   stringResource(R.string.audiobook_no_text)
                 } else {
-                  app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(R.array.lyrics_empty_lines)
+                  app.gyrolet.mpvrx.ui.player.controls.components.rememberPlaceholderLine(app.gyrolet.mpvrx.ui.player.controls.components.LyricsPlaceholders.EMPTY)
                 }
               Text(
                 text = emptyLine,
