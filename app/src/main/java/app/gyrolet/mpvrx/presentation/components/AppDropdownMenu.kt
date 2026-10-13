@@ -3,6 +3,11 @@ package app.gyrolet.mpvrx.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.ColumnScope
@@ -26,7 +31,7 @@ fun AppDropdownMenu(
   offset: DpOffset = DpOffset(0.dp, 0.dp),
   scrollState: ScrollState = rememberScrollState(),
   properties: PopupProperties = PopupProperties(focusable = true),
-  shape: Shape = RoundedCornerShape(20.dp),
+  shape: Shape = RoundedCornerShape(24.dp),
   containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
   tonalElevation: Dp = MenuDefaults.TonalElevation,
   shadowElevation: Dp = MenuDefaults.ShadowElevation,
@@ -34,9 +39,51 @@ fun AppDropdownMenu(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   androidx.compose.material3.DropdownMenu(
-    expanded = expanded, onDismissRequest = onDismissRequest, modifier = modifier.widthIn(max = 320.dp),
+    expanded = expanded, onDismissRequest = onDismissRequest, modifier = modifier.widthIn(min = 200.dp, max = 320.dp),
     offset = offset, scrollState = scrollState, properties = properties, shape = shape,
     containerColor = containerColor, tonalElevation = tonalElevation, shadowElevation = shadowElevation,
     border = border, content = content,
+  )
+}
+
+/**
+ * Shared expressive menu option. Tonal rows are inset from the outer rounded
+ * popup so actions have their own visible but unclipped interaction surfaces.
+ */
+@Composable
+fun AppDropdownMenuItem(
+  text: @Composable () -> Unit,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+  selected: Boolean = false,
+  leadingIcon: (@Composable () -> Unit)? = null,
+  trailingIcon: (@Composable () -> Unit)? = null,
+) {
+  val rowShape = RoundedCornerShape(14.dp)
+  val rowColor =
+    if (selected) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.surfaceContainerHighest
+  val contentColor =
+    if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+    else MaterialTheme.colorScheme.onSurface
+
+  DropdownMenuItem(
+    text = text,
+    onClick = onClick,
+    modifier =
+      modifier
+        .padding(horizontal = 6.dp, vertical = 2.dp)
+        .clip(rowShape)
+        .background(rowColor),
+    enabled = enabled,
+    leadingIcon = leadingIcon,
+    trailingIcon = trailingIcon,
+    contentPadding = PaddingValues(horizontal = 14.dp),
+    colors = MenuDefaults.itemColors(
+      textColor = contentColor,
+      leadingIconColor = contentColor,
+      trailingIconColor = contentColor,
+    ),
   )
 }

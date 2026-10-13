@@ -16,6 +16,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,10 +26,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import app.gyrolet.mpvrx.presentation.components.AppDropdownMenuItem as DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -64,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.DpOffset
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
@@ -481,6 +485,7 @@ private fun SelectionTopBar(
   val wallpaperActive = LocalAppWallpaperActive.current
   val haptics = rememberAppHaptics()
   val reducedMotion = AppMotion.shouldReduceMotion()
+  val selectionDropdownShape = RoundedCornerShape(16.dp)
 
   TopAppBar(
     colors =
@@ -498,54 +503,64 @@ private fun SelectionTopBar(
         actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant.onWallpaper(),
       ),
     title = {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-          Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.02f)
-            .clickable { showDropdown = true },
-      ) {
-        Box(Modifier.weight(1f, fill = false)) {
-          Text(
-            stringResource(R.string.selected_items, totalCount, totalCount),
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.alpha(0f).clearAndSetSemantics { },
-          )
-          AnimatedContent(
-            targetState = selectedCount,
-            transitionSpec = {
-              if (reducedMotion) {
-                (fadeIn(tween(0)) togetherWith fadeOut(tween(0))).using(null)
-              } else {
-                val direction = if (targetState > initialState) 1 else -1
-                ((fadeIn(tween(160)) + slideInVertically(tween(160)) { it * direction / 3 }) togetherWith
-                  (fadeOut(tween(100)) + slideOutVertically(tween(100)) { -it * direction / 3 })).using(null)
-              }
-            },
-            label = "selectionCount",
-          ) { count ->
+      Box {
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier =
+            Modifier
+              .clip(selectionDropdownShape)
+              .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = if (wallpaperActive) 0.78f else 1f))
+              .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (wallpaperActive) 0.5f else 0.35f),
+                selectionDropdownShape,
+              )
+              .tvFocusHighlight(selectionDropdownShape, focusedScale = 1.02f)
+              .clickable { showDropdown = true }
+              .padding(horizontal = 10.dp, vertical = 8.dp),
+        ) {
+          Box(Modifier.weight(1f, fill = false)) {
             Text(
-              stringResource(R.string.selected_items, count, totalCount),
+              stringResource(R.string.selected_items, totalCount, totalCount),
               style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.primary.onWallpaper(),
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.alpha(0f).clearAndSetSemantics { },
             )
+            AnimatedContent(
+              targetState = selectedCount,
+              transitionSpec = {
+                if (reducedMotion) {
+                  (fadeIn(tween(0)) togetherWith fadeOut(tween(0))).using(null)
+                } else {
+                  val direction = if (targetState > initialState) 1 else -1
+                  ((fadeIn(tween(160)) + slideInVertically(tween(160)) { it * direction / 3 }) togetherWith
+                    (fadeOut(tween(100)) + slideOutVertically(tween(100)) { -it * direction / 3 })).using(null)
+                }
+              },
+              label = "selectionCount",
+            ) { count ->
+              Text(
+                stringResource(R.string.selected_items, count, totalCount),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary.onWallpaper(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
+          Icon(
+            Icons.RoundedFilled.ArrowDropDown,
+            contentDescription = stringResource(R.string.selection_options),
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary.onWallpaper(),
+          )
         }
-        Icon(
-          Icons.RoundedFilled.ArrowDropDown,
-          contentDescription = stringResource(R.string.selection_options),
-          modifier = Modifier.size(24.dp),
-          tint = MaterialTheme.colorScheme.primary.onWallpaper(),
-        )
-
         DropdownMenu(
           expanded = showDropdown,
           onDismissRequest = { showDropdown = false },
+          offset = DpOffset(0.dp, 8.dp),
+          modifier = Modifier.widthIn(min = 208.dp, max = 300.dp),
         ) {
           if (onSelectAll != null) {
             DropdownMenuItem(
@@ -681,7 +696,6 @@ private fun SelectionTopBar(
           )
         }
       }
-
 
       // Move to Secure Folder icon
       if (onMoveToSecure != null) {
