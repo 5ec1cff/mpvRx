@@ -450,7 +450,6 @@ class PlayerActivity :
   private var predictivePlayerSheetDrag: PlayerSheetDrag? = null
   private var predictivePlayerSheetRestoreJob: Job? = null
   private var noisyReceiverRegistered = false
-  private var lastVid = -1 // Track video track for background playback optimization
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
   private var screenStateReceiverRegistered = false
   private var mpvInitialized = false // Track MPV initialization state
@@ -1640,6 +1639,8 @@ class PlayerActivity :
       return
     }
 
+    // Some keyguards report unlocked only after onStart/onResume and SCREEN_ON have returned.
+    restoreForegroundVideoAndAmbientIfUnlocked()
     if (shouldAutoHideSystemBars()) {
       scheduleSystemBarsAutoHide(delayMs = 250L)
     }
@@ -2108,6 +2109,15 @@ class PlayerActivity :
       Log.e(TAG, "Error during onStop", e)
     }
 
+    // TextureView can retain a valid Surface while its window is stopped. Its consumer no longer
+    // drains frames, so waiting for surfaceDestroyed can strand the GPU/decoder on screen wake.
+    // Disable this View's callbacks as well: a late size/available callback must not reattach it.
+    // unbindSurface is owner-checked, so a mini player or external display keeps its own Surface.
+    if (mpvInitialized && (!isInPictureInPictureMode || isDeviceScreenOffOrLocked())) {
+      runCatching { player.releaseSurface() }
+        .onFailure { Log.e(TAG, "Could not release stopped playback surface", it) }
+    }
+
     super.onStop()
   }
 
@@ -2201,7 +2211,7 @@ class PlayerActivity :
     super.onStart()
     if (!mpvInitialized || !ownsPlaybackSession()) return
     if (finishStoppedBackgroundPlaybackIfNeeded()) return
-    MediaPlaybackService.activityForeground = true
+    MediaPlaybackService.activityForeground = !isDeviceScreenOffOrLocked()
 
     runCatching {
       setupWindowFlags()
@@ -2701,7 +2711,7 @@ class PlayerActivity :
     // for the portion that did not overlap Android window/surface setup.
     val waitStartedAt = android.os.SystemClock.elapsedRealtime()
     player.onSurfaceReady = {
-      if (!isDeviceScreenOffOrLocked() && (isInBackgroundPlayback || lastVid > 0)) {
+      if (!isDeviceScreenOffOrLocked()) {
         enableVideoAfterBackground()
       }
       viewModel.restartPostProcessingIfActive()
@@ -3604,7 +3614,12 @@ class PlayerActivity :
 
   private fun restoreForegroundVideoAndAmbientIfUnlocked(): Boolean {
     if (!mpvInitialized || !ownsPlaybackSession() || isDeviceScreenOffOrLocked()) return false
-    player.ensureSurfaceAttached()
+    // Unlock can arrive after onStart/onResume. Complete the ownership handoff here too.
+    if (!MediaPlaybackService.activityForeground) {
+      MediaPlaybackService.activityForeground = true
+      if (viewModel.paused != true) requestAudioFocus()
+    }
+    player.attachSessionSurface()
     enableVideoAfterBackground()
     viewModel.setAmbientLifecycleActive(true)
     updateKeepScreenOn()
@@ -4257,7 +4272,8 @@ class PlayerActivity :
       return
     }
     if (isAdvancingAtEof) return
-    if (isBackgroundPlaybackSessionActive || !MediaPlaybackService.activityForeground) return
+    // Enabling background playback while watching does not transfer EOF ownership to the service.
+    if (!MediaPlaybackService.activityForeground) return
     // A dropped network stream can drain the demuxer and flip eof-reached mid-file. Only a
     // position at (or within a couple of seconds of) the known duration is a real end.
     val durationSecs = viewModel.duration ?: 0
@@ -8438,14 +8454,13 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    */
   private fun disableVideoForBackground() {
     if (!isReady || fileName.isBlank()) return
-    if (isMiniPlayerEnabled()) return
+    if (isMiniPlayerEnabled() && !isDeviceScreenOffOrLocked()) return
 
     val currentVid = PlaybackSession.getPropertyString("vid")?.toIntOrNull() ?: -1
     if (currentVid > 0) {
-      lastVid = currentVid
       PlaybackSession.setPropertyString("vid", "no")
       isInBackgroundPlayback = true
-      Log.d(TAG, "Video disabled for background playback (saved vid: $lastVid)")
+      Log.d(TAG, "Video disabled for background playback (saved vid: $currentVid)")
     }
   }
 
@@ -8453,23 +8468,15 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    * Restores video decoding when returning from background playback.
    */
   private fun enableVideoAfterBackground() {
-    if ((isInBackgroundPlayback || lastVid > 0) && !player.isSurfaceReady) {
+    if (!player.isSurfaceReady) {
       Log.d(TAG, "Deferring video restoration until the playback surface is ready")
       return
     }
 
-    val wereInBackground = isInBackgroundPlayback
+    // The session scopes the saved track to its media generation. An Activity-local track id can
+    // belong to the previous file after screen-off autoplay and disable video in the new file.
+    PlaybackSession.markForeground()
     isInBackgroundPlayback = false
-
-    if (wereInBackground && lastVid > 0) {
-      if (!viewModel.isAudioOnly.value && !isCurrentMediaKnownAudio()) {
-        Log.d(TAG, "Restoring video after background playback (vid: $lastVid)")
-        PlaybackSession.setPropertyInt("vid", lastVid)
-      } else {
-        Log.d(TAG, "Skipping video track restoration because media is in audio-only mode")
-      }
-      lastVid = -1
-    }
   }
 
   companion object {

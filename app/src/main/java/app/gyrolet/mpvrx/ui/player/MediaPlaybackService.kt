@@ -305,6 +305,7 @@ class MediaPlaybackService :
   @Volatile private var volumeBeforeDuck: Double? = null
   private var noisyReceiverRegistered = false
   private var playbackObserversStarted = false
+  private var handledEofGeneration: Long? = null
   @Volatile
   private var foregroundReady = false
     set(value) {
@@ -1062,8 +1063,24 @@ class MediaPlaybackService :
     PlaybackSession.stop(clearQueue = false)
   }
 
-  private fun handleDetachedEndOfFile() {
-    if (activityForeground || PlaybackSession.state.value.surfaceAttached || !foregroundReady) return
+  private fun handleDetachedEndOfFile(expectedGeneration: Long, naturalEnd: Boolean = false) {
+    // A retained TextureView, mini player or external display is not an Activity playback owner.
+    // Only the foreground handoff decides whether the Activity or service advances the queue.
+    if (!canHandleDetachedTransport() || !foregroundReady) return
+    val state = PlaybackSession.state.value
+    if (state.generation != expectedGeneration || handledEofGeneration == expectedGeneration) return
+    if (state.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND) &&
+      !(naturalEnd && state.phase == PlaybackPhase.IDLE)
+    ) return
+    if (!naturalEnd) {
+      if (PlaybackSession.getPropertyBoolean("eof-reached") != true) return
+      // Read the live timeline here; the notification's throttled/coroutine-updated fields can
+      // still describe the previous position when the EOF property event arrives.
+      val duration = PlaybackSession.getPropertyDouble("duration") ?: mediaDurationSeconds
+      val position = PlaybackSession.getPropertyDouble("time-pos") ?: currentPositionSeconds
+      if (duration > 0.0 && position < duration - 2.0) return
+    }
+    handledEofGeneration = expectedGeneration
     if (AudiobookPlayback.handleEndOfFile()) return
     val queueState = PlaybackSession.queue.value
     val autoplay = queueState.currentItem?.audiobook != null ||
@@ -1711,11 +1728,14 @@ class MediaPlaybackService :
       }
       "eof-reached" -> {
         // keep-open never emits a natural END_FILE, so detached advance must key off this flag.
-        if (value &&
-          mediaDurationSeconds > 0.0 &&
-          currentPositionSeconds >= mediaDurationSeconds - 2.0
-        ) {
-          serviceScope.launch { handleDetachedEndOfFile() }
+        val generation = PlaybackSession.state.value.generation
+        serviceScope.launch {
+          if (value) {
+            handleDetachedEndOfFile(generation)
+          } else if (handledEofGeneration == generation) {
+            // Repeat-one and a user seek can reach EOF again within the same media generation.
+            handledEofGeneration = null
+          }
         }
       }
     }
@@ -1814,7 +1834,8 @@ class MediaPlaybackService :
 
     if (eventId == MPVLib.MpvEvent.MPV_EVENT_END_FILE) {
       if (PlaybackSession.isNaturalEndFile(data)) {
-        serviceScope.launch { handleDetachedEndOfFile() }
+        val generation = PlaybackSession.state.value.generation
+        serviceScope.launch { handleDetachedEndOfFile(generation, naturalEnd = true) }
       }
 
       // The current file has finished (or been quit). Release the static

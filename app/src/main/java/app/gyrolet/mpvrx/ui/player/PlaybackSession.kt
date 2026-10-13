@@ -353,6 +353,8 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         nativeCoreReady = false
         observedProperties.clear()
         suspendedVideoTrack = null
+        lastSurfaceVideoTrack = null
+        rendererOutputReady = false
         deferredVideoSelectionGeneration = null
         pendingStopClearQueue = false
         supersededStopGeneration = 0L
@@ -499,6 +501,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
               val activated = runCatching {
                 MPVLib.setPropertyString("force-window", "yes")
                 MPVLib.setPropertyString("vo", desiredVideoOutput)
+                rendererOutputReady = true
                 restoreSuspendedVideoTrackLocked()
                 applyDeferredVideoSelectionLocked()
                 // A failed VO can deselect vid while leaving audio alive. Restore only
@@ -510,9 +513,11 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
                   }
                 }
                 lastSurfaceVideoTrack = null
-                rendererOutputReady = true
                 Log.d(TAG, "Android renderer ready: generation=${_state.value.generation}, wid=$windowId")
-              }.onFailure { Log.e(TAG, "Could not activate video output after Surface attachment", it) }
+              }.onFailure {
+                rendererOutputReady = false
+                Log.e(TAG, "Could not activate video output after Surface attachment", it)
+              }
               activated.isSuccess
             }
             if (ready == null) return@launch
@@ -612,7 +617,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     withCore(Unit, allowInitializing = true) {
       // Track selection does not require an Android Surface, but a GPU video output does.
       // bindSurface() performs the real null -> configured output transition later.
-      setNativeOptionLocked("vo", if (_state.value.surfaceAttached) videoOutput else "null")
+      setNativeOptionLocked("vo", if (rendererOutputReady) videoOutput else "null")
     }
   }
 
@@ -628,6 +633,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         if (current.phase == PlaybackPhase.BACKGROUND) current.copy(phase = PlaybackPhase.READY) else current
       }
       restoreSuspendedVideoTrackLocked()
+      applyDeferredVideoSelectionLocked()
     }
   }
 
@@ -801,6 +807,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     pendingPositionRestoreOverride = null
     initialPositionGeneration = 0L
     suspendedVideoTrack = null
+    lastSurfaceVideoTrack = null
     deferredVideoSelectionGeneration = null
     pendingStopClearQueue = false
     supersededStopGeneration = 0L
@@ -810,6 +817,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     runCatching { MPVLib.setPropertyBoolean("pause", true) }
     runCatching { MPVLib.setPropertyString("vo", "null") }
     runCatching { MPVLib.detachSurface() }
+    rendererOutputReady = false
     attachedSurfaceOwner = null
     attachedSurfaceWidth = 0
     attachedSurfaceHeight = 0
@@ -1063,10 +1071,10 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       val videoSelection = resolvedItem.videoSelection()
       // MediaCodec needs a valid native window when the video decoder is created. The optimized
       // startup path can issue loadfile before SurfaceView.surfaceCreated, so defer video-track
-      // selection until bindSurface attaches a valid Surface.
+      // selection until bindSurface has activated the native window and video output.
       val selectVideoForNewFile = videoSelection == PlaybackVideoSelection.IMMEDIATE
       val deferVideoSelectionUntilSurface =
-        selectVideoForNewFile && !_state.value.surfaceAttached
+        selectVideoForNewFile && !rendererOutputReady
       // MPV's ytdl_hook checks options/vid during extraction. Passing vid=no while the
       // Surface is pending makes yt-dlp request bestaudio only; restoring vid later cannot
       // recover the video formats that were never extracted. Preserve video selection for
@@ -1082,6 +1090,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
 
       // A saved video-track id belongs to the outgoing file only. Never carry it into a new load.
       suspendedVideoTrack = null
+      lastSurfaceVideoTrack = null
       desiredPaused = positionRestoreOverride?.paused ?: false
       clearSeekAudioGuardLocked(restoreMute = true)
 
@@ -1136,7 +1145,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       MPVLib.setPropertyString("force-media-title", "")
       MPVLib.setPropertyString("user-data/mpvrx/original-path", smbPath ?: resolvedItem.originalUri)
 
-      if (!_state.value.surfaceAttached) {
+      if (!rendererOutputReady) {
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")
       }
@@ -1765,17 +1774,15 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             // once instead of allowing pause writes to race the load operation. Saved-position
             // loads stay paused until PlayerActivity finishes the database lookup and seek.
             MPVLib.setPropertyBoolean("pause", appliedPaused)
-            // Surface ownership is the source of truth at this boundary. Activity observers can
-            // detach during recreation, and deferred-generation bookkeeping only covers loads that
-            // started without video. Repair a disabled selection before exposing READY so an
-            // attached player cannot remain on a black frame with audio.
-            if (current.surfaceAttached && current.currentItem?.isDefinitelyAudioOnly() != true) {
+            // FILE_LOADED and native renderer activation can arrive in either order. JNI surface
+            // attachment alone is not readiness: selecting video before wid/vo are active can
+            // make MediaCodec drop the track. Also cover a Surface lost during an in-flight load.
+            if (current.currentItem?.videoSelection() == PlaybackVideoSelection.IMMEDIATE &&
+              suspendedVideoTrack == null
+            ) {
               val selectedVideoTrack = MPVLib.getPropertyString("vid")?.toIntOrNull()
               if (selectedVideoTrack == null || selectedVideoTrack <= 0) {
-                MPVLib.setPropertyString("vid", "auto")
-              }
-              if (deferredVideoSelectionGeneration == current.generation) {
-                deferredVideoSelectionGeneration = null
+                deferredVideoSelectionGeneration = current.generation
               }
             }
             updateState {
@@ -1795,6 +1802,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             }
             propBoolean.emit("pause", appliedPaused)
             restoreSuspendedVideoTrackLocked()
+            applyDeferredVideoSelectionLocked()
             true
           }
           MPVLib.MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
@@ -1882,6 +1890,8 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             releaseActiveNetworkStream()
             releaseAuxiliaryNetworkStreams()
             suspendedVideoTrack = null
+            lastSurfaceVideoTrack = null
+            rendererOutputReady = false
             deferredVideoSelectionGeneration = null
             desiredPaused = true
             loadedGeneration = 0L
@@ -2155,13 +2165,13 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
 
   /**
    * Selects video for a load that started before its Surface existed, once the file has loaded and
-   * a Surface is attached. These can arrive in either order, including while a saved-position
+   * the renderer is ready. These can arrive in either order, including while a saved-position
    * restore keeps the phase at LOADING; missing one leaves audio playing over a black screen.
    */
   private fun applyDeferredVideoSelectionLocked() {
     val current = _state.value
     if (deferredVideoSelectionGeneration != current.generation) return
-    if (!current.surfaceAttached || loadedGeneration != current.generation) return
+    if (!rendererOutputReady || !current.surfaceAttached || loadedGeneration != current.generation) return
     MPVLib.setPropertyString("vid", "auto")
     deferredVideoSelectionGeneration = null
   }
@@ -2173,11 +2183,14 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       suspendedVideoTrack = null
       return
     }
-    if (!current.surfaceAttached || current.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)) return
+    if (!rendererOutputReady || !current.surfaceAttached || loadedGeneration != current.generation ||
+      current.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
+    ) return
 
     runCatching { MPVLib.setPropertyInt("vid", suspended.id) }
       .onSuccess {
         suspendedVideoTrack = null
+        deferredVideoSelectionGeneration = null
         Log.d(TAG, "Restored video track ${suspended.id} after Surface reattachment")
       }.onFailure { error ->
         Log.w(TAG, "Failed to restore video track ${suspended.id} after Surface reattachment", error)

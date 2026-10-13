@@ -115,7 +115,8 @@ class MPVView(
           when {
             ensureSurfaceAttached() -> true
             // A hidden window (backgrounded/locked) will not create a Surface until it returns.
-            isExiting || !surfaceBindingEnabled || (isAttachedToWindow && windowVisibility != VISIBLE) -> false
+            isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled ||
+              (isAttachedToWindow && windowVisibility != VISIBLE) -> false
             else -> null
           }
         }
