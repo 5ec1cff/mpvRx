@@ -2710,4 +2710,41 @@
   <string name="app_icon_classic">クラシック</string>
   <string name="app_icon_classic_description">従来のmpvRxアイコン</string>
   <string name="app_icon_change_failed">アイコンを変更できませんでした。</string>
+  <string name="lyrics_provider_auto_best">最適な一致: %1$s</string>
+  <string name="lyrics_provider_row_current">現在のプロバイダー</string>
+  <string name="lyrics_provider_row_fetching">取得中…</string>
+  <string name="lyrics_provider_row_found">取得済み、タップして切り替え</string>
+  <string name="lyrics_provider_row_missing">歌詞が見つかりません</string>
+  <string name="lyrics_provider_row_failed">失敗しました。タップして再試行</string>
+  <string name="lyrics_provider_row_unfetched">タップして取得</string>
+  <string-array name="lyrics_loading_lines">
+    <item>歌集をめくっています</item>
+    <item>歌詞を探しています</item>
+    <item>歌詞を問い合わせています</item>
+    <item>歌詞をお届け中です</item>
+    <item>正しい音源を照合しています</item>
+    <item>一語ずつ揃えています</item>
+    <item>歌詞カードを確認しています</item>
+    <item>タイミングを調整しています</item>
+    <item>もうすぐ歌詞が見つかります</item>
+    <item>ビートに同期しています</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>ビートが近づいています</item>
+    <item>今はグルーヴだけ</item>
+    <item>雰囲気を作っています</item>
+    <item>まずはベース、歌詞はそのあと</item>
+    <item>もう少しお待ちください</item>
+    <item>盛り上がりを感じて</item>
+    <item>ボーカルの入りです</item>
+    <item>ゆっくり味わって</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>歌詞なし、音楽だけ</item>
+    <item>この曲の歌詞は書き残されていません</item>
+    <item>この曲は音だけで語ります</item>
+    <item>メロディに語らせましょう</item>
+    <item>歌詞が行方不明です</item>
+    <item>記憶を頼りに口ずさんで</item>
+  </string-array>
 </resources>

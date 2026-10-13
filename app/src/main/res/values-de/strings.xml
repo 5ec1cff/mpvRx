@@ -2717,4 +2717,41 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="app_icon_classic">Klassisch</string>
   <string name="app_icon_classic_description">Ursprüngliches mpvRx-Symbol</string>
   <string name="app_icon_change_failed">App-Symbol konnte nicht geändert werden.</string>
+  <string name="lyrics_provider_auto_best">Beste Übereinstimmung: %1$s</string>
+  <string name="lyrics_provider_row_current">Aktueller Anbieter</string>
+  <string name="lyrics_provider_row_fetching">Wird abgerufen…</string>
+  <string name="lyrics_provider_row_found">Abgerufen, zum Wechseln tippen</string>
+  <string name="lyrics_provider_row_missing">Songtext nicht gefunden</string>
+  <string name="lyrics_provider_row_failed">Fehlgeschlagen, zum Wiederholen tippen</string>
+  <string name="lyrics_provider_row_unfetched">Zum Abrufen tippen</string>
+  <string-array name="lyrics_loading_lines">
+    <item>Das Liederbuch wird durchstöbert</item>
+    <item>Die Worte werden gesucht</item>
+    <item>Die Strophen werden erfragt</item>
+    <item>Der Songtext ist unterwegs</item>
+    <item>Die richtige Aufnahme wird gesucht</item>
+    <item>Jedes Wort wird ausgerichtet</item>
+    <item>Der Textzettel wird geprüft</item>
+    <item>Das Timing wird abgestimmt</item>
+    <item>Fast haben wir den Text</item>
+    <item>Wird auf den Beat synchronisiert</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>Der Beat setzt ein</item>
+    <item>Erst mal nur der Groove</item>
+    <item>Stimmung wird aufgebaut</item>
+    <item>Erst der Bass, dann die Worte</item>
+    <item>Warte ab…</item>
+    <item>Spür den Aufbau</item>
+    <item>Gleich kommt der Gesang</item>
+    <item>Lass es atmen</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>Keine Worte, nur Musik</item>
+    <item>Dieser Song wurde nie aufgeschrieben</item>
+    <item>Dieser Song spricht für sich</item>
+    <item>Lass die Melodie sprechen</item>
+    <item>Der Text ist verschwunden</item>
+    <item>Sing aus dem Gedächtnis mit</item>
+  </string-array>
 </resources>

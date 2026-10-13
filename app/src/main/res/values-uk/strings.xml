@@ -2744,4 +2744,41 @@
   <string name="app_icon_classic">Класичний</string>
   <string name="app_icon_classic_description">Початковий значок mpvRx</string>
   <string name="app_icon_change_failed">Не вдалося змінити значок.</string>
+  <string name="lyrics_provider_auto_best">Найкращий збіг: %1$s</string>
+  <string name="lyrics_provider_row_current">Поточне джерело</string>
+  <string name="lyrics_provider_row_fetching">Завантаження…</string>
+  <string name="lyrics_provider_row_found">Завантажено, натисніть для перемикання</string>
+  <string name="lyrics_provider_row_missing">Текст не знайдено</string>
+  <string name="lyrics_provider_row_failed">Помилка, натисніть, щоб повторити</string>
+  <string name="lyrics_provider_row_unfetched">Натисніть, щоб завантажити</string>
+  <string-array name="lyrics_loading_lines">
+    <item>Гортаємо збірник пісень</item>
+    <item>Шукаємо слова</item>
+    <item>Дізнаємося слова куплетів</item>
+    <item>Текст уже в дорозі</item>
+    <item>Добираємо потрібний запис</item>
+    <item>Вирівнюємо кожне слово</item>
+    <item>Звіряємо текст пісні</item>
+    <item>Налаштовуємо таймінг</item>
+    <item>Майже знайшли слова</item>
+    <item>Синхронізуємо з ритмом</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>Біт уже близько</item>
+    <item>Поки що лише груув</item>
+    <item>Створюємо настрій</item>
+    <item>Спершу бас, потім слова</item>
+    <item>Зачекайте…</item>
+    <item>Відчуйте наростання</item>
+    <item>Зараз вступить вокал</item>
+    <item>Дайте музиці дихати</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>Без слів, лише музика</item>
+    <item>Цю пісню ніхто не записав</item>
+    <item>Ця пісня говорить сама за себе</item>
+    <item>Хай говорить мелодія</item>
+    <item>Текст загубився</item>
+    <item>Підспівуйте з пам\'яті</item>
+  </string-array>
 </resources>

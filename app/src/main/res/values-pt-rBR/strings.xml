@@ -2717,4 +2717,41 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="app_icon_classic">Clássico</string>
   <string name="app_icon_classic_description">Ícone original do mpvRx</string>
   <string name="app_icon_change_failed">Não foi possível alterar o ícone.</string>
+  <string name="lyrics_provider_auto_best">Melhor correspondência: %1$s</string>
+  <string name="lyrics_provider_row_current">Provedor atual</string>
+  <string name="lyrics_provider_row_fetching">Buscando…</string>
+  <string name="lyrics_provider_row_found">Obtida, toque para trocar</string>
+  <string name="lyrics_provider_row_missing">Letra não encontrada</string>
+  <string name="lyrics_provider_row_failed">Falhou, toque para tentar de novo</string>
+  <string name="lyrics_provider_row_unfetched">Toque para buscar</string>
+  <string-array name="lyrics_loading_lines">
+    <item>Vasculhando o cancioneiro</item>
+    <item>Caçando as palavras</item>
+    <item>Perguntando pelos versos</item>
+    <item>A letra está a caminho</item>
+    <item>Encontrando a gravação certa</item>
+    <item>Alinhando cada palavra</item>
+    <item>Conferindo a folha de letras</item>
+    <item>Ajustando o tempo</item>
+    <item>Quase achamos a letra</item>
+    <item>Sincronizando com a batida</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>A batida está chegando</item>
+    <item>Só o groove por enquanto</item>
+    <item>Criando o clima</item>
+    <item>Primeiro o baixo, depois as palavras</item>
+    <item>Espere…</item>
+    <item>Sinta a tensão crescer</item>
+    <item>Entra a voz</item>
+    <item>Deixe respirar</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>Sem palavras, só música</item>
+    <item>Ninguém anotou esta letra</item>
+    <item>Esta fala por si só</item>
+    <item>Deixe a melodia falar</item>
+    <item>A letra sumiu</item>
+    <item>Cante de memória</item>
+  </string-array>
 </resources>

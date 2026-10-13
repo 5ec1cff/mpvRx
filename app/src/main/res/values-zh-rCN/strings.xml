@@ -2716,4 +2716,41 @@
   <string name="app_icon_classic">经典</string>
   <string name="app_icon_classic_description">原版 mpvRx 图标</string>
   <string name="app_icon_change_failed">无法更改应用图标。</string>
+  <string name="lyrics_provider_auto_best">最佳匹配：%1$s</string>
+  <string name="lyrics_provider_row_current">当前来源</string>
+  <string name="lyrics_provider_row_fetching">获取中…</string>
+  <string name="lyrics_provider_row_found">已获取，点按切换</string>
+  <string name="lyrics_provider_row_missing">未找到歌词</string>
+  <string name="lyrics_provider_row_failed">失败，点按重试</string>
+  <string name="lyrics_provider_row_unfetched">点按获取</string>
+  <string-array name="lyrics_loading_lines">
+    <item>正在翻阅歌本</item>
+    <item>正在寻找歌词</item>
+    <item>正在打听歌词</item>
+    <item>歌词正在赶来</item>
+    <item>正在匹配正确的录音</item>
+    <item>正在逐字对齐</item>
+    <item>正在核对歌词</item>
+    <item>正在调整时间轴</item>
+    <item>马上就找到歌词了</item>
+    <item>正在与节拍同步</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>节拍即将落下</item>
+    <item>暂时只有律动</item>
+    <item>正在营造氛围</item>
+    <item>先是低音，再是歌词</item>
+    <item>稍等片刻</item>
+    <item>感受旋律渐起</item>
+    <item>人声即将进入</item>
+    <item>让它自然流淌</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>没有歌词，只有音乐</item>
+    <item>这首歌没人记下歌词</item>
+    <item>这首歌自有话语</item>
+    <item>让旋律来诉说</item>
+    <item>歌词不见了</item>
+    <item>凭记忆跟唱吧</item>
+  </string-array>
 </resources>

@@ -2717,4 +2717,41 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="app_icon_classic">Clásico</string>
   <string name="app_icon_classic_description">Icono original de mpvRx</string>
   <string name="app_icon_change_failed">No se pudo cambiar el icono.</string>
+  <string name="lyrics_provider_auto_best">Mejor coincidencia: %1$s</string>
+  <string name="lyrics_provider_row_current">Proveedor actual</string>
+  <string name="lyrics_provider_row_fetching">Obteniendo…</string>
+  <string name="lyrics_provider_row_found">Obtenida, toca para cambiar</string>
+  <string name="lyrics_provider_row_missing">Letra no encontrada</string>
+  <string name="lyrics_provider_row_failed">Error, toca para reintentar</string>
+  <string name="lyrics_provider_row_unfetched">Toca para obtener</string>
+  <string-array name="lyrics_loading_lines">
+    <item>Rebuscando en el cancionero</item>
+    <item>Buscando las palabras</item>
+    <item>Preguntando por los versos</item>
+    <item>La letra está en camino</item>
+    <item>Buscando la grabación correcta</item>
+    <item>Alineando cada palabra</item>
+    <item>Revisando la hoja de letras</item>
+    <item>Ajustando el tiempo</item>
+    <item>Casi tenemos la letra</item>
+    <item>Sincronizando con el ritmo</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>El ritmo está llegando</item>
+    <item>Solo el groove por ahora</item>
+    <item>Creando ambiente</item>
+    <item>Primero el bajo, luego las palabras</item>
+    <item>Espera…</item>
+    <item>Siente cómo crece</item>
+    <item>Entra la voz</item>
+    <item>Deja que respire</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>Sin palabras, solo música</item>
+    <item>Nadie escribió esta letra</item>
+    <item>Esta habla por sí sola</item>
+    <item>Que hable la melodía</item>
+    <item>La letra se perdió</item>
+    <item>Canta de memoria</item>
+  </string-array>
 </resources>

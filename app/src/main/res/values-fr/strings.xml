@@ -2717,4 +2717,41 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="app_icon_classic">Classique</string>
   <string name="app_icon_classic_description">Ancienne icône mpvRx</string>
   <string name="app_icon_change_failed">Impossible de changer l’icône.</string>
+  <string name="lyrics_provider_auto_best">Meilleure correspondance : %1$s</string>
+  <string name="lyrics_provider_row_current">Fournisseur actuel</string>
+  <string name="lyrics_provider_row_fetching">Récupération…</string>
+  <string name="lyrics_provider_row_found">Récupérées, touchez pour changer</string>
+  <string name="lyrics_provider_row_missing">Paroles introuvables</string>
+  <string name="lyrics_provider_row_failed">Échec, touchez pour réessayer</string>
+  <string name="lyrics_provider_row_unfetched">Touchez pour récupérer</string>
+  <string-array name="lyrics_loading_lines">
+    <item>On fouille le recueil de chansons</item>
+    <item>À la recherche des mots</item>
+    <item>On demande les couplets</item>
+    <item>Les paroles arrivent</item>
+    <item>On identifie le bon enregistrement</item>
+    <item>On aligne chaque mot</item>
+    <item>On vérifie les paroles</item>
+    <item>On règle le timing</item>
+    <item>Presque trouvé les paroles</item>
+    <item>Synchronisation sur le rythme</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>Le rythme arrive</item>
+    <item>Juste le groove pour l\'instant</item>
+    <item>On pose l\'ambiance</item>
+    <item>La basse d\'abord, les mots ensuite</item>
+    <item>Attendez…</item>
+    <item>Sentez la montée</item>
+    <item>Place à la voix</item>
+    <item>Laissez respirer</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>Pas de mots, juste la musique</item>
+    <item>Personne n\'a noté celle-ci</item>
+    <item>Celle-ci parle d\'elle-même</item>
+    <item>Laissez la mélodie parler</item>
+    <item>Les paroles ont disparu</item>
+    <item>Chantez de mémoire</item>
+  </string-array>
 </resources>

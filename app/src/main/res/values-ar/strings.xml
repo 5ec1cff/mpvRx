@@ -2743,4 +2743,41 @@
   <string name="app_icon_classic">الكلاسيكية</string>
   <string name="app_icon_classic_description">أيقونة mpvRx الأصلية</string>
   <string name="app_icon_change_failed">تعذر تغيير أيقونة التطبيق.</string>
+  <string name="lyrics_provider_auto_best">أفضل تطابق: %1$s</string>
+  <string name="lyrics_provider_row_current">المزوّد الحالي</string>
+  <string name="lyrics_provider_row_fetching">جارٍ الجلب…</string>
+  <string name="lyrics_provider_row_found">تم الجلب، اضغط للتبديل</string>
+  <string name="lyrics_provider_row_missing">لم يتم العثور على الكلمات</string>
+  <string name="lyrics_provider_row_failed">فشل، اضغط لإعادة المحاولة</string>
+  <string name="lyrics_provider_row_unfetched">اضغط للجلب</string>
+  <string-array name="lyrics_loading_lines">
+    <item>نبحث في دفتر الأغاني</item>
+    <item>نبحث عن الكلمات</item>
+    <item>نسأل عن الأبيات</item>
+    <item>الكلمات في الطريق</item>
+    <item>نطابق التسجيل الصحيح</item>
+    <item>نرتّب كل كلمة</item>
+    <item>نراجع ورقة الكلمات</item>
+    <item>نضبط التوقيت</item>
+    <item>كدنا نجد الكلمات</item>
+    <item>نزامن مع الإيقاع</item>
+  </string-array>
+  <string-array name="lyrics_intro_lines">
+    <item>الإيقاع يقترب</item>
+    <item>الإيقاع فقط الآن</item>
+    <item>نهيّئ الأجواء</item>
+    <item>الجهير أولاً ثم الكلمات</item>
+    <item>انتظر قليلاً</item>
+    <item>أحسّ بالتصاعد</item>
+    <item>يدخل الصوت الآن</item>
+    <item>دعه يتنفس</item>
+  </string-array>
+  <string-array name="lyrics_empty_lines">
+    <item>بلا كلمات، موسيقى فقط</item>
+    <item>لم يدوّن أحد كلمات هذه الأغنية</item>
+    <item>هذه الأغنية تتحدث بنفسها</item>
+    <item>دع اللحن يتكلم</item>
+    <item>ضاعت الكلمات</item>
+    <item>غنِّ من الذاكرة</item>
+  </string-array>
 </resources>
