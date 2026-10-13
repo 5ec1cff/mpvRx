@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -129,11 +130,17 @@ fun LiquidButton(
         innerShadow = { glassSettings.innerShadow(InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f))) },
         layerBlock = if (animatePress) pressTransform else null,
         onDrawSurface = {
+          // The backdrop API samples a rectangular offscreen layer, but the visible
+          // surface must be painted only inside its capsule. A full drawRect leaked a
+          // thin rectangular box around LUA/speed/seek pills with Liquid Glass enabled.
+          val capsuleCorner = CornerRadius(size.height / 2f)
           if (tint.isSpecified) {
-            drawRect(tint, blendMode = BlendMode.Hue)
-            drawRect(glassSettings.surfaceColor(tint.copy(alpha = 0.75f)))
+            drawRoundRect(tint, cornerRadius = capsuleCorner, blendMode = BlendMode.Hue)
+            drawRoundRect(glassSettings.surfaceColor(tint.copy(alpha = 0.75f)), cornerRadius = capsuleCorner)
           }
-          if (surfaceColor.isSpecified) drawRect(glassSettings.surfaceColor(surfaceColor))
+          if (surfaceColor.isSpecified) {
+            drawRoundRect(glassSettings.surfaceColor(surfaceColor), cornerRadius = capsuleCorner)
+          }
         },
       )
     } else {
