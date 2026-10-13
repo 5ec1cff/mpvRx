@@ -104,7 +104,7 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
           modifier = modifier,
           verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
-          PreferenceSectionHeader(
+          PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
             title = stringResource(R.string.ui_yt_dlp_streaming),
             topPadding = 12.dp,
             modifier = Modifier.settingsSearchTarget(R.string.ui_yt_dlp_manager),
@@ -127,7 +127,7 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
             }
           }
 
-          PreferenceSectionHeader(title = stringResource(R.string.ui_release_channel), topPadding = 18.dp)
+          PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.ui_release_channel), topPadding = 18.dp)
 
           ExpressivePreferenceGroup {
             Column(
@@ -181,7 +181,7 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
             }
           }
 
-          PreferenceSectionHeader(title = stringResource(R.string.ytdlp_subtitles_language))
+          PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.ytdlp_subtitles_language))
 
           ExpressivePreferenceGroup {
             SwitchPreference(
@@ -210,7 +210,7 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
               )
           }
 
-          PreferenceSectionHeader(
+          PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
             title = stringResource(R.string.ytdlp_playlist_behavior),
             modifier = Modifier.settingsSearchTarget(R.string.ytdlp_playlist_behavior),
           )

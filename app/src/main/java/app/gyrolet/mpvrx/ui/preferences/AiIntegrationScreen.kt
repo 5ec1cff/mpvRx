@@ -252,7 +252,7 @@ object AiIntegrationScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_ai_features_section),
               modifier = Modifier.settingsSearchTarget(R.string.pref_section_ai_title),
             )
@@ -280,7 +280,7 @@ object AiIntegrationScreen : Screen {
           }
 
           if (enabled) {
-            item { PreferenceSectionHeader(title = stringResource(R.string.pref_ai_provider_section)) }
+            item { PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_ai_provider_section)) }
 
             item {
               PreferenceCard {
@@ -367,7 +367,7 @@ val apiKeyInfo =
 
               if (apiKeyInfo != null) {
                 item {
-                  PreferenceSectionHeader(
+                  PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
                     title = stringResource(R.string.pref_api_config_section),
                     modifier = Modifier.settingsSearchTarget(R.string.search_api_key_config_title),
                   )
@@ -504,7 +504,7 @@ val apiKeyInfo =
                 }
 
                 item {
-                  PreferenceSectionHeader(
+                  PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
                     title = stringResource(R.string.pref_model_section),
                     modifier = Modifier.settingsSearchTarget(R.string.search_ai_model_selection_title),
                   )
@@ -748,7 +748,7 @@ val apiKeyInfo =
                 }
               }
 
-            item { PreferenceSectionHeader(title = stringResource(R.string.pref_ai_features_subsection)) }
+            item { PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_ai_features_subsection)) }
 
             item {
               PreferenceCard {
@@ -795,7 +795,7 @@ val apiKeyInfo =
             }
 
             item {
-              PreferenceSectionHeader(
+              PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
                 title = stringResource(R.string.pref_stt_section),
                 modifier = Modifier.settingsSearchTarget(R.string.search_stt_title),
               )
@@ -965,7 +965,7 @@ val apiKeyInfo =
               }
 
               item {
-                PreferenceSectionHeader(
+                PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
                   title = stringResource(R.string.pref_translation_section),
                   modifier = Modifier.settingsSearchTarget(R.string.pref_translation_section),
                 )
@@ -1007,7 +1007,7 @@ val apiKeyInfo =
               }
 
             item {
-              PreferenceSectionHeader(
+              PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
                 title = stringResource(R.string.pref_custom_prompt_section),
                 modifier = Modifier.settingsSearchTarget(R.string.search_custom_ai_prompts_title),
               )

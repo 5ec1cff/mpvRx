@@ -131,7 +131,7 @@ object PlayerControlsPreferencesScreen : Screen {
         ) {
           // Landscape Controls Section
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_section_landscape_controls),
               modifier = Modifier.settingsSearchTarget(R.string.pref_layout_title),
             )
@@ -176,7 +176,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
           // Portrait Controls Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_portrait_controls))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_portrait_controls))
           }
 
           item {
@@ -196,7 +196,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
           // Seekbar Section
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(R.string.pref_section_seekbar_style),
               modifier = Modifier.settingsSearchTarget(R.string.pref_section_seekbar_style),
             )
@@ -251,7 +251,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
           // Appearance Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_player_controls_appearance))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_player_controls_appearance))
           }
 
           item {

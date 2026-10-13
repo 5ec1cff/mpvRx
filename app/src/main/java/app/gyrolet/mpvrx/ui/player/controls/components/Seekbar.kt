@@ -14,9 +14,11 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -24,11 +26,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,8 +46,7 @@ import androidx.compose.ui.input.key.type
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Text
@@ -65,6 +65,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
@@ -113,7 +114,10 @@ import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
 import app.gyrolet.mpvrx.ui.player.visualizer.AudioFeatures
 import app.gyrolet.mpvrx.ui.player.visualizer.VisualizerPalette
 import app.gyrolet.mpvrx.ui.player.visualizer.WaveVisualizerOverlay
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.spacing
 import dev.vivvvek.seeker.Seeker
 import dev.vivvvek.seeker.SeekerDefaults
@@ -2031,7 +2035,6 @@ fun SeekbarStylePreview(
   }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SeekbarStyleLivePreview(
   style: SeekbarStyle,
@@ -2163,54 +2166,131 @@ fun SeekbarStyleLivePreview(
         modifier = Modifier.width(48.dp),
       )
     }
-    val previewChipColors = FilterChipDefaults.filterChipColors(
-      selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-      selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-      selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    // The three preview features are a single Material Expressive connected group.
+    // Keep their independent preview state: toggling a feature only affects this sample.
+    val featureLabels = listOf(
+      stringResource(R.string.media_info_tab_chapters),
+      stringResource(R.string.pref_seekbar_preview_skip_markers),
+      stringResource(R.string.btn_label_ab_loop),
     )
-    FlowRow(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
+    val enabledFeatures = listOf(showChapters, showSkipMarkers, showLoop)
+    val setFeature: (Int, Boolean) -> Unit = { index, checked ->
+      when (index) {
+        0 -> showChapters = checked
+        1 -> showSkipMarkers = checked
+        2 -> showLoop = checked
+      }
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+      // At narrow widths or large accessibility font sizes, stack connected options
+      // rather than clipping "Skip markers" or forcing a horizontal scrolling strip.
+      val stacked = maxWidth < 340.dp || LocalDensity.current.fontScale >= 1.3f
+      if (stacked) {
+        Column(
+          modifier = Modifier.fillMaxWidth(),
+          verticalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+        ) {
+          featureLabels.forEachIndexed { index, label ->
+            SeekbarPreviewFeatureToggle(
+              label = label,
+              checked = enabledFeatures[index],
+              index = index,
+              itemCount = featureLabels.size,
+              layout = ConnectedLayout.Vertical,
+              compact = false,
+              modifier = Modifier.fillMaxWidth(),
+              onCheckedChange = { setFeature(index, it) },
+            )
+          }
+        }
+      } else {
+        val compact = maxWidth < 420.dp
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+        ) {
+          featureLabels.forEachIndexed { index, label ->
+            SeekbarPreviewFeatureToggle(
+              label = label,
+              checked = enabledFeatures[index],
+              index = index,
+              itemCount = featureLabels.size,
+              layout = ConnectedLayout.Horizontal,
+              compact = compact,
+              modifier = Modifier.weight(1f),
+              onCheckedChange = { setFeature(index, it) },
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/**
+ * Shared geometry for preview feature toggles: exposed outer corners are generously rounded,
+ * while adjacent edges stay nearly square like Material 3 Expressive segmented controls.
+ */
+@Composable
+private fun SeekbarPreviewFeatureToggle(
+  label: String,
+  checked: Boolean,
+  index: Int,
+  itemCount: Int,
+  layout: ConnectedLayout,
+  compact: Boolean,
+  modifier: Modifier = Modifier,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  val shape = rememberConnectedShape(
+    index = index,
+    itemCount = itemCount,
+    layout = layout,
+    tokens = AppConnectedControlShapeTokens,
+  )
+  val colors = MaterialTheme.colorScheme
+  val isSelected = checked
+  Surface(
+    modifier = modifier.clip(shape).toggleable(
+      value = isSelected,
+      role = Role.Checkbox,
+      onValueChange = onCheckedChange,
+    ),
+    shape = shape,
+    color = if (isSelected) colors.secondaryContainer else colors.surfaceContainerLow,
+    contentColor = if (isSelected) colors.onSecondaryContainer else colors.onSurface,
+    border = BorderStroke(
+      width = 1.dp,
+      color = if (isSelected) colors.secondaryContainer else colors.outlineVariant,
+    ),
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .heightIn(min = if (compact) 52.dp else 56.dp)
+        .padding(horizontal = if (compact) 6.dp else 12.dp, vertical = 8.dp),
+      horizontalArrangement = Arrangement.Center,
+      verticalAlignment = Alignment.CenterVertically,
     ) {
-      FilterChip(
-        selected = showChapters,
-        onClick = { showChapters = !showChapters },
-        label = { Text(stringResource(R.string.media_info_tab_chapters)) },
-        colors = previewChipColors,
-        leadingIcon = {
-          Icon(
-            Icons.RoundedFilled.Check,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp).graphicsLayer { alpha = if (showChapters) 1f else 0f },
-          )
-        },
-      )
-      FilterChip(
-        selected = showSkipMarkers,
-        onClick = { showSkipMarkers = !showSkipMarkers },
-        label = { Text(stringResource(R.string.pref_seekbar_preview_skip_markers)) },
-        colors = previewChipColors,
-        leadingIcon = {
-          Icon(
-            Icons.RoundedFilled.Check,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp).graphicsLayer { alpha = if (showSkipMarkers) 1f else 0f },
-          )
-        },
-      )
-      FilterChip(
-        selected = showLoop,
-        onClick = { showLoop = !showLoop },
-        label = { Text(stringResource(R.string.btn_label_ab_loop)) },
-        colors = previewChipColors,
-        leadingIcon = {
-          Icon(
-            Icons.RoundedFilled.Check,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp).graphicsLayer { alpha = if (showLoop) 1f else 0f },
-          )
-        },
+      if (isSelected) {
+        Icon(
+          imageVector = Icons.RoundedFilled.Check,
+          contentDescription = null,
+          modifier = Modifier.size(if (compact) 16.dp else 18.dp),
+        )
+        androidx.compose.foundation.layout.Spacer(
+          modifier = Modifier.width(if (compact) 4.dp else 8.dp),
+        )
+      }
+      Text(
+        text = label,
+        style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleSmall,
+        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
       )
     }
   }
