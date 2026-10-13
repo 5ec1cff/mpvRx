@@ -340,7 +340,7 @@ object AdvancedPreferencesScreen : Screen {
         ) {
           // App Language Section
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_section_app_language),
               modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
             )
@@ -371,7 +371,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // Backup & Restore Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_backup_restore))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_backup_restore))
           }
 
           item {
@@ -463,7 +463,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // Storage Root Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_storage_root))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_storage_root))
           }
 
           item {
@@ -524,7 +524,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // MPV Configuration Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_mpv_config))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_mpv_config))
           }
 
           item {
@@ -610,7 +610,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // Scripts Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_scripts))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_scripts))
           }
 
           item {
@@ -689,7 +689,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // Data & Cache Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_data_cache))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_data_cache))
           }
 
           item {
@@ -1022,7 +1022,7 @@ object AdvancedPreferencesScreen : Screen {
 
           // Logging Section
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_logging))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_logging))
           }
 
           item {

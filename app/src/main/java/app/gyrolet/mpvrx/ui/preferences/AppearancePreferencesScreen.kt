@@ -218,7 +218,7 @@ object AppearancePreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(id = R.string.pref_appearance_category_theme),
               modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_title),
             )
@@ -448,7 +448,7 @@ object AppearancePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(id = R.string.pref_appearance_category_file_browser),
             )
           }
@@ -631,7 +631,7 @@ object AppearancePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(id = R.string.pref_appearance_category_thumbnails),
             )
           }
@@ -811,7 +811,7 @@ object AppearancePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(id = R.string.pref_appearance_category_navigation),
             )
           }
@@ -920,7 +920,7 @@ object AppearancePreferencesScreen : Screen {
 
           // ── Animations ────────────────────────────────────────
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_animations))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_animations))
           }
 
           item {

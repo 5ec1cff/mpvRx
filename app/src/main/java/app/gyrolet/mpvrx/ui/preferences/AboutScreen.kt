@@ -390,7 +390,7 @@ object AboutScreen : Screen {
         Spacer(Modifier.height(8.dp))
 
         // Support / Donation Section
-        if (!BuildConfig.IS_PLAY_STORE_BUILD) PreferenceSectionHeader(title = stringResource(R.string.pref_section_support))
+        if (!BuildConfig.IS_PLAY_STORE_BUILD) PreferenceSectionHeader(position = PreferenceSectionPosition.First, title = stringResource(R.string.pref_section_support))
         if (!BuildConfig.IS_PLAY_STORE_BUILD) PreferenceCard {
           Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -519,7 +519,7 @@ object AboutScreen : Screen {
 
         // Updates Section (only show if update feature is enabled)
         if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null) {
-          PreferenceSectionHeader(title = stringResource(R.string.pref_section_updates))
+          PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_updates))
           PreferenceCard {
             val isAutoUpdateEnabled by updateViewModel.isAutoUpdateEnabled.collectAsState()
             val updateChannel by updateViewModel.updateChannel.collectAsState()
@@ -631,7 +631,7 @@ object AboutScreen : Screen {
         }
 
         // System Stats Section
-        PreferenceSectionHeader(title = stringResource(R.string.pref_section_system))
+        PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_system))
 
         val systemStats = remember { collectSystemStats(context) }
         PreferenceCard {

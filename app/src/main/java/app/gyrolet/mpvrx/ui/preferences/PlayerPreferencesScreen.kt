@@ -111,7 +111,7 @@ object PlayerPreferencesScreen : Screen {
         ) {
           // ── General ───────────────────────────────────────────────────────
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_section_general),
               modifier = Modifier.settingsSearchTarget(R.string.pref_player),
             )
@@ -521,7 +521,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
           }
 
           // ── Seeking ───────────────────────────────────────────────────────
-          item { PreferenceSectionHeader(title = stringResource(R.string.pref_player_seeking_title)) }
+          item { PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_player_seeking_title)) }
           item {
             PreferenceCard {
               val showDoubleTapOvals by preferences.showDoubleTapOvals.collectAsState()
@@ -801,7 +801,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
           }
 
           // ── Display & Controls ────────────────────────────────────────────
-          item { PreferenceSectionHeader(title = stringResource(R.string.pref_section_display_controls)) }
+          item { PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_display_controls)) }
           item {
             PreferenceCard {
               val showControlsDrawer by preferences.showControlsDrawer.collectAsState()
@@ -903,7 +903,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
           }
 
           // ── Screenshots ─────────────────────────────────────────────────
-          item { PreferenceSectionHeader(title = stringResource(R.string.pref_screenshots_section)) }
+          item { PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_screenshots_section)) }
           item {
             PreferenceCard {
               val screenshotFormat by preferences.screenshotFormat.collectAsState()
@@ -1034,7 +1034,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
           }
 
           // ── Overlays ─────────────────────────────────────────────────────
-          item { PreferenceSectionHeader(title = stringResource(R.string.pref_section_overlays)) }
+          item { PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_overlays)) }
           item {
             PreferenceCard {
               val showVolumeGestureOverlay by preferences.showVolumeGestureOverlay.collectAsState()

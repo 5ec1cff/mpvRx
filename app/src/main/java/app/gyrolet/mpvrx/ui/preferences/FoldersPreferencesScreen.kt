@@ -205,7 +205,7 @@ object FoldersPreferencesScreen : Screen {
       ) {
         if (!selectionState.isInSelectionMode) {
           // ── Media Library ─────────────────────────────────────────────
-          PreferenceSectionHeader(
+          PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
             title = stringResource(R.string.pref_media_library_section),
             modifier = Modifier.settingsSearchTarget(R.string.pref_folders_title),
             topPadding = 8.dp,
@@ -257,7 +257,7 @@ object FoldersPreferencesScreen : Screen {
           Spacer(modifier = Modifier.height(16.dp))
 
           // ── Hidden Folders ────────────────────────────────────────────
-          PreferenceSectionHeader(title = stringResource(R.string.pref_hidden_folders_section))
+          PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_hidden_folders_section))
 
           Text(
             text = stringResource(R.string.pref_folders_summary),

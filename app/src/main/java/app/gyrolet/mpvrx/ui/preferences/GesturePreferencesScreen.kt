@@ -89,7 +89,7 @@ object GesturePreferencesScreen : Screen {
         ) {
           // ── Swipe & Speed ──────────────────────────────────────────────
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_section_swipe_speed),
               modifier = Modifier.settingsSearchTarget(R.string.pref_gesture),
             )
@@ -288,7 +288,7 @@ object GesturePreferencesScreen : Screen {
 
           // ── Double Tap ─────────────────────────────────────────────────
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_gesture_double_tap_title))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_gesture_double_tap_title))
           }
 
           item {
@@ -543,7 +543,7 @@ object GesturePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_gesture_media_title))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_gesture_media_title))
           }
 
           item {

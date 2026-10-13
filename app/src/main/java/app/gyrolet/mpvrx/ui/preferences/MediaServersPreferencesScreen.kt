@@ -128,7 +128,7 @@ object MediaServersPreferencesScreen : Screen {
         ) {
           // --- JELLYFIN SECTION ---
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_jellyfin_title),
               modifier = Modifier.settingsSearchTarget(R.string.pref_media_servers_title),
             )
@@ -313,7 +313,7 @@ object MediaServersPreferencesScreen : Screen {
 
           // --- SEERR SECTION ---
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_seerr_title))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_seerr_title))
           }
 
           item {
@@ -444,7 +444,7 @@ object MediaServersPreferencesScreen : Screen {
 
           // --- NAVIDROME SECTION ---
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(R.string.pref_navidrome_title),
               modifier = Modifier.settingsSearchTarget(R.string.pref_media_servers_title),
             )
@@ -629,7 +629,7 @@ object MediaServersPreferencesScreen : Screen {
 
           // --- AUDIOBOOKSHELF SECTION ---
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
               title = stringResource(R.string.pref_audiobookshelf_title),
               modifier = Modifier.settingsSearchTarget(R.string.pref_media_servers_title),
             )

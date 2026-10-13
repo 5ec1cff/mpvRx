@@ -109,7 +109,7 @@ object DecoderPreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Single, 
               title = stringResource(R.string.pref_decoder),
               modifier = Modifier.settingsSearchTarget(R.string.pref_decoder),
             )

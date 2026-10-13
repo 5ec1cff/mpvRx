@@ -305,7 +305,7 @@ object SubtitlesPreferencesScreen : Screen {
         ) {
           // === GENERAL SECTION ===
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.general),
               modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles),
             )
@@ -434,7 +434,7 @@ object SubtitlesPreferencesScreen : Screen {
 
           // === FONT SECTION ===
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_subtitle_fonts))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_subtitle_fonts))
           }
 
           item {
@@ -582,7 +582,7 @@ object SubtitlesPreferencesScreen : Screen {
 
           // === ONLINE SUBTITLE SECTION ===
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
               title = stringResource(R.string.pref_section_subtitle_search),
               modifier = Modifier.settingsSearchTarget(R.string.pref_subtitle_search_title),
             )

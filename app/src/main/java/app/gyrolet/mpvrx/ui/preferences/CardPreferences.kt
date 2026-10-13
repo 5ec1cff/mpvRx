@@ -262,6 +262,12 @@ fun PreferenceDivider(modifier: Modifier = Modifier) {
 }
 
 /**
+ * Controls which ends of the narrow section marker are exposed in a connected sequence.
+ * A single section deliberately rounds both ends.
+ */
+enum class PreferenceSectionPosition { First, Middle, Last, Single }
+
+/**
  * A section header for preferences, displayed outside cards.
  */
 @Composable
@@ -269,6 +275,7 @@ fun PreferenceSectionHeader(
   title: String,
   modifier: Modifier = Modifier,
   topPadding: Dp = 30.dp,
+  position: PreferenceSectionPosition = PreferenceSectionPosition.Single,
 ) {
   Row(
     modifier =
@@ -280,7 +287,12 @@ fun PreferenceSectionHeader(
     Surface(
       modifier = Modifier.width(7.dp).height(34.dp),
       color = MaterialTheme.colorScheme.primary,
-      shape = RoundedCornerShape(topStart = 7.dp, topEnd = 7.dp, bottomStart = 2.dp, bottomEnd = 2.dp),
+      shape = RoundedCornerShape(
+        topStart = if (position == PreferenceSectionPosition.First || position == PreferenceSectionPosition.Single) 7.dp else 2.dp,
+        topEnd = if (position == PreferenceSectionPosition.First || position == PreferenceSectionPosition.Single) 7.dp else 2.dp,
+        bottomStart = if (position == PreferenceSectionPosition.Last || position == PreferenceSectionPosition.Single) 7.dp else 2.dp,
+        bottomEnd = if (position == PreferenceSectionPosition.Last || position == PreferenceSectionPosition.Single) 7.dp else 2.dp,
+      ),
       content = {},
     )
     Spacer(modifier = Modifier.width(12.dp))

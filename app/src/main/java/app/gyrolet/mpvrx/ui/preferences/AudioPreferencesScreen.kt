@@ -117,7 +117,7 @@ object AudioPreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_media_library_section),
               modifier = Modifier.settingsSearchTarget(R.string.pref_audio),
             )
@@ -281,7 +281,7 @@ object AudioPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_appearance))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_appearance))
           }
 
           item {
@@ -388,7 +388,7 @@ object AudioPreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_playback))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_section_playback))
           }
 
           item {
