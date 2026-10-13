@@ -14,6 +14,7 @@ import android.os.Build
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.annotation.StyleRes
 import androidx.core.content.ContextCompat
 import app.gyrolet.mpvrx.R
 
@@ -50,12 +51,13 @@ internal enum class IconMark(
 /**
  * One launcher icon: a background with a mark over it. Only pairs that read well together exist, so
  * the catalog below is both the list of icons and the rule for which marks suit which backgrounds.
- * A new pair needs a row here, a mipmap and an activity-alias named [aliasName] in the manifest.
+ * A new pair needs a row here, a mipmap, a splash style and an activity-alias named [aliasName] in the manifest.
  */
 internal class LauncherIcon(
   val background: IconBackground,
   val mark: IconMark,
   @DrawableRes val preview: Int,
+  @StyleRes val splashTheme: Int,
 ) {
   val aliasName: String get() = "app.gyrolet.mpvrx.Icon${background.key}${mark.key}"
 
@@ -64,32 +66,32 @@ internal class LauncherIcon(
 
   companion object {
     val entries: List<LauncherIcon> = listOf(
-      LauncherIcon(IconBackground.Black, IconMark.Solid, R.mipmap.ic_launcher_black_solid),
-      LauncherIcon(IconBackground.Black, IconMark.Gradient, R.mipmap.ic_launcher_black_gradient),
-      LauncherIcon(IconBackground.Black, IconMark.White, R.mipmap.ic_launcher_black_white),
-      LauncherIcon(IconBackground.White, IconMark.Solid, R.mipmap.ic_launcher_white_solid),
-      LauncherIcon(IconBackground.White, IconMark.Gradient, R.mipmap.ic_launcher_white_gradient),
-      LauncherIcon(IconBackground.White, IconMark.Black, R.mipmap.ic_launcher_white_black),
-      LauncherIcon(IconBackground.Charcoal, IconMark.Solid, R.mipmap.ic_launcher_charcoal_solid),
-      LauncherIcon(IconBackground.Charcoal, IconMark.Gradient, R.mipmap.ic_launcher_charcoal_gradient),
-      LauncherIcon(IconBackground.Charcoal, IconMark.White, R.mipmap.ic_launcher_charcoal_white),
-      LauncherIcon(IconBackground.Indigo, IconMark.Solid, R.mipmap.ic_launcher_indigo_solid),
-      LauncherIcon(IconBackground.Indigo, IconMark.White, R.mipmap.ic_launcher_indigo_white),
-      LauncherIcon(IconBackground.Violet, IconMark.Solid, R.mipmap.ic_launcher_violet_solid),
-      LauncherIcon(IconBackground.Violet, IconMark.White, R.mipmap.ic_launcher_violet_white),
-      LauncherIcon(IconBackground.Lagoon, IconMark.White, R.mipmap.ic_launcher_lagoon_white),
-      LauncherIcon(IconBackground.Lagoon, IconMark.Black, R.mipmap.ic_launcher_lagoon_black),
-      LauncherIcon(IconBackground.Azure, IconMark.Solid, R.mipmap.ic_launcher_azure_solid),
-      LauncherIcon(IconBackground.Azure, IconMark.Gradient, R.mipmap.ic_launcher_azure_gradient),
-      LauncherIcon(IconBackground.Azure, IconMark.Black, R.mipmap.ic_launcher_azure_black),
-      LauncherIcon(IconBackground.Lilac, IconMark.Solid, R.mipmap.ic_launcher_lilac_solid),
-      LauncherIcon(IconBackground.Lilac, IconMark.Gradient, R.mipmap.ic_launcher_lilac_gradient),
-      LauncherIcon(IconBackground.Lilac, IconMark.Black, R.mipmap.ic_launcher_lilac_black),
-      LauncherIcon(IconBackground.Mint, IconMark.Solid, R.mipmap.ic_launcher_mint_solid),
-      LauncherIcon(IconBackground.Mint, IconMark.Gradient, R.mipmap.ic_launcher_mint_gradient),
-      LauncherIcon(IconBackground.Mint, IconMark.Black, R.mipmap.ic_launcher_mint_black),
-      LauncherIcon(IconBackground.Ember, IconMark.White, R.mipmap.ic_launcher_ember_white),
-      LauncherIcon(IconBackground.Ember, IconMark.Black, R.mipmap.ic_launcher_ember_black),
+      LauncherIcon(IconBackground.Black, IconMark.Solid, R.mipmap.ic_launcher_black_solid, R.style.Theme_mpvrx_Splash_BlackSolid),
+      LauncherIcon(IconBackground.Black, IconMark.Gradient, R.mipmap.ic_launcher_black_gradient, R.style.Theme_mpvrx_Splash_BlackGradient),
+      LauncherIcon(IconBackground.Black, IconMark.White, R.mipmap.ic_launcher_black_white, R.style.Theme_mpvrx_Splash_BlackWhite),
+      LauncherIcon(IconBackground.White, IconMark.Solid, R.mipmap.ic_launcher_white_solid, R.style.Theme_mpvrx_Splash_WhiteSolid),
+      LauncherIcon(IconBackground.White, IconMark.Gradient, R.mipmap.ic_launcher_white_gradient, R.style.Theme_mpvrx_Splash_WhiteGradient),
+      LauncherIcon(IconBackground.White, IconMark.Black, R.mipmap.ic_launcher_white_black, R.style.Theme_mpvrx_Splash_WhiteBlack),
+      LauncherIcon(IconBackground.Charcoal, IconMark.Solid, R.mipmap.ic_launcher_charcoal_solid, R.style.Theme_mpvrx_Splash_CharcoalSolid),
+      LauncherIcon(IconBackground.Charcoal, IconMark.Gradient, R.mipmap.ic_launcher_charcoal_gradient, R.style.Theme_mpvrx_Splash_CharcoalGradient),
+      LauncherIcon(IconBackground.Charcoal, IconMark.White, R.mipmap.ic_launcher_charcoal_white, R.style.Theme_mpvrx_Splash_CharcoalWhite),
+      LauncherIcon(IconBackground.Indigo, IconMark.Solid, R.mipmap.ic_launcher_indigo_solid, R.style.Theme_mpvrx_Splash_IndigoSolid),
+      LauncherIcon(IconBackground.Indigo, IconMark.White, R.mipmap.ic_launcher_indigo_white, R.style.Theme_mpvrx_Splash_IndigoWhite),
+      LauncherIcon(IconBackground.Violet, IconMark.Solid, R.mipmap.ic_launcher_violet_solid, R.style.Theme_mpvrx_Splash_VioletSolid),
+      LauncherIcon(IconBackground.Violet, IconMark.White, R.mipmap.ic_launcher_violet_white, R.style.Theme_mpvrx_Splash_VioletWhite),
+      LauncherIcon(IconBackground.Lagoon, IconMark.White, R.mipmap.ic_launcher_lagoon_white, R.style.Theme_mpvrx_Splash_LagoonWhite),
+      LauncherIcon(IconBackground.Lagoon, IconMark.Black, R.mipmap.ic_launcher_lagoon_black, R.style.Theme_mpvrx_Splash_LagoonBlack),
+      LauncherIcon(IconBackground.Azure, IconMark.Solid, R.mipmap.ic_launcher_azure_solid, R.style.Theme_mpvrx_Splash_AzureSolid),
+      LauncherIcon(IconBackground.Azure, IconMark.Gradient, R.mipmap.ic_launcher_azure_gradient, R.style.Theme_mpvrx_Splash_AzureGradient),
+      LauncherIcon(IconBackground.Azure, IconMark.Black, R.mipmap.ic_launcher_azure_black, R.style.Theme_mpvrx_Splash_AzureBlack),
+      LauncherIcon(IconBackground.Lilac, IconMark.Solid, R.mipmap.ic_launcher_lilac_solid, R.style.Theme_mpvrx_Splash_LilacSolid),
+      LauncherIcon(IconBackground.Lilac, IconMark.Gradient, R.mipmap.ic_launcher_lilac_gradient, R.style.Theme_mpvrx_Splash_LilacGradient),
+      LauncherIcon(IconBackground.Lilac, IconMark.Black, R.mipmap.ic_launcher_lilac_black, R.style.Theme_mpvrx_Splash_LilacBlack),
+      LauncherIcon(IconBackground.Mint, IconMark.Solid, R.mipmap.ic_launcher_mint_solid, R.style.Theme_mpvrx_Splash_MintSolid),
+      LauncherIcon(IconBackground.Mint, IconMark.Gradient, R.mipmap.ic_launcher_mint_gradient, R.style.Theme_mpvrx_Splash_MintGradient),
+      LauncherIcon(IconBackground.Mint, IconMark.Black, R.mipmap.ic_launcher_mint_black, R.style.Theme_mpvrx_Splash_MintBlack),
+      LauncherIcon(IconBackground.Ember, IconMark.White, R.mipmap.ic_launcher_ember_white, R.style.Theme_mpvrx_Splash_EmberWhite),
+      LauncherIcon(IconBackground.Ember, IconMark.Black, R.mipmap.ic_launcher_ember_black, R.style.Theme_mpvrx_Splash_EmberBlack),
     )
 
     /** Black with the solid purple ribbon: what the app has always shipped with. */
@@ -171,9 +173,19 @@ internal object LauncherIconManager {
     select(context, choice)
   }
 
+  /**
+   * Android 13+ keeps the splash theme chosen here for the next cold start, so the system splash
+   * matches the launcher icon. Older versions cannot switch it and keep the default splash.
+   */
+  private fun applySplashTheme(activity: Activity, icon: LauncherIcon) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    runCatching { activity.splashScreen.setSplashScreenTheme(icon.splashTheme) }
+  }
+
   /** Recents artwork failures must not turn a successful launcher change into an error. */
   @Suppress("DEPRECATION")
   fun refreshTaskIcon(activity: Activity) {
+    runCatching { applySplashTheme(activity, current(activity)) }
     runCatching {
       val icon = current(activity)
       val bitmap = cachedArtwork?.takeIf { it.first == icon }?.second ?: run {
