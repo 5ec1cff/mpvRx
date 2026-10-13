@@ -17,6 +17,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
@@ -109,6 +112,10 @@ import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+
+private const val BACKING_LEAD_IN_MS = 120L
+private const val BACKING_TAIL_MS = 350L
+private const val LEAD_DONE_GRACE_MS = 150L
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -346,6 +353,28 @@ fun LyricsView(
                   }
                 }
                 val isActiveLine = isPrimaryLine || stillSinging
+                // The backing voice shows only while it is itself being sung (a short
+                // lead-in and tail keep it from flickering at the edges).
+                val backingSinging by remember(line) {
+                  derivedStateOf {
+                    val backing = line.background ?: return@derivedStateOf false
+                    val start = backing.time.toLong() - BACKING_LEAD_IN_MS
+                    val end =
+                      (backing.endTime ?: line.endTime)?.toLong()?.plus(BACKING_TAIL_MS)
+                        ?: (backing.time.toLong() + 3_000L)
+                    smoothPositionMs.value in start until end
+                  }
+                }
+                // Once the lead has finished and the backing voice carries on, the lead
+                // stops being lit even though it still owns the line cursor.
+                val leadFinished by remember(line) {
+                  derivedStateOf {
+                    val end = line.endTime
+                    end != null && !line.words.isNullOrEmpty() &&
+                      smoothPositionMs.value >= end.toLong() + LEAD_DONE_GRACE_MS
+                  }
+                }
+                val leadLit = isActiveLine && !(leadFinished && line.background != null && backingSinging)
                 val rowAlignment: Alignment.Horizontal =
                   when {
                     !hasDuet -> Alignment.CenterHorizontally
@@ -425,8 +454,8 @@ fun LyricsView(
                 val inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
 
                 val lineColor by animateColorAsState(
-                  targetValue = if (isActiveLine) activeColor else inactiveColor,
-                  animationSpec = tween(durationMillis = 250),
+                  targetValue = if (leadLit) activeColor else inactiveColor,
+                  animationSpec = tween(durationMillis = 420, easing = FastOutSlowInEasing),
                   label = "LineColor",
                 )
 
@@ -468,7 +497,7 @@ fun LyricsView(
                     .padding(vertical = 4.dp, horizontal = 6.dp),
                   horizontalAlignment = rowAlignment,
                 ) {
-                  if (isActiveLine && !isBlankLine && !line.words.isNullOrEmpty()) {
+                  if (leadLit && !isBlankLine && !line.words.isNullOrEmpty()) {
                     val isRtl = displayText.hasRtlDirection()
                     CompositionLocalProvider(
                       LocalLayoutDirection provides if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
@@ -505,12 +534,12 @@ fun LyricsView(
                       text = displayText,
                       color = lineColor,
                       fontSize = when {
-                        isActiveLine && isLyricsFullscreen -> 30.sp
-                        isActiveLine -> 26.sp
+                        leadLit && isLyricsFullscreen -> 30.sp
+                        leadLit -> 26.sp
                         isLyricsFullscreen -> 24.sp
                         else -> 22.sp
                       },
-                      fontWeight = if (isActiveLine) FontWeight.Black else FontWeight.ExtraBold,
+                      fontWeight = if (leadLit) FontWeight.Black else FontWeight.ExtraBold,
                       fontFamily = fontFamilyForText(displayText),
                       textAlign = rowTextAlign,
                       modifier = Modifier.fillMaxWidth(),
@@ -521,9 +550,20 @@ fun LyricsView(
                   // appears small and dim under the lead, on its own timings.
                   line.background?.let { backing ->
                     AnimatedVisibility(
-                      visible = isActiveLine,
-                      enter = fadeIn(tween(220)) + expandVertically(tween(260)),
-                      exit = fadeOut(tween(160)) + shrinkVertically(tween(200)),
+                      visible = backingSinging,
+                      enter =
+                        fadeIn(tween(340, easing = FastOutSlowInEasing)) +
+                          slideInVertically(spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessLow)) { it / 2 } +
+                          scaleIn(
+                            initialScale = 0.9f,
+                            transformOrigin = TransformOrigin(if (!hasDuet) 0.5f else if (line.alignEnd) 1f else 0f, 0f),
+                            animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessLow),
+                          ) +
+                          expandVertically(spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessLow)),
+                      exit =
+                        fadeOut(tween(300, easing = FastOutSlowInEasing)) +
+                          slideOutVertically(tween(380, easing = FastOutSlowInEasing)) { it / 4 } +
+                          shrinkVertically(tween(420, easing = FastOutSlowInEasing)),
                     ) {
                       BackingVoice(
                         backing = backing,
