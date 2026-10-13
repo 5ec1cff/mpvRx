@@ -9,6 +9,8 @@
 
 package app.gyrolet.mpvrx.utils.storage
 
+import android.net.Uri
+import android.provider.DocumentsContract
 import java.io.File
 import java.util.Locale
 
@@ -67,9 +69,37 @@ internal fun normalizeStoragePath(path: String?): String? {
 internal fun storagePathKey(path: String?): String? = normalizeStoragePath(path)?.lowercase(Locale.ROOT)
 
 internal fun mediaPathKey(path: String?): String? {
+  if (path?.startsWith("content://") == true) return path
   val normalizedPath = normalizeStoragePath(path) ?: return null
   val canonicalPath = runCatching { File(normalizedPath).canonicalPath }.getOrNull()
   return storagePathKey(canonicalPath ?: normalizedPath)
+}
+
+internal fun isMediaPathInFolder(path: String, folderPath: String): Boolean {
+  if (!path.startsWith("content://") || !folderPath.startsWith("content://")) {
+    return path.equals(folderPath, ignoreCase = true) ||
+      path.startsWith(if (folderPath.endsWith("/")) folderPath else "$folderPath/", ignoreCase = true)
+  }
+  val item = Uri.parse(path)
+  val folder = Uri.parse(folderPath)
+  if (item.authority != folder.authority) return false
+  if (item == folder) return true
+  if (!DocumentsContract.isTreeUri(item) || !DocumentsContract.isTreeUri(folder)) return false
+  if (app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isIndexedDescendant(path, folderPath)) return true
+  val folderSegments = folder.pathSegments
+  val itemSegments = item.pathSegments
+  if (folderSegments.size == 2) {
+    return DocumentsContract.getTreeDocumentId(item) == DocumentsContract.getTreeDocumentId(folder)
+  }
+  if (folderSegments.size != 4 || folderSegments[2] != "document" ||
+    itemSegments.size != 4 || itemSegments[2] != "document"
+  ) return false
+  val folderId = DocumentsContract.getDocumentId(folder)
+  val itemId = DocumentsContract.getDocumentId(item)
+  if (itemId == folderId) return true
+  // Only the external-storage provider defines document IDs as volume-relative paths.
+  return item.authority == "com.android.externalstorage.documents" &&
+    itemId.startsWith("$folderId/")
 }
 
 internal fun areEquivalentStoragePaths(

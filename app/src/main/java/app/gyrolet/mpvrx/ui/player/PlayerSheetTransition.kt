@@ -442,10 +442,15 @@ private fun Modifier.recordPlayerSheet(
       updateAnchor(it)
     }
     .drawWithContent {
-      // Keep recording while hidden so artwork and controls stay live under the morph.
-      capture.layer.record { this@drawWithContent.drawContent() }
-      capture.isRecorded = true
       val hidden = destination != null && PlayerSheetTransitions.isHidden(destination, mediaId)
+      val holdRecording = hidden && capture.isRecorded &&
+        PlayerSheetTransitions.motion?.renderDestination == destination &&
+        capture.layer.size.toSize() == size
+      // The morph changes layer alpha every frame; do not re-record the hidden controls for it.
+      if (!holdRecording) {
+        capture.layer.record { this@drawWithContent.drawContent() }
+        capture.isRecorded = true
+      }
       if (!hidden) {
         capture.layer.alpha = 1f
         drawLayer(capture.layer)
@@ -551,6 +556,7 @@ private fun DrawScope.drawPlayerSheet(
 internal fun PlayerSheetTransitionOverlay(
   destination: PlayerSheetDestination,
   modifier: Modifier = Modifier,
+  contentReady: Boolean = true,
 ) {
   val motion = PlayerSheetTransitions.motion
   val drag = PlayerSheetTransitions.drag
@@ -569,9 +575,9 @@ internal fun PlayerSheetTransitionOverlay(
     }
     drag?.takeIf { it.mediaId != session.currentItem?.stableId }?.let(PlayerSheetTransitions::cancelDrag)
   }
-  LaunchedEffect(motion?.id, lifecycle) {
+  LaunchedEffect(motion?.id, lifecycle, contentReady) {
     val active = motion ?: return@LaunchedEffect
-    if (active.destination != destination) return@LaunchedEffect
+    if (active.destination != destination || !contentReady) return@LaunchedEffect
     lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
       try {
         // The mini target is the fixed placement, so collapsing never waits on the mini player.

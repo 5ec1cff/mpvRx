@@ -4,6 +4,10 @@ These notes are written in plain English and focus on what changed for real use.
 
 ## Unreleased
 
+### Player
+
+- **Mini-player expansion:** MPV preparation no longer blocks the UI thread when reopening the live player. The sheet holds its starting pose until the controls are ready, then reuses their recorded layer during the morph instead of re-recording the hidden controls every animation frame.
+
 ### Translations
 
 - **Ukrainian:** Added a complete Ukrainian translation, contributed by [@WATCHER-00](https://github.com/WATCHER-00). Every user-facing string and plural is covered, so the app now speaks Ukrainian alongside the existing locales.

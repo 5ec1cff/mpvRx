@@ -42,18 +42,30 @@ object ScopedHiddenFolderScanner {
     val bucketId: String,
     val displayName: String,
     val depth: Int,
+    val parentBucketId: String? = null,
   )
 
   private data class IndexedDirectory(
     val document: DocumentFile,
     val grantedTreeUri: String,
     val displayName: String,
+    val parentBucketId: String?,
   )
 
   // A folder list scan already visited every child. Reuse those DocumentFile handles for the
   // library's per-folder counts and video pages instead of traversing the tree once per folder.
   // listFiles() still queries current contents; the cache only holds directory locations.
   @Volatile private var indexedDirectories: Map<String, IndexedDirectory> = emptyMap()
+
+  fun isIndexedDescendant(bucketId: String, ancestorBucketId: String): Boolean {
+    var current = bucketId
+    val visited = hashSetOf<String>()
+    while (visited.add(current)) {
+      if (current == ancestorBucketId) return true
+      current = indexedDirectories[current]?.parentBucketId ?: return false
+    }
+    return false
+  }
 
   /**
    * Child folder buckets are document URIs anchored to the *original* granted tree, not new
@@ -80,6 +92,8 @@ object ScopedHiddenFolderScanner {
     context: Context,
     grantedTreeUris: Set<String>,
     includeAudio: Boolean,
+    minimumAudioDurationSeconds: Int = 0,
+    audioOnly: Boolean = false,
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
     val folders = mutableListOf<VideoFolder>()
     val discovered = mutableMapOf<String, IndexedDirectory>()
@@ -95,9 +109,13 @@ object ScopedHiddenFolderScanner {
         currentCoroutineContext().ensureActive()
         val folder = pending.removeFirst()
         if (!visited.add(folder.document.uri.toString())) continue
-        discovered[folder.bucketId] = IndexedDirectory(folder.document, treeUri, folder.displayName)
+        discovered[folder.bucketId] =
+          IndexedDirectory(folder.document, treeUri, folder.displayName, folder.parentBucketId)
         val children = listTreeFilesSafely(folder.document)
-        val videos = readVideosFromFiles(context, children, folder.bucketId, folder.displayName, includeAudio)
+        val videos = readVideosFromFiles(
+          context, children, folder.bucketId, folder.displayName, includeAudio,
+          minimumAudioDurationSeconds, audioOnly,
+        )
         if (videos.isNotEmpty()) {
           folders += VideoFolder(
             bucketId = folder.bucketId,
@@ -121,6 +139,7 @@ object ScopedHiddenFolderScanner {
                 child.uri.toString(),
                 "${folder.displayName} / $childName",
                 folder.depth + 1,
+                folder.bucketId,
               ),
             )
           }
@@ -136,6 +155,7 @@ object ScopedHiddenFolderScanner {
     bucketId: String,
     includeAudio: Boolean,
     grantedTreeUris: Set<String>,
+    minimumAudioDurationSeconds: Int = 0,
   ): List<Video> = withContext(Dispatchers.IO) {
     if (!isGrantedFolder(bucketId, grantedTreeUris)) return@withContext emptyList()
 
@@ -145,6 +165,7 @@ object ScopedHiddenFolderScanner {
     ) {
       return@withContext readVideosFromFiles(
         context, listTreeFilesSafely(cached.document), bucketId, cached.displayName, includeAudio,
+        minimumAudioDurationSeconds,
       )
     }
 
@@ -166,6 +187,7 @@ object ScopedHiddenFolderScanner {
         if (folder.bucketId == bucketId) {
           return@withContext readVideosFromFiles(
             context, children, folder.bucketId, folder.displayName, includeAudio,
+            minimumAudioDurationSeconds,
           )
         }
         if (folder.depth < MAX_DIRECTORY_DEPTH) {
@@ -195,6 +217,8 @@ object ScopedHiddenFolderScanner {
     bucketId: String,
     folderName: String,
     includeAudio: Boolean,
+    minimumAudioDurationSeconds: Int = 0,
+    audioOnly: Boolean = false,
   ): List<Video> =
     children.mapNotNull { document ->
       currentCoroutineContext().ensureActive()
@@ -204,6 +228,7 @@ object ScopedHiddenFolderScanner {
           if (!document.isFile) return@run null
           val fakeFile = File(name)
           val isAudio = FileTypeUtils.isAudioFile(fakeFile)
+          if (audioOnly && !isAudio) return@run null
           if (!(FileTypeUtils.isVideoFile(fakeFile) || (includeAudio && isAudio))) return@run null
           val documentUri = document.uri
           val uriString = documentUri.toString()
@@ -216,6 +241,7 @@ object ScopedHiddenFolderScanner {
                 Log.w(TAG, "Cannot read metadata in a selected folder: $name", error)
               }.getOrNull()
           val duration = metadata?.durationMs ?: 0L
+          if (isAudio && duration < minimumAudioDurationSeconds.coerceAtLeast(0).toLong() * 1_000L) return@run null
           if (metadata != null && duration <= 0L) {
             Log.w(TAG, "No duration available for an item in a selected folder: $name")
           }

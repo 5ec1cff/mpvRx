@@ -75,6 +75,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.withStarted
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.database.entities.PlaybackStateEntity
 import app.gyrolet.mpvrx.database.entities.PlaylistEntity
@@ -469,6 +470,9 @@ class PlayerActivity :
   private var deferredMpvAssetSyncJob: Job? = null
   private var mpvAssetPreparationJob: Job? = null
   private var mpvCorePreparationJob: Deferred<String?>? = null
+  private var playerCreationJob: Job? = null
+  private var playerControlsReady by mutableStateOf(false)
+  private var playerControlsComposed = false
   private var systemBarsAutoHideJob: Job? = null
   private var videoParamRefreshJob: Job? = null
   private var intentSubtitleJob: Job? = null
@@ -705,9 +709,31 @@ class PlayerActivity :
     setupSystemBarsAutoHide()
     setupPipHelper()
 
+    if (intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER) {
+      // Draw the held mini-player pose while preparation runs, without blocking the UI thread.
+      if (animateSheet) setupPlayerControls(ready = false)
+      playerCreationJob = lifecycleScope.launch {
+        val initError = awaitMpvCorePreparation()
+        lifecycle.withStarted {
+          if (isFinishing || isDestroyed || !ownsPlaybackSession()) return@withStarted
+          if (initError == null && reusingPlaybackSessionOnLaunch) {
+            MediaPlaybackService.prepareForActivityHandoff()
+          }
+          completePlayerCreation(initError)
+          if (!mpvInitialized || isFinishing) return@withStarted
+          onPlaybackStarted()
+          if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) onPlaybackResumed()
+        }
+      }
+    } else {
+      completePlayerCreation(runBlocking { awaitMpvCorePreparation() })
+    }
+  }
+
+  private fun completePlayerCreation(initError: String?) {
     // A detached background session belongs to PlaybackSession, not to the old Activity.
     // Notification re-entry attaches this new surface to that live core without reloading it.
-    val setupResult = setupMPV()
+    val setupResult = setupMPV(initError)
     if (setupResult != null) {
       isUserFinishing = true
       Toast.makeText(this, getString(R.string.toast_playback_load_failed) + ": " + setupResult, Toast.LENGTH_LONG).show()
@@ -1190,29 +1216,39 @@ class PlayerActivity :
    * An input arriving inside that one-frame window is not lost: every tap and key path already sets
    * `viewModel.controlsShown`, which the tree reads when it mounts, so the controls still appear.
    */
-  private fun setupPlayerControls() {
-    lifecycleScope.launch {
-      combine(
-        appearancePreferences.liquidGlassEnabled.changes(),
-        decoderPreferences.hdrScreenOutput.changes(),
-      ) { glass, hdr ->
-        glass && !hdr && !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)
-      }.distinctUntilChanged().collect { useTexture ->
-        player.setTextureRendering(useTexture)
+  private fun setupPlayerControls(ready: Boolean = true) {
+    if (ready && !playerControlsReady) {
+      playerControlsReady = true
+      lifecycleScope.launch {
+        combine(
+          appearancePreferences.liquidGlassEnabled.changes(),
+          decoderPreferences.hdrScreenOutput.changes(),
+        ) { glass, hdr ->
+          glass && !hdr && !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)
+        }.distinctUntilChanged().collect { useTexture ->
+          player.setTextureRendering(useTexture)
+        }
       }
     }
+    if (playerControlsComposed) return
+    playerControlsComposed = true
     fun composeControls() {
       if (isDestroyed || isFinishing) return
       binding.controls.setContent {
         MpvrxTheme {
           Box(modifier = Modifier.fillMaxSize()) {
-            PlayerControls(
-              viewModel = viewModel,
-              onBackPress = ::handleBackPress,
-              videoSurface = binding.player,
-              modifier = Modifier,
+            if (playerControlsReady) {
+              PlayerControls(
+                viewModel = viewModel,
+                onBackPress = ::handleBackPress,
+                videoSurface = binding.player,
+                modifier = Modifier,
+              )
+            }
+            PlayerSheetTransitionOverlay(
+              PlayerSheetDestination.FULL,
+              contentReady = playerControlsReady,
             )
-            PlayerSheetTransitionOverlay(PlayerSheetDestination.FULL)
           }
         }
       }
@@ -1673,11 +1709,13 @@ class PlayerActivity :
     }
     val pipDismissalCommitted = handledPipDismissal
     pendingPipExitResolution = false
+    val pendingHandoffReturned = ownsPlaybackSession && restorePendingPlayerHandoff()
     val keepBackgroundPlaybackAlive =
-      ownsPlaybackSession && !scriptRuntimeRestartPending && !pipDismissalCommitted && PlayerLifecyclePolicy.shouldKeepBackgroundPlaybackAliveOnDestroy(
-        backgroundPlaybackEnabled = playbackWasInitialized && isBackgroundPlaybackEnabled(),
-        backgroundPlaybackSessionActive = isBackgroundPlaybackSessionActive,
-      )
+      ownsPlaybackSession && !scriptRuntimeRestartPending && !pipDismissalCommitted &&
+        (pendingHandoffReturned || PlayerLifecyclePolicy.shouldKeepBackgroundPlaybackAliveOnDestroy(
+          backgroundPlaybackEnabled = playbackWasInitialized && isBackgroundPlaybackEnabled(),
+          backgroundPlaybackSessionActive = isBackgroundPlaybackSessionActive,
+        ))
 
 
     runCatching {
@@ -1734,6 +1772,21 @@ class PlayerActivity :
     }
   }
 
+  private fun restorePendingPlayerHandoff(): Boolean {
+    if (mpvInitialized || playerCreationJob == null || !reusingPlaybackSessionOnLaunch ||
+      !MediaPlaybackService.isNotificationOwnerReady() || PlaybackSession.state.value.currentItem == null
+    ) return false
+    MediaPlaybackService.activityForeground = false
+    PlaybackSession.markBackground()
+    if (!MediaPlaybackService.takeAudioOwnershipForDetachedPlayback()) {
+      Log.w(TAG, "Could not return audio ownership after pending player handoff")
+    }
+    PlayerSheetTransitions.motion?.takeIf { it.destination == PlayerSheetDestination.FULL }?.let {
+      PlayerSheetTransitions.finish(it.id)
+    }
+    return true
+  }
+
   private fun cleanupMPV(
     keepBackgroundPlaybackAlive: Boolean,
     ownsPlaybackSession: Boolean,
@@ -1768,6 +1821,7 @@ class PlayerActivity :
       Log.d(TAG, "Skipping shared MPV teardown from a superseded PlayerActivity")
       return
     }
+
 
     if (!keepBackgroundPlaybackAlive) {
       // Start the terminal stop while the Surface is still valid. This closes the window where a
@@ -2048,7 +2102,10 @@ class PlayerActivity :
     MediaPlaybackService.activityForeground = false
     runCatching {
       pipHelper.onStop()
-      if (!mpvInitialized) return@runCatching
+      if (!mpvInitialized) {
+        restorePendingPlayerHandoff()
+        return@runCatching
+      }
 
       if (noisyReceiverRegistered) {
         unregisterReceiver(noisyReceiver)
@@ -2209,6 +2266,10 @@ class PlayerActivity :
 
   override fun onStart() {
     super.onStart()
+    onPlaybackStarted()
+  }
+
+  private fun onPlaybackStarted() {
     if (!mpvInitialized || !ownsPlaybackSession()) return
     if (finishStoppedBackgroundPlaybackIfNeeded()) return
     MediaPlaybackService.activityForeground = !isDeviceScreenOffOrLocked()
@@ -2706,10 +2767,8 @@ class PlayerActivity :
    * Initializes the MPV player with the necessary paths and observers.
    * CRITICAL: Must copy config and scripts BEFORE initializing MPV, as MPV loads scripts during init.
    */
-  private fun setupMPV(): String? {
-    // Asset preparation and MPVLib.init() were already started on IO. The main thread waits only
-    // for the portion that did not overlap Android window/surface setup.
-    val waitStartedAt = android.os.SystemClock.elapsedRealtime()
+  private fun setupMPV(initError: String?): String? {
+    if (initError != null) return initError
     player.onSurfaceReady = {
       if (!isDeviceScreenOffOrLocked()) {
         enableVideoAfterBackground()
@@ -2718,20 +2777,6 @@ class PlayerActivity :
       viewModel.restartAmbientIfActive()
       binding.root.post(::updateVideoAmbientPlayerBounds)
     }
-
-    val corePreparation = mpvCorePreparationJob
-    val initError =
-      if (corePreparation != null) {
-        runCatching { runBlocking { corePreparation.await() } }
-          .getOrElse { error ->
-            Log.e(TAG, "Could not initialize MPV", error)
-            error.message ?: getString(R.string.toast_playback_load_failed)
-          }
-      } else {
-        initializeMpvCore()
-      }
-    Log.d(TAG, "MPV core joined in ${android.os.SystemClock.elapsedRealtime() - waitStartedAt} ms")
-    if (initError != null) return initError
 
     // SurfaceHolder and View callbacks stay on the main thread even though the native core was
     // prepared in parallel.
@@ -2745,6 +2790,21 @@ class PlayerActivity :
 
     scheduleDeferredSubtitleFontsSync()
     return null
+  }
+
+  private suspend fun awaitMpvCorePreparation(): String? {
+    val waitStartedAt = android.os.SystemClock.elapsedRealtime()
+    return try {
+      val preparation = mpvCorePreparationJob
+      if (preparation != null) preparation.await() else withContext(Dispatchers.IO) { initializeMpvCore() }
+    } catch (error: CancellationException) {
+      throw error
+    } catch (error: Exception) {
+      Log.e(TAG, "Could not initialize MPV", error)
+      error.message ?: getString(R.string.toast_playback_load_failed)
+    } finally {
+      Log.d(TAG, "MPV core prepared in ${android.os.SystemClock.elapsedRealtime() - waitStartedAt} ms")
+    }
   }
 
   /** Starts native initialization once the launch has been validated and session handoff decided. */
@@ -3546,6 +3606,10 @@ class PlayerActivity :
   override fun onResume() {
     super.onResume()
     app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.refreshTaskIcon(this)
+    onPlaybackResumed()
+  }
+
+  private fun onPlaybackResumed() {
     if (!mpvInitialized || !ownsPlaybackSession()) return
     if (!isInPictureInPictureMode && hasWindowFocus()) completePipExpansion()
     restoreForegroundVideoAndAmbientIfUnlocked()
@@ -4948,16 +5012,21 @@ class PlayerActivity :
     when (uri.scheme) {
       "file" -> uri.path ?: uri.toString()
       "content" ->
-        contentResolver
-          .query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
-          ?.use { cursor ->
-            if (cursor.moveToFirst()) {
-              val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-              if (columnIndex != -1) cursor.getString(columnIndex) else null
-            } else {
-              null
-            }
-          } ?: uri.toString()
+        if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+          // A provider grant authorizes the URI, not its potentially inaccessible _data path.
+          uri.toString()
+        } else {
+          contentResolver
+            .query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)
+            ?.use { cursor ->
+              if (cursor.moveToFirst()) {
+                val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+                if (columnIndex != -1) cursor.getString(columnIndex) else null
+              } else {
+                null
+              }
+            } ?: uri.toString()
+        }
       else -> uri.toString()
     }
 
@@ -5447,6 +5516,20 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    */
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
+    val creation = playerCreationJob
+    if (creation?.isActive == true) {
+      lifecycleScope.launch {
+        creation.join()
+        if (mpvInitialized && !isFinishing && !isDestroyed && ownsPlaybackSession()) {
+          processNewIntent(intent)
+        }
+      }
+      return
+    }
+    processNewIntent(intent)
+  }
+
+  private fun processNewIntent(intent: Intent) {
     if (scriptRuntimeRestartPending) {
       if (intent.action !in setOf(
           MediaPlaybackService.ACTION_OPEN_PLAYER,

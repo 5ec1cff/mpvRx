@@ -84,7 +84,9 @@ object CopyPasteOps {
    * Check if MANAGE_EXTERNAL_STORAGE permission is granted
    */
   fun hasManageStoragePermission(): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      false
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       Environment.isExternalStorageManager()
     } else {
       true // Pre-Android 11 devices don't need this permission

@@ -119,6 +119,7 @@ object MediaFileRepository : KoinComponent {
         context,
         foldersPreferences.scopedHiddenFolderUris.get(),
         includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
+        minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
       )
     } else {
       emptyList()
@@ -146,7 +147,7 @@ object MediaFileRepository : KoinComponent {
             database.directoryScanDao(),
           )
         (mediaStoreFolders + indexedFolders + getScopedHiddenVideoFolders(context, includeAudioOverride))
-          .distinctBy { it.path.lowercase(Locale.ROOT) }
+          .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
           .sortedBy { it.name.lowercase(Locale.getDefault()) }
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning for video folders", e)
@@ -170,7 +171,7 @@ object MediaFileRepository : KoinComponent {
           forceFileSystemCheck = forceFileSystemCheck,
         )
       (folders + getScopedHiddenVideoFolders(context, includeAudioOverride))
-        .distinctBy { it.path.lowercase(Locale.ROOT) }
+        .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
         .also { onProgress?.invoke(it.size) }
     }
@@ -229,7 +230,7 @@ object MediaFileRepository : KoinComponent {
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning for audio folders", e)
       }
-      aggregates.values
+      val indexedFolders = aggregates.values
         .map { agg ->
           VideoFolder(
             bucketId = agg.path,
@@ -240,7 +241,19 @@ object MediaFileRepository : KoinComponent {
             totalDuration = agg.duration,
             lastModified = agg.lastModified,
           )
-        }.sortedBy { it.name.lowercase(Locale.getDefault()) }
+        }
+      val selectedFolders = if (BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get()) {
+        ScopedHiddenFolderScanner.getFolders(
+          context,
+          foldersPreferences.scopedHiddenFolderUris.get(),
+          includeAudio = true,
+          minimumAudioDurationSeconds = minimumAudioDurationSeconds,
+          audioOnly = true,
+        )
+      } else {
+        emptyList()
+      }
+      (indexedFolders + selectedFolders).sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
 
   /**
@@ -262,6 +275,7 @@ object MediaFileRepository : KoinComponent {
             "${MediaStore.Audio.Media.DISPLAY_NAME} LIKE ?"
         val projection =
           arrayOf(
+            MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DISPLAY_NAME,
@@ -279,6 +293,7 @@ object MediaFileRepository : KoinComponent {
             arrayOf(like, like, like, like),
             "${MediaStore.Audio.Media.TITLE} ASC",
           )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val displayColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
@@ -288,9 +303,9 @@ object MediaFileRepository : KoinComponent {
             var guard = 0
             while (cursor.moveToNext() && guard < limit) {
               guard++
-              val path = cursor.getString(dataColumn)
+              val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
               val file = File(path)
-              if (!file.exists()) continue
+              if (!BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
               if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(path)) continue
               val durationMs = cursor.getLong(durationColumn)
               val title = cursor.getString(titleColumn) ?: file.nameWithoutExtension
@@ -303,7 +318,11 @@ object MediaFileRepository : KoinComponent {
                   title = title,
                   displayName = displayName,
                   path = path,
-                  uri = Uri.fromFile(file),
+                  uri = if (BuildConfig.SCOPED_STORAGE_ONLY) {
+                    Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, cursor.getLong(idColumn).toString())
+                  } else {
+                    Uri.fromFile(file)
+                  },
                   duration = durationMs,
                   durationFormatted = VideoScanUtils.formatDuration(durationMs),
                   size = cursor.getLong(sizeColumn),
@@ -376,6 +395,7 @@ object MediaFileRepository : KoinComponent {
             bucketId,
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
             foldersPreferences.scopedHiddenFolderUris.get(),
+            minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
           )
         } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           emptyList()
@@ -571,17 +591,22 @@ object MediaFileRepository : KoinComponent {
       try {
         val scanOptions = currentScanOptions()
         val directory = File(path)
+        val indexedDirectory = if (BuildConfig.SCOPED_STORAGE_ONLY) {
+          TreeViewScanner.getFolderDataRecursive(context, path, scanOptions, forceFileSystemCheck)
+        } else {
+          null
+        }
 
         // Validation checks
-        if (!directory.exists()) {
+        if (!directory.exists() && indexedDirectory == null) {
           return@withContext Result.failure(Exception("Directory does not exist: $path"))
         }
 
-        if (!directory.canRead()) {
+        if (!BuildConfig.SCOPED_STORAGE_ONLY && !directory.canRead()) {
           return@withContext Result.failure(Exception("Cannot read directory: $path"))
         }
 
-        if (!directory.isDirectory) {
+        if (!directory.isDirectory && indexedDirectory == null) {
           return@withContext Result.failure(Exception("Path is not a directory: $path"))
         }
 
@@ -656,7 +681,7 @@ object MediaFileRepository : KoinComponent {
 
         // Primary storage (internal)
         val primaryStorage = Environment.getExternalStorageDirectory()
-        if (primaryStorage.exists() && primaryStorage.canRead()) {
+        if (BuildConfig.SCOPED_STORAGE_ONLY || (primaryStorage.exists() && primaryStorage.canRead())) {
           val primaryPath = primaryStorage.absolutePath
 
           // Get recursive count for this storage root
@@ -692,7 +717,7 @@ object MediaFileRepository : KoinComponent {
           val volumePath = StorageVolumeUtils.getVolumePath(volume)
           if (volumePath != null) {
             val volumeDir = File(volumePath)
-            if (volumeDir.exists() && volumeDir.canRead()) {
+            if (BuildConfig.SCOPED_STORAGE_ONLY || (volumeDir.exists() && volumeDir.canRead())) {
               val volumeName = volume.getDescription(context)
 
               // Get recursive count for this storage root

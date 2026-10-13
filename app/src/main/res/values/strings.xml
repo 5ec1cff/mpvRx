@@ -2899,12 +2899,12 @@
   <string name="app_icon_change_failed">Unable to change the launcher icon.</string>
     <!-- Scoped-storage hidden folder access for the Play Store distribution -->
     <string name="pref_playstore_hidden_title">Selected hidden folders</string>
-    <string name="pref_playstore_hidden_summary">The Play Store build cannot scan hidden folders without permission. Select a parent folder with Android’s folder picker to include videos inside it and its subfolders.</string>
+    <string name="pref_playstore_hidden_summary">Choose a folder to include its media and subfolders.</string>
     <string name="pref_playstore_hidden_selected">Folders you have allowed</string>
     <string name="pref_playstore_hidden_add">Choose hidden folder</string>
     <string name="pref_playstore_hidden_remove">Remove folder access</string>
     <string name="pref_playstore_hidden_grant_failed">Cannot access that folder. Choose a supported folder and grant read access.</string>
-    <string name="pref_playstore_hidden_limitations">A selected folder includes its accessible subfolders automatically; no separate grants are needed. Android may block storage roots, Download, Android/data and Android/obb. Pull to refresh after copying files into a selected folder.</string>
+    <string name="pref_playstore_hidden_limitations">Some folders are restricted by Android. Pull to refresh for new files.</string>
   <string name="lyrics_provider_auto_best">Best match: %1$s</string>
   <string name="lyrics_provider_row_current">Current provider</string>
   <string name="lyrics_provider_row_fetching">Fetching…</string>
