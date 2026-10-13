@@ -52,6 +52,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
@@ -83,12 +84,15 @@ import app.gyrolet.mpvrx.ui.player.MPVPipHelper
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
-import app.gyrolet.mpvrx.ui.player.PlayerArtworkDestination
-import app.gyrolet.mpvrx.ui.player.PlayerArtworkTransitionOverlay
+import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
+import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitionOverlay
+import app.gyrolet.mpvrx.ui.player.playerSheetBackdrop
+import app.gyrolet.mpvrx.ui.player.playerSheetMiniPlacement
 import app.gyrolet.mpvrx.ui.player.PlayerLifecyclePolicy
 import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.ScreenNavDisplay
 import app.gyrolet.mpvrx.ui.utils.popSafely
@@ -595,6 +599,7 @@ open class MainActivity : AppCompatActivity() {
             modifier =
               Modifier
                 .fillMaxSize()
+                .playerSheetBackdrop()
                 .captureLiquidGlassBackdrop(miniPlayerBackdrop, liquidGlassEnabled),
             backStack = typedBackstack,
             opaqueFrom = app.gyrolet.mpvrx.ui.preferences.PreferencesScreen,
@@ -676,13 +681,21 @@ open class MainActivity : AppCompatActivity() {
                   .padding(bottom = wideBottomPadding)
             }
 
+          Box(
+            modifier = miniPlayerModifier
+              .height(64.dp)
+              .playerSheetMiniPlacement(
+                AppShapeScale.largeIncreased,
+                androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+              ),
+          )
           ProvideLiquidGlassBackdrop(
             backdrop = miniPlayerBackdrop,
             enabled = liquidGlassEnabled,
           ) {
             MiniPlayer(modifier = miniPlayerModifier)
           }
-          PlayerArtworkTransitionOverlay(PlayerArtworkDestination.MINI, Modifier.matchParentSize())
+          PlayerSheetTransitionOverlay(PlayerSheetDestination.MINI, Modifier.matchParentSize())
         }
       }
 

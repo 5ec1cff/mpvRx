@@ -33,7 +33,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -101,11 +100,12 @@ import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
-import app.gyrolet.mpvrx.ui.player.PlayerArtworkDestination
-import app.gyrolet.mpvrx.ui.player.PlayerArtworkTransitions
+import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
+import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
-import app.gyrolet.mpvrx.ui.player.playerArtworkAnchor
+import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
+import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
 import app.gyrolet.mpvrx.ui.player.toObject
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
@@ -257,21 +257,20 @@ private fun MiniPlayerContent(
 
   val coroutineScope = rememberCoroutineScope()
   var offsetX by remember { mutableFloatStateOf(0f) }
-  // Keep one artwork handoff per tap burst, without scheduling a recomposition.
+  // Keep one player handoff per tap burst, without scheduling a recomposition.
   val lastExpandAtMs = remember { longArrayOf(0L) }
   LaunchedEffect(currentItem?.stableId) { offsetX = 0f }
   val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
   val density = LocalDensity.current
   val dismissThresholdPx = with(density) { 100.dp.toPx() }
-  val expandThresholdPx = with(density) { 48.dp.toPx() }
 
   val launchPlayer = remember(context, isAudioOnlyItem) {
     launch@{
       val now = android.os.SystemClock.elapsedRealtime()
-      if (now - lastExpandAtMs[0] < 650L) return@launch
+      if (now - lastExpandAtMs[0] < 650L) return@launch false
       lastExpandAtMs[0] = now
-      val animateArtwork = isAudioOnlyItem && PlayerArtworkTransitions.begin(
-        PlayerArtworkDestination.FULL,
+      val animateSheet = isAudioOnlyItem && PlayerSheetTransitions.begin(
+        PlayerSheetDestination.FULL,
         PlaybackSession.state.value.currentItem?.stableId,
       )
       val intent = Intent(context, PlayerActivity::class.java).apply {
@@ -283,10 +282,11 @@ private fun MiniPlayerContent(
       }
       context.startActivity(intent)
       if (context is Activity && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        val enterAnimation = if (animateArtwork) 0 else R.anim.slide_in_up
+        val enterAnimation = if (animateSheet) 0 else R.anim.slide_in_up
         @Suppress("DEPRECATION")
         context.overridePendingTransition(enterAnimation, 0)
       }
+      true
     }
   }
 
@@ -305,22 +305,24 @@ private fun MiniPlayerContent(
   LiquidGlassSurface(
     modifier = Modifier
       .offset { IntOffset(offsetX.roundToInt(), 0) }
+      .then(
+        if (isAudioOnlyItem) {
+          Modifier.playerSheetAnchor(
+            PlayerSheetDestination.MINI,
+            currentItem?.stableId,
+            miniPlayerShape,
+            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+          )
+        } else {
+          Modifier
+        },
+      )
       .clip(miniPlayerShape)
-      .pointerInput(launchPlayer, expandThresholdPx) {
-        var verticalDrag = 0f
-        detectVerticalDragGestures(
-          onDragStart = { verticalDrag = 0f },
-          onDragCancel = { verticalDrag = 0f },
-          onDragEnd = {
-            if (verticalDrag < -expandThresholdPx) launchPlayer()
-            verticalDrag = 0f
-          },
-          onVerticalDrag = { change, amount ->
-            change.consume()
-            verticalDrag = (verticalDrag + amount).coerceAtMost(0f)
-          },
-        )
-      }
+      .swipeUpToFullPlayer(
+        mediaId = currentItem?.stableId,
+        animateSheet = isAudioOnlyItem,
+        onExpand = launchPlayer,
+      )
       .pointerInput(Unit) {
         detectHorizontalDragGestures(
           onDragEnd = {
@@ -526,7 +528,6 @@ private fun MiniPlayerContent(
         Box(
           modifier = Modifier
             .size(48.dp)
-            .playerArtworkAnchor(PlayerArtworkDestination.MINI, currentItem?.stableId, coverArt, 10.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
           contentAlignment = Alignment.Center,

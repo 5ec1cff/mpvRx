@@ -59,7 +59,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -444,6 +443,8 @@ class PlayerActivity :
   private var pendingBackgroundTransition = false
   private var pendingBackNavigationBackgroundTransition = false
   private var returnToBrowserAfterMinimize = false
+  private var predictivePlayerSheetDrag: PlayerSheetDrag? = null
+  private var predictivePlayerSheetRestoreJob: Job? = null
   private var noisyReceiverRegistered = false
   private var lastVid = -1 // Track video track for background playback optimization
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
@@ -651,9 +652,9 @@ class PlayerActivity :
     // Derive every init option value up front on IO. Only the option writes themselves need the
     // core, so this overlaps with layout inflation and the Compose trees.
     player.prepareInitInputs()
-    val animateArtwork =
+    val animateSheet =
       intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER &&
-        PlayerArtworkTransitions.motion?.destination == PlayerArtworkDestination.FULL
+        PlayerSheetTransitions.motion?.destination == PlayerSheetDestination.FULL
     val launchSource = intent.getStringExtra("launch_source")
     val isMusicLibraryLaunch =
       launchSource == "music_library" ||
@@ -661,7 +662,7 @@ class PlayerActivity :
         launchSource == "music_shuffle"
     val enterAnimation =
       when {
-        animateArtwork -> 0
+        animateSheet -> 0
         intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER || isMusicLibraryLaunch -> R.anim.slide_in_up
         else -> android.R.anim.fade_in
       }
@@ -937,10 +938,18 @@ class PlayerActivity :
         }
 
         override fun handleOnBackPressed() {
-          // Do not let the predictive-back transform compete with Android's
-          // full-screen-to-PiP surface morph.
+          val sheetDrag = predictivePlayerSheetDrag
+          predictivePlayerSheetDrag = null
           resetPredictiveBackProgress(animate = false)
           handleBackPress()
+          if (sheetDrag != null && PlayerSheetTransitions.drag === sheetDrag) {
+            predictivePlayerSheetRestoreJob = lifecycleScope.launch {
+              if (pendingBackNavigationBackgroundTransition) delay(1_000L)
+              if (PlayerSheetTransitions.drag === sheetDrag) {
+                PlayerSheetTransitions.restoreDrag(sheetDrag, PlayerSheetTransitions.reducedMotion)
+              }
+            }
+          }
         }
       }
 
@@ -952,6 +961,23 @@ class PlayerActivity :
   }
 
   private fun applyPredictiveBackProgress(backEvent: BackEventCompat) {
+    if (
+      isReady && isCurrentPlaybackAudio() && isMiniPlayerEnabled() &&
+      !viewModel.areControlsLocked.value &&
+      viewModel.sheetShown.value == Sheets.None &&
+      viewModel.panelShown.value == Panels.None &&
+      !gesturePreferences.confirmBackToExit.get() &&
+      !PlayerSheetTransitions.reducedMotion
+    ) {
+      predictivePlayerSheetRestoreJob?.cancel()
+      val active = predictivePlayerSheetDrag
+        ?: PlayerSheetTransitions.startDrag(PlayerSheetDestination.FULL, PlaybackSession.state.value.currentItem?.stableId)
+      if (active != null) {
+        predictivePlayerSheetDrag = active
+        active.expansion = 1f - backEvent.progress.coerceIn(0f, 1f)
+        return
+      }
+    }
     val root = binding.root
     val width = root.width
     val height = root.height
@@ -973,6 +999,17 @@ class PlayerActivity :
   }
 
   private fun resetPredictiveBackProgress(animate: Boolean = true) {
+    predictivePlayerSheetRestoreJob?.cancel()
+    predictivePlayerSheetDrag?.let { active ->
+      predictivePlayerSheetDrag = null
+      if (animate && !PlayerSheetTransitions.reducedMotion && ValueAnimator.areAnimatorsEnabled()) {
+        predictivePlayerSheetRestoreJob = lifecycleScope.launch {
+          PlayerSheetTransitions.restoreDrag(active, reduceMotion = false)
+        }
+      } else {
+        PlayerSheetTransitions.cancelDrag(active)
+      }
+    }
     binding.root.animate().cancel()
     binding.controls.animate().cancel()
     if (!animate || !ValueAnimator.areAnimatorsEnabled()) {
@@ -1161,27 +1198,26 @@ class PlayerActivity :
         player.setTextureRendering(useTexture)
       }
     }
-    binding.controls.postOnAnimation {
-      if (isDestroyed || isFinishing) return@postOnAnimation
+    fun composeControls() {
+      if (isDestroyed || isFinishing) return
       binding.controls.setContent {
         MpvrxTheme {
           Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-              modifier = Modifier.fillMaxSize().graphicsLayer {
-                alpha = PlayerArtworkTransitions.contentAlpha(PlayerArtworkDestination.FULL)
-              },
-            ) {
-              PlayerControls(
-                viewModel = viewModel,
-                onBackPress = ::handleBackPress,
-                videoSurface = binding.player,
-                modifier = Modifier,
-              )
-            }
-            PlayerArtworkTransitionOverlay(PlayerArtworkDestination.FULL)
+            PlayerControls(
+              viewModel = viewModel,
+              onBackPress = ::handleBackPress,
+              videoSurface = binding.player,
+              modifier = Modifier,
+            )
+            PlayerSheetTransitionOverlay(PlayerSheetDestination.FULL)
           }
         }
       }
+    }
+    if (PlayerSheetTransitions.motion?.destination == PlayerSheetDestination.FULL) {
+      composeControls()
+    } else {
+      binding.controls.postOnAnimation { composeControls() }
     }
   }
 
@@ -1943,12 +1979,12 @@ class PlayerActivity :
       Log.e(TAG, "Error during finish", e)
     }
 
-    val animateArtwork = isBackgroundPlaybackSessionActive && isMiniPlayerEnabled() &&
-      PlayerArtworkTransitions.begin(PlayerArtworkDestination.MINI, PlaybackSession.state.value.currentItem?.stableId)
+    val animateSheet = isBackgroundPlaybackSessionActive && isMiniPlayerEnabled() &&
+      PlayerSheetTransitions.begin(PlayerSheetDestination.MINI, PlaybackSession.state.value.currentItem?.stableId)
     super.finish()
 
     if (isMiniPlayerEnabled()) {
-      val exitAnimation = if (animateArtwork) 0 else R.anim.slide_out_down
+      val exitAnimation = if (animateSheet) 0 else R.anim.slide_out_down
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, exitAnimation)
       } else {
