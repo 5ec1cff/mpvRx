@@ -293,7 +293,13 @@ fun VideoCard(
     leftAction = resolvedUiConfig.swipeLeft,
     rightAction = resolvedUiConfig.swipeRight,
     isWatched = isWatched,
-    enabled = !isGridMode && !isSelected && video.path.startsWith('/'),
+    enabled = !isGridMode && !isSelected &&
+      (video.path.startsWith('/') ||
+        (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+          video.uri.scheme == "content" &&
+          android.provider.DocumentsContract.isDocumentUri(
+            androidx.compose.ui.platform.LocalContext.current, video.uri,
+          ))),
     onAction = onSwipeAction?.let { action -> { swipe -> action(video, isWatched, swipe) } },
     modifier =
       modifier

@@ -104,6 +104,7 @@ internal fun rememberVideoSwipeActions(
   val haptics = rememberAppHaptics()
   val metadataCache = koinInject<VideoMetadataCacheRepository>()
   val preferences = koinInject<BrowserPreferences>()
+  val foldersPreferences = koinInject<app.gyrolet.mpvrx.preferences.FoldersPreferences>()
   val currentOnChanged by rememberUpdatedState(onChanged)
   val currentOnDeleted by rememberUpdatedState(onDeleted)
   var deleteTarget by remember { mutableStateOf<SwipeTarget?>(null) }
@@ -277,6 +278,20 @@ internal fun rememberVideoSwipeActions(
         scanJob = scope.launch {
           try {
             val videos = withContext(Dispatchers.IO) {
+              if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+                app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)
+              ) {
+                // SAF folder buckets are document-tree URIs, not File paths.
+                return@withContext app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
+                  .getVideosRecursively(
+                    context = context,
+                    bucketId = folder.bucketId,
+                    grantedTreeUris = foldersPreferences.scopedHiddenFolderUris.get(),
+                    includeAudio = audioOnly || preferences.includeAudioBrowser.get(),
+                    audioOnly = audioOnly,
+                    minimumAudioDurationSeconds = preferences.minimumAudioDurationSeconds.get(),
+                  )
+              }
               val root = File(folder.path).canonicalFile
               require(root.isDirectory && root.canRead())
               val coroutineContext = currentCoroutineContext()

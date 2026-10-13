@@ -242,7 +242,10 @@ fun FolderCard(
     leftAction = swipeLeft,
     rightAction = swipeRight,
     isWatched = null,
-    enabled = !isGridMode && !isSelected && folder.path.startsWith('/'),
+    enabled = !isGridMode && !isSelected &&
+      (folder.path.startsWith('/') ||
+        (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY &&
+          app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId))),
     onAction = onSwipeAction?.let { action -> { swipe -> action(folder, swipe) } },
     modifier =
       modifier

@@ -150,6 +150,101 @@ object ScopedHiddenFolderScanner {
     folders.distinctBy { it.bucketId }.sortedBy { it.name.lowercase(Locale.ROOT) }
   }
 
+  /**
+   * Recursively collect playable files for the explicit SAF folder-swipe action. Unlike a
+   * filesystem File.walkTopDown, traversal is rooted inside the persisted user-selected tree.
+   */
+  suspend fun getVideosRecursively(
+    context: Context,
+    bucketId: String,
+    grantedTreeUris: Set<String>,
+    includeAudio: Boolean,
+    audioOnly: Boolean = false,
+    minimumAudioDurationSeconds: Int = 0,
+  ): List<Video> = withContext(Dispatchers.IO) {
+    val start = findGrantedDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
+    val queue = ArrayDeque<DirectoryVisit>()
+    val visited = hashSetOf<String>()
+    val videos = mutableListOf<Video>()
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {
+      currentCoroutineContext().ensureActive()
+      val folder = queue.removeFirst()
+      if (!visited.add(folder.document.uri.toString())) continue
+      val children = listTreeFilesSafely(folder.document)
+      videos += readVideosFromFiles(
+        context, children, folder.bucketId, folder.displayName, includeAudio,
+        minimumAudioDurationSeconds, audioOnly,
+      )
+      if (folder.depth < MAX_DIRECTORY_DEPTH) {
+        for (child in children) {
+          currentCoroutineContext().ensureActive()
+          if (!child.isDirectory) continue
+          val name = child.name ?: continue
+          queue.addLast(
+            DirectoryVisit(
+              child, child.uri.toString(), "${folder.displayName} / $name", folder.depth + 1,
+            ),
+          )
+        }
+      }
+    }
+    videos.distinctBy { it.uri }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+  }
+
+  /** Delete a specifically selected SAF folder, never an ungranted path or other build flavor. */
+  suspend fun deleteGrantedFolder(
+    context: Context,
+    bucketId: String,
+    grantedTreeUris: Set<String>,
+  ): Boolean = withContext(Dispatchers.IO) {
+    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return@withContext false
+    val folder = findGrantedDirectory(context, bucketId, grantedTreeUris, requireWrite = true)
+      ?: return@withContext false
+    val deleted = runCatching { folder.document.delete() }
+      .onFailure { Log.w(TAG, "SAF folder deletion failed for $bucketId", it) }
+      .getOrDefault(false)
+    if (deleted) indexedDirectories = emptyMap()
+    deleted
+  }
+
+  /** Only return a real directory visited beneath a persisted SAF grant. */
+  private suspend fun findGrantedDirectory(
+    context: Context,
+    bucketId: String,
+    grantedTreeUris: Set<String>,
+    requireWrite: Boolean = false,
+  ): DirectoryVisit? {
+    if (!isGrantedFolder(bucketId, grantedTreeUris)) return null
+    for (treeUri in grantedTreeUris.sorted()) {
+      currentCoroutineContext().ensureActive()
+      if (!isGrantedFolder(bucketId, setOf(treeUri))) continue
+      val root = openPersistedTreeDocument(context, treeUri, requireWrite) ?: continue
+      val queue = ArrayDeque<DirectoryVisit>()
+      val seen = hashSetOf<String>()
+      queue.addLast(DirectoryVisit(root, treeUri, root.name ?: "Selected folder", 0))
+      while (queue.isNotEmpty()) {
+        currentCoroutineContext().ensureActive()
+        val current = queue.removeFirst()
+        if (!seen.add(current.document.uri.toString())) continue
+        if (current.bucketId == bucketId) {
+          return current.takeIf { it.document.isDirectory && (!requireWrite || it.document.canWrite()) }
+        }
+        if (current.depth >= MAX_DIRECTORY_DEPTH) continue
+        for (child in listTreeFilesSafely(current.document)) {
+          currentCoroutineContext().ensureActive()
+          if (!child.isDirectory) continue
+          queue.addLast(
+            DirectoryVisit(
+              child, child.uri.toString(), child.name ?: "Selected folder", current.depth + 1,
+            ),
+          )
+        }
+      }
+    }
+    return null
+  }
+
   suspend fun getVideos(
     context: Context,
     bucketId: String,

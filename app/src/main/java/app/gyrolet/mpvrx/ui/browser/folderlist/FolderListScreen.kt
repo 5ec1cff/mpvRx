@@ -367,7 +367,78 @@ object FolderListScreen : Screen {
 
     suspend fun deleteFolders(folders: List<VideoFolder>): FolderDeletionResult {
       if (BuildConfig.SCOPED_STORAGE_ONLY) {
-        return FolderDeletionResult(0, folders.size, folders)
+        // Only user-granted SAF folder buckets can be deleted in the Play Store flavor.
+        // Ordinary MediaStore paths cannot grant arbitrary recursive file deletion.
+        val granted = foldersPreferences.scopedHiddenFolderUris.get()
+        val includeAudio = audioOnly || browserPreferences.includeAudioBrowser.get()
+        val deleteAll = browserPreferences.deleteFolderAllContents.get()
+        var deleted = 0
+        var failed = 0
+        val failedFolders = mutableListOf<VideoFolder>()
+        for (folder in folders) {
+          if (!app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isGrantedFolder(folder.bucketId, granted)) {
+            failed++
+            failedFolders += folder
+            continue
+          }
+          try {
+            if (deleteAll) {
+              // Confirmed "delete all folder contents" may remove the SAF directory itself,
+              // including nonmedia files, just like the existing direct-filesystem flavor.
+              val videos = app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.getVideosRecursively(
+                context, folder.bucketId, granted, includeAudio = true,
+              )
+              if (app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.deleteGrantedFolder(
+                  context, folder.bucketId, granted,
+                )
+              ) {
+                deleted++
+                for (video in videos) {
+                  runCatching { RecentlyPlayedOps.onVideoDeleted(video.path) }
+                  runCatching { app.gyrolet.mpvrx.utils.media.PlaybackStateOps.onVideoDeleted(video.path) }
+                }
+                if (folder.bucketId in granted) {
+                  foldersPreferences.scopedHiddenFolderUris.set(
+                    foldersPreferences.scopedHiddenFolderUris.get() - folder.bucketId,
+                  )
+                }
+              } else {
+                failed++
+                failedFolders += folder
+              }
+            } else {
+              // Media-only deletion must never remove other files (or nested directories)
+              // inside a user-selected SAF folder.
+              val videos = app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.getVideos(
+                context, folder.bucketId, includeAudio, granted,
+                minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
+              ).let { if (audioOnly) it.filter(Video::isAudio) else it }
+              if (videos.isEmpty()) {
+                failed++
+                failedFolders += folder
+              } else {
+                val (removed, errors) = viewModel.deleteVideos(videos)
+                if (errors == 0 && removed > 0) {
+                  deleted++
+                } else {
+                  failed += errors.coerceAtLeast(1)
+                  failedFolders += folder
+                }
+              }
+            }
+          } catch (cancellation: CancellationException) {
+            throw cancellation
+          } catch (error: Exception) {
+            Log.e("FolderListScreen", "Cannot delete scoped folder ${folder.bucketId}", error)
+            failed++
+            failedFolders += folder
+          }
+        }
+        if (deleted > 0) {
+          app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+          app.gyrolet.mpvrx.utils.media.MediaLibraryEvents.notifyChanged()
+        }
+        return FolderDeletionResult(deleted, failed, failedFolders)
       }
       var deleted = 0
       var failed = 0
@@ -935,7 +1006,8 @@ object FolderListScreen : Screen {
                   selectionManager = selectionManager,
                   onRefresh = { viewModel.refresh() },
                   onFolderClick = { folder ->
-                    if (selectionManager.isInSelectionMode && !ZipArchiveMedia.isBrowserPath(folder.path) && !app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)) {
+                    if (selectionManager.isInSelectionMode && !ZipArchiveMedia.isBrowserPath(folder.path) &&
+                      (!app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId) || BuildConfig.SCOPED_STORAGE_ONLY)) {
                       selectionManager.toggleFromUser(folder)
                     } else if (!selectionManager.isInSelectionMode) {
                       if (isDualPaneActive) {
@@ -950,7 +1022,10 @@ object FolderListScreen : Screen {
                     }
                   },
                   onFolderLongClick = { folder ->
-                    if (!ZipArchiveMedia.isBrowserPath(folder.path) && !app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)) selectionManager.handleLongClick(folder)
+                    if (!ZipArchiveMedia.isBrowserPath(folder.path) &&
+                      (!app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId) || BuildConfig.SCOPED_STORAGE_ONLY)) {
+                      selectionManager.handleLongClick(folder)
+                    }
                   },
                   onTogglePin = { folder ->
                     coroutineScope.launch {
@@ -1048,7 +1123,12 @@ object FolderListScreen : Screen {
           showCopy = true,
           showMove = true,
           showRename = selectionManager.isSingleSelection && !BuildConfig.SCOPED_STORAGE_ONLY,
-          showDelete = !BuildConfig.SCOPED_STORAGE_ONLY,
+          showDelete = !BuildConfig.SCOPED_STORAGE_ONLY ||
+            selectionManager.getSelectedItems().let { selected ->
+              selected.isNotEmpty() && selected.all {
+                app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(it.bucketId)
+              }
+            },
           showDownscale = false,
           showAddToPlaylist = false,
           modifier = Modifier.padding(bottom = 0.dp),
@@ -1229,7 +1309,11 @@ object FolderListScreen : Screen {
       isDualPane = isDualPaneActive && selectedFolderBucketId != null,
     )
 
-    if (!BuildConfig.SCOPED_STORAGE_ONLY && pendingDeleteFolders.isNotEmpty()) {
+    if (pendingDeleteFolders.isNotEmpty() &&
+      (!BuildConfig.SCOPED_STORAGE_ONLY || pendingDeleteFolders.all {
+        app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner.isScopedFolder(it.bucketId)
+      })
+    ) {
       DeleteConfirmationDialog(
         isOpen = true,
         onDismiss = { pendingDeleteFolders = emptyList() },
