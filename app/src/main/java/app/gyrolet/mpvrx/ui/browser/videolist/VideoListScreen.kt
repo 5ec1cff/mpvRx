@@ -50,6 +50,8 @@ import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -127,6 +129,8 @@ import app.gyrolet.mpvrx.utils.media.MediaSearchEngine
 import app.gyrolet.mpvrx.utils.media.OpenDocumentTreeContract
 import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.sort.SortUtils
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
@@ -1100,26 +1104,40 @@ internal fun VideoListContent(
             }
           }
 
+        val listIsScrolling by remember(listState, gridState, mediaLayoutMode) {
+          derivedStateOf {
+            if (mediaLayoutMode == MediaLayoutMode.LIST) listState.isScrollInProgress
+            else gridState.isScrollInProgress
+          }
+        }
+
         LaunchedEffect(
-          folderId,
-          showVideoThumbnails,
-          thumbWidthPx,
-          thumbHeightPx,
-          mediaLayoutMode,
-          thumbnailListKey,
+          folderId, showVideoThumbnails, thumbWidthPx, thumbHeightPx,
+          mediaLayoutMode, thumbnailListKey, listState, gridState,
         ) {
           val generationId = "$folderId:${mediaLayoutMode.name}"
-          if (!showVideoThumbnails || archiveFolder || latestVideosWithInfo.isEmpty()) {
+          try {
+            if (showVideoThumbnails && !archiveFolder && latestVideosWithInfo.isNotEmpty()) {
+              snapshotFlow {
+                if (mediaLayoutMode == MediaLayoutMode.LIST) listState.isScrollInProgress
+                else gridState.isScrollInProgress
+              }.collectLatest { scrolling ->
+                // Visible cards have priority: bulk work resumes only after the scroll settles.
+                thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
+                if (!scrolling) {
+                  delay(850L)
+                  thumbnailRepository.startFolderThumbnailGeneration(
+                    folderId = generationId,
+                    videos = latestVideosWithInfo.map { it.video },
+                    widthPx = thumbWidthPx,
+                    heightPx = thumbHeightPx,
+                  )
+                }
+              }
+            }
+          } finally {
             thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
-            return@LaunchedEffect
           }
-
-          thumbnailRepository.startFolderThumbnailGeneration(
-            folderId = generationId,
-            videos = latestVideosWithInfo.map { it.video },
-            widthPx = thumbWidthPx,
-            heightPx = thumbHeightPx,
-          )
         }
 
         FabScrollHelper.trackScrollForFabVisibility(
@@ -1213,6 +1231,7 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
+                      deferThumbnailLoading = listIsScrolling,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1283,6 +1302,7 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
+                      deferThumbnailLoading = listIsScrolling,
                       uiConfig = videoCardUiConfig,
                       thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
                       thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,

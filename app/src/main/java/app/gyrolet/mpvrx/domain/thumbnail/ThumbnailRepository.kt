@@ -230,6 +230,10 @@ class ThumbnailRepository(
       return@withContext scaled
     }
 
+  /** Cheap cold-start gate for Folder/Tree roots: do not enumerate folder contents
+   * when there are no cached thumbnails to display. Call from a worker thread. */
+  fun hasLocalCachedThumbnails(): Boolean = !localDiskDir.list().isNullOrEmpty()
+
   fun getThumbnailFromMemory(
     video: Video,
     widthPx: Int,
@@ -1384,7 +1388,7 @@ class ThumbnailRepository(
     val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
     val processorCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     return when {
-      activityManager?.isLowRamDevice == true || processorCount <= 2 -> 1
+      activityManager?.isLowRamDevice == true || android.os.Build.VERSION.SDK_INT <= 29 || processorCount <= 2 -> 1
       // Bound decode pressure on larger mobile SoCs so returning to the library cannot launch
       // four simultaneous thumbnail decoders beside UI image work.
       else -> 2

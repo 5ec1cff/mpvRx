@@ -65,6 +65,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.onWallpaper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import kotlin.math.pow
@@ -159,6 +160,8 @@ fun FolderCard(
   placeholderIconSize: Dp? = null,
   viewPreferences: BrowserPageViewPreferences? = null,
   uiConfig: FolderCardUiConfig? = null,
+  allowThumbnailGeneration: Boolean = true,
+  deferThumbnailLoading: Boolean = false,
   selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val resolvedUiConfig = uiConfig ?: rememberFolderCardUiConfig(viewPreferences)
@@ -186,21 +189,32 @@ fun FolderCard(
     thumbnailQuality,
     isGridMode,
     thumbnailSize,
+    allowThumbnailGeneration,
+    deferThumbnailLoading,
   ) {
-    if (folder.path.isNotBlank() && isGridMode && showFolderThumbnails && thumbnailSize.width > 0 && thumbnailSize.height > 0) {
+    if (!deferThumbnailLoading && folder.path.isNotBlank() && isGridMode && showFolderThumbnails && thumbnailSize.width > 0 && thumbnailSize.height > 0) {
+      delay(350L)
       withContext(Dispatchers.IO) {
+        // On a fresh install there is nothing to reuse. Avoid querying every folder
+        // from the Home grid just to discover that the thumbnail cache is empty.
+        if (!allowThumbnailGeneration && !thumbnailRepository.hasLocalCachedThumbnails()) {
+          return@withContext
+        }
         val videos =
           app.gyrolet.mpvrx.repository.MediaFileRepository
             .getVideosInFolder(context, folder.bucketId)
         if (videos.isNotEmpty()) {
-          val bmp =
+          val bmp = if (allowThumbnailGeneration) {
             thumbnailRepository.getFolderThumbnail(folder.bucketId, videos, thumbnailSize.width, thumbnailSize.height)
+          } else {
+            thumbnailRepository.getCachedThumbnail(videos.first(), thumbnailSize.width, thumbnailSize.height)
+          }
           withContext(Dispatchers.Main) {
             folderThumbnail = bmp
           }
         }
       }
-    } else {
+    } else if (!showFolderThumbnails) {
       folderThumbnail = null
     }
   }

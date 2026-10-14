@@ -60,6 +60,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -131,6 +132,7 @@ import com.google.accompanist.permissions.PermissionStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -805,6 +807,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 isRefreshing = isRefreshing,
                 error = error,
                 isAtRoot = isAtRoot,
+                isOpenedFolder = path != null || !isAtRoot,
                 breadcrumbs = breadcrumbs,
                 playlistMode = playlistMode,
                 itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
@@ -1260,6 +1263,7 @@ private fun FileSystemBrowserContent(
   isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
   error: String?,
   isAtRoot: Boolean,
+  isOpenedFolder: Boolean,
   breadcrumbs: List<app.gyrolet.mpvrx.domain.browser.PathComponent>,
   playlistMode: Boolean,
   itemsWereDeletedOrMoved: Boolean,
@@ -1406,18 +1410,33 @@ private fun FileSystemBrowserContent(
     }
 
     else -> {
-      // Unified thumbnail generation - starts with initial batch and continues as needed
-      // This avoids the overhead of multiple conflicting LaunchedEffect calls
-      LaunchedEffect(folderId, showVideoThumbnails, thumbWidthPx, thumbHeightPx, videos.size) {
-        if (showVideoThumbnails && videos.isNotEmpty()) {
-          // Start with all videos - the ThumbnailRepository will handle batching internally
-          // This avoids redundant job restarts when scrolling
-          thumbnailRepository.startFolderThumbnailGeneration(
-            folderId = folderId,
-            videos = videos,
-            widthPx = thumbWidthPx,
-            heightPx = thumbHeightPx,
-          )
+      val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
+      val isListScrolling by remember(listState, gridState, isGridMode) {
+        derivedStateOf { if (isGridMode) gridState.isScrollInProgress else listState.isScrollInProgress }
+      }
+      val latestVideos by rememberUpdatedState(videos)
+      // Root displays folders/cached art only; new thumbnails begin after opening a directory.
+      LaunchedEffect(folderId, isOpenedFolder, showVideoThumbnails, thumbWidthPx,
+        thumbHeightPx, mediaLayoutMode, videos.size, listState, gridState) {
+        val generationId = "tree:$folderId:${mediaLayoutMode.name}"
+        try {
+          if (isOpenedFolder && showVideoThumbnails && latestVideos.isNotEmpty()) {
+            snapshotFlow { if (isGridMode) gridState.isScrollInProgress else listState.isScrollInProgress }
+              .collectLatest { scrolling ->
+                thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
+                if (!scrolling) {
+                  delay(850L)
+                  thumbnailRepository.startFolderThumbnailGeneration(
+                    folderId = generationId,
+                    videos = latestVideos,
+                    widthPx = thumbWidthPx,
+                    heightPx = thumbHeightPx,
+                  )
+                }
+              }
+          }
+        } finally {
+          thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
         }
       }
 
@@ -1434,8 +1453,6 @@ private fun FileSystemBrowserContent(
           ),
         label = "scrollbarAlpha",
       )
-
-      val isGridMode = mediaLayoutMode == app.gyrolet.mpvrx.preferences.MediaLayoutMode.GRID
 
       val folderItems = remember(items) { items.filterIsInstance<FileSystemItem.Folder>() }
       val videoItems = remember(items) { items.filterIsInstance<FileSystemItem.VideoFile>() }
@@ -1520,6 +1537,8 @@ private fun FileSystemBrowserContent(
                     customIcon = if (ZipArchiveMedia.isArchiveRoot(folder.path)) Icons.RoundedFilled.FolderZip else null,
                     newVideoCount = folder.newCount,
                     isGridMode = true,
+                    allowThumbnailGeneration = false,
+                    deferThumbnailLoading = isListScrolling,
                   )
                 }
 
@@ -1556,8 +1575,9 @@ private fun FileSystemBrowserContent(
                       overrideShowSizeChip = null,
                       overrideShowResolutionChip = null,
                       useFolderNameStyle = false,
-                      allowThumbnailGeneration = !archiveEntry,
+                      allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                       allowThumbnailLoading = !archiveEntry,
+                      deferThumbnailLoading = isListScrolling,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1646,6 +1666,8 @@ private fun FileSystemBrowserContent(
                     },
                   newVideoCount = folder.newCount,
                   isGridMode = false,
+                  allowThumbnailGeneration = false,
+                  deferThumbnailLoading = isListScrolling,
                   customIcon = if (ZipArchiveMedia.isArchiveRoot(folder.path)) Icons.RoundedFilled.FolderZip else null,
                   onSwipeAction =
                     swipeActions.folder.takeUnless { archiveFolder || selectionManager.isInSelectionMode || isInSelectionMode },
@@ -1686,8 +1708,9 @@ private fun FileSystemBrowserContent(
                     overrideShowSizeChip = null,
                     overrideShowResolutionChip = null,
                     useFolderNameStyle = false,
-                    allowThumbnailGeneration = !archiveEntry,
+                    allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                     allowThumbnailLoading = !archiveEntry,
+                    deferThumbnailLoading = isListScrolling,
                     uiConfig = videoCardUiConfig,
                 )
               }

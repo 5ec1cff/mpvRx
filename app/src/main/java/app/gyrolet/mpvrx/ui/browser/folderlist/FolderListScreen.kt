@@ -150,6 +150,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -566,6 +567,27 @@ object FolderListScreen : Screen {
     app.gyrolet.mpvrx.ui.browser.NavigationBarSelectionEffect(selectionManager.isInSelectionMode)
 
     val isNavigationPageActive = app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive.current
+    // The Folder tab owns its hidden-folder refresh; visiting Library must never be required
+    // to notice a .nomedia marker added or removed by an external file manager.
+    androidx.lifecycle.compose.LifecycleResumeEffect(viewModel, isNavigationPageActive) {
+      val probeJob = if (isNavigationPageActive) {
+        coroutineScope.launch(Dispatchers.IO) {
+          var resumed = true
+          while (isActive) {
+            try {
+              viewModel.checkExternalFolderChanges(onResume = resumed)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+              throw cancelled
+            } catch (error: Exception) {
+              android.util.Log.w("FolderListScreen", "Unable to check external folder changes", error)
+            }
+            resumed = false
+            delay(10_000L)
+          }
+        }
+      } else null
+      onPauseOrDispose { probeJob?.cancel() }
+    }
     androidx.lifecycle.compose.LifecycleResumeEffect(isDualPaneActive, selectedFolderBucketId, isNavigationPageActive) {
       if (isNavigationPageActive) {
         navBarState.isDualPaneFolderSelected = isDualPaneActive && selectedFolderBucketId != null
@@ -1492,6 +1514,8 @@ private fun GridContent(
           customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = true,
           uiConfig = folderCardUiConfig,
+          allowThumbnailGeneration = false,
+          deferThumbnailLoading = gridState.isScrollInProgress,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
@@ -1595,6 +1619,8 @@ private fun ListContent(
           customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = false,
           uiConfig = folderCardUiConfig,
+          allowThumbnailGeneration = false,
+          deferThumbnailLoading = listState.isScrollInProgress,
           onSwipeAction = onFolderSwipe.takeUnless { archiveFolder },
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =

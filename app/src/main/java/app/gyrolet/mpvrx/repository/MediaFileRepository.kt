@@ -179,6 +179,10 @@ object MediaFileRepository : KoinComponent {
   suspend fun getIndexedNoMediaFolders(): List<VideoFolder> =
     FolderViewScanner.getIndexedNoMediaFolders(currentScanOptions(), database.directoryScanDao())
 
+  /** The hidden roots currently tracked by Folder mode, independent of the Library tab. */
+  suspend fun getIndexedNoMediaRootPaths(): List<String> =
+    database.directoryScanDao().getNoMediaRoots(currentScanOptions().cacheKey)
+
   /**
    * Scans MediaStore for all audio (music) files and groups them by parent folder.
    * Powers the dedicated Music tab so audio is kept separate from the video browser.

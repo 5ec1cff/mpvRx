@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
+import java.io.File
 
 data class FolderWithNewCount(
   val folder: VideoFolder,
@@ -102,6 +103,8 @@ class FolderListViewModel(
   // Track the current scan job to prevent concurrent scans
   private var currentScanJob: Job? = null
   private var cacheWriteJob: Job? = null
+  private var lastHiddenMarkerSnapshot: Map<String, Boolean>? = null
+  private var lastExternalFolderRecheckAt = android.os.SystemClock.elapsedRealtime()
   private val folderContentRevision = MutableStateFlow(0L)
 
   /**
@@ -436,6 +439,51 @@ class FolderListViewModel(
     // Preserve full Refresh semantics for ordinary files copied by other apps. Completion emits a
     // debounced MediaLibraryEvents update, while this asynchronous pass never blocks hidden results.
     triggerMediaScan()
+  }
+
+  /**
+   * Folder/Tree Home must notice externally added/removed .nomedia markers without first
+   * visiting the Library tab. Check only indexed roots and visible folders, on IO, while this
+   * page is resumed. Perform the expensive forced filesystem pass only on a change or when
+   * an old device is revisited after a while (Android 10 has no MediaStore generation token).
+   */
+  suspend fun checkExternalFolderChanges(onResume: Boolean) {
+    if (audioOnly || currentScanJob?.isActive == true) return
+
+    val markerNames = foldersPreferences.hiddenFolderMarkerNames.get()
+      .map { it.trim() }
+      .filter { it.isNotEmpty() && '/' !in it && '\\' !in it }
+      .map { if (it.startsWith(".")) it else ".$it" }
+    val roots = MediaFileRepository.getIndexedNoMediaRootPaths()
+    val directories = (roots + _allVideoFolders.value.map { it.path }).distinct()
+    val markerSnapshot = directories.associateWith { path ->
+      val directory = File(path)
+      directory.name.startsWith(".") || markerNames.any { File(directory, it).isFile }
+    }
+    val previous = lastHiddenMarkerSnapshot
+    lastHiddenMarkerSnapshot = markerSnapshot
+
+    val staleHiddenRoot = roots.any { root ->
+      val directory = File(root)
+      !directory.isDirectory || !directory.name.startsWith(".") &&
+        markerNames.none { File(directory, it).isFile }
+    }
+    // Only marker-state transitions matter; scanning new ordinary folders must not
+    // bounce us into a second expensive filesystem pass.
+    val markersChanged = previous?.any { (path, wasHidden) ->
+      val isHidden = markerSnapshot[path]
+      isHidden != null && isHidden != wasHidden
+    } == true
+    val now = android.os.SystemClock.elapsedRealtime()
+    val foregroundRefreshInterval = if (android.os.Build.VERSION.SDK_INT < 30) 20_000L else 60_000L
+    val needsForegroundCheck = onResume && now - lastExternalFolderRecheckAt >= foregroundRefreshInterval
+    if (!staleHiddenRoot && !markersChanged && !needsForegroundCheck) return
+
+    lastExternalFolderRecheckAt = now
+    Log.d(TAG, "Folder mode detected external folder/marker change; refreshing independently of Library")
+    MediaFileRepository.invalidateFolderCache()
+    MediaStoreGenerationGuard.invalidate(getApplication())
+    loadVideoFolders(forceFileSystemCheck = true, silent = true)
   }
 
   private fun triggerMediaScan() {

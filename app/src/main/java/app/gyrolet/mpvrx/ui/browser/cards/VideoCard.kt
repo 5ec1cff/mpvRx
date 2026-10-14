@@ -222,6 +222,7 @@ fun VideoCard(
   useFolderNameStyle: Boolean = false,
   allowThumbnailGeneration: Boolean = true,
   allowThumbnailLoading: Boolean = true,
+  deferThumbnailLoading: Boolean = false,
   uiConfig: VideoCardUiConfig? = null,
   onSwipeAction: ((Video, Boolean, VideoSwipeAction) -> Unit)? = null,
   /** Source badge shown ahead of the metadata chips, e.g. "Local". Null renders nothing. */
@@ -371,11 +372,11 @@ fun VideoCard(
           }
 
           // Read cached thumbnail immediately from disk if not in memory, or generate if permitted
-          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails) {
+          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails, deferThumbnailLoading) {
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (exactMemoryThumbnail == null && showThumbnails) {
+            if (!deferThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
                   if (allowThumbnailGeneration && allowThumbnailLoading) {
@@ -714,11 +715,11 @@ fun VideoCard(
           }
 
           // Read cached thumbnail immediately from disk if not in memory, or generate if permitted
-          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails) {
+          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails, deferThumbnailLoading) {
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (exactMemoryThumbnail == null && showThumbnails) {
+            if (!deferThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
                   if (allowThumbnailGeneration && allowThumbnailLoading) {
