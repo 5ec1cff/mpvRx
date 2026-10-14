@@ -167,6 +167,37 @@ class PlayerPreferences(
   val ambientOpacity = preferenceStore.getFloat("ambient_opacity", 1.0f)
   val ambientGlowEdgeBlend = preferenceStore.getFloat("ambient_glow_edge_blend", 0.005f)
   val ambientYouTubeEdgeBlend = preferenceStore.getFloat("ambient_youtube_edge_blend", 0.005f)
+
+  // Cinema Mode
+  val ambientCinemaBlurSamples = preferenceStore.getInt("ambient_cinema_blur_samples", 8)
+  val ambientCinemaSpread = preferenceStore.getFloat("ambient_cinema_spread", 0.10f)
+  val ambientCinemaIntensity = preferenceStore.getFloat("ambient_cinema_intensity", 1.0f)
+  val ambientCinemaSatBoost = preferenceStore.getFloat("ambient_cinema_sat_boost", 1.0f)
+  val ambientCinemaWarmth = preferenceStore.getFloat("ambient_cinema_warmth", 0.0f)
+  val ambientCinemaFadeCurve = preferenceStore.getFloat("ambient_cinema_fade_curve", 1.15f)
+  val ambientCinemaOpacity = preferenceStore.getFloat("ambient_cinema_opacity", 1.0f)
+  val ambientCinemaVignette = preferenceStore.getFloat("ambient_cinema_vignette", 0.0f)
+
+  // Echo Mode
+  val ambientEchoBlurSamples = preferenceStore.getInt("ambient_echo_blur_samples", 5)
+  val ambientEchoSpread = preferenceStore.getFloat("ambient_echo_spread", 0.10f)
+  val ambientEchoIntensity = preferenceStore.getFloat("ambient_echo_intensity", 1.0f)
+  val ambientEchoSatBoost = preferenceStore.getFloat("ambient_echo_sat_boost", 1.0f)
+  val ambientEchoWarmth = preferenceStore.getFloat("ambient_echo_warmth", 0.0f)
+  val ambientEchoFadeCurve = preferenceStore.getFloat("ambient_echo_fade_curve", 1.8f)
+  val ambientEchoOpacity = preferenceStore.getFloat("ambient_echo_opacity", 1.0f)
+  val ambientEchoVignette = preferenceStore.getFloat("ambient_echo_vignette", 0.0f)
+
+  // Mirror Mode
+  val ambientMirrorBlurSamples = preferenceStore.getInt("ambient_mirror_blur_samples", 3)
+  val ambientMirrorSpread = preferenceStore.getFloat("ambient_mirror_spread", 0.06f)
+  val ambientMirrorIntensity = preferenceStore.getFloat("ambient_mirror_intensity", 1.0f)
+  val ambientMirrorSatBoost = preferenceStore.getFloat("ambient_mirror_sat_boost", 1.0f)
+  val ambientMirrorWarmth = preferenceStore.getFloat("ambient_mirror_warmth", 0.0f)
+  val ambientMirrorFadeCurve = preferenceStore.getFloat("ambient_mirror_fade_curve", 2.0f)
+  val ambientMirrorOpacity = preferenceStore.getFloat("ambient_mirror_opacity", 1.0f)
+  val ambientMirrorVignette = preferenceStore.getFloat("ambient_mirror_vignette", 0.0f)
+
   val isAmbientEnabled = preferenceStore.getBoolean("ambient_enabled", false)
   val ambientBatterySaver = preferenceStore.getBoolean("ambient_battery_saver", false)
 

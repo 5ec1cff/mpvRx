@@ -46,5 +46,12 @@ HSPLapp/gyrolet/mpvrx/domain/anime4k/Anime4KManager;->**(**)**
 # Ambient files
 Lapp/gyrolet/mpvrx/ui/player/Ambient**;
 HSPLapp/gyrolet/mpvrx/ui/player/Ambient**;->**(**)**
+Lapp/gyrolet/mpvrx/ui/player/FxAmbient**;
+HSPLapp/gyrolet/mpvrx/ui/player/FxAmbient**;->**(**)**
 Lapp/gyrolet/mpvrx/ui/player/controls/components/sheets/Ambient**;
 HSPLapp/gyrolet/mpvrx/ui/player/controls/components/sheets/Ambient**;->**(**)**
+
+# Liquid Glass
+Lapp/gyrolet/mpvrx/ui/liquidglass/**;
+HSPLapp/gyrolet/mpvrx/ui/liquidglass/**;->**(**)**
+

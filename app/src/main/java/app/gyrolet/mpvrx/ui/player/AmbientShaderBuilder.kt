@@ -158,11 +158,30 @@ mediump vec3 adjust_saturation(mediump vec3 rgb, mediump float amount) {
     return mix(vec3(luma(rgb)), rgb, amount);
 }
 
+// FIX 1: Multiplicative color-temperature adjustment.
+// Additive offsets turned pitch-black (0,0,0) murky orange; multiplying by a
+// per-channel gain preserves true black while still shifting white-point tone.
 mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
-    rgb.r = clamp(rgb.r + amount * 0.060, 0.0, 1.0);
-    rgb.g = clamp(rgb.g + amount * 0.025, 0.0, 1.0);
-    rgb.b = clamp(rgb.b - amount * 0.080, 0.0, 1.0);
-    return rgb;
+    mediump vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
+    return clamp(rgb * gain, 0.0, 1.0);
+}
+
+// FIX 2: Highlight roll-off (from fx_ambient/fx_common.glsl).
+// Bright scene edges (white walls, explosions) were multiplying through
+// GLOW_INTENSITY uncapped, turning bars into a glaring white slab.
+// Compression: c / (1 + k*luma) — dark/mid tones pass almost unchanged,
+// highlights are softened so bars read as light, not overexposure.
+mediump vec3 rolloff(mediump vec3 c, mediump float k) {
+    return c * (1.0 / (1.0 + k * luma(c)));
+}
+
+// FIX 3: Screen-space dither to dissolve 8-bit quantization banding.
+// Dark gradients stair-stepped visibly on OLED/8-bit panels because the
+// smooth edge_fade was truncated into 256 discrete output levels.
+// IGN noise amplitude is scaled by peak channel so pure black gets no noise.
+mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
+    mediump float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
+    return c + (ign(p) - 0.5) * (amp / 255.0);
 }
   """.trimIndent()
 
@@ -202,6 +221,11 @@ private val GLSL_VIDEO_PROLOGUE =
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
     mediump float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
 
+    // Anchor the tap centre with a constant inward inset (independent of distance).
+    // Inward inset ensures negative-direction Poisson taps spread into decoded content
+    // without clamping to the border wall, while anchoring prevents reverse/mirror motion.
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.035);
+
     // Interleaved Gradient Noise jitter: avoids rand() sin() overhead and improves GPU cache hits
     mediump float jitter = ign(uv * HOOKED_size) * 6.2831853;
     mediump float jitter_s = sin(jitter);
@@ -217,6 +241,11 @@ private val GLSL_AMBIENT_EPILOGUE =
     mediump float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
 
+    // FIX 7 (part a): dither before quantisation to the 8-bit swapchain so the
+    // exponential fade into true black never shows stair-step contour lines.
+    // Noise amplitude tracks peak channel so silence on pure black is guaranteed.
+    ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
+
     mediump vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
 
     if (inside_video) {
@@ -228,8 +257,11 @@ private val GLSL_AMBIENT_EPILOGUE =
       return ambient_out;
     }
 
+    // FIX 7 (part b): Euclidean (L2) corner distance instead of Chebyshev (L∞).
+    // max(dx,dy) produced sharp diamond-shaped seams at pillarbox/letterbox corners;
+    // length() gives a smooth circular transition matching real-world bezel curvature.
     highp vec2 outside_dist = max(max(-video_uv, video_uv - vec2(1.0)), vec2(0.0));
-    mediump float dist_to_edge = max(outside_dist.x, outside_dist.y);
+    mediump float dist_to_edge = length(outside_dist);
     mediump float bezel_alpha = smoothstep(0.0, BEZEL_DEPTH, dist_to_edge);
 
     vec4 edge_pixel = HOOKED_tex(edge_origin);
@@ -293,7 +325,9 @@ $GLSL_VIDEO_PROLOGUE
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        mediump vec3 sample_rgb = HOOKED_tex(clamp(edge_origin + offset, safe_min, safe_max)).rgb;
+        // FIX 5: use sample_origin instead of edge_origin so the tap centre is
+        // pulled slightly inward, preventing border-wall clamping on half the disk.
+        mediump vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
 
         mediump float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
 
@@ -304,6 +338,9 @@ $GLSL_VIDEO_PROLOGUE
     mediump vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
     ambient_rgb = adjust_saturation(ambient_rgb, SAT_BOOST);
     ambient_rgb = apply_warmth(ambient_rgb, WARMTH);
+    // FIX 6: apply highlight roll-off so bright-edge scenes don't produce a
+    // glaring slab in the bars; dark/mid tones are nearly unaffected.
+    ambient_rgb = rolloff(ambient_rgb, 0.55);
     ambient_rgb *= edge_fade;
 
 $GLSL_AMBIENT_EPILOGUE
