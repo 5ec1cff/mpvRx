@@ -88,8 +88,10 @@ import app.gyrolet.mpvrx.ui.player.defaultSubtitleFontDisplayName
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import app.gyrolet.mpvrx.ui.utils.popSafely
+import app.gyrolet.mpvrx.utils.media.CustomFontEntry
 import app.gyrolet.mpvrx.utils.media.copyFontsFromDirectory
 import app.gyrolet.mpvrx.utils.media.loadCustomFontEntries
+import app.gyrolet.mpvrx.utils.media.subtitleFontChoices
 import app.gyrolet.mpvrx.utils.media.resolveSubtitleStorageDirectory
 import com.github.k1rakishou.fsaf.FileManager
 import kotlinx.coroutines.Dispatchers
@@ -249,7 +251,7 @@ object SubtitlesPreferencesScreen : Screen {
         val selectedSubtitleApiKeyPreferences =
           subtitleApiKeyPreferences.filter { it.sourceKey in subtitleHubSources }
         val requestedSearchTarget by SettingsSearchNavigation.target.collectFlowAsState()
-        var customFonts by remember { mutableStateOf<List<String>>(emptyList()) }
+        var customFonts by remember { mutableStateOf<List<CustomFontEntry>>(emptyList()) }
         var downloadedGoogleFonts by remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(fontsFolder, fontRefreshKey, appFontFamily) {
@@ -260,18 +262,15 @@ object SubtitlesPreferencesScreen : Screen {
           customFonts =
             loadCustomFontEntries(context)
               .filterNot { googleFontsRepository.isManagedMpvFont(it.file) }
-              .map { it.familyName }
-              .distinct()
-              .filter { it != DEFAULT_SUBTITLE_FONT_FAMILY && it != LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY }
+              .filter { it.familyName != DEFAULT_SUBTITLE_FONT_FAMILY && it.familyName != LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY }
         }
 
-        val availableFonts =
+        val fontChoices =
           remember(downloadedGoogleFonts, customFonts) {
-            (downloadedGoogleFonts + customFonts)
-              .filter { it != DEFAULT_SUBTITLE_FONT_FAMILY && it != LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY }
-              .distinct()
-              .sorted()
+            subtitleFontChoices(downloadedGoogleFonts, customFonts)
+              .filter { it.familyName != DEFAULT_SUBTITLE_FONT_FAMILY && it.familyName != LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY }
           }
+        val availableFonts = fontChoices.map { it.label }
         val effectiveDefaultFont = DEFAULT_SUBTITLE_FONT_FAMILY
 
         var sourcesResponse by remember { mutableStateOf<WyzieSourcesResponse?>(null) }
@@ -474,30 +473,32 @@ object SubtitlesPreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              val fontValues =
-                remember(availableFonts, selectedFont) {
-                  val effectiveSelected =
-                    selectedFont.takeUnless {
-                      it.isBlank() ||
-                        it == DEFAULT_SUBTITLE_FONT_FAMILY ||
-                        it == LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY
-                    }.orEmpty()
-                  (listOf("") + availableFonts + listOf(effectiveSelected).filter { it.isNotBlank() }).distinct()
-                }
-              val fontValue = if (selectedFont in fontValues) selectedFont else ""
-              val fontLabel =
+              val effectiveSelected =
                 selectedFont.takeUnless {
                   it.isBlank() ||
                     it == DEFAULT_SUBTITLE_FONT_FAMILY ||
                     it == LEGACY_DEFAULT_SUBTITLE_FONT_FAMILY
-                } ?: defaultSubtitleFontDisplayName(effectiveDefaultFont)
+                }.orEmpty()
+              val fontValues = (listOf("") + availableFonts + listOf(effectiveSelected).filter(String::isNotBlank)).distinct()
+              // Keep the clicked filename highlighted when multiple files advertise the
+              // same family. mpv itself continues to receive the real family name.
+              var preferredFontLabel by rememberSaveable { mutableStateOf("") }
+              fun familyForLabel(label: String): String =
+                fontChoices.firstOrNull { it.label == label }?.familyName ?: label
+              val fontValue =
+                preferredFontLabel.takeIf { it in fontValues && familyForLabel(it) == effectiveSelected }
+                  ?: fontValues.firstOrNull { familyForLabel(it) == effectiveSelected }.orEmpty()
+              val fontLabel = fontValue.ifBlank { defaultSubtitleFontDisplayName(effectiveDefaultFont) }
 
               ExpressivePreferenceItem {
               ListPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_subtitles_font_title),
                 value = fontValue,
                 enabled = "sub-font" !in configOwnedOptions,
-                onValueChange = preferences.font::set,
+                onValueChange = { label ->
+                  preferredFontLabel = label
+                  preferences.font.set(familyForLabel(label))
+                },
                 values = fontValues,
                 valueToText = {
                   AnnotatedString(it.ifBlank { context.getString(R.string.pref_subtitles_font_default) })
@@ -513,7 +514,7 @@ object SubtitlesPreferencesScreen : Screen {
                       if (availableFonts.isEmpty()) {
                         stringResource(R.string.pref_subtitles_font_no_custom)
                       } else {
-                        stringResource(R.string.fonts_loaded, availableFonts.size)
+                        stringResource(R.string.fonts_loaded, fontChoices.size)
                       },
                       color = MaterialTheme.colorScheme.outline,
                       style = MaterialTheme.typography.bodySmall,

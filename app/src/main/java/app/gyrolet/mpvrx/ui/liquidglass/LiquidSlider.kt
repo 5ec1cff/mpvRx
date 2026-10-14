@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.layout
@@ -150,7 +151,10 @@ fun LiquidSlider(
               try {
                 seekTo(down.position.x - grabOffset)
                 while (true) {
-                  val event = awaitPointerEvent()
+                  // Observe movement before the parent panel's scroll handler consumes it.
+                  // This keeps dragging continuous even inside vertically scrollable sheets;
+                  // the slider consumes the pointer motion itself below.
+                  val event = awaitPointerEvent(PointerEventPass.Initial)
                   val change = event.changes.firstOrNull { it.id == down.id } ?: break
                   if (change.isConsumed || event.changes.count { it.pressed } > 1) break
                   if (!change.pressed) {

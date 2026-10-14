@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Typeface
 import android.net.Uri
 import android.util.Log
 import com.github.k1rakishou.fsaf.FileManager
@@ -60,46 +61,74 @@ fun copyFontsFromDirectory(
 
 // getSimplifiedPathFromUri is defined in AdvancedPreferencesScreen.kt within this package.
 
-/** Represents a custom font discovered in the app's internal fonts directory. */
+/** A physical font file, not a deduplicated family-name entry. */
 data class CustomFontEntry(
   val familyName: String,
   val file: File,
 )
 
 /**
- * Loads custom fonts (family name + file) from the app's internal fonts directory for previews.
- * Returns one entry per family name (first match kept if duplicates exist).
+ * mpv selects fonts by family name, but users still need to see every imported file.
+ * Give files that share a family a distinct, human-readable label without changing
+ * the family name sent to mpv.
+ */
+data class SubtitleFontChoice(
+  val label: String,
+  val familyName: String,
+)
+
+fun subtitleFontChoices(
+  downloadedFamilies: List<String>,
+  customFonts: List<CustomFontEntry>,
+): List<SubtitleFontChoice> {
+  val downloaded = downloadedFamilies.distinct().toSet()
+  val customFamilyCounts = customFonts.groupingBy { it.familyName }.eachCount()
+  return (
+    downloaded.map { family -> SubtitleFontChoice(label = family, familyName = family) } +
+      customFonts.map { entry ->
+        val nameConflict = (customFamilyCounts[entry.familyName] ?: 0) > 1 || entry.familyName in downloaded
+        SubtitleFontChoice(
+          label = if (nameConflict) "${entry.familyName} (${entry.file.name})" else entry.familyName,
+          familyName = entry.familyName,
+        )
+      }
+    ).distinctBy { it.label }
+    .sortedBy { it.label.lowercase(Locale.ROOT) }
+}
+
+/**
+ * Loads one entry for every valid custom font file, including files with matching
+ * internal family names. A failed name-table parse must not silently discard a
+ * font that Android's font engine can open.
  */
 suspend fun loadCustomFontEntries(context: Context): List<CustomFontEntry> =
   withContext(Dispatchers.IO) {
     val fontsDir = File(context.filesDir, "fonts")
-    if (!fontsDir.exists()) return@withContext emptyList()
+    if (!fontsDir.isDirectory) return@withContext emptyList()
 
-    val fontFiles =
-      fontsDir
-        .listFiles()
-        ?.filter { it.isFile && it.name.lowercase(Locale.ROOT).matches(".*\\.(ttf|otf|ttc)$".toRegex()) }
-        .orEmpty()
-
-    val entries = mutableListOf<CustomFontEntry>()
-    val seenFamilies = mutableSetOf<String>()
-
-    for (fontFile in fontFiles) {
-      val familyName =
-        runCatching {
-          fontFile.inputStream().use { input ->
-            TTFFile
-              .open(input)
-              .families
-              .values
-              .firstOrNull()
+    fontsDir.listFiles()
+      ?.asSequence()
+      ?.filter { it.isFile && it.extension.lowercase(Locale.ROOT) in setOf("ttf", "otf", "ttc") }
+      ?.mapNotNull { file ->
+        val name = runCatching {
+          file.inputStream().use { stream ->
+            TTFFile.open(stream).families.values.firstOrNull()?.trim()
           }
-        }.getOrNull()
-
-      if (!familyName.isNullOrBlank() && seenFamilies.add(familyName)) {
-        entries += CustomFontEntry(familyName, fontFile)
+        }.getOrNull()?.takeIf(String::isNotEmpty)
+        if (name != null) {
+          CustomFontEntry(name, file)
+        } else {
+          // Some valid merged / OpenType fonts cannot be named by TTFFile.
+          if (runCatching { Typeface.createFromFile(file) }.isSuccess) {
+            CustomFontEntry(file.nameWithoutExtension, file)
+          } else {
+            null
+          }
+        }
       }
-    }
-
-    entries.sortedBy { it.familyName }
+      ?.sortedWith(
+        compareBy<CustomFontEntry>({ it.familyName.lowercase(Locale.ROOT) }, { it.file.name.lowercase(Locale.ROOT) }),
+      )
+      ?.toList()
+      .orEmpty()
   }
