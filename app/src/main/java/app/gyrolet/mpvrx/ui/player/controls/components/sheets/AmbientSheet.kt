@@ -53,8 +53,10 @@ import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.AmbientShaderPresets
 import app.gyrolet.mpvrx.ui.player.AmbientStyle
+import app.gyrolet.mpvrx.ui.player.FxAmbientPresets
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.components.expressive.SectionHeader
+import app.gyrolet.mpvrx.ui.player.matchesFxPreset
 import app.gyrolet.mpvrx.ui.player.matchesGlowPreset
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.spacing
@@ -84,21 +86,39 @@ fun AmbientSheet(
   }
   val isFast =
     remember(
-      blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
+      ambientStyle, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
     ) {
-      matchesGlowPreset(AmbientShaderPresets.glowFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+      when (ambientStyle) {
+        AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.YouTube -> false
+      }
     }
   val isBalanced =
     remember(
-      blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
+      ambientStyle, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
     ) {
-      matchesGlowPreset(AmbientShaderPresets.glowBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+      when (ambientStyle) {
+        AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.YouTube -> false
+      }
     }
   val isHQ =
     remember(
-      blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
+      ambientStyle, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
     ) {
-      matchesGlowPreset(AmbientShaderPresets.glowHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+      when (ambientStyle) {
+        AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.YouTube -> false
+      }
     }
   PlayerSheet(
     onDismissRequest = onDismissRequest,
@@ -157,7 +177,7 @@ fun AmbientSheet(
         )
       }
 
-      if (ambientStyle == AmbientStyle.Glow) {
+      if (ambientStyle != AmbientStyle.YouTube) {
       // ── Quality Presets ──────────────────────────────────────────────
       Row(
         modifier =
@@ -189,15 +209,15 @@ fun AmbientSheet(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
       )
 
-      // ── Section: Glow ────────────────────────────────────────────────
-      var glowExpanded by remember { mutableStateOf(true) }
+      // ── Section: Mode Effect ─────────────────────────────────────────
+      var effectExpanded by remember { mutableStateOf(true) }
       SectionHeader(
-        title = stringResource(R.string.ambient_glow),
-        isExpanded = glowExpanded,
-        onClick = { glowExpanded = !glowExpanded },
+        title = stringResource(ambientStyle.titleRes),
+        isExpanded = effectExpanded,
+        onClick = { effectExpanded = !effectExpanded },
       )
       AnimatedVisibility(
-        visible = glowExpanded,
+        visible = effectExpanded,
         enter =
           expandVertically(
             animationSpec =
@@ -220,13 +240,15 @@ fun AmbientSheet(
         Column(
           verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
+          val minSamples = if (ambientStyle == AmbientStyle.Mirror || ambientStyle == AmbientStyle.Echo) 3 else 4
+          val maxSamples = if (ambientStyle == AmbientStyle.Glow) 64 else 32
           SliderItem(
             label = "Blur Samples",
             valueText = "$blurSamples",
             value = blurSamples,
             onChange = { viewModel.updateAmbientParams(blurSamples = it) },
-            min = 5,
-            max = 64,
+            min = minSamples,
+            max = maxSamples,
             icon = {
               AppSymbolIcon(
                 imageVector = Icons.RoundedFilled.BlurOn,
@@ -242,9 +264,9 @@ fun AmbientSheet(
             valueText = "%.2f".format(maxRadius),
             value = maxRadius,
             onChange = { viewModel.updateAmbientParams(maxRadius = it) },
-            min = 0.05f,
-            max = 0.80f,
-            steps = 75,
+            min = 0.02f,
+            max = if (ambientStyle == AmbientStyle.Glow) 0.80f else 0.40f,
+            steps = if (ambientStyle == AmbientStyle.Glow) 75 else 38,
             icon = {
               AppSymbolIcon(
                 imageVector = Icons.RoundedFilled.Gradient,
@@ -256,13 +278,13 @@ fun AmbientSheet(
           )
 
           SliderItem(
-            label = "Glow Intensity",
+            label = if (ambientStyle == AmbientStyle.Glow) "Glow Intensity" else "Intensity",
             valueText = "%.1f".format(glowIntensity),
             value = glowIntensity,
             onChange = { viewModel.updateAmbientParams(glowIntensity = it) },
-            min = 0.5f,
+            min = 0.2f,
             max = 3.0f,
-            steps = 25,
+            steps = 28,
             icon = {
               AppSymbolIcon(
                 imageVector = Icons.RoundedFilled.Brightness6,
@@ -442,18 +464,9 @@ fun AmbientSheet(
       }
 
       Spacer(modifier = Modifier.height(8.dp))
-      } else if (ambientStyle == AmbientStyle.YouTube) {
+      } else {
         Text(
           text = stringResource(R.string.ambient_youtube_auto_hint),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.padding(horizontal = MaterialTheme.spacing.large, vertical = 8.dp),
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-      } else {
-        // Cinema, Echo, Mirror — fully automatic, no tunable parameters.
-        Text(
-          text = stringResource(R.string.ambient_fx_auto_hint),
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.padding(horizontal = MaterialTheme.spacing.large, vertical = 8.dp),

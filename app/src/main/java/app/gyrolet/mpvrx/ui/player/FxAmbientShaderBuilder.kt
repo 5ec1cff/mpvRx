@@ -12,27 +12,78 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
+ * Specification parameters for an FX ambient shader pass (Cinema, Echo, Mirror).
+ */
+data class FxAmbientShaderSpec(
+  val style: AmbientStyle,
+  val scaleX: Double,
+  val scaleY: Double,
+  val blurSamples: Int,
+  val spread: Float,
+  val intensity: Float,
+  val satBoost: Float,
+  val vignetteStrength: Float,
+  val warmth: Float,
+  val fadeCurve: Float,
+  val opacity: Float,
+)
+
+data class FxAmbientPreset(
+  val blurSamples: Int,
+  val spread: Float,
+  val intensity: Float,
+  val satBoost: Float,
+  val vignetteStrength: Float,
+  val warmth: Float,
+  val fadeCurve: Float,
+  val opacity: Float,
+)
+
+object FxAmbientPresets {
+  // Cinema
+  val cinemaFast = FxAmbientPreset(6, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaBalanced = FxAmbientPreset(8, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaHighQuality = FxAmbientPreset(16, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.15f, 1.0f)
+
+  // Echo
+  val echoFast = FxAmbientPreset(3, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoBalanced = FxAmbientPreset(5, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoHighQuality = FxAmbientPreset(7, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.8f, 1.0f)
+
+  // Mirror
+  val mirrorFast = FxAmbientPreset(3, 0.05f, 0.9f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f)
+  val mirrorBalanced = FxAmbientPreset(3, 0.06f, 1.0f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f)
+  val mirrorHighQuality = FxAmbientPreset(5, 0.08f, 1.1f, 1.05f, 0.0f, 0.0f, 2.0f, 1.0f)
+}
+
+fun matchesFxPreset(
+  preset: FxAmbientPreset,
+  blurSamples: Int,
+  spread: Float,
+  intensity: Float,
+  satBoost: Float,
+  vignetteStrength: Float,
+  warmth: Float,
+  fadeCurve: Float,
+  opacity: Float,
+): Boolean =
+  blurSamples == preset.blurSamples &&
+    abs(spread - preset.spread) <= 0.01f &&
+    abs(intensity - preset.intensity) <= 0.01f &&
+    abs(satBoost - preset.satBoost) <= 0.01f &&
+    abs(vignetteStrength - preset.vignetteStrength) <= 0.01f &&
+    abs(warmth - preset.warmth) <= 0.01f &&
+    abs(fadeCurve - preset.fadeCurve) <= 0.01f &&
+    abs(opacity - preset.opacity) <= 0.01f
+
+/**
  * Builds mpv OUTPUT hook GLSL shaders for the three fx-ambient modes:
- * Cinema, Echo, and Mirror.
+ * Cinema, Echo, and Mirror with adjustable user parameters.
  *
- * These shaders are adapted from the fx_ambient Vulkan GLSL package
- * (fx_ambient.frag / fx_common.glsl) and rewritten for mpv's hook system
- * which uses OpenGL ES 2.0 / 3.0 instead of Vulkan.
- *
- * Key differences from the Vulkan originals:
- * - No push constants / descriptor sets — geometry parameters are baked in
- *   as GLSL #defines at shader-compile time (Kotlin side).
- * - No uHist / uEcho textures — Cinema and Echo approximate temporal blur
- *   with manual multi-tap sampling within a single frame.
- * - No specialisation constants — each mode is a separate shader file.
- * - No adjustable user parameters — every mode uses fixed, hand-tuned values.
- *
- * All three modes follow the same structure:
- *   1. Remap HOOKED_pos -> video_uv  (scale is baked from Kotlin).
- *   2. Early-return original pixel for inside_video (no modification to video).
- *   3. Compute bar-depth ratio dn in [0,1].
- *   4. Early-return vec4(0,0,0,1) when dn >= 1.0 (beyond reach -> true black).
- *   5. Sample, colour-grade, fade, dither, output.
+ * Defaults yield the exact hand-tuned baseline look:
+ * - Cinema: 8-tap Poisson disk, 0.10 spread, 1.35 reach, 1.15 fade curve, 1.08 vibrance, 0.72 intensity.
+ * - Echo: 5-tap Gaussian smear, 0.10 spread, 1.20 reach, 1.8 fade curve, 1.15 vibrance, 0.85 intensity.
+ * - Mirror: 3-tap reflective blur, 0.06 spread, 1.15 reach, 2.0 fade curve, 0.92 vibrance, 0.55 intensity.
  */
 object FxAmbientShaderBuilder {
 
@@ -46,8 +97,6 @@ object FxAmbientShaderBuilder {
 
   /**
    * Builds the standard mpv hook header and GLSL helper functions.
-   * scaleX / scaleY encode how much the output is wider/taller than the
-   * video, so (SCALE_X - 1) / 2 gives the bar thickness in video-UV space.
    */
   private fun buildHeader(desc: String, scaleX: Double, scaleY: Double): String = """
 //!HOOK OUTPUT
@@ -86,6 +135,12 @@ mediump vec3 vibrance(mediump vec3 c, mediump float k) {
     return max(vec3(luma(c)) + (c - vec3(luma(c))) * k, vec3(0.0));
 }
 
+// Multiplicative color-temperature adjustment.
+mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
+    mediump vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
+    return clamp(rgb * gain, 0.0, 1.0);
+}
+
 // Highlight roll-off from fx_common.glsl: c / (1 + k*luma).
 // Dark/mid tones pass almost unchanged; bright bursts are softened.
 mediump vec3 rolloff(mediump vec3 c, mediump float k) {
@@ -111,7 +166,7 @@ mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
    *     dn = normalised depth into the bar (0 = at edge, >= 1 = beyond reach).
    * @param reachScale multiplied against bar thickness for the reach cutoff.
    */
-  private fun videoPrologue(reachScale: String): String = """
+  private fun videoPrologue(reachScale: Double): String = """
     highp vec2 uv       = HOOKED_pos;
     highp vec2 video_uv = (uv - 0.5) * vec2(SCALE_X, SCALE_Y) + 0.5;
 
@@ -143,7 +198,7 @@ mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
     highp float thick = (SCALE_X > SCALE_Y && dx > dy) ? bx : by;
 
     // Normalised depth: 0 at the video edge, 1 at the nominal reach boundary.
-    highp float dn = clamp(d / (thick * $reachScale), 0.0, 1.0);
+    highp float dn = clamp(d / (thick * ${f(reachScale)}), 0.0, 1.0);
     if (dn >= 1.0) { return vec4(0.0, 0.0, 0.0, 1.0); }
   """.trimIndent().prependIndent("    ")
 
@@ -151,7 +206,6 @@ mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
 
   /**
    * Spiral tap offsets for the Cinema mode manual Gaussian blur.
-   * Adapted from AmbientShaderBuilder.buildSpiralTapTable() -- equal weights.
    */
   private fun cinemaTapTable(count: Int, maxR: Double): String {
     val goldenAngle = 2.399963229728653
@@ -164,29 +218,41 @@ mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
   }
 
   /**
-   * Builds the Cinema ambient shader.
-   *
-   * Algorithm (adapted from fx_ambient cinema()):
-   * 1. Map the current bar pixel to a slightly zoomed-out video UV, so that
-   *    the whole frame is projected into the bars as if from further away.
-   * 2. Sample the video at that UV 8 times via a Spiral Poisson disk whose
-   *    radius grows linearly with bar depth dn (near-edge = sharp, far = blurry).
-   * 3. Apply vibrance -> rolloff -> power-law fade -> dither.
+   * Builds the Cinema ambient shader with adjustable user parameters.
    */
-  fun buildCinema(@Suppress("UNUSED_PARAMETER") context: Context, scaleX: Double, scaleY: Double): String {
-    val tapCount  = 8
-    val baseRadius = 0.025
-    val farRadius  = 0.10
-    val tapTable   = cinemaTapTable(tapCount, farRadius)
+  fun buildCinema(
+    @Suppress("UNUSED_PARAMETER") context: Context,
+    spec: FxAmbientShaderSpec,
+  ): String {
+    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
+    val reachScale = 1.35 * spreadScale
+    val farRadius = (0.10 * spreadScale).coerceIn(0.01, 0.50)
+    val baseRadius = (0.025 * spreadScale).coerceIn(0.005, 0.15)
+    val tapCount = spec.blurSamples.coerceIn(4, 32)
+    val tapTable = cinemaTapTable(tapCount, farRadius)
+
+    val vibranceVal = 1.08 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
+    val intensityVal = 0.72 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
+    val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
+    val warmthVal = spec.warmth.toDouble().coerceIn(-1.0, 1.0)
+    val vignetteVal = spec.vignetteStrength.toDouble().coerceIn(0.0, 1.0)
+    val opacityVal = spec.opacity.toDouble().coerceIn(0.0, 1.0)
+
+    val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
+    val vignetteLine = if (vignetteVal > 0.0001) """
+    mediump float vig_r = length(uv - 0.5) * 2.0;
+    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+""" else ""
+    val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
     return """
-${buildHeader("Fx Ambient -- Cinema", scaleX, scaleY)}
+${buildHeader("Fx Ambient -- Cinema", spec.scaleX, spec.scaleY)}
 
-// Pre-computed Spiral Poisson tap offsets (max reach = $farRadius UV units).
+// Pre-computed Spiral Poisson tap offsets ($tapCount taps, max reach = ${f(farRadius)} UV units).
 $tapTable
 
 vec4 hook() {
-${videoPrologue("1.35")}
+${videoPrologue(reachScale)}
 
     // -- Cinema projection UV ------------------------------------------------
     // Divide by a zoom factor slightly > 1 so the full frame is visible
@@ -202,7 +268,7 @@ ${videoPrologue("1.35")}
     highp vec2 c_uv_safe    = clamp(c_uv, safe_min, safe_max);
     highp vec2 sample_c_uv  = mix(c_uv_safe, vec2(0.5), 0.04 + 0.06 * dn);
 
-    // -- 8-tap spiral Gaussian blur ------------------------------------------
+    // -- $tapCount-tap spiral Gaussian blur ------------------------------------------
     // Blend radius interpolates from baseRadius (sharp, near edge) to
     // farRadius (blurry, at bar end) as a linear function of dn.
     mediump float br       = mix(${f(baseRadius)}, ${f(farRadius)}, dn);
@@ -220,13 +286,13 @@ ${videoPrologue("1.35")}
     mediump vec3 col = acc / max(twt, 0.001);
 
     // -- Colour grade --------------------------------------------------------
-    col = vibrance(col, 1.08);
-    col = rolloff(col, 0.55);
+    col = vibrance(col, ${f(vibranceVal)});
+$warmthLine    col = rolloff(col, 0.55);
 
     // -- Fade: bright at edge, gone at bar end --------------------------------
-    mediump float fade = pow(max(1.0 - dn, 0.0), 1.15) * 0.72;
+    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
     mediump vec3 ambient_rgb = col * fade;
-
+$vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
@@ -234,24 +300,57 @@ ${videoPrologue("1.35")}
     """.trimIndent()
   }
 
+  fun buildCinema(context: Context, scaleX: Double, scaleY: Double): String =
+    buildCinema(
+      context,
+      FxAmbientShaderSpec(
+        style = AmbientStyle.Cinema,
+        scaleX = scaleX,
+        scaleY = scaleY,
+        blurSamples = 8,
+        spread = 0.10f,
+        intensity = 1.0f,
+        satBoost = 1.0f,
+        vignetteStrength = 0.0f,
+        warmth = 0.0f,
+        fadeCurve = 1.15f,
+        opacity = 1.0f,
+      ),
+    )
+
   // -- Echo -------------------------------------------------------------------
 
   /**
-   * Builds the Echo ambient shader.
-   *
-   * Algorithm (inspired by fx_ambient echo()):
-   * The original uses a temporal ring buffer (compute shader) to store edge
-   * colours from previous frames and slowly push them outward. Without cross-
-   * frame state in mpv hooks, we approximate with a spatial smear:
-   * 5 taps taken along the bar-parallel direction (perpendicular to the
-   * outward vector) with Gaussian spread growing with depth dn.
+   * Builds the Echo ambient shader with adjustable user parameters.
    */
-  fun buildEcho(@Suppress("UNUSED_PARAMETER") context: Context, scaleX: Double, scaleY: Double): String =
-    """
-${buildHeader("Fx Ambient -- Echo", scaleX, scaleY)}
+  fun buildEcho(
+    @Suppress("UNUSED_PARAMETER") context: Context,
+    spec: FxAmbientShaderSpec,
+  ): String {
+    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
+    val reachScale = 1.20 * spreadScale
+    val swBase = 0.02 * spreadScale
+    val swFar = 0.10 * spreadScale
+
+    val vibranceVal = 1.15 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
+    val intensityVal = 0.85 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
+    val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
+    val warmthVal = spec.warmth.toDouble().coerceIn(-1.0, 1.0)
+    val vignetteVal = spec.vignetteStrength.toDouble().coerceIn(0.0, 1.0)
+    val opacityVal = spec.opacity.toDouble().coerceIn(0.0, 1.0)
+
+    val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
+    val vignetteLine = if (vignetteVal > 0.0001) """
+    mediump float vig_r = length(uv - 0.5) * 2.0;
+    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+""" else ""
+    val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
+
+    return """
+${buildHeader("Fx Ambient -- Echo", spec.scaleX, spec.scaleY)}
 
 vec4 hook() {
-${videoPrologue("1.20")}
+${videoPrologue(reachScale)}
 
     // -- Edge origin (nearest video pixel) -----------------------------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
@@ -260,7 +359,7 @@ ${videoPrologue("1.20")}
     // edge_origin sits exactly on the 1px video border wall. Smear taps that
     // extend in the inward direction immediately re-clamp back to the same
     // border texel, creating a pile-up that looks like a mirror reflection.
-    // Nudging toward 0.5 by 2-7% ensures all 5 taps spread into real content.
+    // Nudging toward 0.5 by 2-7% ensures all taps spread into real content.
     highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.02 + 0.05 * dn);
 
     // -- Determine smear axis (parallel to bar, perpendicular to outward) ----
@@ -269,7 +368,7 @@ ${videoPrologue("1.20")}
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
 
     // Smear width in video-UV space grows from tight at edge to wide at depth.
-    mediump float sw = 0.02 + 0.10 * dn;
+    mediump float sw = ${f(swBase)} + ${f(swFar)} * dn;
 
     // -- 5-tap Gaussian along smear axis (weights sum to 1.0 -- no divider needed)
     const float W0 = 0.0625;
@@ -289,36 +388,70 @@ ${videoPrologue("1.20")}
                      + HOOKED_tex(t4).rgb * W0;
 
     // -- Colour grade --------------------------------------------------------
-    col = vibrance(col, 1.15);
-    col = rolloff(col, 0.55);
+    col = vibrance(col, ${f(vibranceVal)});
+$warmthLine    col = rolloff(col, 0.55);
 
     // -- Fade: power law gives a crisp edge followed by a long soft tail -----
-    mediump float fade = pow(max(1.0 - dn, 0.0), 1.8) * 0.85;
+    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
     mediump vec3 ambient_rgb = col * fade;
-
+$vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
 }
     """.trimIndent()
+  }
+
+  fun buildEcho(context: Context, scaleX: Double, scaleY: Double): String =
+    buildEcho(
+      context,
+      FxAmbientShaderSpec(
+        style = AmbientStyle.Echo,
+        scaleX = scaleX,
+        scaleY = scaleY,
+        blurSamples = 5,
+        spread = 0.10f,
+        intensity = 1.0f,
+        satBoost = 1.0f,
+        vignetteStrength = 0.0f,
+        warmth = 0.0f,
+        fadeCurve = 1.8f,
+        opacity = 1.0f,
+      ),
+    )
 
   // -- Mirror -----------------------------------------------------------------
 
   /**
-   * Builds the Mirror ambient shader.
-   *
-   * Algorithm (adapted from fx_ambient mirror()):
-   * 1. Fold video_uv across [0,1] boundaries (mirror wrap).
-   * 2. Sample the folded UV 3 times along the fold direction with a spread
-   *    that grows with depth dn, simulating blur in the reflection.
-   * 3. Top bar (video_uv.y < 0) is dimmed by 0.7 -- ceiling reflects less.
+   * Builds the Mirror ambient shader with adjustable user parameters.
    */
-  fun buildMirror(@Suppress("UNUSED_PARAMETER") context: Context, scaleX: Double, scaleY: Double): String =
-    """
-${buildHeader("Fx Ambient -- Mirror", scaleX, scaleY)}
+  fun buildMirror(
+    @Suppress("UNUSED_PARAMETER") context: Context,
+    spec: FxAmbientShaderSpec,
+  ): String {
+    val spreadScale = (spec.spread.toDouble() / 0.06).coerceIn(0.2, 4.0)
+    val reachScale = 1.15 * spreadScale
+    val bwFar = (0.06 * spreadScale).coerceIn(0.01, 0.30)
+
+    val vibranceVal = 0.92 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
+    val intensityVal = 0.55 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
+    val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
+    val warmthVal = spec.warmth.toDouble().coerceIn(-1.0, 1.0)
+    val vignetteVal = spec.vignetteStrength.toDouble().coerceIn(0.0, 1.0)
+    val opacityVal = spec.opacity.toDouble().coerceIn(0.0, 1.0)
+
+    val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
+    val vignetteLine = if (vignetteVal > 0.0001) """
+    mediump float vig_r = length(uv - 0.5) * 2.0;
+    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+""" else ""
+    val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
+
+    return """
+${buildHeader("Fx Ambient -- Mirror", spec.scaleX, spec.scaleY)}
 
 vec4 hook() {
-${videoPrologue("1.15")}
+${videoPrologue(reachScale)}
 
     // -- Fold video_uv across [0,1] boundaries (mirror wrap) -----------------
     highp vec2 m_uv = video_uv;
@@ -329,7 +462,7 @@ ${videoPrologue("1.15")}
     // -- Blur axis: fold along the same axis as the bar ----------------------
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 blur_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-    mediump float bw = mix(0.0, 0.06, pow(dn, 0.7));
+    mediump float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
 
     // -- 3-tap blur along blur_dir -------------------------------------------
     mediump vec3 col = vec3(0.0);
@@ -338,21 +471,40 @@ ${videoPrologue("1.15")}
     col += HOOKED_tex(clamp(m_uv + blur_dir * bw, safe_min, safe_max)).rgb * 0.25;
 
     // -- Colour grade --------------------------------------------------------
-    col = vibrance(col, 0.92);
-    col = rolloff(col, 0.30);
+    col = vibrance(col, ${f(vibranceVal)});
+$warmthLine    col = rolloff(col, 0.30);
 
     // -- Mirror fade: tight power + Gaussian decay so seam is crisp ----------
-    mediump float fade = pow(max(1.0 - dn, 0.0), 2.0) *
+    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) *
                          (0.55 + 0.45 * exp(-6.0 * dn));
 
     // Ceiling (top bar) reflects less light than floor -- dim by 30%.
     if (video_uv.y < 0.0) { fade *= 0.7; }
 
-    mediump vec3 ambient_rgb = col * (fade * 0.55);
-
+    mediump vec3 ambient_rgb = col * (fade * ${f(intensityVal)});
+$vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
 }
     """.trimIndent()
+  }
+
+  fun buildMirror(context: Context, scaleX: Double, scaleY: Double): String =
+    buildMirror(
+      context,
+      FxAmbientShaderSpec(
+        style = AmbientStyle.Mirror,
+        scaleX = scaleX,
+        scaleY = scaleY,
+        blurSamples = 3,
+        spread = 0.06f,
+        intensity = 1.0f,
+        satBoost = 1.0f,
+        vignetteStrength = 0.0f,
+        warmth = 0.0f,
+        fadeCurve = 2.0f,
+        opacity = 1.0f,
+      ),
+    )
 }

@@ -114,14 +114,14 @@ enum class AmbientStyle(
   YouTube(R.string.ambient_style_youtube),
 
   // ── Fx ambient modes (ported from fx_ambient GLSL package) ──────────────────
-  // These modes run as mpv OUTPUT hook shaders and have no user-adjustable parameters.
+  // These modes run as mpv OUTPUT hook shaders with user-adjustable parameters.
 
   /** Whole-frame soft projection extending into bars, blur grows with bar depth.
-   *  Adapted from fx_ambient cinema() — fixed reach and intensity. */
+   *  Adapted from fx_ambient cinema(). */
   Cinema(R.string.ambient_cinema),
 
   /** Edge-parallel spatial smear that simulates light propagating outward.
-   *  Inspired by fx_ambient echo() — approximated without temporal ring buffer. */
+   *  Inspired by fx_ambient echo(). */
   Echo(R.string.ambient_echo),
 
   /** Reflected / folded UV mirror of the video edge, blur grows with depth.
