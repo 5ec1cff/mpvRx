@@ -450,6 +450,9 @@ class PlayerActivity :
   private var returnToBrowserAfterMinimize = false
   private var predictivePlayerSheetDrag: PlayerSheetDrag? = null
   private var predictivePlayerSheetRestoreJob: Job? = null
+  // The player shrinks itself into the mini player before finishing; see PlayerSheetTransitions.
+  private var sheetCollapse = SheetCollapse.NONE
+  private var finishAfterSheetCollapse = false
   private var noisyReceiverRegistered = false
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
   private var screenStateReceiverRegistered = false
@@ -956,10 +959,12 @@ class PlayerActivity :
     val callback =
       object : OnBackPressedCallback(true) {
         override fun handleOnBackStarted(backEvent: BackEventCompat) {
+          if (sheetCollapse != SheetCollapse.NONE) return
           applyPredictiveBackProgress(backEvent)
         }
 
         override fun handleOnBackProgressed(backEvent: BackEventCompat) {
+          if (sheetCollapse != SheetCollapse.NONE) return
           applyPredictiveBackProgress(backEvent)
         }
 
@@ -968,6 +973,8 @@ class PlayerActivity :
         }
 
         override fun handleOnBackPressed() {
+          // Already shrinking into the mini player; a second Back must not restart the hand-off.
+          if (sheetCollapse != SheetCollapse.NONE) return
           val sheetDrag = predictivePlayerSheetDrag
           predictivePlayerSheetDrag = null
           resetPredictiveBackProgress(animate = false)
@@ -1077,6 +1084,7 @@ class PlayerActivity :
     return when (startBackgroundPlayback()) {
       BackgroundPlaybackStartResult.Started -> {
         pendingBackNavigationBackgroundTransition = true
+        startSheetCollapse()
         completePendingBackgroundHandoff()
         true
       }
@@ -1161,6 +1169,7 @@ class PlayerActivity :
       when (startBackgroundPlayback()) {
         BackgroundPlaybackStartResult.Started -> {
           pendingBackNavigationBackgroundTransition = true
+          startSheetCollapse()
           completePendingBackgroundHandoff()
         }
         BackgroundPlaybackStartResult.PendingPermission -> {
@@ -2014,6 +2023,8 @@ class PlayerActivity :
       super.finish()
       return
     }
+    // finish() already ran and is only waiting for the sheet to reach the mini player.
+    if (finishAfterSheetCollapse) return
     runCatching {
       if (wasInPipMode && !isChangingConfigurations) commitPipDismissal()
 
@@ -2040,12 +2051,64 @@ class PlayerActivity :
       Log.e(TAG, "Error during finish", e)
     }
 
-    val animateSheet = isBackgroundPlaybackSessionActive && isMiniPlayerEnabled() &&
-      PlayerSheetTransitions.begin(PlayerSheetDestination.MINI, PlaybackSession.state.value.currentItem?.stableId)
+    val handsOffToMiniPlayer = isBackgroundPlaybackSessionActive && isMiniPlayerEnabled()
+    when {
+      sheetCollapse == SheetCollapse.RUNNING -> finishAfterSheetCollapse = true
+      sheetCollapse == SheetCollapse.ARRIVED -> completeFinish(sheetArrived = true)
+      handsOffToMiniPlayer && startSheetCollapse() -> finishAfterSheetCollapse = true
+      else -> {
+        // Keeps the mini player present even when this media uses the native window animation.
+        if (handsOffToMiniPlayer) {
+          PlayerSheetTransitions.holdCollapsed(PlaybackSession.state.value.currentItem?.stableId)
+        }
+        completeFinish(sheetArrived = false)
+      }
+    }
+  }
+
+  /**
+   * Starts shrinking this player into the mini player while the playback service takes over.
+   * The morph runs here, where everything is already drawn, so MainActivity only has to appear
+   * once the sheet rests at the mini player; [finish] waits for that before closing the window.
+   */
+  private fun startSheetCollapse(): Boolean {
+    if (sheetCollapse != SheetCollapse.NONE) return true
+    if (!isMiniPlayerEnabled() || isTaskRoot || !lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return false
+    val started = PlayerSheetTransitions.begin(
+      PlayerSheetDestination.MINI,
+      PlaybackSession.state.value.currentItem?.stableId,
+    ) { arrived ->
+      sheetCollapse = if (arrived) SheetCollapse.ARRIVED else SheetCollapse.NONE
+      if (finishAfterSheetCollapse) {
+        finishAfterSheetCollapse = false
+        completeFinish(sheetArrived = arrived)
+      }
+    }
+    if (started) {
+      predictivePlayerSheetRestoreJob?.cancel()
+      predictivePlayerSheetDrag = null
+      sheetCollapse = SheetCollapse.RUNNING
+    }
+    return started
+  }
+
+  /** The service could not take over playback; grow back into the full player. */
+  private fun cancelSheetCollapse() {
+    if (sheetCollapse == SheetCollapse.NONE) return
+    sheetCollapse = SheetCollapse.NONE
+    finishAfterSheetCollapse = false
+    PlaybackSession.state.value.currentItem?.stableId?.let(PlayerSheetTransitions::releaseCollapsedHold)
+    PlayerSheetTransitions.reverseCollapse()
+  }
+
+  private fun completeFinish(sheetArrived: Boolean) {
+    if (isFinishing) return
+    if (sheetArrived) PlayerSheetTransitions.motion?.let { PlayerSheetTransitions.holdParked(it.id) }
     super.finish()
 
     if (isMiniPlayerEnabled()) {
-      val exitAnimation = if (animateSheet || PlayerSheetTransitions.reducedMotion) 0 else R.anim.slide_out_down
+      // The window already shows the browser and mini player, so it must vanish without motion.
+      val exitAnimation = if (sheetArrived || PlayerSheetTransitions.reducedMotion) 0 else R.anim.slide_out_down
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, exitAnimation)
       } else {
@@ -7418,6 +7481,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         setActivityMediaSessionActive(true)
         if (failedBackgroundHandoff) {
           returnToBrowserAfterMinimize = false
+          cancelSheetCollapse()
           Toast.makeText(this@PlayerActivity, R.string.toast_playback_load_failed, Toast.LENGTH_LONG).show()
         }
         endBackgroundPlayback()
@@ -8692,3 +8756,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     private const val STATE_PLAYLIST_ORIGINAL_URI = "player_state_playlist_original_uri"
   }
 }
+
+/** Progress of the player shrinking itself into the mini player before it finishes. */
+private enum class SheetCollapse { NONE, RUNNING, ARRIVED }

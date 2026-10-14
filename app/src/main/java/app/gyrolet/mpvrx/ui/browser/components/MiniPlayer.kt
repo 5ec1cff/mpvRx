@@ -281,35 +281,48 @@ private fun MiniPlayerContent(
 
   val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion) {
     launch@{
-      if (!PlayerSheetTransitions.holdExpansion(PlaybackSession.state.value.currentItem?.stableId)) return@launch false
+      val mediaId = PlaybackSession.state.value.currentItem?.stableId
+      if (!PlayerSheetTransitions.holdExpansion(mediaId)) return@launch false
       videoSurface[0]?.setPlaybackActive(false)
-      val animateSheet = isAudioOnlyItem && PlayerSheetTransitions.begin(
-        PlayerSheetDestination.FULL,
-        PlaybackSession.state.value.currentItem?.stableId,
-      )
-      val intent = Intent(context, PlayerActivity::class.java).apply {
-        action = MediaPlaybackService.ACTION_OPEN_PLAYER
-        putExtra("is_audio", isAudioOnlyItem)
-        putExtra("internal_launch", true)
-        putExtra("launch_source", "mini_player")
-        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+
+      fun openPlayer(sheetArrived: Boolean): Boolean {
+        val intent = Intent(context, PlayerActivity::class.java).apply {
+          action = MediaPlaybackService.ACTION_OPEN_PLAYER
+          putExtra("is_audio", isAudioOnlyItem)
+          putExtra("internal_launch", true)
+          putExtra("launch_source", "mini_player")
+          flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val enterAnimation = if (sheetArrived || reduceMotion) 0 else R.anim.slide_in_up
+        try {
+          // Supply the animation at launch; setting it only in the destination's onCreate can
+          // leave a default window animation running underneath the Compose sheet transition.
+          context.startActivity(intent, ActivityOptions.makeCustomAnimation(context, enterAnimation, 0).toBundle())
+        } catch (error: Exception) {
+          PlayerSheetTransitions.releaseExpansionHold()
+          android.util.Log.e("MiniPlayer", "Unable to expand player", error)
+          return false
+        }
+        if (context is Activity && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+          @Suppress("DEPRECATION")
+          context.overridePendingTransition(enterAnimation, 0)
+        }
+        return true
       }
-      val enterAnimation = if (animateSheet || reduceMotion) 0 else R.anim.slide_in_up
-      try {
-        // Supply the animation at launch; setting it only in the destination's onCreate can
-        // leave a default window animation running underneath the Compose sheet transition.
-        context.startActivity(intent, ActivityOptions.makeCustomAnimation(context, enterAnimation, 0).toBundle())
-      } catch (error: Exception) {
-        PlayerSheetTransitions.releaseExpansionHold()
-        if (animateSheet) PlayerSheetTransitions.motion?.let { PlayerSheetTransitions.finish(it.id) }
-        android.util.Log.e("MiniPlayer", "Unable to expand player", error)
-        return@launch false
+
+      // The browser is idle and already on screen, so it runs the whole expansion. PlayerActivity
+      // is created only once the sheet rests full screen, so its startup never stalls the motion.
+      val animateSheet = isAudioOnlyItem && PlayerSheetTransitions.begin(PlayerSheetDestination.FULL, mediaId) { arrived ->
+        val stillVisible = (context as? androidx.lifecycle.LifecycleOwner)
+          ?.lifecycle?.currentState?.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) != false
+        when {
+          arrived -> if (!openPlayer(sheetArrived = true)) PlayerSheetTransitions.abandonExpansion()
+          // The morph could not run; still honor the tap unless the user already left the app.
+          stillVisible -> openPlayer(sheetArrived = false)
+          else -> PlayerSheetTransitions.releaseExpansionHold()
+        }
       }
-      if (context is Activity && android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        @Suppress("DEPRECATION")
-        context.overridePendingTransition(enterAnimation, 0)
-      }
-      true
+      animateSheet || openPlayer(sheetArrived = false)
     }
   }
 

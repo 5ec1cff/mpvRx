@@ -335,6 +335,8 @@ open class MainActivity : AppCompatActivity() {
     }
     // The browser is visible again; drop the frozen copy kept for in-player gestures.
     PlayerSheetTransitions.clearBrowserCache()
+    // Interactive again without the player having taken over, so its expansion is void.
+    PlayerSheetTransitions.abandonExpansion()
   }
 
   override fun onPause() {
