@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="ui_no_saved_media_description">粘贴流媒体 URL 或从最近链接保存以建立您的媒体库。</string>
-  <string name="ui_no_recent_links">暂无最近的流媒体链接。请在上方粘贴流媒体 URL 以开始使用。</string>
   <string name="pref_section_p2p_streaming">流媒体播放</string>
   <string name="pref_network_summary">流媒体播放、HLS 代理</string>
 </resources>

@@ -11,7 +11,6 @@ package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -257,7 +256,7 @@ fun FolderCard(
         .clip(cardShape)
                 .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
-        .combinedClickable(
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
@@ -293,7 +292,7 @@ fun FolderCard(
                 .aspectRatio(aspect)
                 .onSizeChanged { thumbnailSize = it }
                 .tvFocusHighlight(AppShapeScale.medium, focusedScale = 1.03f)
-                .combinedClickable(
+                .mediaCardClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
                 ),
@@ -427,7 +426,7 @@ fun FolderCard(
               Modifier
                 .size(72.dp)
                 .tvFocusHighlight(AppShapeScale.medium, focusedScale = 1.03f)
-                .combinedClickable(
+                .mediaCardClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
                 ),

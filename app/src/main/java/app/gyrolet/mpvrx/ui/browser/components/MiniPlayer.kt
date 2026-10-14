@@ -19,7 +19,6 @@ import android.net.Uri
 import android.text.format.DateUtils
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -30,7 +29,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -96,6 +94,7 @@ import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.DeclaredPlaybackMediaKind
 import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
@@ -472,20 +471,13 @@ private fun MiniPlayerContent(
             },
             modifier = Modifier.size(48.dp),
           ) {
-            AnimatedContent(
-              targetState = isPlaying,
-              transitionSpec = {
-                if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
-              },
-              label = "mini_video_play_pause",
-            ) { playing ->
-              Icon(
-                imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-                contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(26.dp),
-              )
-            }
+            AnimatedIcon(
+              imageVector = if (isPlaying) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
+              contentDescription = stringResource(if (isPlaying) R.string.audiobook_pause else R.string.ui_play),
+              tint = MaterialTheme.colorScheme.onSurface,
+              modifier = Modifier.size(26.dp),
+              reduceMotion = reduceMotion,
+            )
           }
 
           IconButton(
@@ -614,20 +606,13 @@ private fun MiniPlayerContent(
           },
           modifier = Modifier.size(48.dp),
         ) {
-          AnimatedContent(
-            targetState = isPlaying,
-            transitionSpec = {
-              if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
-            },
-            label = "mini_play_pause",
-          ) { playing ->
-            Icon(
-              imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-              contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
-              tint = MaterialTheme.colorScheme.onSurface,
-              modifier = Modifier.size(26.dp),
-            )
-          }
+          AnimatedIcon(
+            imageVector = if (isPlaying) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
+            contentDescription = stringResource(if (isPlaying) R.string.audiobook_pause else R.string.ui_play),
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(26.dp),
+            reduceMotion = reduceMotion,
+          )
         }
 
         // Next Track Action Button

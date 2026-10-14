@@ -10,6 +10,10 @@
 package app.gyrolet.mpvrx.ui.preferences.components
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 
@@ -72,10 +78,15 @@ fun ThemePreviewCard(
   val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
   // Use the current MaterialTheme primary for selection to ensure visibility
   val selectionColor = MaterialTheme.colorScheme.primary
+  val interactionSource = remember { MutableInteractionSource() }
 
   val borderWidth = if (isSelected) 3.dp else 1.dp
 
-  val borderColor = if (isSelected) selectionColor else Color.Transparent
+  val borderColor by animateColorAsState(
+    targetValue = if (isSelected) selectionColor else Color.Transparent,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "themeSelectionOutline",
+  )
 
   val elevation = if (isSelected) 8.dp else 2.dp
 
@@ -83,6 +94,7 @@ fun ThemePreviewCard(
     modifier =
       modifier
         .width(100.dp)
+        .appPressFeedback(interactionSource, enabled, pressedScale = 0.96f)
         .semantics { selected = isSelected }
         .onGloballyPositioned {
           val bounds = it.boundsInWindow()
@@ -93,9 +105,9 @@ fun ThemePreviewCard(
           } else if (isTelevision) {
             Modifier
               .tvFocusHighlight(RoundedCornerShape(12.dp), focusedScale = 1.05f)
-              .clickable { onClick(cardCenter) }
+              .clickable(interactionSource, LocalIndication.current) { onClick(cardCenter) }
           } else {
-            Modifier.clickable { onClick(cardCenter) }
+            Modifier.clickable(interactionSource, LocalIndication.current) { onClick(cardCenter) }
           },
         ),
     horizontalAlignment = Alignment.CenterHorizontally,

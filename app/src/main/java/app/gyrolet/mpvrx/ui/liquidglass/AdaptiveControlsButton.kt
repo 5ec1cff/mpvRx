@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AppIcon
-import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
 import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
@@ -47,6 +47,8 @@ import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContainerColo
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import com.kyant.backdrop.Backdrop
 import org.koin.compose.koinInject
 
@@ -84,11 +86,12 @@ fun AdaptiveControlsButton(
     onLongClickLabel = onLongClickLabel,
   ) {
     if (icon != null) {
-      Icon(
+      AnimatedIcon(
         imageVector = icon,
         contentDescription = title ?: text,
         tint = LocalContentColor.current,
         modifier = Modifier.size(PlayerLiquidTokens.IconSize),
+        reduceMotion = AppMotion.playerReducedMotion(),
       )
     }
     if (text != null) {
@@ -124,6 +127,8 @@ fun AdaptiveControlsContainer(
   val preferences = koinInject<AppearancePreferences>()
   val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
   val clickEvent = LocalPlayerButtonsClickEvent.current
+  val interactionSource = remember { MutableInteractionSource() }
+  val reduceMotion = AppMotion.playerReducedMotion()
   val resolvedTint =
     color.takeUnless { it == Color.Unspecified }
       ?: if (hideBackground) LocalContentColor.current
@@ -176,13 +181,19 @@ fun AdaptiveControlsContainer(
       modifier =
         controlModifier
           .heightIn(min = buttonSize)
+          .appPressFeedback(
+            interactionSource,
+            enabled = isInteractive && enabled,
+            pressedScale = 0.94f,
+            reduceMotion = reduceMotion,
+          )
           .clip(CircleShape)
           .then(
             if (isInteractive) {
               Modifier.combinedClickable(
                 enabled = enabled,
                 role = Role.Button,
-                interactionSource = remember { MutableInteractionSource() },
+                interactionSource = interactionSource,
                 indication = ripple(bounded = true),
                 onClick = {
                   clickEvent()

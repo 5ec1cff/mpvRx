@@ -93,6 +93,7 @@ import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserBottomBar
 import app.gyrolet.mpvrx.ui.browser.components.rememberBrowserBottomBarBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
+import app.gyrolet.mpvrx.ui.browser.components.mediaItemMotion
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddToPlaylistDialog
@@ -1187,6 +1188,7 @@ internal fun VideoListContent(
 
                   VideoCard(
                       video = videoWithInfo.video,
+                      modifier = mediaItemMotion(),
                       progressPercentage = videoWithInfo.progressPercentage,
                       isRecentlyPlayed = isRecentlyPlayed,
                       isSelected = selectionManager.isSelected(videoWithInfo.video),
@@ -1258,6 +1260,7 @@ internal fun VideoListContent(
 
                   VideoCard(
                       video = videoWithInfo.video,
+                      modifier = mediaItemMotion(),
                       progressPercentage = videoWithInfo.progressPercentage,
                       isRecentlyPlayed = isRecentlyPlayed,
                       isSelected = selectionManager.isSelected(videoWithInfo.video),

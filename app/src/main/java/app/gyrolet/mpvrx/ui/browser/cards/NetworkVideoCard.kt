@@ -13,7 +13,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -168,7 +167,7 @@ fun NetworkVideoCard(
         .clip(cardShape)
                 .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
-        .combinedClickable(
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
@@ -286,7 +285,7 @@ fun NetworkVideoCard(
               .aspectRatio(16f / 9f)
               .clip(AppShapeScale.medium)
               .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-              .combinedClickable(
+              .mediaCardClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
               ),

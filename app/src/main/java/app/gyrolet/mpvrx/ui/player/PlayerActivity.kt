@@ -655,6 +655,9 @@ class PlayerActivity :
 
   override fun onCreate(savedInstanceState: Bundle?) {
     applyInitialVideoOrientation(intent)
+    if (intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER) {
+      applyLiveSessionOrientation(isAudioHint = intent.getBooleanExtra("is_audio", false))
+    }
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     // Kick the multi-MB asset copy and the user mpv.conf SAF walk off the main thread first, so
@@ -891,8 +894,11 @@ class PlayerActivity :
 
     // Video mode waits for mpv geometry; every other preference is decidable now. Audio launches
     // always decide now. In the waiting case applyInitialVideoOrientation already ran before
-    // super.onCreate() with the intent's geometry.
-    if (isKnownAudioLaunch(intent) || playerPreferences.orientation.get() != PlayerOrientation.Video) {
+    // super.onCreate() with the intent's geometry. A live session already has geometry, so
+    // re-entry from the mini player refines its remembered orientation immediately.
+    if (attachedToCurrentSession || isKnownAudioLaunch(intent) ||
+      playerPreferences.orientation.get() != PlayerOrientation.Video
+    ) {
       setOrientation()
     }
 
@@ -4589,6 +4595,7 @@ class PlayerActivity :
             player.getVideoOutAspect()
           }
         Log.d(TAG, "Coalesced video params refresh, aspect: $aspect")
+        PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
         pipHelper.updatePictureInPictureParams()
 
         setOrientation(aspect)
@@ -5668,7 +5675,8 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
           isReady = PlaybackSession.state.value.phase == PlaybackPhase.READY
           if (isReady) viewModel.onVideoLoadCompleted()
           applyPlaybackBrightnessPolicy(isAudio = isCurrentMediaKnownAudio())
-          if (isCurrentMediaKnownAudio()) setOrientation()
+          applyLiveSessionOrientation(isAudioHint = isCurrentMediaKnownAudio())
+          setOrientation()
           if (isBackgroundPlaybackEnabled()) {
             if (!serviceBound || mediaPlaybackService == null) {
               startBackgroundPlaybackInternal(bindToActivity = true)
@@ -6591,10 +6599,38 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
           return
         }
         PlayerOrientationPolicy.forPreference(preference) {
-          sourceAspect ?: player.getVideoOutAspect()
+          (sourceAspect ?: player.getVideoOutAspect())?.also { aspect ->
+            PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
+          }
         }
       } ?: return
 
+    if (requestedOrientation != target) requestedOrientation = target
+  }
+
+  /**
+   * Re-applies the selected orientation when returning from the mini player or notification.
+   *
+   * That re-entry attaches to the live session with an intent that carries neither media nor
+   * geometry, so the launch-time lookup cannot decide and the new window would keep whatever the
+   * browser used. Runs before super.onCreate() for the same reason as [applyInitialVideoOrientation];
+   * [setOrientation] refines it once the attached core reports live geometry.
+   */
+  private fun applyLiveSessionOrientation(isAudioHint: Boolean) {
+    if (isTelevision) {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+      return
+    }
+    val item = PlaybackSession.state.value.currentItem ?: PlaybackSession.queue.value.currentItem
+    val isAudio = isAudioHint || item?.declaredMediaKind() == DeclaredPlaybackMediaKind.AUDIO
+    val target =
+      if (isAudio) {
+        PlayerOrientationPolicy.forAudioPreference(audioPreferences.audioOrientation.get())
+      } else {
+        PlayerOrientationPolicy.forPreference(playerPreferences.orientation.get()) {
+          PlayerOrientationPolicy.rememberedVideoAspect(item?.stableId)
+        }
+      } ?: return
     if (requestedOrientation != target) requestedOrientation = target
   }
 

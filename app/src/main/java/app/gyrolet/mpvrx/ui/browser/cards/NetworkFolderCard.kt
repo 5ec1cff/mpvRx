@@ -9,11 +9,8 @@
 
 package app.gyrolet.mpvrx.ui.browser.cards
 
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,7 +64,6 @@ fun NetworkFolderCard(
   val browserPreferences = koinInject<BrowserPreferences>()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
-  val interactionSource = remember { MutableInteractionSource() }
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
   val selectionColor = animatedSelectionColor(isSelected)
@@ -81,9 +76,7 @@ fun NetworkFolderCard(
         .clip(cardShape)
                 .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
-        .combinedClickable(
-          interactionSource = interactionSource,
-          indication = LocalIndication.current,
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),

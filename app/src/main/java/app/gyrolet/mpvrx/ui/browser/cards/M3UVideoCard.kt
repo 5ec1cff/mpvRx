@@ -11,7 +11,6 @@ package app.gyrolet.mpvrx.ui.browser.cards
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -249,7 +248,7 @@ fun M3UVideoCard(
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
         .tvContextMenu(onLongClick)
-        .combinedClickable(
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
@@ -279,7 +278,7 @@ fun M3UVideoCard(
             .onSizeChanged { thumbnailSize = it }
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .combinedClickable(
+            .mediaCardClickable(
               onClick = onThumbClick,
               onLongClick = onLongClick,
             ),

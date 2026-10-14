@@ -6,6 +6,7 @@ import com.android.build.api.instrumentation.InstrumentationScope
 import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import java.util.Properties
@@ -18,7 +19,7 @@ abstract class SmbRpcExceptionCompatibility : AsmClassVisitorFactory<Instrumenta
     classData.className.startsWith("com.rapid7.client.dcerpc.")
 
   override fun createClassVisitor(classContext: ClassContext, nextClassVisitor: ClassVisitor): ClassVisitor =
-    ClassRemapper(nextClassVisitor, object : Remapper() {
+    ClassRemapper(nextClassVisitor, object : Remapper(Opcodes.ASM9) {
       override fun map(internalName: String): String =
         if (internalName == "java/rmi/UnmarshalException") {
           "app/gyrolet/mpvrx/data/network/client/SmbRpcDecodeException"

@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +17,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -77,6 +79,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
@@ -103,6 +107,7 @@ object AppIconPreferencesScreen : Screen {
     }
     var pending by remember { mutableStateOf(current) }
     var confirming by remember { mutableStateOf(false) }
+    val applyInteractionSource = remember { MutableInteractionSource() }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
       current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
@@ -141,7 +146,9 @@ object AppIconPreferencesScreen : Screen {
           Button(
             onClick = { confirming = true },
             enabled = pending != current,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+            interactionSource = applyInteractionSource,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+              .appPressFeedback(applyInteractionSource, enabled = pending != current),
           ) {
             Text(stringResource(R.string.app_icon_apply), style = MaterialTheme.typography.titleMedium)
           }
@@ -191,6 +198,7 @@ private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (L
   val scope = rememberCoroutineScope()
   val pager = rememberPagerState(initialPage = pending.background.ordinal) { backgrounds.size }
   val latest by rememberUpdatedState(pending)
+  val reduceMotion = AppMotion.shouldReduceMotion()
 
   // The pager owns the background: a swipe on it or on the preview, or a tap on a swatch, all end up here.
   // A logo that does not read on the new background gives way to that background's own.
@@ -203,7 +211,9 @@ private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (L
 
   fun turn(step: Int) {
     val target = (pager.currentPage + step).coerceIn(0, backgrounds.lastIndex)
-    scope.launch { pager.animateScrollToPage(target) }
+    scope.launch {
+      if (reduceMotion) pager.scrollToPage(target) else pager.animateScrollToPage(target)
+    }
   }
 
   Column(
@@ -230,7 +240,14 @@ private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (L
 
       AnimatedContent(
         targetState = iconName(pending),
-        transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+        transitionSpec = {
+          val transition = if (reduceMotion) {
+            fadeIn(snap()) togetherWith fadeOut(snap())
+          } else {
+            fadeIn(tween(200)) togetherWith fadeOut(tween(150))
+          }
+          transition.using(null)
+        },
         label = "iconName",
       ) { name ->
         Text(
@@ -275,14 +292,16 @@ private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (L
               modifier = Modifier
                 .fillMaxWidth()
                 .graphicsLayer {
-                  val factor = 1f - 0.18f * distance
+                  val factor = if (reduceMotion) 1f else 1f - 0.18f * distance
                   scaleX = factor
                   scaleY = factor
                   alpha = 1f - 0.25f * distance
                 }
                 .clip(RoundedCornerShape(24.dp))
                 .selectable(selected = selected, role = Role.RadioButton) {
-                  scope.launch { pager.animateScrollToPage(page) }
+                  scope.launch {
+                    if (reduceMotion) pager.scrollToPage(page) else pager.animateScrollToPage(page)
+                  }
                 }
                 .semantics { contentDescription = label }
                 .padding(4.dp)
@@ -356,17 +375,38 @@ private fun MarkTile(
   shape: Shape,
   modifier: Modifier = Modifier,
 ) {
+  val interactionSource = remember { MutableInteractionSource() }
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val selectionTransition = AppMotion.iconChange(reduceMotion)
+  val borderColor by animateColorAsState(
+    targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+    animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+    label = "iconLogoSelectionBorder",
+  )
+  val containerColor by animateColorAsState(
+    targetValue = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+    animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+    label = "iconLogoSelectionSurface",
+  )
   val border = if (selected) {
-    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+    BorderStroke(2.dp, borderColor)
   } else {
-    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    BorderStroke(1.dp, borderColor)
   }
   Column(
     modifier = modifier
+      .appPressFeedback(interactionSource, enabled, pressedScale = 0.96f)
       .clip(shape)
-      .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
+      .background(containerColor)
       .border(border, shape)
-      .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+      .selectable(
+        selected = selected,
+        enabled = enabled,
+        role = Role.RadioButton,
+        interactionSource = interactionSource,
+        indication = androidx.compose.material3.ripple(),
+        onClick = onClick,
+      )
       .padding(horizontal = 8.dp, vertical = 12.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -375,12 +415,17 @@ private fun MarkTile(
       Box(Modifier.alpha(if (enabled) 1f else 0.35f)) {
         IconPreview(background, mark, 44.dp)
       }
-      if (selected) {
+      androidx.compose.animation.AnimatedVisibility(
+        visible = selected,
+        modifier = Modifier.align(Alignment.TopEnd).size(18.dp),
+        enter = selectionTransition.targetContentEnter,
+        exit = selectionTransition.initialContentExit,
+      ) {
         Icon(
           Icons.RoundedFilled.CheckCircle,
           contentDescription = null,
           tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.align(Alignment.TopEnd).size(18.dp),
+          modifier = Modifier.size(18.dp),
         )
       }
     }
@@ -407,7 +452,12 @@ private fun IconPreview(
   size: Dp,
   modifier: Modifier = Modifier,
 ) {
-  val fill by animateColorAsState(colorResource(background.color), tween(350), label = "iconBackground")
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val fill by animateColorAsState(
+    colorResource(background.color),
+    if (reduceMotion) snap() else tween(350),
+    label = "iconBackground",
+  )
   Box(
     modifier = modifier
       .size(size)
@@ -418,8 +468,13 @@ private fun IconPreview(
     AnimatedContent(
       targetState = mark,
       transitionSpec = {
-        (scaleIn(initialScale = 0.6f, animationSpec = spring(dampingRatio = 0.55f, stiffness = 400f)) +
-          fadeIn(tween(200))) togetherWith (scaleOut(targetScale = 1.2f) + fadeOut(tween(150)))
+        val transition = if (reduceMotion) {
+          fadeIn(snap()) togetherWith fadeOut(snap())
+        } else {
+          (scaleIn(initialScale = 0.6f, animationSpec = spring(dampingRatio = 0.55f, stiffness = 400f)) +
+            fadeIn(tween(200))) togetherWith (scaleOut(targetScale = 1.2f) + fadeOut(tween(150)))
+        }
+        transition.using(null)
       },
       label = "iconMark",
     ) { shown ->

@@ -75,6 +75,14 @@ fun PreferenceCard(
   val innerRadius = AppConnectedShapeTokens.innerCorner
   var tileFrames by remember { mutableStateOf(emptyList<ConnectedPreferenceFrame>()) }
   val reduceMotion = AppMotion.shouldReduceMotion()
+  val frames = tileFrames
+  val tileColors = frames.map { frame ->
+    animateColorAsState(
+      targetValue = if (frame.selected) colors.secondaryContainer else colors.surfaceContainerLow,
+      animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+      label = "connectedPreferenceSelection",
+    )
+  }
 
   // The outer mask keeps highlight/ripple surfaces within the expressive group boundary.
   Column(
@@ -89,13 +97,13 @@ fun PreferenceCard(
         .fillMaxWidth()
         .clip(RoundedCornerShape(outerRadius))
         .drawWithCache {
-          val connectedPaths = tileFrames.mapIndexedNotNull { index, frame ->
+          val connectedPaths = frames.mapIndexedNotNull { index, frame ->
             val top = frame.top.toFloat()
             val bottom = frame.bottom.toFloat()
             if (bottom <= top) return@mapIndexedNotNull null
             val topRadius = if (index == 0) outerRadius.toPx() else innerRadius.toPx()
             val bottomRadius =
-              if (index == tileFrames.lastIndex) outerRadius.toPx() else innerRadius.toPx()
+              if (index == frames.lastIndex) outerRadius.toPx() else innerRadius.toPx()
             val path = Path().apply {
               addRoundRect(
                 RoundRect(
@@ -107,10 +115,10 @@ fun PreferenceCard(
                 ),
               )
             }
-            path to (if (frame.selected) colors.secondaryContainer else colors.surfaceContainerLow)
+            path to index
           }
           onDrawBehind {
-            connectedPaths.forEach { (path, color) -> drawPath(path, color = color) }
+            connectedPaths.forEach { (path, index) -> drawPath(path, color = tileColors[index].value) }
           }
         },
       content = {

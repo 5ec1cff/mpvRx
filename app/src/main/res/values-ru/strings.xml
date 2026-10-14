@@ -13,7 +13,6 @@
   <string name="generic_confirm">Подтвердить</string>
   <string name="generic_cancel">Отмена</string>
   <string name="generic_ok">ОК</string>
-  <string name="generic_unit_ms">мс</string>
   <string name="generic_disabled">Отключено</string>
   <string name="pref_preferences">Настройки</string>
   <string name="pref_appearance_title">Оформление</string>
@@ -42,12 +41,6 @@
   <string name="app_font_no_downloaded">Загруженных шрифтов пока нет</string>
   <string name="app_font_delete_title">Удалить шрифт</string>
   <string name="app_font_delete_message">Удалить %1$s с этого устройства? Субтитры и приложение будут использовать шрифт по умолчанию.</string>
-  <string name="lyrics_provider_status_current">Показывается</string>
-  <string name="lyrics_provider_status_found">Найдено</string>
-  <string name="lyrics_provider_status_missing">Ничего не найдено</string>
-  <string name="lyrics_provider_status_fetching">Загрузка…</string>
-  <string name="lyrics_provider_status_unfetched">Ещё не запрашивалось</string>
-  <string name="lyrics_provider_status_failed">Ошибка</string>
   <string name="app_font_downloaded">Загружен</string>
   <string name="app_font_catalog_error">Не удалось загрузить Google Fonts</string>
   <string name="app_font_download_error">Не удалось загрузить %1$s</string>
@@ -56,9 +49,6 @@
   <string name="pref_appearance_ui_scale_restart_title">Требуется перезапуск</string>
   <string name="pref_appearance_ui_scale_restart_message">Перезапустите mpvRx, чтобы применить новый масштаб интерфейса %1$d%%.</string>
   <string name="pref_appearance_ui_scale_restart_now">Перезапустить сейчас</string>
-  <string name="pref_appearance_material_you_title">Material You</string>
-  <string name="pref_appearance_material_you_summary">Включить динамические цвета</string>
-  <string name="pref_appearance_material_you_summary_disabled">Доступно только на Android 12 и новее</string>
   <string name="pref_appearance_unlimited_name_lines_title">Показывать полные названия</string>
   <string name="pref_appearance_unlimited_name_lines_summary">Показывать полные названия папок и видео без сокращения</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Скрыть фон кнопок проигрывателя</string>
@@ -84,27 +74,17 @@
   <string name="pref_appearance_thumbnail_position_summary">Захватывать кадр на отметке %1$d%% видео</string>
   <string name="pref_appearance_show_network_thumbnails_title">Показывать сетевые миниатюры (экспериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Создавать миниатюры для сетевых потоков (может увеличить расход мобильного трафика)</string>
-  <string name="pref_nav_home_title">Показывать вкладку «Главная»</string>
-  <string name="pref_nav_home_summary">Показывать или скрывать «Главную» на нижней панели навигации</string>
   <string name="pref_nav_network_title">Показывать вкладку «Сеть»</string>
   <string name="pref_nav_network_summary">Показывать или скрывать «Сеть» на нижней панели навигации</string>
   <string name="pref_quick_play_fab_title">Кнопка быстрого воспроизведения</string>
   <string name="pref_quick_play_fab_summary">Показывать плавующую кнопку быстрого воспроизведения на экранах браузера</string>
   <string name="pref_quick_play_fab_direct_title">Прямое быстрое воспроизведение</string>
   <string name="pref_quick_play_fab_direct_summary">Воспроизводить недавнее видео сразу при нажатии на кнопку вместо показа вариантов</string>
-  <string name="pref_appearance_nav_style_slide">Скольжение</string>
-  <string name="pref_appearance_nav_style_fade">Затухание</string>
-  <string name="pref_appearance_nav_style_none">Нет (мгновенно)</string>
   <string name="pref_appearance_theme_picker_label">Тема приложения</string>
   <string name="pref_appearance_auto_scroll_title">Автопрокрутка к последнему воспроизведённому</string>
   <string name="pref_appearance_auto_scroll_summary">Автоматически прокручивать к последнему воспроизведённому видео при открытии списка</string>
-  <string name="pref_appearance_watched_threshold_title">Порог просмотра</string>
-  <string name="pref_appearance_watched_threshold_summary">Отмечать видео как просмотренное при достижении %d%% воспроизведения</string>
-  <string name="pref_appearance_watched_threshold_summary_infinite">Никогда не отмечать как просмотренное (бесконечно)</string>
   <string name="pref_tree_flatten_depth_title">Сжатие пути дерева</string>
   <string name="pref_tree_flatten_depth_summary">Пропущено %1$s за шаг навигации для папок с единственным дочерним элементом</string>
-  <string name="ytdl_audio_quality_title">Качество аудио yt-dlp</string>
-  <string name="ytdl_audio_quality_reload_summary">Используется для следующей ссылки или после перезагрузки текущей.</string>
   <string name="toast_playback_load_failed">Не удалось загрузить эту ссылку</string>
   <string name="video_label_new">НОВОЕ</string>
   <string name="video_label_watched">Просмотрено</string>
@@ -147,8 +127,6 @@
   <string name="settings_search_no_results">Настройки не найдены</string>
   <string name="settings_search_title">Поиск</string>
   <!-- Player Preferences Hardcoded -->
-  <string name="pref_autoplay_title">Включить переход к следующему/предыдущему</string>
-  <string name="pref_autoplay_summary">Показывать кнопки следующего/предыдущего для всех видео в папке</string>
   <string name="pref_autoplay_next_video_title">Автовоспроизведение следующего видео</string>
   <string name="pref_autoplay_next_video_summary">Автоматически воспроизводить следующее видео после окончания текущего</string>
   <string name="pref_autoplay_next_video_summary_disabled">Оставаться на текущем видео после его завершения</string>
@@ -173,7 +151,6 @@
   <string name="pref_player_show_buffered_range_summary">Показывать на шкале перемотки сетевой буфер впереди текущей позиции.</string>
   <string name="pref_player_show_chapter_indicators_title">Показывать индикаторы глав на шкале перемотки</string>
   <string name="pref_player_show_chapter_indicators_summary">Визуально разделять главы вдоль шкалы перемотки.</string>
-  <string name="pref_show_navigation_bar_title">Показывать панель навигации с элементами управления</string>
   <!-- Gesture Preferences Hardcoded -->
   <string name="pref_double_tap_seek_area_width_title">Ширина области перемотки двойным касанием</string>
   <!-- Advanced Preferences Hardcoded -->
@@ -197,8 +174,6 @@
   <string name="pref_layout_bottom_left_controls">Элементы управления снизу слева</string>
   <string name="pref_layout_portrait_bottom_controls">Нижние элементы управления в портретном режиме</string>
   <string name="pref_layout_preview">Предпросмотр</string>
-  <string name="pref_layout_reset_title">Сбросить расположение?</string>
-  <string name="pref_layout_reset_summary">Все пользовательские схемы элементов управления проигрывателя будут возвращены в стандартные позиции</string>
   <string name="pref_player">Проигрыватель</string>
   <string name="pref_player_summary">Ориентация, жесты и управление</string>
   <string name="pref_player_orientation">Ориентация</string>
@@ -217,7 +192,6 @@
   <string name="pref_player_seeking_title">Перемотка</string>
   <string name="pref_player_close_after_eof">Закрывать после окончания воспроизведения</string>
   <string name="pref_player_remember_brightness">Запоминать яркость экрана</string>
-  <string name="pref_player_gestures">Жесты</string>
   <string name="pref_player_gestures_brightness">Жесты яркости</string>
   <string name="pref_player_gestures_volume">Жесты громкости</string>
   <string name="pref_player_gestures_pinch_to_zoom">Масштабирование щипком</string>
@@ -228,18 +202,13 @@
   <string name="pref_player_gestures_swipe_subtitles_invert_direction">Инвертировать направление смахивания субтитров</string>
   <string name="pref_player_gestures_swipe_subtitles_invert_direction_summary">Смахивайте справа налево для перемотки вперёд, слева направо — назад</string>
   <string name="pref_player_gestures_horizontal_swipe_to_seek">Горизонтальный жест для перемотки</string>
-  <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">Смахните по экрану влево или вправо для перемотки назад или вперёд</string>
   <string name="pref_player_gestures_enable_center_swipe_up_gesture">Смахнуть вверх по центру для плейлиста</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity">Чувствительность горизонтального смахивания</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">Настроить расстояние перемотки за одно смахивание</string>
   <string name="pref_player_gestures_hold_for_multiple_speed">Удерживать для кратной скорости x</string>
-  <string name="pref_player_controls">Элементы управления</string>
   <string name="pref_player_controls_allow_gestures_in_panels">Разрешить жесты на панелях</string>
-  <string name="pref_player_controls_display_volume_as_percentage">Показывать громкость в процентах</string>
   <string name="pref_player_controls_show_loading_circle">Показывать индикатор загрузки</string>
   <string name="pref_player_display_show_status_bar">Показывать системную строку состояния вместе с элементами управления</string>
-  <string name="pref_player_display_panel_opacity">Прозрачность панели</string>
-  <string name="pref_player_display">Экран</string>
   <string name="pref_gesture">Жесты</string>
   <string name="pref_gesture_summary">Двойное касание, управление мультимедиа</string>
   <string name="pref_gesture_double_tap_title">Двойное касание</string>
@@ -255,7 +224,6 @@
   <string name="pref_gesture_use_single_tap_for_center_summary">Использовать одно касание по центру для жестов (например, воспроизведение/пауза) вместо двойного.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Перемещение субтитров перетаскиванием</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Удерживайте палец в центре и перетаскивайте вверх или вниз для перемещения основных субтитров. Удерживайте палец прямо на субтитрах, чтобы переместить эту дорожку отдельно. Обычные свайпы по-прежнему открывают плейлист.</string>
-  <string name="pref_gesture_view_title">Вид</string>
   <string name="pref_gesture_double_tap_custom_info">Пользовательские действия можно назначить этим жестам в input.conf с помощью следующих кодов клавиш:
 
 Слева: MBTN_LEFT_DBL
@@ -283,7 +251,6 @@
   <string name="pref_decoder_gpu_next_purple_screen_fix">Если появляется фиолетовый экран, попробуйте отключить opengl-pbo в расширенных настройках (mpv.conf):</string>
   <string name="pref_decoder_gpu_next_enable_anyway">Всё равно включить</string>
   <string name="pref_decoder_debanding_title">Устранение полос</string>
-  <string name="pref_decoder_vulkan_title">Использовать Vulkan</string>
   <string name="pref_decoder_vulkan_summary">Включить рендеринг Vulkan на поддерживаемых устройствах (может повысить производительность)</string>
   <string name="pref_decoder_vulkan_not_supported">Не поддерживается (требуется Android 13+ с Vulkan 1.3)</string>
   <string name="pref_decoder_vulkan_excluded_supported_device">Только OpenGL; для Vulkan установите стандартную сборку.</string>
@@ -310,7 +277,6 @@
   <string name="pref_subtitles_font_copy_failed">Не удалось загрузить шрифты: %1$s</string>
   <string name="pref_subtitles_autoload_title">Автоматически загружать субтитры</string>
   <string name="pref_subtitles_autoload_summary">Автоматически загружать внешние субтитры с тем же именем.</string>
-  <string name="pref_subtitles_save_location">Место сохранения субтитров</string>
   <string name="pref_subtitles_search_online">Поиск субтитров в интернете…</string>
   <string name="pref_subtitles_search_languages">Языки субтитров</string>
   <string name="all_languages">Все (выборочная фильтрация)</string>
@@ -326,8 +292,6 @@
   <string name="pref_audio_volume_normalization_title">Нормализация громкости</string>
   <string name="pref_audio_volume_normalization_summary">Автоматически регулировать громкость для поддержания равномерного уровня</string>
   <string name="pref_music_tabs_title">Вкладки музыкальной библиотеки</string>
-  <string name="pref_music_visualizer_title">Музыкальный визуализатор</string>
-  <string name="pref_music_visualizer_summary">Показывать реагирующую на звук визуализацию при воспроизведении музыки</string>
   <string name="pref_audio_visualizer_style_title">Стиль визуализатора</string>
   <string name="pref_audio_visualizer_style_blob">Блоб</string>
   <string name="pref_audio_visualizer_style_galaxy">Галактика</string>
@@ -373,14 +337,11 @@
   <string name="pref_thumbnail_cache_clear_failed">Не удалось очистить кэш миниатюр: %1$s</string>
   <string name="pref_advanced_enable_recently_played_title">Недавно воспроизведённые</string>
   <string name="pref_advanced_enable_recently_played_summary">Отслеживать и показывать недавно воспроизведённые видео и плейлисты</string>
-  <string name="pref_advanced_features_tooltip">Включить экспериментальные или расширенные функции, например страницу статистики и масштабирование Anime4K</string>
   <string name="pref_anime4k_title">Масштабирование Anime4K</string>
   <string name="pref_anime4k_summary">Включить фильтр масштабирования Anime4K</string>
   <string name="pref_anime4k_incompatibility">Несовместимость Anime4K</string>
   <string name="pref_anime4k_gpu_next_error">Anime4K требует либо старый gpu, либо gpu-next с включённым Vulkan. gpu-next с OpenGL переключится на старый gpu для совместимости шейдеров.</string>
-  <string name="pref_anime4k_cannot_use_with_gpu_next">Anime4K нельзя использовать с gpu-next без включённого Vulkan</string>
   <string name="anime4k_mode_title">Предустановки Anime4K</string>
-  <string name="anime4k_mode_toast">Anime4K: предустановка %1$s</string>
   <string name="pref_anime4k_quality_title">Качество Anime4K</string>
   <!-- Anime4K Modes (Renamed to Presets in UI) -->
   <string name="anime4k_mode_off">Выкл.</string>
@@ -405,12 +366,6 @@
   <string name="pref_about_title">О приложении</string>
   <string name="pref_about_summary">Благодарности, лицензии</string>
   <string name="pref_about_oss_libraries">Библиотеки</string>
-  <string name="pref_about_donate_title">Пожертвовать</string>
-  <string name="pref_about_donate_kofi">Ko-fi</string>
-  <string name="pref_about_donate_kofi_summary">Поддержать разработчика на Ko-fi</string>
-  <string name="pref_about_donate_paypal">PayPal</string>
-  <string name="pref_about_donate_paypal_summary">Поддержать разработчика через PayPal</string>
-  <string name="pref_about_donate_upi">UPI</string>
   <string name="player_sheets_add_ext_sub">Добавить внешние субтитры</string>
   <string name="player_sheets_add_ext_audio">Добавить внешние аудиодорожки</string>
   <string name="player_sheets_embedded_audio_tracks">Встроенные аудиодорожки</string>
@@ -425,7 +380,6 @@
   <string name="player_sheets_subtitles_settings_title">Настройки субтитров</string>
   <string name="player_sheets_subtitles_color_text">Текст</string>
   <string name="player_sheets_subtitles_color_border">Граница</string>
-  <string name="player_sheets_subtitles_color_background">Фон</string>
   <string name="player_sheets_subtitles_color_shadow">Тень</string>
   <string name="player_sheets_sub_ass_override_warning">Переопределения неактивны для формата ASS/SSA. Включите переопределение ASS для настройки.</string>
   <string name="player_sheets_subtitles_border_style">Стиль границы</string>
@@ -464,9 +418,6 @@
   <string name="player_sheets_delay_offset_seconds">%1$+d с</string>
   <string name="player_sheets_delay_offset_zero_seconds">0 с</string>
   <string name="player_sheets_sub_delay_card_speed">Скорость</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary">Основные субтитры</string>
-  <string name="player_sheets_sub_delay_subtitle_type_secondary">Дополнительные субтитры</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary_and_secondary">Оба</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Голос услышан</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Текст увиден</string>
   <string name="player_sheets_delay_set_as_default">Установить по умолчанию</string>
@@ -490,7 +441,6 @@
   <string name="player_sheets_filters_hue">Оттенок</string>
   <string name="player_sheets_filters_sharpness">Резкость</string>
   <string name="player_sheets_filters_warning">Некоторые фильтры могут не работать с текущим видеодрайвером</string>
-  <string name="player_sheets_speed_slider_label">Скорость</string>
   <string name="player_sheets_speed_make_default">Сделать скоростью по умолчанию</string>
   <string name="player_sheets_decoder_formatted" formatted="false">%s (%s)</string>
   <string name="numeric_chooser_value_too_big">Значение слишком большое</string>
@@ -498,12 +448,6 @@
   <string name="player_sheets_more_title">Ещё</string>
   <string name="player_sheets_stats_page_title">Страница статистики по умолчанию</string>
   <string name="player_sheets_stats_page_chip">Страница %d</string>
-  <string name="player_sheets_stats_page_0_desc">Отключено. Статистика поверх видео не отображается.</string>
-  <string name="player_sheets_stats_page_1_desc">Обзор. Использование CPU/GPU, синхронизация A/V, пропущенные кадры, тактовая частота.</string>
-  <string name="player_sheets_stats_page_2_desc">Время кадров. Время декодирования/рендеринга, сведения о масштабировании.</string>
-  <string name="player_sheets_stats_page_3_desc">Состояние кэша. Состояние буфера, кэш демультиплексора, диапазоны перемотки.</string>
-  <string name="player_sheets_stats_page_4_desc">Текущие привязки клавиш. Список назначенных сочетаний клавиш.</string>
-  <string name="player_sheets_stats_page_5_desc">Список дорожек. Сведения о видео-, аудио- и субтитровых дорожках.</string>
   <string name="player_aspect_fit">По размеру экрана</string>
   <string name="player_aspect_crop">Обрезать</string>
   <string name="player_aspect_stretch">Растянуть</string>
@@ -523,20 +467,13 @@
   <string name="crash_screen_report_id">ID сбоя: %1$s</string>
   <string name="crash_screen_reset_confirm">База данных приложения будет удалена безвозвратно, включая историю воспроизведения, плейлисты и настройки библиотеки. Медиафайлы не удаляются. Сброс может не устранить сбой.</string>
   <string name="crash_screen_reset_failed">Не удалось сбросить базу данных. Перезапуск не выполнялся.</string>
-  <string name="oss_crashx_description">Восстановление после сбоев от TutorialsAndroid на основе CustomActivityOnCrash, созданного Eduard Ereza Martínez.</string>
   <string name="timer_picker_enter_timer">Введите время</string>
-  <string name="timer_picker_pick_time">Выберите время</string>
   <string name="timer_title">Таймер сна</string>
   <string name="timer_remaining">Осталось %s</string>
   <string name="toast_sleep_timer_ended">Таймер сна завершён</string>
   <string name="swap_the_volume_and_brightness_slider">Поменять местами ползунки громкости и яркости</string>
   <string name="pref_player_display_reduce_player_animation">Уменьшить анимацию проигрывателя</string>
   <!-- Animation settings -->
-  <string name="pref_anim_section">Анимации</string>
-  <string name="pref_anim_controls_style">Стиль анимации элементов управления</string>
-  <string name="pref_anim_video_open">Анимация открытия видео</string>
-  <string name="pref_anim_nav_style">Стиль навигации по вкладкам</string>
-  <string name="pref_anim_speed">Скорость анимации</string>
   <string name="pref_player_display_hide_player_control_time">Скрывать время элементов управления проигрывателем</string>
   <string name="show_splash_ovals_on_double_tap_to_seek">Показывать волну при перемотке двойным касанием</string>
   <string name="show_time_on_double_tap_to_seek">Показывать время перемотки</string>
@@ -548,7 +485,6 @@
     <item quantity="other">%1$d секунд</item>
   </plurals>
   <!-- Background Playback -->
-  <string name="background_playback_title">Фоновое воспроизведение</string>
   <string name="pref_audio_background_playback_title">Фоновое воспроизведение (Аудиоплеер)</string>
   <string name="pref_audio_background_playback_summary">Продолжать воспроизведение аудио при выходе из аудиоплеера или выключении экрана</string>
   <string name="pref_audio_mini_player_track_switching_title">Переключать треки в мини-плеере</string>
@@ -568,19 +504,10 @@
   <string name="got_it">Понятно</string>
   <string name="general">Общие</string>
   <string name="not_set_video_default">Не задано (будет использовано значение видео)</string>
-  <string name="enter_language_codes">Введите коды языков через запятую (например: eng,jpn,spa)</string>
-  <string name="language_codes_placeholder">eng,jpn,spa</string>
-  <string name="pref_audio_channels_auto_safe_desc">Безопасный автоматический выбор по умолчанию</string>
-  <string name="pref_audio_channels_auto_desc">Автоматический выбор</string>
-  <string name="pref_audio_channels_mono_desc">Сведение в моно</string>
-  <string name="pref_audio_channels_stereo_desc">Сведение в стерео</string>
-  <string name="pref_audio_channels_reverse_stereo_desc">Поменять левый и правый каналы</string>
-  <string name="not_set_system_fonts">Не задано (используются системные шрифты)</string>
   <string name="fonts_loaded">Загружено шрифтов: %1$d</string>
   <string name="reload_fonts">Перезагрузить шрифты</string>
   <string name="reload_fonts_summary">Повторно просканировать выбранную исходную папку и обновить список шрифтов</string>
   <string name="clear_font_directory">Очистить каталог шрифтов</string>
-  <string name="reset_to_default_font">Восстановить шрифт по умолчанию</string>
   <string name="set_as_default">Установить по умолчанию</string>
   <!-- Notification strings -->
   <string name="notification_channel_name">Воспроизведение мультимедиа</string>
@@ -588,9 +515,6 @@
   <string name="notification_playing">Воспроизводится</string>
   <string name="notification_add_to_favorites">Добавить в избранное</string>
   <string name="notification_saved_to_favorites">Сохранено в избранное</string>
-  <string name="notification_repeat_off">Повтор выключен</string>
-  <string name="notification_repeat_one">Повтор одного</string>
-  <string name="notification_repeat_all">Повтор всех</string>
   <string name="notification_chapter_counter">Глава %1$d из %2$d</string>
   <string name="notification_playback_progress">Прошло %1$s - осталось %2$s</string>
   <string name="notification_permission_denied">Для управления фоновым воспроизведением требуется разрешение на уведомления.</string>
@@ -602,8 +526,6 @@
   <!-- Folders Preferences -->
   <string name="pref_folders_title">Папки</string>
   <string name="pref_folders_summary">Управление чёрным списком папок и обработкой .nomedia</string>
-  <string name="pref_folders_include_nomedia_title">Включать папки .nomedia</string>
-  <string name="pref_folders_include_nomedia_summary">Если включено, сканирование также охватывает видео в папках, скрытых с помощью .nomedia, и их подпапках.</string>
   <string name="pref_folders_empty_title">Нет папок в чёрном списке</string>
   <string name="pref_folders_empty_message">Нажмите кнопку ниже, чтобы добавить папки, которые нужно скрыть из списка</string>
   <string name="pref_folders_add_folder">Добавить папку в чёрный список</string>
@@ -616,24 +538,14 @@
   <string name="pref_folders_blacklist">Чёрный список</string>
   <string name="pref_folders_blacklisted">Папки добавлены в чёрный список</string>
   <!-- M3U Playlist Strings -->
-  <string name="pref_subtitles_searching">Поиск…</string>
-  <string name="pref_subtitles_found">Найдено субтитров: %d</string>
-  <string name="pref_subtitles_online_search_title">Поиск субтитров в интернете</string>
   <!-- M3U Playlist Strings -->
-  <string name="playlist_add_m3u_title">Добавить плейлист M3U</string>
-  <string name="playlist_add_m3u_description">Введите URL файла плейлиста M3U</string>
   <string name="playlist_url_label">URL плейлиста</string>
-  <string name="playlist_url_placeholder">https://example.com/playlist.m3u</string>
   <string name="playlist_url_hint">Поддерживаются форматы .m3u и .m3u8</string>
   <string name="playlist_add_success">Плейлист M3U успешно добавлен</string>
-  <string name="playlist_add_error">Не удалось добавить плейлист M3U: %s</string>
   <string name="playlist_create_empty">Создать пустой плейлист</string>
   <string name="playlist_add_local_folder">Добавить папку локальных плейлистов</string>
   <string name="playlist_local_access_failed">Нет доступа к этому расположению: %1$s</string>
-  <string name="playlist_add_from_url">Добавить по URL M3U/M3U8</string>
-  <string name="playlist_refresh_m3u">Обновить плейлист M3U</string>
   <string name="playlist_refresh_success">Плейлист успешно обновлён</string>
-  <string name="playlist_refresh_error">Не удалось обновить плейлист: %s</string>
   <string name="playlist_m3u_badge">M3U</string>
   <string name="playlist_favorite_songs">Любимые песни</string>
   <string name="playlist_favorite_videos">Любимые видео</string>
@@ -669,9 +581,7 @@
   <string name="pref_section_appearance">Оформление</string>
   <string name="pref_section_playback">Воспроизведение</string>
   <string name="pref_section_gestures_controls">Жесты и управление</string>
-  <string name="pref_section_subtitles">Субтитры</string>
   <string name="pref_section_storage">Хранилище</string>
-  <string name="pref_section_storage_summary">Пути к медиафайлам, скрытые папки</string>
   <string name="pref_section_ai">ИИ</string>
   <string name="pref_section_ai_title">Интеграция ИИ</string>
   <string name="pref_section_ai_summary">Переименование с ИИ, перевод субтитров, речь в текст, офлайн-модели (OpenCode/Groq/OpenAI)</string>
@@ -683,13 +593,8 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_section_animations">Анимации</string>
   <string name="pref_anim_controls_style_title">Стиль анимации элементов управления</string>
-  <string name="pref_anim_controls_style_summary">Выберите, как появляются и исчезают элементы управления проигрывателем</string>
   <string name="pref_anim_video_open_title">Анимация открытия видео</string>
-  <string name="pref_anim_video_open_summary">Выберите переход при запуске воспроизведения</string>
-  <string name="pref_anim_tab_nav_style_title">Стиль навигации по вкладкам</string>
-  <string name="pref_anim_tab_nav_style_summary">Эффект перехода между нижними вкладками</string>
   <string name="pref_anim_screen_nav_style_title">Стиль навигации между экранами</string>
-  <string name="pref_anim_screen_nav_style_summary">Эффект перехода между экранами настроек</string>
   <string name="pref_anim_speed_title">Скорость анимации</string>
   <string name="pref_anim_speed_very_fast">Очень быстро (%.1f×)</string>
   <string name="pref_anim_speed_fast">Быстро (%.1f×)</string>
@@ -779,8 +684,6 @@
   <string name="pref_section_subtitle_fonts">Шрифты</string>
   <string name="pref_section_subtitle_search">Поиск субтитров</string>
   <string name="pref_wyzie_api_key_title">Ключ API Wyzie</string>
-  <string name="pref_wyzie_api_key_summary_error">Требуется для поиска субтитров</string>
-  <string name="pref_wyzie_api_key_summary_saved">Сохранён на этом устройстве</string>
   <string name="pref_wyzie_api_key_dialog_text">Вставьте ключ с sub.wyzie.io/redeem</string>
   <string name="pref_wyzie_api_key_placeholder">wyzie-…</string>
   <string name="pref_subtitles_all_keyless_sources">Все источники без ключа API</string>
@@ -838,18 +741,14 @@
   <string name="pref_config_cache_cleared_toast">Кэш конфигурации очищен</string>
   <string name="pref_thumbnail_cache_confirm_title">Очистить кэш миниатюр?</string>
   <string name="pref_thumbnail_cache_confirm_subtitle">Кэшированные миниатюры будут удалены из хранилища и памяти.</string>
-  <string name="pref_section_notification">Уведомление</string>
   <string name="pref_section_logging">Журналирование</string>
   <string name="pref_export_failed_toast">Ошибка экспорта: %1$s</string>
-  <string name="pref_import_failed_toast">Ошибка импорта: %1$s</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- AI Integration                                             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_ai_features_section">Функции ИИ</string>
   <string name="pref_ai_enabled_title">Включить функции ИИ</string>
-  <string name="pref_ai_enabled_summary">Функции ИИ активны</string>
-  <string name="pref_ai_disabled_summary">Функции ИИ отключены</string>
   <string name="pref_ai_provider_section">Поставщик</string>
   <string name="pref_ai_provider_title">Поставщик ИИ</string>
   <string name="pref_api_config_section">Настройка API</string>
@@ -860,12 +759,8 @@
   <string name="pref_model_section">Модель</string>
   <string name="pref_available_models_header">Доступные модели</string>
   <string name="pref_fetch_models">Получить модели</string>
-  <string name="pref_select_model_placeholder">Нажмите, чтобы выбрать модель</string>
   <string name="pref_verify_model_header">Проверить модель</string>
   <string name="pref_check_model_access">Проверить доступ к модели</string>
-  <string name="pref_general_settings_section">Общие настройки</string>
-  <string name="pref_show_ai_reasoning_title">Показывать рассуждения ИИ (мышление)</string>
-  <string name="pref_show_ai_reasoning_summary">Включите, чтобы видеть внутренний процесс мышления поддерживаемых моделей</string>
   <string name="pref_ai_features_subsection">Функции</string>
   <string name="pref_ai_rename_title">Переименование с помощью ИИ</string>
   <string name="pref_ai_rename_summary">Использовать ИИ для создания аккуратных имён файлов при массовом переименовании</string>
@@ -889,50 +784,23 @@
   <string name="pref_stt_provider_title">Поставщик распознавания речи</string>
   <string name="pref_stt_provider_summary">Используется для потоковой обработки в реальном времени и пакетного создания субтитров</string>
   <string name="pref_audio_language_title">Язык аудио</string>
-  <string name="pref_audio_language_summary">Автоматически определять язык речи</string>
   <string name="pref_translation_section">Перевод субтитров</string>
   <string name="pref_enable_translation_title">Включить перевод</string>
   <string name="pref_enable_translation_summary">Переводить внешние субтитры с помощью ИИ</string>
   <string name="pref_custom_prompt_section">Пользовательская инструкция</string>
   <string name="pref_override_instructions_title">Переопределить стандартные инструкции</string>
-  <string name="pref_override_instructions_enabled_summary">Пользовательская инструкция будет использоваться вместо встроенных</string>
-  <string name="pref_override_instructions_disabled_summary">Будут использоваться встроенные инструкции ИИ</string>
   <string name="pref_custom_prompts_header">Пользовательские инструкции</string>
   <string name="pref_custom_prompts_description">Оставьте поле пустым, чтобы использовать встроенную инструкцию для задачи. Старая глобальная инструкция будет запасным вариантом.</string>
   <string name="pref_custom_rename_prompt_label">Пользовательская инструкция переименования</string>
-  <string name="pref_custom_rename_prompt_placeholder">Инструкции для переименования файлов с ИИ…</string>
   <string name="pref_custom_translation_prompt_label">Пользовательская инструкция перевода субтитров</string>
-  <string name="pref_custom_translation_prompt_placeholder">Инструкции для перевода субтитров с ИИ…</string>
   <string name="pref_custom_format_prompt_label">Пользовательская инструкция форматирования</string>
-  <string name="pref_custom_format_prompt_placeholder">Инструкции для форматирования запросов поиска субтитров…</string>
   <string name="pref_legacy_prompt_info">Сохранена старая глобальная инструкция. Она будет использоваться, если инструкция конкретной задачи пуста.</string>
-  <string name="pref_translation_warning_title">Перевод субтитров</string>
-  <string name="pref_translation_warning_text">Перевод субтитров может быть неточным. Для лучших результатов используйте более качественные модели и не жалуйтесь, если субтитры работают не идеально.</string>
 
   <!-- AI - API Key titles/placeholders for each provider         -->
-  <string name="pref_opencode_api_key_title">Ключ API OpenCode</string>
-  <string name="pref_opencode_api_key_hint">Получите ключ на opencode.ai/auth</string>
-  <string name="pref_opencode_api_key_placeholder">sk-…</string>
-  <string name="pref_groq_api_key_title">Ключ API Groq</string>
-  <string name="pref_groq_api_key_hint">Получите ключ на console.groq.com</string>
-  <string name="pref_groq_api_key_placeholder">gsk_…</string>
-  <string name="pref_openai_api_key_title">Ключ API OpenAI</string>
-  <string name="pref_openai_api_key_hint">Получите ключ на platform.openai.com</string>
-  <string name="pref_openai_api_key_placeholder">sk-…</string>
-  <string name="pref_anthropic_api_key_title">Ключ API Anthropic</string>
-  <string name="pref_anthropic_api_key_hint">Получите ключ на console.anthropic.com</string>
-  <string name="pref_anthropic_api_key_placeholder">sk-ant-…</string>
-  <string name="pref_openrouter_api_key_title">Ключ API OpenRouter</string>
-  <string name="pref_openrouter_api_key_hint">Получите ключ на openrouter.ai</string>
-  <string name="pref_openrouter_api_key_placeholder">sk-or-…</string>
-  <string name="pref_together_api_key_title">Ключ API Together</string>
-  <string name="pref_together_api_key_hint">Получите ключ на api.together.ai</string>
-  <string name="pref_together_api_key_placeholder">…</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_storage_screen_title">Хранилище</string>
   <string name="pref_media_library_section">Медиатека</string>
   <string name="pref_hidden_folders_section">Скрытые папки</string>
   <string name="pref_clear_content_desc">Очистить</string>
@@ -940,36 +808,14 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Search Index Entries (SearchablePreference.kt)             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="search_online_skip_markers_summary">Получать у онлайн-провайдера метки вступления, повтора, концовки, титров и превью</string>
-  <string name="search_marker_provider_summary">Выберите IntroDB, TIDB, AniSkip или Anime Skip для онлайн-меток вступления/концовки</string>
-  <string name="search_chapter_detect_summary">Создавать метки пропуска из названий глав, таких как вступление, концовка, титры или превью</string>
-  <string name="search_auto_skip_intro_summary">Автоматически пропускать метки вступления при воспроизведении</string>
-  <string name="search_auto_skip_outro_summary">Автоматически пропускать метки концовки при воспроизведении</string>
-  <string name="search_subtitle_save_folder_title">Папка сохранения субтитров</string>
-  <string name="search_subtitle_save_folder_summary">Куда сохраняются загруженные субтитры</string>
-  <string name="search_fonts_folder_title">Папка шрифтов</string>
-  <string name="search_fonts_folder_summary">Шрифты для отображения субтитров</string>
-  <string name="search_base_storage_summary">Корневая папка — автоматически создаёт подпапки Subtitles/ и Fonts/</string>
-  <string name="search_ai_integration_summary">Переименование с ИИ, форматирование и перевод субтитров, распознавание речи и офлайн-модели</string>
-  <string name="search_ai_provider_summary">Выберите OpenCode, Groq, OpenAI, Anthropic, OpenRouter, Together или локальные офлайн-модели</string>
   <string name="search_api_key_config_title">Настройка ключа API</string>
-  <string name="search_api_key_config_summary">Введите и проверьте ключ API поставщика ИИ</string>
   <string name="search_ai_model_selection_title">Выбор модели ИИ</string>
-  <string name="search_ai_model_selection_summary">Получите доступные модели ИИ и выберите нужную</string>
-  <string name="search_ai_reasoning_summary">Показывать внутренний ход рассуждений для поддерживаемых моделей</string>
-  <string name="search_ai_rename_summary">Использовать ИИ для создания аккуратных имён файлов при массовом переименовании</string>
-  <string name="search_ai_search_summary">Автоматически форматировать названия видео для поиска субтитров Wyzie/SubHub</string>
   <string name="search_stt_title">Распознавание речи</string>
-  <string name="search_stt_summary">Настройте поставщика распознавания речи, модель реального времени, язык аудио и формат вывода</string>
-  <string name="search_translation_summary">Переводить внешние субтитры с помощью ИИ с выбором целевых языков автоперевода</string>
   <string name="search_custom_ai_prompts_title">Пользовательские промпты ИИ</string>
-  <string name="search_custom_ai_prompts_summary">Переопределить стандартные инструкции для переименования, перевода и форматирования</string>
-  <string name="search_offline_ai_models_summary">Загружайте и управляйте локальными LLM для полностью автономных функций ИИ</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Decoder Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_decoder_vulkan_experimental_suffix">(Экспериментально)</string>
   <string name="pref_anime4k_link">github.com/bloc97/Anime4K</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -977,33 +823,20 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="generic_hide_key">Скрыть ключ</string>
   <string name="generic_show_key">Показать ключ</string>
-  <string name="generic_verify">Проверить</string>
-  <string name="generic_fetch">Получить</string>
-  <string name="generic_got_it">Понятно</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Advanced - Cache Sizes & Counts                            -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_clear_playback_history_summary">Очистить позиции воспроизведения, выбранные субтитры, аудиодорожки, задержки и скорости</string>
   <string name="pref_clear_playback_history_recently_played">Также удаляет %1$d недавно воспроизведённых элементов</string>
   <string name="pref_clear_playback_history_recently_played_none">Нет недавно воспроизведённых элементов для очистки</string>
   <string name="pref_config_cache_summary">Очистить кэш настроек mpv.conf</string>
   <string name="pref_config_cache_size">Размер: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Удалить все кэшированные миниатюры видео (они будут созданы заново при просмотре папок)</string>
   <string name="pref_thumbnail_cache_size">Размер: %1$s</string>
-  <string name="pref_fonts_cache_summary">Удалить все кэшированные шрифты субтитров</string>
   <string name="pref_fonts_cache_size">Размер: %1$s · шрифтов: %2$d</string>
   <string name="pref_failed_to_clear">Не удалось очистить: %1$s</string>
   <string name="pref_export_failed">Ошибка экспорта: %1$s</string>
   <string name="pref_import_failed">Ошибка импорта: %1$s</string>
-  <string name="pref_size_bytes">%1$d Б</string>
-  <string name="pref_size_kb">%.1f КБ</string>
-  <string name="pref_size_mb">%.1f МБ</string>
-  <string name="toast_need_ytdl">Для воспроизведения этой ссылки установите yt-dlp (Настройки &gt; Дополнительно &gt; Менеджер yt-dlp)</string>
-  <string name="pref_ytdl_quality_any">Любое</string>
-  <string name="pref_ytdl_prefer_h264_title">Предпочитать H.264 (AVC)</string>
-  <string name="pref_ytdl_prefer_h264_summary">Повышает совместимость со старыми устройствами, но может ограничить качество</string>
-  <string name="pref_ytdl_quality_title">Предпочитаемое качество</string>
 
   <!-- Customizable Skip Keywords -->
   <string name="pref_custom_intro_keywords_enabled">Использовать свои ключевые слова для пропуска вступлений</string>
@@ -1059,8 +892,6 @@
   <string name="ui_add_button">Добавить кнопку</string>
   <string name="compressor_start_batch">Начать пакетное сжатие</string>
   <string name="compressor_start">Начать сжатие</string>
-  <string name="pref_benchmark">Тест производительности</string>
-  <string name="pref_retest">Повторить тест</string>
   <string name="pref_add_language">Добавить язык</string>
   <string name="player_hdr_shaders_unavailable">Шейдеры HDR Toys недоступны</string>
   <string name="player_ambience_on">Режим подсветки: ВКЛ.</string>
@@ -1131,12 +962,10 @@
     <item quantity="many">%1$d комментариев</item>
     <item quantity="other">%1$d комментария</item>
   </plurals>
-  <string name="pref_section_contributors">Участники</string>
   <string name="contributors_loading">Загрузка списка участников...</string>
   <string name="contributors_load_error">Не удалось загрузить список участников</string>
   <string name="contributors_empty">Участники не найдены.</string>
   <string name="contributors_retry">Повторить</string>
-  <string name="contributors_view_all">Показать всех участников</string>
   <string name="network_connection_invalid_port">Введите порт от 1 до 65535</string>
   <plurals name="contributors_contribution_count">
     <item quantity="one">%1$d вклад</item>
@@ -1144,15 +973,8 @@
     <item quantity="many">%1$d вкладов</item>
     <item quantity="other">%1$d вклада</item>
   </plurals>
-  <string name="ytdlp_engine_installer">Установщик движка</string>
-  <string name="ytdlp_quality_format">Качество и формат</string>
-  <string name="ytdlp_video_codec">Видеокодек</string>
-  <string name="ytdlp_hdr_preference">Настройка HDR</string>
   <string name="ytdlp_container">Контейнер</string>
-  <string name="ytdlp_audio_preference">Настройка аудио</string>
-  <string name="ytdlp_audio_quality">Качество аудио</string>
   <string name="ytdlp_subtitles_language">Субтитры и язык</string>
-  <string name="ytdlp_advanced_networking">Расширенные сетевые настройки</string>
   <string name="ytdlp_playlist_behavior">Поведение плейлиста</string>
   <string name="ui_file_size">Размер файла</string>
   <string name="ui_duration">Длительность</string>
@@ -1173,7 +995,6 @@
   <string name="ambient_color">Цвет</string>
   <string name="ambient_edge_blend">Смешивание краёв</string>
   <string name="ambient_compositing">Композиция</string>
-  <string name="ambient_visual_style">Визуальный стиль</string>
   <string name="controls_reset_default_title">Сбросить настройки?</string>
   <string name="controls_reset_default_summary">Элементы управления в этой области будут сброшены к стандартным настройкам.</string>
   <string name="ui_no_audio_found">Аудио не найдено</string>
@@ -1181,7 +1002,6 @@
   <string name="pref_screenshots_section">Снимки экрана</string>
   <string name="lua_no_mpv_folder">Папка MPV не выбрана</string>
   <string name="lua_no_scripts_found">Скрипты не найдены</string>
-  <string name="ambient_frame_extend">Расширение кадра</string>
   <string name="lua_delete_script_title">Удалить скрипт?</string>
   <string name="lua_delete_script_message">Удалить "%1$s"? Это действие нельзя отменить.</string>
   <string name="search_category_advanced">Дополнительно</string>
@@ -1193,7 +1013,6 @@
   <string name="search_category_gestures">Жесты</string>
   <string name="search_category_player">Проигрыватель</string>
   <string name="search_category_subtitles">Субтитры</string>
-  <string name="search_generated_summary">Настроить параметр %1$s.</string>
   <string name="compressor_reduction_percent">−%1$d%%</string>
   <string name="compressor_add_preset">Добавить пресет</string>
   <string name="compressor_default_audio">Аудио по умолчанию</string>
@@ -1292,7 +1111,6 @@
   <string name="media_info_stat_channels">Каналы</string>
   <string name="media_info_stat_sample_rate">Частота дискретизации</string>
   <string name="player_unknown_video">Неизвестное видео</string>
-  <string name="ui_logcat">Logcat:</string>
   <string name="ui_home">Главная</string>
   <string name="ui_recents">Недавние</string>
   <string name="ui_playlists">Плейлисты</string>
@@ -1314,7 +1132,6 @@
   <string name="ui_pin_folders">Закрепить папки</string>
   <string name="ui_unpin_folders">Открепить папки</string>
   <string name="ui_add_to_playlist">Добавить в плейлист</string>
-  <string name="ui_copy_path">Копировать путь</string>
   <string name="ui_add_network_connection">Добавить сетевое подключение</string>
   <string name="ui_name">Имя</string>
   <string name="ui_protocol">Протокол</string>
@@ -1352,8 +1169,6 @@
   <string name="ui_ai_is_thinking">ИИ думает...</string>
   <string name="ui_ai_rename">Переименование с ИИ</string>
   <string name="ui_fields">Поля</string>
-  <string name="ui_folder_grid">Сетка папок</string>
-  <string name="ui_video_grid">Сетка видео</string>
   <string name="ui_loading_video_info">Загрузка информации о видео</string>
   <string name="ui_compressor">Компрессор</string>
   <string name="ui_save_to">Сохранить в</string>
@@ -1397,9 +1212,7 @@
   <string name="ui_add_connection">Добавить подключение</string>
   <string name="ui_local_network">Локальная сеть</string>
   <string name="ui_no_network_connections">Нет сетевых подключений</string>
-  <string name="ui_no_recent_links">Пока нет недавних ссылок на трансляции или торрентов. Вставьте URL трансляции выше, чтобы начать.</string>
   <string name="ui_add_smb_ftp_or_webdav_connections_to_browse_network_files">Добавьте подключения SMB, FTP или WebDAV для просмотра сетевых файлов</string>
-  <string name="ui_stream_link">Ссылка на поток</string>
   <string name="ui_enter_stream_url">Введите URL потока…</string>
   <string name="ui_paste_stream_url">Вставить URL потока</string>
   <string name="ui_clear_stream_url">Очистить URL потока</string>
@@ -1467,7 +1280,6 @@
   <string name="ui_invalid_url">Недопустимый URL</string>
   <string name="ui_playlist_options">Параметры плейлиста</string>
   <string name="ui_create_a_new_blank_playlist">Создать новый пустой плейлист</string>
-  <string name="ui_add_m3u_playlist_from_url">Добавить плейлист M3U по URL</string>
   <string name="ui_add_playlist_from_url">Добавить плейлист по URL</string>
   <string name="ui_import_a_playlist_from_a_web_url">Импортировать плейлист по веб-ссылке</string>
   <string name="ui_custom_user_agent_optional">Пользовательский User-Agent (необязательно)</string>
@@ -1475,8 +1287,6 @@
   <string name="ui_choose_local_m3u_file">Выбрать локальный файл M3U</string>
   <string name="ui_add_from_url">Добавить по URL</string>
   <string name="ui_playlist_created_successfully">Плейлист успешно создан</string>
-  <string name="ui_storage_access_required">Требуется доступ к хранилищу</string>
-  <string name="ui_allow_access">РАЗРЕШИТЬ ДОСТУП</string>
   <string name="ui_why_do_i_see_this">Почему я это вижу?</string>
   <string name="ui_why_this_permission_is_needed">Зачем нужно это разрешение</string>
   <string name="ui_mpvrx_needs_access_to_your_video_files_to_provide_its_core_funct">mpvRx необходим доступ к видеофайлам для выполнения основных функций медиаплеера.</string>
@@ -1499,8 +1309,6 @@
   <string name="ui_notification_permission_desc">Необязательно. Требуется для управления воспроизведением, работы в фоновом режиме и уведомлений об обновлениях.</string>
   <string name="ui_audio_record_permission_title">Запись аудио</string>
   <string name="ui_audio_record_permission_desc">Необязательно. Требуется для аудиовизуализаторов для обработки спектра и частотной энергии в реальном времени.</string>
-  <string name="ui_permission_mandatory">Обязательно</string>
-  <string name="ui_permission_optional">Необязательно</string>
   <string name="ui_permission_granted">Предоставлено</string>
   <string name="ui_next">Далее</string>
   <string name="ui_grant_permission_hint">Нажмите, чтобы предоставить разрешение</string>
@@ -1536,8 +1344,6 @@
   <string name="ui_enable_ass_override">Включить переопределение ASS</string>
   <string name="ui_filter_presets">Предустановки фильтров</string>
   <string name="ui_yt_dlp_manager">Менеджер yt-dlp</string>
-  <string name="ui_install_core">Установить ядро</string>
-  <string name="ui_update_core">Обновить ядро</string>
   <string name="ui_aspect_ratio">Соотношение сторон</string>
   <string name="ui_auto_crop_black_bars">Автоматически обрезать чёрные полосы</string>
   <string name="ui_auto_crop_black_bars_summary">Анализирует несколько кадров в фоновом режиме и обрезает постоянные чёрные полосы, встроенные в видео.</string>
@@ -1592,8 +1398,6 @@
   <string name="ui_instructions_for_ai_subtitle_translation">Инструкции для перевода субтитров с помощью ИИ...</string>
   <string name="ui_instructions_for_formatting_subtitle_search_queries">Инструкции по форматированию запросов поиска субтитров...</string>
   <string name="ui_subtitle_translation_can_be_a_bit_messy">Перевод субтитров может быть неидеальным. </string>
-  <string name="ui_use_model">Использовать модель</string>
-  <string name="ui_active">Активно</string>
   <string name="ui_real_time_model">Модель реального времени</string>
   <string name="ui_auto_translate_target_languages">Целевые языки автоперевода</string>
   <string name="ui_when_translating_subtitles_if_1_language_is_configured_it_transl">При переводе субтитров на один настроенный язык перевод выполняется сразу. Если языков два или больше, появляется выбор.</string>
@@ -1606,11 +1410,7 @@
   <string name="ui_include_audio_files">Включать аудиофайлы</string>
   <string name="ui_show_audio_files_in_the_browser">Показывать аудиофайлы в браузере</string>
   <string name="ui_minimum_audio_duration">Минимальная длительность аудио</string>
-  <string name="ui_audio_blob_visualizer">Визуализатор аудиосферы</string>
-  <string name="ui_show_opengl_blob_visualizer_when_playing_audio">Показывать визуализатор OpenGL при воспроизведении аудио</string>
-  <string name="ui_keep_audio_and_video_playing_when_leaving_the_player_or_locking">Продолжать воспроизведение аудио и видео при выходе из проигрывателя или блокировке экрана</string>
   <string name="ui_unsaved_changes">Несохранённые изменения</string>
-  <string name="ui_reset_incompatible_configuration">Сбросить несовместимую конфигурацию</string>
   <string name="ui_help">Справка</string>
   <string name="ui_no_storage_location_set">Место хранения не задано</string>
   <string name="ui_failed_to_create_file">Не удалось создать файл</string>
@@ -1666,37 +1466,10 @@
   <string name="ui_restricted_requires_paid_api_key">Ограничено (требуется платный ключ API)</string>
   <string name="ui_restricted">Ограничено</string>
   <string name="ui_yt_dlp_streaming">Потоковое воспроизведение yt-dlp</string>
-  <string name="ui_yt_dlp_core_engine">Основной движок yt-dlp</string>
-  <string name="ui_manage_yt_dlp_environment">Управление средой yt-dlp</string>
-  <string name="ui_download_the_latest_wrapper_modules_and_compile_python_friendly">Загрузить последние модули-обёртки и скомпилировать совместимые с Python нативные файлы в локальных изолированных папках.</string>
-  <string name="ui_update_to_nightly_build">Обновить до ночной сборки</string>
-  <string name="ui_streaming_quality">Качество потока</string>
-  <string name="ui_bitrate_caps_apply_when_yt_dlp_reports_audio_bitrate_metadata">Ограничения битрейта применяются, когда yt-dlp сообщает метаданные битрейта аудио.</string>
-  <string name="ui_generated_format_string">Сформированная строка формата</string>
   <string name="ui_download_media_subtitles">Скачать субтитры медиа</string>
   <string name="ui_automatically_extract_and_load_physical_subtitle_tracks_from_sup">Автоматически извлекать и загружать физические дорожки субтитров из поддерживаемых URL.</string>
   <string name="ui_include_auto_generated_subtitles">Включать автоматически созданные субтитры</string>
   <string name="ui_fetch_auto_caption_tracks_e_g_youtube_speech_to_text_when_regula">Получать дорожки автосубтитров (например, распознавание речи YouTube), когда обычные субтитры отсутствуют.</string>
-  <string name="ui_overrides_app_subtitle_languages_only_for_yt_dlp_downloads">Переопределяет языки субтитров приложения только для загрузок yt-dlp.</string>
-  <string name="ui_advanced_configurations">Расширенные настройки</string>
-  <string name="ui_custom_http_agent_proxy_extractor_args_sponsorblock_and_raw_opti">Пользовательский HTTP-агент, прокси, аргументы экстрактора, SponsorBlock и необработанные параметры</string>
-  <string name="ui_format_sort">Сортировка форматов</string>
-  <string name="ui_passed_to_yt_dlp_as_format_sort_for_advanced_ranking">Передаётся yt-dlp как format-sort для расширенного ранжирования.</string>
-  <string name="ui_merge_output_format">Формат объединённого вывода</string>
-  <string name="ui_custom_user_agent_override">Пользовательское переопределение User-Agent</string>
-  <string name="ui_leave_blank_to_use_default_browser_user_agent_helps_bypass_anti">Оставьте пустым для использования стандартного User-Agent браузера. Помогает обходить антибот-защиту.</string>
-  <string name="ui_referer">Referer</string>
-  <string name="ui_cookies_file">Файл cookies</string>
-  <string name="ui_proxy">Прокси</string>
-  <string name="ui_extractor_args">Аргументы экстрактора</string>
-  <string name="ui_geo_bypass">Обход геоограничений</string>
-  <string name="ui_ask_yt_dlp_to_use_its_extractor_level_region_bypass_logic">Попросить yt-dlp использовать обход региональных ограничений на уровне экстрактора.</string>
-  <string name="ui_live_from_start">Прямой эфир с начала</string>
-  <string name="ui_start_live_streams_from_the_beginning_when_the_extractor_support">Запускать прямые трансляции с начала, если экстрактор это поддерживает.</string>
-  <string name="ui_sponsorblock_mark">Метки SponsorBlock</string>
-  <string name="ui_sponsorblock_remove">Удаление SponsorBlock</string>
-  <string name="ui_raw_yt_dlp_options">Необработанные параметры yt-dlp</string>
-  <string name="ui_anything_not_exposed_above_separate_options_with_new_lines_or_co">Любые не указанные выше параметры. Разделяйте их новыми строками или запятыми; значения с запятыми заключайте в кавычки.</string>
   <string name="ui_video_title">Название видео</string>
   <string name="ui_1_06_chapter_1">1:06 • Глава 1</string>
   <string name="ui_downloading">Загрузка...</string>
@@ -1784,7 +1557,6 @@
   <string name="filter_preset_save">Сохранить</string>
   <string name="syncplay_title">Syncplay</string>
   <string name="syncplay_description">Смотрите видео синхронно с друзьями. Подключитесь к серверу Syncplay, чтобы начать совместный просмотр.</string>
-  <string name="syncplay_open">Открыть Syncplay</string>
   <string name="syncplay_connected_as">Подключено как %1$s к комнате %2$s</string>
   <string name="syncplay_users_in_room">Пользователи в комнате:</string>
   <string name="syncplay_disconnect">Отключиться</string>
@@ -1794,7 +1566,6 @@
   <string name="syncplay_room_name">Название комнаты</string>
   <string name="syncplay_password_optional">Пароль (необязательно)</string>
   <string name="syncplay_error">Ошибка: %1$s</string>
-  <string name="syncplay_connection_failed">Не удалось подключиться</string>
   <string name="syncplay_connect">Подключиться</string>
   <string name="syncplay_connecting">Подключение…</string>
   <string name="syncplay_player_status">Syncplay: %1$s (%2$d пользователей)</string>
@@ -1812,33 +1583,18 @@
   <string name="player_sheets_track_lang_wo_title">#%1$d: %2$s</string>
   <string name="player_sheets_track_title_w_lang">#%1$d: %2$s (%3$s)</string>
   <string name="player_sheets_track_title_wo_lang">#%1$d: %2$s</string>
-  <string name="pref_about_donate_kofi_url">https://ko-fi.com/adityanarvekar</string>
-  <string name="pref_about_donate_paypal_url">https://paypal.me/aadinarvekar</string>
-  <string name="pref_about_donate_upi_id">aadiinarvekar@upi</string>
   <string name="ui_24fps">24fps</string>
   <string name="ui_30fps">30fps</string>
   <string name="ui_60fps">60fps</string>
-  <string name="ui_all_or_en_ja">all or en.*,ja</string>
   <string name="ui_av1">AV1</string>
-  <string name="ui_extractor_args_2">extractor-args=\"youtube:player_client=android,web\"\ngeo-bypass=</string>
   <string name="ui_h_264">H.264</string>
   <string name="ui_h_265">H.265</string>
-  <string name="ui_mozilla_5_0">Mozilla/5.0 ...</string>
-  <string name="ui_mp4_mkv_webm">mp4, mkv, webm</string>
-  <string name="ui_res_fps_hdr_12_vcodec_vp9_2">res,fps,hdr:12,vcodec:vp9.2</string>
-  <string name="ui_socks5_127_0_0_1_1080">socks5://127.0.0.1:1080</string>
-  <string name="ui_sponsor">sponsor</string>
-  <string name="ui_sponsor_selfpromo">sponsor,selfpromo</string>
-  <string name="ui_storage_emulated_0_download_cookies_txt">/storage/emulated/0/Download/cookies.txt</string>
-  <string name="ui_youtube_player_client_android_web">youtube:player_client=android,web</string>
   <string name="volume_slider_absolute_value">%d</string>
 
   <!-- Secure Folder -->
   <string name="secure_folder_title">Защищенная папка</string>
-  <string name="secure_folder_summary">Защищенное PIN-кодом пространство для видео, которые вы хотите скрыть из библиотеки.</string>
   <string name="secure_folder_dont_ask_again">Больше не спрашивать</string>
   <string name="secure_folder_enter_pin">Введите PIN-код</string>
-  <string name="secure_folder_unlock">Разблокировать</string>
   <string name="secure_folder_forgot_pin">Забыли PIN-код?</string>
   <string name="secure_folder_setup_title">Настройка Защищенной папки</string>
   <string name="secure_folder_setup_subtitle">Выберите PIN-код и контрольный вопрос для восстановления.</string>
@@ -1852,7 +1608,6 @@
   <string name="secure_folder_confirm_pin">Подтвердите PIN-код</string>
   <string name="secure_folder_security_question">Контрольный вопрос</string>
   <string name="secure_folder_new_security_question">Новый контрольный вопрос</string>
-  <string name="secure_folder_question">Вопрос</string>
   <string name="secure_folder_answer">Ответ</string>
   <string name="secure_folder_answer_security_question">Ответьте на ваш контрольный вопрос</string>
   <string name="secure_folder_no_question_set">Контрольный вопрос не задан.</string>
@@ -1865,11 +1620,7 @@
   <string name="secure_folder_pin_changed">PIN-код успешно изменён</string>
   <string name="secure_folder_security_question_changed">Контрольный вопрос обновлён</string>
   <string name="secure_folder_use_fingerprint">Использовать отпечаток пальца</string>
-  <string name="secure_folder_enable_fingerprint">Включить отпечаток пальца</string>
-  <string name="secure_folder_disable_fingerprint">Отключить отпечаток пальца</string>
   <string name="secure_folder_use_face_unlock">Использовать распознавание лица</string>
-  <string name="secure_folder_enable_face_unlock">Включить распознавание лица</string>
-  <string name="secure_folder_disable_face_unlock">Отключить распознавание лица</string>
   <string name="secure_folder_sq_pet">Как звали вашего первого питомца?</string>
   <string name="secure_folder_sq_mother">Какова девичья фамилия вашей матери?</string>
   <string name="secure_folder_sq_school">Как называлась ваша первая школа?</string>
@@ -1890,14 +1641,7 @@
   <string name="secure_folder_hide_entry_title">Скрыть Защищенную папку из Настроек?</string>
   <string name="secure_folder_hide_entry_subtitle">Строка \"Защищенная папка\" будет удалена из Настроек. Чтобы открыть ее позже, дважды нажмите на название приложения вверху главного экрана и введите PIN-код.</string>
   <string name="secure_folder_working_on_it">Обработка…</string>
-  <string name="secure_folder_selected_count">Выбрано: %1$d</string>
-  <string name="secure_folder_cancel_selection">Отменить выбор</string>
   <string name="secure_folder_restore">Восстановить</string>
-  <string name="secure_folder_delete_forever">Удалить навсегда</string>
-  <string name="secure_folder_show_in_preferences">Показывать в Настройках</string>
-  <string name="secure_folder_hide_from_preferences">Скрыть из Настроек</string>
-  <string name="secure_folder_change_pin">Изменить PIN-код</string>
-  <string name="secure_folder_change_security_question">Изменить контрольный вопрос</string>
   <string name="secure_folder_move_to">Переместить в Защищенную папку</string>
   <string name="secure_folder_moving_progress">Перемещение в Защищенную папку…</string>
   <string name="secure_folder_move_folders_title">Переместить %1$d папку(и) в Защищенную папку?</string>
@@ -1908,7 +1652,6 @@
   <string name="secure_folder_moved_partial">Перемещено %1$d, ошибка %2$d</string>
   <string name="secure_folder_move_failed">Не удалось переместить файлы в Защищенную папку</string>
   <string name="secure_folder_error_incorrect_pin">Неверный PIN-код</string>
-  <string name="secure_folder_error_pin_min_digits">PIN-код должен состоять из 4 цифр</string>
   <string name="secure_folder_error_pins_dont_match">PIN-коды не совпадают</string>
   <string name="secure_folder_error_answer_question">Пожалуйста, ответьте на контрольный вопрос</string>
   <string name="secure_folder_error_fill_both_fields">Пожалуйста, заполните оба поля</string>
@@ -1977,12 +1720,11 @@
   <string name="pref_codecs_hardware_features">Аппаратные функции:</string>
   <string name="pref_codecs_min_resolution">Мин. разрешение: %s</string>
   <string name="pref_codecs_alignment">Выравнивание пикселей: %1$dx%2$d</string>
-  <string name="ui_music">Music</string>
+  <string name="ui_music">Музыка</string>
   <string name="pref_nav_music_title">Показывать вкладку «Музыка»</string>
   <string name="pref_nav_music_summary">Показывать или скрывать «Музыку» на нижней панели навигации</string>
   <string name="player_up_next_title">Плейлист</string>
   <string name="player_lyrics_title">Текст песни</string>
-  <string name="lyrics_loading_label">Загрузка текста…</string>
   <string name="instrumental">Инструментал</string>
   <string name="lyrics_source_embedded">Встроенный</string>
   <string name="lyrics_source_online">Онлайн</string>
@@ -1996,15 +1738,7 @@
   <string name="pref_section_p2p_streaming">P2P-стриминг</string>
   <string name="pref_network_summary">P2P-стриминг и менеджер yt-dlp</string>
   <string name="toast_torrent_streaming_disabled">Сначала включите P2P-стриминг торрентов в расширенных настройках</string>
-  <string name="ui_recent_stream_links">Недавние ссылки</string>
-  <string name="ui_torrent_files">Торренты</string>
-  <string name="ui_expand_torrent_group">Показать файлы торрента</string>
-  <string name="ui_collapse_torrent_group">Скрыть файлы торрента</string>
-  <string name="ui_delete_torrent_group">Удалить торрент</string>
-  <string name="torrent_picker_back">Закрыть торрент</string>
   <string name="torrent_picker_choose_title">Выберите, что воспроизвести</string>
-  <string name="torrent_picker_finding_details">Поиск обложки и подробностей…</string>
-  <string name="torrent_picker_play_file">Воспроизвести %1$s</string>
   <string name="torrent_picker_preparing_title">Чтение торрента</string>
   <string name="torrent_picker_preparing_description">Подключение к пирам и поиск воспроизводимых файлов…</string>
   <string name="torrent_picker_error_title">Не удалось открыть торрент</string>
@@ -2013,10 +1747,6 @@
   <string name="torrent_picker_single_episode_label">Серия %1$d</string>
   <string name="ui_new_password_keep_existing">Новый пароль (пусто — сохранить текущий пароль)</string>
   <string name="ui_clear_saved_password">Очистить сохранённый пароль</string>
-  <plurals name="ui_torrent_group_file_count">
-    <item quantity="one">%1$d воспроизводимый файл</item>
-    <item quantity="other">%1$d воспроизводимых файлов</item>
-  </plurals>
   <plurals name="torrent_picker_playable_count">
     <item quantity="one">%1$d воспроизводимый файл</item>
     <item quantity="other">%1$d воспроизводимых файлов</item>
@@ -2029,21 +1759,9 @@
     <string name="pref_enable_hls_proxy_title">Включить прокси потоковой передачи HLS</string>
     <string name="pref_enable_hls_proxy_summary">Нормализовать адаптивные манифесты HLS и обрабатывать раздельные аудио/видеопотоки</string>
     <string name="ui_recent_streams">Недавние ссылки на трансляции</string>
-    <string name="ui_autofill_stream_url">Автозаполнение URL трансляции</string>
-    <string name="ui_torrent_media_anime">Аниме</string>
-    <string name="ui_torrent_media_series">Сериал</string>
-    <string name="ui_torrent_media_movie">Фильм</string>
-    <string name="ui_torrent_media_torrent">Торрент</string>
-    <string name="ui_resume_playback">Продолжить</string>
     <string name="ui_play_now">Воспроизвести</string>
-    <string name="ui_show_more">Показать больше</string>
-    <string name="ui_show_less">Показать меньше</string>
-    <string name="ui_episodes">Эпизоды</string>
-    <string name="ui_no_torrents_title">Нет сохранённых торрентов</string>
-    <string name="ui_no_torrents_description">Вставьте magnet-ссылку или URL торрента выше для просмотра аниме и фильмов.</string>
     <string name="ui_no_saved_media_title">Нет сохранённых ссылок</string>
     <string name="ui_no_saved_media_description">Вставьте URL потока, magnet-ссылку или сохраните из недавних ссылок для создания коллекции.</string>
-    <string name="ui_save_to_media">Сохранить в медиа</string>
     <string name="ui_search_episodes">Поиск эпизодов…</string>
     <string name="ui_sort_ascending">По возрастанию</string>
     <string name="ui_sort_descending">По убыванию</string>
@@ -2055,12 +1773,8 @@
   <string name="pref_mpv_conf_overrides_title">Управление параметрами mpv.conf</string>
   <string name="pref_mpv_conf_overrides_summary_app_owned">Приложение управляет всеми поддерживаемыми параметрами воспроизведения (рекомендуется)</string>
   <string name="pref_mpv_conf_overrides_summary_config_owned">Выбрано групп: %1$d, параметров приложения передано mpv.conf: %2$d</string>
-  <string name="pref_mpv_conf_overrides_dialog_title">Передать параметры под управление mpv.conf</string>
-  <string name="pref_mpv_conf_overrides_dialog_message">Выберите категории или параметры для передачи в mpv.conf. Управление им в приложении будет отключено.</string>
   <string name="pref_mpv_conf_overrides_empty_config_warning">Активный mpv.conf не найден. До настройки будут использоваться параметры по умолчанию.</string>
-  <string name="pref_mpv_conf_overrides_protected_message">Жизненный цикл Android, команды, заголовки и сертификаты остаются под управлением приложения.</string>
   <string name="pref_mpv_conf_overrides_reset">Вернуть все группы под управление приложения</string>
-  <string name="pref_mpv_conf_overrides_selected_count">Выбрано параметров: %1$d из %2$d</string>
   <string name="pref_mpv_conf_override_renderer">Рендерер и серверная часть GPU</string>
   <string name="pref_mpv_conf_override_renderer_summary">Переопределяет GPU API, Vulkan и настройки профиля.</string>
   <string name="pref_mpv_conf_override_decoder">Аппаратный декодер</string>
@@ -2101,22 +1815,14 @@
   <string name="lyrics_translation_off">Оригинальный текст</string>
   <string name="lyrics_translation_failed">Не удалось перевести текст песни. Попробуйте ещё раз.</string>
   <string name="lyrics_translation_partial">Не удалось перевести некоторые строки.</string>
-  <string name="lyrics_select_language">Выбрать язык перевода</string>
 
   <!-- Clip -->
   <string name="clip_action">Создать клип</string>
   <string name="clip_options">Параметры клипа</string>
-  <string name="clip_crop_action">Обрезать и создать клип</string>
-  <string name="clip_mark_start">Отметить начало</string>
-  <string name="clip_mark_end">Отметить конец</string>
   <string name="clip_crop">Кадрировать</string>
   <string name="clip_save">Сохранить клип</string>
   <string name="clip_cancel">Отмена</string>
   <string name="clip_done">Готово</string>
-  <string name="clip_clear">Очистить клип</string>
-  <string name="clip_start_time">Начало: %1$s</string>
-  <string name="clip_end_time">Конец: %1$s</string>
-  <string name="clip_end_not_set">Конец: Не задан</string>
   <string name="clip_crop_size">Кадрирование: %1$d × %2$d</string>
   <string name="clip_crop_full_frame">Кадрирование: Весь кадр</string>
   <string name="clip_select_crop">Измените размер рамки, чтобы оставить нужную область</string>
@@ -2134,20 +1840,15 @@
   <string name="seerr_connect_server">Подключиться к Seerr</string>
   <string name="seerr_server_url">URL сервера Seerr</string>
   <string name="seerr_server_url_hint">http://192.168.1.100:5055</string>
-  <string name="seerr_use_jellyfin_account">Использовать аккаунт Jellyfin</string>
-  <string name="seerr_use_jellyfin_account_desc">Войдите с вашим именем пользователя и паролем Jellyfin</string>
   <string name="seerr_api_key">API-ключ</string>
   <string name="seerr_api_key_hint">API-ключ Overseerr / Jellyseerr</string>
   <string name="seerr_username">Имя пользователя или эл. почта</string>
   <string name="seerr_password">Пароль</string>
   <string name="seerr_login">Подключиться</string>
   <string name="seerr_disconnect">Отключиться</string>
-  <string name="seerr_connected_as">Подключено как %1$s</string>
   <string name="seerr_not_connected">Нет подключения к серверу Seerr</string>
   <string name="seerr_connect_cta">Подключите сервер Jellyseerr или Overseerr для поиска и заказа фильмов и сериалов.</string>
   <string name="seerr_recently_added">Недавно добавленные</string>
-  <string name="seerr_active_requests">Активные запросы</string>
-  <string name="seerr_available_requests">Доступные запросы</string>
   <string name="seerr_trending">В тренде</string>
   <string name="seerr_popular_movies">Популярные фильмы</string>
   <string name="seerr_popular_tv">Популярные сериалы</string>
@@ -2155,36 +1856,22 @@
   <string name="seerr_upcoming_tv">Ожидаемые сериалы</string>
   <string name="seerr_request_movie">Запросить фильм</string>
   <string name="seerr_request_tv">Запросить сериал</string>
-  <string name="seerr_request_4k">Запросить в 4K</string>
-  <string name="seerr_all_seasons">Все сезоны</string>
   <string name="seerr_select_seasons">Выбрать сезоны</string>
   <string name="seerr_status_pending">Ожидает одобрения</string>
   <string name="seerr_status_processing">В обработке</string>
   <string name="seerr_status_available">Доступно</string>
   <string name="seerr_status_partially_available">Частично доступно</string>
   <string name="seerr_status_requested">Запрошено</string>
-  <string name="seerr_status_not_requested">Не запрошено</string>
   <string name="seerr_approve">Одобрить</string>
   <string name="seerr_decline">Отклонить</string>
-  <string name="seerr_delete">Удалить</string>
   <string name="seerr_play_in_jellyfin">Смотреть в mpvRx</string>
-  <string name="seerr_open_in_jellyfin">Открыть в Jellyfin</string>
-  <string name="seerr_available_on_jellyfin">Доступно в библиотеке</string>
   <string name="seerr_search_placeholder">Поиск фильмов и сериалов в Seerr…</string>
-  <string name="seerr_request_success">Запрос успешно отправлен</string>
-  <string name="seerr_request_error">Ошибка при отправке запроса</string>
-  <string name="seerr_tab_all">Все</string>
-  <string name="seerr_tab_movies">Фильмы</string>
-  <string name="seerr_tab_tv">Сериалы</string>
-  <string name="seerr_tab_my_requests">Мои запросы</string>
   <string name="ui_release_channel">Канал обновлений</string>
   <string name="ui_install_stable">Установить стабильную версию</string>
   <string name="ui_update_stable">Обновить стабильную версию</string>
   <string name="ui_switch_to_stable">Перейти на стабильную версию</string>
   <string name="ui_update_nightly">Обновить Nightly</string>
   <string name="ui_switch_to_nightly">Перейти на Nightly</string>
-  <string name="ui_playback_defaults">Настройки воспроизведения</string>
-  <string name="ui_maximum_quality">Максимальное качество</string>
   <string name="ui_checking_yt_dlp">Проверка yt-dlp</string>
   <string name="ui_yt_dlp_not_installed">yt-dlp не установлен</string>
   <string name="ui_yt_dlp_stable_release">Стабильная версия</string>
@@ -2213,7 +1900,6 @@
   <string name="update_beta_build_format">Бета r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(Бета)</string>
   <string name="player_video_quality">Качество видео</string>
-  <string name="player_video_quality_summary">Выберите доступное качество для этого потока.</string>
   <string name="player_video_quality_button">Качество видео</string>
   <string name="network_bookmark_add">Добавить папку в закладки</string>
   <string name="network_bookmark_remove">Удалить папку из закладок</string>
@@ -2226,14 +1912,6 @@
   <string name="onboarding_get_started">Начать</string>
   <string name="onboarding_all_set_title">Всё готово</string>
   <string name="onboarding_all_set_desc">Разрешения можно изменить в любое время в настройках системы.</string>
-  <string name="onboarding_show_tutorial_title">Показать быстрый тур</string>
-  <string name="onboarding_show_tutorial_desc">Три коротких совета после настройки</string>
-  <string name="tutorial_tabs_title">Разделы</string>
-  <string name="tutorial_tabs_desc">Смахните или нажмите для переключения.</string>
-  <string name="tutorial_search_title">Поиск</string>
-  <string name="tutorial_search_desc">Быстро найдите любой файл.</string>
-  <string name="tutorial_settings_title">Настройки</string>
-  <string name="tutorial_settings_desc">Настройте всё здесь.</string>
   <string name="onboarding_missing_permissions_title">Не предоставлены</string>
   <string name="onboarding_missing_permissions_desc">Их можно предоставить позже при необходимости.</string>
   <string name="storage_permission_needed_title">Нужен доступ к хранилищу</string>
@@ -2270,8 +1948,6 @@
   <string name="downloads_empty_hint">Загрузки из ссылок и Jellyfin появятся здесь</string>
   <string name="downloads_active_section">Активные</string>
   <string name="downloads_completed_section">Завершённые</string>
-  <string name="downloads_pause">Пауза</string>
-  <string name="downloads_resume">Возобновить</string>
   <string name="downloads_retry">Повторить</string>
   <string name="downloads_cancel">Отменить</string>
   <string name="downloads_remove_entry">Убрать из списка</string>
@@ -2296,7 +1972,6 @@
   <string name="downloads_play">Воспроизвести</string>
   <string name="downloads_open_downloads">Открыть загрузки</string>
   <string name="pref_player_resume_playback_title">Возобновление воспроизведения</string>
-  <string name="pref_player_resume_playback_summary">Выберите, как открывать ранее просмотренные видео</string>
   <string name="pref_player_resume_mode_always">Всегда продолжать</string>
   <string name="pref_player_resume_mode_always_summary">Автоматически продолжать с последней сохранённой позиции</string>
   <string name="pref_player_resume_mode_ask">Спрашивать каждый раз</string>
@@ -2312,26 +1987,17 @@
   <string name="pref_resume_indicator_overlay_summary">Показывать плашки позиции продолжения или начала. В режиме запроса интерактивная плашка продолжения показывается всегда</string>
 
   <!-- Media Servers Settings -->
-  <string name="pref_section_media_servers">Медиасерверы</string>
   <string name="pref_media_servers_title">Медиасерверы</string>
   <string name="pref_media_servers_summary">Jellyfin, Seerr и библиотеки стриминга</string>
   <string name="pref_jellyfin_title">Jellyfin</string>
   <string name="pref_jellyfin_server_management">Управление серверами</string>
-  <string name="pref_jellyfin_server_management_desc">Управление подключёнными серверами и активным экземпляром</string>
   <string name="pref_music_player_switch_title">Сменить аудиоплеер</string>
-  <string name="pref_music_player_switch_desc">Выбрать источник аудио по умолчанию для вкладки «Музыка»</string>
   <string name="music_source_local">Локальное устройство</string>
-  <string name="music_source_local_desc">Воспроизведение аудиофайлов с устройства</string>
   <string name="music_source_jellyfin">Музыка Jellyfin</string>
-  <string name="music_source_jellyfin_desc">Стриминг музыки с вашего сервера Jellyfin</string>
   <string name="pref_seerr_title">Seerr</string>
   <string name="pref_seerr_add_server">Подключить Seerr</string>
   <string name="pref_seerr_add_server_desc">Добавить и подключить сервер Seerr</string>
   <string name="pref_seerr_server_management">Подключение к серверу</string>
-  <string name="pref_seerr_server_management_desc">Настройка URL и учётных данных экземпляра Seerr</string>
-  <string name="pref_seerr_disconnect">Отключить</string>
-  <string name="pref_seerr_connected_as">Подключено как %1$s</string>
-  <string name="pref_seerr_not_connected">Не подключено</string>
   <string name="pref_jellyfin_no_server">Нет подключённых серверов Jellyfin</string>
   <string name="pref_jellyfin_add_server">Подключить Jellyfin</string>
   <string name="pref_jellyfin_add_server_desc">Добавить и подключить сервер Jellyfin</string>
@@ -2341,8 +2007,7 @@
   <string name="pref_server_set_active">Сделать активным</string>
   <string name="pref_server_more_options">Другие параметры</string>
   <string name="jellyfin_no_music_library">Музыкальная библиотека на этом сервере Jellyfin не найдена</string>
-  <string name="pref_appearance_custom_theme_title">Пользовательская тема</string><string name="pref_appearance_custom_theme_name">Название темы</string><string name="pref_appearance_custom_theme_light_primary">Светлый основной цвет</string><string name="pref_appearance_custom_theme_dark_primary">Тёмный основной цвет</string><string name="pref_appearance_custom_theme_light_background">Светлый цвет фона</string><string name="pref_appearance_custom_theme_dark_background">Тёмный цвет фона</string><string name="pref_appearance_custom_theme_none">Пользовательская тема не сохранена</string><string name="pref_appearance_custom_theme_edit">Создать или изменить</string><string name="pref_appearance_custom_theme_clear">Очистить</string><string name="pref_appearance_custom_theme_save">Сохранить</string><string name="pref_appearance_custom_wallpaper_title">Обои</string><string name="pref_appearance_custom_wallpaper_summary">Показывать полноэкранное изображение за содержимым браузера и верхней панелью</string><string name="pref_appearance_custom_wallpaper_choose">Выбрать обои</string><string name="pref_appearance_custom_wallpaper_replace">Заменить обои</string><string name="pref_appearance_custom_wallpaper_clear">Очистить обои</string>
-  <string name="pref_appearance_custom_wallpaper_home_preview">Предпросмотр главного экрана</string>
+  <string name="pref_appearance_custom_theme_title">Пользовательская тема</string><string name="pref_appearance_custom_theme_name">Название темы</string><string name="pref_appearance_custom_theme_light_primary">Светлый основной цвет</string><string name="pref_appearance_custom_theme_dark_primary">Тёмный основной цвет</string><string name="pref_appearance_custom_theme_light_background">Светлый цвет фона</string><string name="pref_appearance_custom_theme_dark_background">Тёмный цвет фона</string><string name="pref_appearance_custom_theme_edit">Создать или изменить</string><string name="pref_appearance_custom_theme_clear">Очистить</string><string name="pref_appearance_custom_theme_save">Сохранить</string><string name="pref_appearance_custom_wallpaper_title">Обои</string><string name="pref_appearance_custom_wallpaper_summary">Показывать полноэкранное изображение за содержимым браузера и верхней панелью</string>  <string name="pref_appearance_custom_wallpaper_home_preview">Предпросмотр главного экрана</string>
   <string name="pref_appearance_custom_wallpaper_home_preview_close">Нажмите в любом месте, чтобы закрыть</string>
   <string name="wallpaper_aspect_device">Устройство</string>
   <string name="wallpaper_presets_label">Обои</string>
@@ -2357,12 +2022,10 @@
   <string name="wallpaper_none_hint">Без обоев</string>
   <string name="pref_appearance_custom_wallpaper_preview_locked">Предпросмотр заблокирован</string>
   <string name="pref_appearance_custom_wallpaper_preview_unlocked">Предпросмотр разблокирован</string>
-  <string name="pref_appearance_custom_wallpaper_aspect_free">Свободно</string>
   <string name="pref_appearance_custom_wallpaper_crop_title">Настроить обои</string><string name="pref_appearance_custom_wallpaper_zoom">Масштаб</string><string name="pref_appearance_custom_wallpaper_horizontal">Горизонтальное положение</string><string name="pref_appearance_custom_wallpaper_vertical">Вертикальное положение</string><string name="pref_appearance_custom_wallpaper_save">Сохранить обои</string>
-  <string name="pref_appearance_custom_theme_new">Новая пользовательская тема</string><string name="pref_appearance_custom_theme_edit_title">Изменить пользовательскую тему</string><string name="pref_appearance_custom_theme_preview">Предпросмотр</string><string name="pref_appearance_custom_theme_live_preview">Предпросмотр в реальном времени</string><string name="pref_appearance_custom_theme_name_required">Введите название темы</string><string name="pref_appearance_custom_theme_name_duplicate">Тема с таким названием уже существует</string><string name="pref_appearance_custom_theme_hex_invalid">Используйте HEX-цвет, например #6750A4</string><string name="pref_appearance_custom_wallpaper_adjust">Настроить</string><string name="pref_appearance_custom_wallpaper_gesture_hint">Перетаскивайте для смещения. Сведите пальцы для масштаба.</string><string name="pref_appearance_custom_wallpaper_reset">Сбросить</string>
+  <string name="pref_appearance_custom_theme_new">Новая пользовательская тема</string><string name="pref_appearance_custom_theme_edit_title">Изменить пользовательскую тему</string><string name="pref_appearance_custom_theme_preview">Предпросмотр</string><string name="pref_appearance_custom_theme_live_preview">Предпросмотр в реальном времени</string><string name="pref_appearance_custom_theme_name_required">Введите название темы</string><string name="pref_appearance_custom_theme_name_duplicate">Тема с таким названием уже существует</string><string name="pref_appearance_custom_theme_hex_invalid">Используйте HEX-цвет, например #6750A4</string><string name="pref_appearance_custom_wallpaper_gesture_hint">Перетаскивайте для смещения. Сведите пальцы для масштаба.</string><string name="pref_appearance_custom_wallpaper_reset">Сбросить</string>
   <string name="pref_appearance_custom_theme_light_secondary">Светлый дополнительный цвет</string><string name="pref_appearance_custom_theme_dark_secondary">Тёмный дополнительный цвет</string><string name="pref_appearance_custom_theme_light_tertiary">Светлый третичный цвет</string><string name="pref_appearance_custom_theme_dark_tertiary">Тёмный третичный цвет</string>
-  <string name="pref_appearance_custom_wallpaper_fit">Вписать</string><string name="pref_appearance_custom_wallpaper_fill">Заполнить</string><string name="pref_appearance_custom_wallpaper_replace_action">Заменить</string><string name="pref_appearance_custom_wallpaper_clear_action">Очистить</string>
-  <string name="pref_appearance_custom_wallpaper_use_colors">Использовать цвета обоев</string>
+  <string name="pref_appearance_custom_wallpaper_fit">Вписать</string><string name="pref_appearance_custom_wallpaper_fill">Заполнить</string><string name="pref_appearance_custom_wallpaper_replace_action">Заменить</string>  <string name="pref_appearance_custom_wallpaper_use_colors">Использовать цвета обоев</string>
   <string name="pref_appearance_custom_wallpaper_use_colors_summary">Создать тему приложения на основе цветов этих обоев</string>
   <string name="pref_appearance_custom_wallpaper_colors_failed">Не удалось извлечь цвета из этих обоев</string>
   <string name="wallpaper_save_failed">Не удалось сохранить обои. Выберите изображение ещё раз.</string>
@@ -2380,14 +2043,6 @@
   <string name="generic_configure">Настроить</string>
   <string name="generic_install">Установить</string>
   <string name="music_source_navidrome">Музыка Navidrome</string>
-  <string name="music_source_navidrome_desc">Слушайте музыку с сервера Navidrome</string>
-  <string name="navidrome_connect">Подключить</string>
-  <string name="navidrome_connect_failed">Не удалось подключиться к серверу Navidrome</string>
-  <string name="navidrome_connecting">Подключение…</string>
-  <string name="navidrome_password">Пароль</string>
-  <string name="navidrome_server_address">Адрес сервера</string>
-  <string name="navidrome_server_name">Название сервера (необязательно)</string>
-  <string name="navidrome_username">Имя пользователя</string>
   <string name="notification_close">Закрыть</string>
   <string name="pp_desc_anime">Подавление шума и повышение резкости для аниме.</string>
   <string name="pp_desc_bloom">Добавляет светящийся ореол вокруг ярких участков.</string>
@@ -2496,8 +2151,6 @@
   <string name="audiobook_language">Язык</string>
   <string name="audiobook_publisher">Издатель</string>
   <string name="audiobook_published">Дата публикации</string>
-  <string name="audiobook_abridged">Сокращённая версия</string>
-  <string name="audiobook_unabridged">Полная версия</string>
   <string name="audiobook_details">Сведения о книге</string>
   <string name="audiobook_edit">Изменить книгу</string>
   <string name="audiobook_save">Сохранить</string>
@@ -2512,16 +2165,13 @@
   <string name="audiobook_in_progress">В процессе</string>
   <string name="audiobook_finished">Прослушано</string>
   <string name="audiobook_remaining">Осталось %1$s</string>
-  <string name="audiobook_book_time">Книга</string>
   <string name="audiobook_chapters">Главы</string>
   <string name="audiobook_previous_chapter">Предыдущая глава</string>
   <string name="audiobook_next_chapter">Следующая глава</string>
   <string name="audiobook_chapter_number">Глава %1$d</string>
   <string name="audiobook_files">Файлы</string>
-  <string name="audiobook_bookmarks">Закладки</string>
   <string name="audiobook_add_bookmark">Добавить закладку</string>
   <string name="audiobook_bookmark_name">Название закладки</string>
-  <string name="audiobook_no_bookmarks">Нет закладок</string>
   <string name="audiobook_delete_bookmark">Удалить закладку</string>
   <string name="audiobook_sleep_timer">Таймер сна</string>
   <string name="audiobook_timer_off">Выключен</string>
@@ -2529,12 +2179,8 @@
   <string name="audiobook_minutes">%1$d мин.</string>
   <string name="audiobook_smart_rewind">Перемотка назад после паузы</string>
   <string name="audiobook_seconds">%1$d сек.</string>
-  <string name="audiobook_rewind">Назад на 15 секунд</string>
-  <string name="audiobook_forward">Вперёд на 30 секунд</string>
   <string name="audiobook_pause">Пауза</string>
-  <string name="audiobook_stop">Остановить прослушивание</string>
   <string name="audiobook_search">Поиск книг, авторов и чтецов</string>
-  <string name="audiobook_save_failed">Не удалось сохранить прогресс прослушивания.</string>
   <string name="audiobook_play_failed">Не удалось открыть книгу. Убедитесь, что её файлы по-прежнему доступны.</string>
   <string name="audiobook_retry">Повторить попытку</string>
   <string name="playback_bookmarks_empty">Нет закладок или глав</string>
@@ -2548,7 +2194,6 @@
   <string name="pref_audiobookshelf_add_another_server">Добавить другой сервер</string>
   <string name="pref_audiobookshelf_add_another_server_desc">Подключить дополнительный сервер Audiobookshelf</string>
   <string name="audiobook_source_audiobookshelf">Audiobookshelf</string>
-  <string name="audiobook_source_audiobookshelf_desc">Слушать аудиокниги с вашего сервера Audiobookshelf</string>
   <string name="audiobook_source_local">Локальные аудиокниги</string>
   <string name="pref_audiobookshelf_no_server">Нет подключенного сервера Audiobookshelf</string>
   <string name="audio_swipe_delete_title">Удалить аудиофайлы?</string>
@@ -2673,7 +2318,6 @@
   <string name="snapshot_sort_item_count">Количество кадров</string>
 
   <string name="snapshot_search_folder_placeholder">Поиск папок и кадров</string>
-  <string name="snapshot_folder_count">Кадры: %1$d</string>
   <string name="playlist_add_zip">Добавить ZIP-архив</string>
   <string name="playlist_zip_import_success">ZIP-плейлист сохранён</string>
   <string name="playlist_zip_import_failed">Не удалось добавить ZIP-архив. Выберите доступный для чтения и перемотки ZIP с аудио- или видеофайлами.</string>
@@ -2690,9 +2334,7 @@
   <string name="pref_auto_backup_summary">Сохраняет изменённые настройки в Configuration/Backup при переходе mpvRx в фон. Хранятся семь последних копий.</string>
   <string name="pref_auto_backup_select_folder">Сначала выберите папку конфигурации</string>
   <string name="pref_auto_backup_last_backup">Последняя копия: %1$s</string>
-  <string name="pref_auto_backup_folder_title">Папка копий</string>
   <string name="watch_stats_title">Статистика просмотра</string>
-  <string name="watch_stats_summary">Время, активность и самые просматриваемые медиа</string>
   <string name="watch_stats_total_time">Общее время просмотра</string>
   <string name="watch_stats_sessions">Сеансов воспроизведения: %1$d</string>
   <string name="watch_stats_reset">Сбросить</string>
@@ -2717,7 +2359,6 @@
   <string name="pref_seekbar_preview_skip_markers">Метки пропуска</string>
   <string name="pref_liquid_glass_optics">Оптика</string>
   <string name="pref_liquid_glass_opacity">Непрозрачность фона</string>
-  <string name="pref_liquid_glass_blur">Сила размытия</string>
   <string name="pref_liquid_glass_refraction_height">Ширина края преломления</string>
   <string name="pref_liquid_glass_refraction_amount">Сила преломления</string>
   <string name="pref_liquid_glass_depth">Эффект глубины</string>
@@ -2750,11 +2391,6 @@
   <string name="network_smb_share_hint">Оставьте поле пустым или введите / для просмотра всех общих папок. Введите /Media или /Media/Movies, чтобы открыть конкретную папку.</string>
   <string name="pref_app_icon_title">Значок приложения</string>
   <string name="pref_app_icon_summary">Выберите значок для лаунчера</string>
-  <string name="pref_app_icon_description">Выберите значок. Позже можно добавить новые варианты.</string>
-  <string name="app_icon_purple">Фиолетовая лента</string>
-  <string name="app_icon_purple_description">Новый градиентный логотип mpvRx (по умолчанию)</string>
-  <string name="app_icon_classic">Классический</string>
-  <string name="app_icon_classic_description">Исходный значок mpvRx</string>
   <string name="app_icon_change_failed">Не удалось изменить значок.</string>
   <string name="lyrics_provider_auto_best">Лучшее совпадение: %1$s</string>
   <string name="lyrics_provider_row_current">Текущий источник</string>
@@ -2787,4 +2423,164 @@
   <string name="lyrics_empty_line_4">Пусть говорит мелодия</string>
   <string name="lyrics_empty_line_5">Текст потерялся</string>
   <string name="lyrics_empty_line_6">Подпевайте по памяти</string>
+
+  <string name="generic_back">Назад</string>
+  <string name="generic_home">Главная</string>
+  <string name="cast_playback_speed">Скорость воспроизведения</string>
+  <string name="generic_search">Поиск</string>
+  <string name="generic_no_matching_options">Нет подходящих вариантов</string>
+  <string name="generic_unknown">Неизвестно</string>
+  <string name="pref_appearance_category_liquid_glass">Жидкое стекло</string>
+  <string name="ui_select_model">Выберите модель</string>
+  <string name="ai_model_search_empty">Нет подходящих моделей</string>
+  <string name="ai_model_none_available">Нет доступных моделей</string>
+  <plurals name="ai_model_result_count">
+    <item quantity="one">%1$d модель</item>
+    <item quantity="few">%1$d модели</item>
+    <item quantity="many">%1$d моделей</item>
+    <item quantity="other">%1$d модели</item>
+  </plurals>
+  <string name="folder_search_hint">Поиск папок</string>
+  <string name="folder_blacklist_scope">Исключить из</string>
+  <string name="folder_blacklist_both">Обоих</string>
+  <string name="folder_blacklist_video">Видео</string>
+  <string name="folder_blacklist_audio">Аудио</string>
+  <string name="subtitle_source_search_hint">Поиск источников субтитров</string>
+  <string name="subtitle_sources_load_error">Не удалось загрузить источники субтитров</string>
+  <string name="hall_of_fame_subtitle">Отмечаем ведущих участников</string>
+  <string name="hall_of_fame_featured_subtitle">Замечательные люди, улучшающие этот проект</string>
+  <string name="hall_of_fame_view_all">Показать всех</string>
+  <string name="hall_of_fame_contributor_badge">Участник</string>
+  <string name="hall_of_fame_tester_badge">Тестировщик</string>
+  <string name="hall_of_fame_show_section">Показать</string>
+  <string name="hall_of_fame_hide_section">Скрыть</string>
+  <string name="media_widget_name">Воспроизведение mpvRx</string>
+  <string name="media_widget_description">Управление воспроизведением аудио и видео</string>
+  <string name="media_widget_pill_name">Музыкальная панель mpvRx</string>
+  <string name="media_widget_pill_description">Компактное управление воспроизведением музыки</string>
+  <string name="media_widget_empty">Ничего не воспроизводится</string>
+  <string name="media_widget_audio">Аудио</string>
+  <string name="media_widget_video">Видео</string>
+  <string name="playlist_search_hint">Поиск плейлистов</string>
+  <string name="playlist_search_empty">Нет подходящих плейлистов</string>
+  <string name="playlist_search_empty_hint">Попробуйте другое название или создайте новый плейлист</string>
+  <string name="playlist_no_compatible_items">Нет совместимых элементов для добавления</string>
+  <string name="playlist_add_failed">Не удалось добавить элементы в плейлист</string>
+  <plurals name="playlist_picker_song_count">
+    <item quantity="one">Добавление %1$d песни</item>
+    <item quantity="few">Добавление %1$d песен</item>
+    <item quantity="many">Добавление %1$d песен</item>
+    <item quantity="other">Добавление %1$d песни</item>
+  </plurals>
+  <plurals name="playlist_picker_video_count">
+    <item quantity="one">Добавление %1$d видео</item>
+    <item quantity="few">Добавление %1$d видео</item>
+    <item quantity="many">Добавление %1$d видео</item>
+    <item quantity="other">Добавление %1$d видео</item>
+  </plurals>
+  <plurals name="playlist_item_count_value">
+    <item quantity="one">%1$d элемент</item>
+    <item quantity="few">%1$d элемента</item>
+    <item quantity="many">%1$d элементов</item>
+    <item quantity="other">%1$d элемента</item>
+  </plurals>
+  <string name="ui_select_storage_location">Выберите место хранения</string>
+  <string name="ui_search_files">Поиск файлов и папок</string>
+  <string name="ui_no_matching_files">Нет подходящих файлов или папок</string>
+  <string name="ui_system_picker">Системный выбор файлов</string>
+  <string name="ui_sort_by">Сортировать по</string>
+  <string name="ui_media_types">Типы медиа</string>
+  <string name="ui_retry">Повторить</string>
+  <string name="ui_image_load_failed">Не удалось загрузить это изображение</string>
+  <string name="ui_no_items">Нет элементов</string>
+  <string name="ui_no_items_match">Нет элементов, соответствующих «%1$s»</string>
+  <string name="ui_folder_no_files_or_folders">В этой папке нет файлов или каталогов</string>
+  <string name="ui_folder_no_media">В этой папке нет медиафайлов</string>
+  <string name="ui_folder_no_videos_or_folders">В этой папке нет видео или каталогов</string>
+  <string name="ui_folder_only_images_hidden">В этой папке только изображения. Включите «Изображения» в параметрах сортировки и отображения, чтобы увидеть их.</string>
+  <string name="playlist_open_action">Открыть плейлист</string>
+  <string name="syncplay_failure_dns">Не удалось найти адрес сервера. Проверьте имя хоста и настройки DNS вашей сети.</string>
+  <string name="syncplay_failure_refused">Сервер отклонил соединение. Проверьте порт и убедитесь, что сервер Syncplay запущен.</string>
+  <string name="syncplay_failure_timeout">Сервер не ответил вовремя. Проверьте соединение и не заблокирован ли этот порт.</string>
+  <string name="syncplay_failure_unreachable">Сервер недоступен в этой сети. Попробуйте другую сеть Wi-Fi или мобильное соединение.</string>
+  <string name="syncplay_failure_handshake">Соединение установлено, но сервер не завершил вход в Syncplay. Убедитесь, что указаны сервер и порт Syncplay.</string>
+  <string name="syncplay_failure_closed">Сервер закрыл соединение. Проверьте настройки сервера и попробуйте подключиться снова.</string>
+  <string name="syncplay_failure_protocol">Сервер отправил некорректный ответ Syncplay. Проверьте адрес сервера и порт.</string>
+  <string name="syncplay_failure_network">Не удалось подключиться к серверу Syncplay. Проверьте сеть, адрес сервера и порт.</string>
+  <string name="secure_folder_biometric_enable_confirm">Введите PIN защищённой папки, чтобы включить биометрическую разблокировку</string>
+  <string name="secure_folder_error_pin_incomplete">Введите PIN полностью</string>
+  <string name="secure_folder_pin_length">Длина PIN</string>
+  <string name="secure_folder_pin_length_option">%1$d цифр</string>
+  <string name="lyrics_provider_auto">Автоматически</string>
+  <string name="lyrics_provider_auto_with">Автоматически (%1$s)</string>
+  <string name="lyrics_by">Текст песни от %1$s</string>
+  <string name="lyrics_provider_not_found">У %1$s нет текста для этой композиции</string>
+  <string name="lyrics_provider_sheet_title">Источник текстов песен</string>
+  <string name="lyrics_search_online">Поиск в интернете</string>
+  <string name="pref_paxsenix_api_key">Ключ API PaxSenix</string>
+  <string name="pref_paxsenix_api_key_summary">Открывает доступ к источникам Spotify и Musixmatch</string>
+  <string name="pref_paxsenix_api_key_dialog_desc">Вставьте ключ API PaxSenix. Оставьте поле пустым, чтобы использовать только источники без ключа.</string>
+  <string name="pref_lyrics_sources_category">Тексты песен из интернета</string>
+  <string name="pref_lyrics_auto_fetch_online">Автоматически получать тексты песен из интернета</string>
+  <string name="pref_lyrics_auto_fetch_online_summary">Искать у онлайн-поставщиков, только если нет встроенного или локального текста песни. Поиск в интернете вручную остаётся доступным.</string>
+  <string name="lyrics_translation_off_summary">Показывать оригинальный язык без перевода</string>
+  <string name="lyrics_translation_dual_line">Две строки</string>
+  <string name="lyrics_translation_replace">Заменить оригинал</string>
+  <string name="lyrics_translation_romanized">Произношение / Транслитерация</string>
+  <string name="lyrics_translation_no_languages">Нет подходящих языков</string>
+  <string name="audiobook_search_online_title">Поиск обложки в интернете</string>
+  <string name="audiobook_search_online_query">Поиск по названию, автору или ключевым словам</string>
+  <string name="audiobook_search_online_searching">Поиск в Apple Books и Open Library…</string>
+  <string name="audiobook_narrated_by">Читает %1$s</string>
+  <string name="audiobook_search_online_empty">Обложки в интернете по этому запросу не найдены.</string>
+  <string name="oss_python_description">Встроенная среда Python для извлечения медиа из интернета.</string>
+  <string name="watch_stats_today">Сегодня: %1$s</string>
+  <string name="watch_stats_media_breakdown">Разбивка по медиа</string>
+  <string name="watch_stats_overall_playback">Общее воспроизведение</string>
+  <string name="network_server_no_matches">Нет подходящих адресов. Вы можете ввести адрес вручную.</string>
+  <string name="network_server_none_found">Серверы, объявляющие о себе, не найдены. Убедитесь, что оба устройства в одной сети, повторите попытку или введите адрес вручную.</string>
+  <string name="network_server_saved">Сохранённый адрес</string>
+  <string name="network_server_nearby">Сервер поблизости</string>
+  <string name="network_server_this_device">Это устройство в локальной сети</string>
+  <string name="network_server_loopback">Это устройство (петлевой адрес)</string>
+  <string name="network_server_address_only">Только адрес</string>
+  <string name="network_server_scan">Найти серверы поблизости</string>
+  <string name="network_server_scanning">Поиск серверов поблизости…</string>
+  <string name="network_server_scan_unavailable">Обнаружение недоступно или не завершено. Выберите сохранённый адрес или введите новый.</string>
+  <string name="network_server_discovery_hint">Находит серверы, объявляющие о себе в локальной сети. Адреса устройств — это ярлыки, а не обнаруженные серверы. Учётные данные вводятся ниже.</string>
+  <string name="network_smb_username_hint">Используйте имя пользователя или DOMAIN\\username для доменной учётной записи.</string>
+  <string name="pref_playstore_hidden_title">Выбранные скрытые папки</string>
+  <string name="pref_playstore_hidden_summary">Выберите папку, чтобы включить её медиа и подпапки.</string>
+  <string name="pref_playstore_hidden_selected">Папки с разрешённым доступом</string>
+  <string name="pref_playstore_hidden_add">Выбрать скрытую папку</string>
+  <string name="pref_playstore_hidden_remove">Отозвать доступ к папке</string>
+  <string name="pref_playstore_hidden_grant_failed">Нет доступа к этой папке. Выберите поддерживаемую папку и разрешите чтение.</string>
+  <string name="pref_playstore_hidden_limitations">Android ограничивает доступ к некоторым папкам. Потяните для обновления, чтобы увидеть новые файлы.</string>
+  <string name="app_icon_picker_description">Выберите фон и логотип. Значок приложения изменится после применения.</string>
+  <string name="app_icon_section_background">Фон</string>
+  <string name="app_icon_section_logo">Логотип</string>
+  <string name="app_icon_apply">Применить</string>
+  <string name="app_icon_preview">Предпросмотр в лаунчере</string>
+  <string name="app_icon_background_hint">Смахните или нажмите, чтобы выбрать цвет</string>
+  <string name="app_icon_logo_hint">Некоторые логотипы недоступны на этом фоне</string>
+  <string name="app_icon_current">Текущий значок</string>
+  <string name="app_icon_pending">Предпросмотр · не применён</string>
+  <string name="app_icon_confirm_title">Изменить значок приложения?</string>
+  <string name="app_icon_confirm_message">Значок приложения изменится на %1$s.</string>
+  <string name="app_icon_confirm_action">Изменить значок</string>
+  <string name="app_icon_bg_black">Чёрный</string>
+  <string name="app_icon_bg_white">Белый</string>
+  <string name="app_icon_bg_charcoal">Угольный</string>
+  <string name="app_icon_bg_indigo">Индиго</string>
+  <string name="app_icon_bg_violet">Фиолетовый</string>
+  <string name="app_icon_bg_lagoon">Лагуна</string>
+  <string name="app_icon_bg_azure">Лазурный</string>
+  <string name="app_icon_bg_lilac">Сиреневый</string>
+  <string name="app_icon_bg_mint">Мятный</string>
+  <string name="app_icon_bg_ember">Тлеющий уголёк</string>
+  <string name="app_icon_logo_solid">Однотонный фиолетовый</string>
+  <string name="app_icon_logo_gradient">Фиолетовый градиент</string>
+  <string name="app_icon_logo_white">Белый</string>
+  <string name="app_icon_logo_black">Чёрный</string>
+  <string name="app_icon_logo_classic">Классический</string>
 </resources>

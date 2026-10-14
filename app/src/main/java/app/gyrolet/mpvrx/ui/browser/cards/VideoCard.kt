@@ -13,7 +13,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -309,7 +308,7 @@ fun VideoCard(
         .clip(cardShape)
                 .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
-        .combinedClickable(
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
@@ -402,7 +401,7 @@ fun VideoCard(
                 .aspectRatio(aspect)
                 .clip(AppShapeScale.medium)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .combinedClickable(
+                .mediaCardClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
                 ),
@@ -744,7 +743,7 @@ fun VideoCard(
                 .aspectRatio(aspect)
                 .clip(AppShapeScale.medium)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .combinedClickable(
+                .mediaCardClickable(
                   onClick = onThumbClick,
                   onLongClick = onLongClick,
                 ),

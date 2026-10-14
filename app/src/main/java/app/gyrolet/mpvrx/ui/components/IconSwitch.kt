@@ -18,7 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidToggle
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
@@ -73,7 +73,7 @@ fun IconSwitch(
     modifier = modifier,
     enabled = enabled,
     thumbContent = {
-      Icon(
+      AnimatedIcon(
         imageVector = if (checked) Icons.RoundedFilled.Check else Icons.RoundedFilled.Close,
         contentDescription = null,
         modifier = Modifier.size(SwitchDefaults.IconSize),

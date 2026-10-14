@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.appDialogEnter
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 
 internal enum class DialogActionEmphasis { None, Primary, Secondary }
@@ -65,6 +66,7 @@ fun AppAlertDialog(
   val bodyIndex = if (hasHeader) 1 else 0
   BasicAlertDialog(onDismissRequest = onDismissRequest, modifier = modifier, properties = properties) {
     Surface(
+      modifier = Modifier.appDialogEnter(),
       shape = shape,
       color = colors.surface,
       border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.45f)),

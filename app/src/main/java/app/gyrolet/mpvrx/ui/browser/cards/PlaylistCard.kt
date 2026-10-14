@@ -13,7 +13,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -446,7 +445,7 @@ private fun YouTubePlaylistGridCard(
         .background(selectionColor)
         .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
-        .combinedClickable(
+        .mediaCardClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         )

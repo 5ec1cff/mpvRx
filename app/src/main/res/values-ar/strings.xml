@@ -13,7 +13,6 @@
   <string name="generic_confirm">تأكيد</string>
   <string name="generic_cancel">إلغاء</string>
   <string name="generic_ok">حسنًا</string>
-  <string name="generic_unit_ms">مللي ثانية</string>
   <string name="generic_disabled">معطّل</string>
   <string name="pref_preferences">التفضيلات</string>
   <string name="pref_appearance_title">المظهر</string>
@@ -42,12 +41,6 @@
   <string name="app_font_no_downloaded">لا توجد خطوط منزّلة بعد</string>
   <string name="app_font_delete_title">حذف الخط</string>
   <string name="app_font_delete_message">هل تريد إزالة %1$s من هذا الجهاز؟ سيستخدم التطبيق والترجمات الخط الافتراضي.</string>
-  <string name="lyrics_provider_status_current">معروض حاليًا</string>
-  <string name="lyrics_provider_status_found">تم العثور</string>
-  <string name="lyrics_provider_status_missing">لم يُعثر على شيء</string>
-  <string name="lyrics_provider_status_fetching">جارٍ الجلب…</string>
-  <string name="lyrics_provider_status_unfetched">لم يُجلب بعد</string>
-  <string name="lyrics_provider_status_failed">فشل</string>
   <string name="app_font_downloaded">تم التنزيل</string>
   <string name="app_font_catalog_error">تعذر تحميل Google Fonts</string>
   <string name="app_font_download_error">تعذر تنزيل %1$s</string>
@@ -56,9 +49,6 @@
   <string name="pref_appearance_ui_scale_restart_title">إعادة التشغيل مطلوبة</string>
   <string name="pref_appearance_ui_scale_restart_message">أعد تشغيل mpvRx لتطبيق مقياس واجهة التطبيق الجديد %1$d٪.</string>
   <string name="pref_appearance_ui_scale_restart_now">إعادة التشغيل الآن</string>
-  <string name="pref_appearance_material_you_title">Material You</string>
-  <string name="pref_appearance_material_you_summary">تفعيل الألوان الديناميكية</string>
-  <string name="pref_appearance_material_you_summary_disabled">متاح فقط على Android 12 والإصدارات الأحدث</string>
   <string name="pref_appearance_unlimited_name_lines_title">إظهار الأسماء كاملة</string>
   <string name="pref_appearance_unlimited_name_lines_summary">إظهار أسماء المجلدات ومقاطع الفيديو كاملة دون اقتطاع</string>
   <string name="pref_appearance_hide_player_buttons_background_title">إخفاء خلفية أزرار المشغّل</string>
@@ -84,27 +74,17 @@
   <string name="pref_appearance_thumbnail_position_summary">التقاط الإطار عند %1$d%% من الفيديو</string>
   <string name="pref_appearance_show_network_thumbnails_title">إظهار صور الشبكة المصغّرة (تجريبي)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">إنشاء صور مصغّرة لتدفقات الشبكة (قد يزيد استهلاك البيانات على شبكات الهاتف)</string>
-  <string name="pref_nav_home_title">إظهار علامة تبويب الرئيسية</string>
-  <string name="pref_nav_home_summary">إظهار أو إخفاء الرئيسية في شريط التنقل السفلي</string>
   <string name="pref_nav_network_title">إظهار علامة تبويب الشبكة</string>
   <string name="pref_nav_network_summary">إظهار أو إخفاء الشبكة في شريط التنقل السفلي</string>
   <string name="pref_quick_play_fab_title">زر التشغيل السريع (FAB)</string>
   <string name="pref_quick_play_fab_summary">إظهار زر التشغيل السريع في شاشات المتصفح</string>
   <string name="pref_quick_play_fab_direct_title">التشغيل السريع المباشر</string>
   <string name="pref_quick_play_fab_direct_summary">تشغيل أحدث فيديو تم تشغيله مباشرة عند الضغط على الزر بدلاً من إظهار الخيارات</string>
-  <string name="pref_appearance_nav_style_slide">انزلاق</string>
-  <string name="pref_appearance_nav_style_fade">تلاشي</string>
-  <string name="pref_appearance_nav_style_none">بلا (فوري)</string>
   <string name="pref_appearance_theme_picker_label">سمة التطبيق</string>
   <string name="pref_appearance_auto_scroll_title">التمرير تلقائيًا إلى آخر فيديو تم تشغيله</string>
   <string name="pref_appearance_auto_scroll_summary">التمرير تلقائيًا إلى آخر فيديو تم تشغيله عند فتح قوائم الفيديو</string>
-  <string name="pref_appearance_watched_threshold_title">حد المشاهدة</string>
-  <string name="pref_appearance_watched_threshold_summary">وضع علامة تمت المشاهدة عند وصول التشغيل إلى %d%%</string>
-  <string name="pref_appearance_watched_threshold_summary_infinite">عدم وضع علامة تمت المشاهدة تلقائيًا (لانهائي)</string>
   <string name="pref_tree_flatten_depth_title">ضغط مسار الشجرة</string>
   <string name="pref_tree_flatten_depth_summary">تم تخطي %1$s في كل خطوة تنقل للمجلدات ذات العنصر الوحيد</string>
-  <string name="ytdl_audio_quality_title">جودة صوت yt-dlp</string>
-  <string name="ytdl_audio_quality_reload_summary">يُستخدم للرابط التالي أو عند إعادة تحميل الرابط الحالي.</string>
   <string name="toast_playback_load_failed">تعذر تحميل هذا الرابط</string>
   <string name="video_label_new">جديد</string>
   <string name="video_label_watched">تمت المشاهدة</string>
@@ -147,8 +127,6 @@
   <string name="settings_search_no_results">لم يتم العثور على إعدادات</string>
   <string name="settings_search_title">بحث</string>
   <!-- Player Preferences Hardcoded -->
-  <string name="pref_autoplay_title">تفعيل التنقل إلى التالي/السابق</string>
-  <string name="pref_autoplay_summary">إظهار زري التالي/السابق لجميع مقاطع الفيديو في المجلد</string>
   <string name="pref_autoplay_next_video_title">تشغيل الفيديو التالي تلقائيًا</string>
   <string name="pref_autoplay_next_video_summary">تشغيل الفيديو التالي تلقائيًا عند انتهاء الحالي</string>
   <string name="pref_autoplay_next_video_summary_disabled">البقاء على الفيديو الحالي عند انتهائه</string>
@@ -173,7 +151,6 @@
   <string name="pref_player_show_buffered_range_summary">عرض المخزن المؤقت عبر الإنترنت أمام موضع التشغيل على شريط التقديم.</string>
   <string name="pref_player_show_chapter_indicators_title">إظهار مؤشرات الفصول على شريط التقديم</string>
   <string name="pref_player_show_chapter_indicators_summary">فصل الفصول بصريًا على امتداد شريط التقديم.</string>
-  <string name="pref_show_navigation_bar_title">إظهار شريط التنقل مع عناصر التحكم</string>
   <!-- Gesture Preferences Hardcoded -->
   <string name="pref_double_tap_seek_area_width_title">عرض منطقة التقديم بالنقر المزدوج</string>
   <!-- Advanced Preferences Hardcoded -->
@@ -197,8 +174,6 @@
   <string name="pref_layout_bottom_left_controls">عناصر التحكم أسفل اليسار</string>
   <string name="pref_layout_portrait_bottom_controls">عناصر التحكم السفلية في الوضع العمودي</string>
   <string name="pref_layout_preview">معاينة</string>
-  <string name="pref_layout_reset_title">إعادة ضبط التخطيط؟</string>
-  <string name="pref_layout_reset_summary">ستُعاد جميع تخطيطات عناصر تحكم المشغّل المخصصة إلى مواضعها الافتراضية</string>
   <string name="pref_player">المشغّل</string>
   <string name="pref_player_summary">الاتجاه والإيماءات وعناصر التحكم</string>
   <string name="pref_player_orientation">الاتجاه</string>
@@ -217,7 +192,6 @@
   <string name="pref_player_seeking_title">التقديم</string>
   <string name="pref_player_close_after_eof">الإغلاق بعد انتهاء التشغيل</string>
   <string name="pref_player_remember_brightness">تذكّر سطوع الشاشة</string>
-  <string name="pref_player_gestures">الإيماءات</string>
   <string name="pref_player_gestures_brightness">إيماءات السطوع</string>
   <string name="pref_player_gestures_volume">إيماءات مستوى الصوت</string>
   <string name="pref_player_gestures_pinch_to_zoom">الضم للتكبير</string>
@@ -228,18 +202,13 @@
   <string name="pref_player_gestures_swipe_subtitles_invert_direction">عكس اتجاه سحب الترجمة</string>
   <string name="pref_player_gestures_swipe_subtitles_invert_direction_summary">اسحب من اليمين إلى اليسار للتقديم، ومن اليسار إلى اليمين للرجوع</string>
   <string name="pref_player_gestures_horizontal_swipe_to_seek">السحب الأفقي للتقديم</string>
-  <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">اسحب يسارًا أو يمينًا على الشاشة للتقديم أو الرجوع</string>
   <string name="pref_player_gestures_enable_center_swipe_up_gesture">السحب لأعلى في الوسط لفتح قائمة التشغيل</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity">حساسية السحب الأفقي</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">ضبط المسافة التي يغطيها كل سحب</string>
   <string name="pref_player_gestures_hold_for_multiple_speed">اضغط مطولًا لسرعة متعددة x</string>
-  <string name="pref_player_controls">عناصر التحكم</string>
   <string name="pref_player_controls_allow_gestures_in_panels">السماح بالإيماءات داخل اللوحات</string>
-  <string name="pref_player_controls_display_volume_as_percentage">عرض مستوى الصوت كنسبة مئوية</string>
   <string name="pref_player_controls_show_loading_circle">إظهار دائرة التحميل</string>
   <string name="pref_player_display_show_status_bar">إظهار شريط حالة النظام مع عناصر التحكم</string>
-  <string name="pref_player_display_panel_opacity">عتامة اللوحة</string>
-  <string name="pref_player_display">العرض</string>
   <string name="pref_gesture">الإيماءات</string>
   <string name="pref_gesture_summary">نقر مزدوج، عناصر تحكم الوسائط</string>
   <string name="pref_gesture_double_tap_title">نقر مزدوج</string>
@@ -255,7 +224,6 @@
   <string name="pref_gesture_use_single_tap_for_center_summary">استخدام نقرة واحدة في الوسط للإيماءات (مثل التشغيل/الإيقاف المؤقت) بدلًا من النقر المزدوج.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">السحب لتحريك الترجمة</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">اضغط مطولاً في المنتصف ثم اسحب لأعلى أو لأسفل لتحريك الترجمة الأساسية. اضغط مطولاً على أي ترجمة لتحريك مسارها بشكل مستقل. تظل السحبات العادية تفتح قائمة التشغيل.</string>
-  <string name="pref_gesture_view_title">عرض</string>
   <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:
 
 يسار: MBTN_LEFT_DBL
@@ -283,7 +251,6 @@
   <string name="pref_decoder_gpu_next_purple_screen_fix">إذا ظهرت شاشة أرجوانية، فجرّب تعطيل opengl-pbo في الإعدادات المتقدمة (mpv.conf):</string>
   <string name="pref_decoder_gpu_next_enable_anyway">تفعيل على أي حال</string>
   <string name="pref_decoder_debanding_title">إزالة التدرجات</string>
-  <string name="pref_decoder_vulkan_title">استخدام Vulkan</string>
   <string name="pref_decoder_vulkan_summary">تفعيل العرض باستخدام Vulkan على الأجهزة المدعومة (قد يحسن الأداء)</string>
   <string name="pref_decoder_vulkan_not_supported">غير مدعوم (يتطلب Android 13+ مع Vulkan 1.3)</string>
   <string name="pref_decoder_vulkan_excluded_supported_device">OpenGL فقط؛ ثبّت الإصدار القياسي لاستخدام Vulkan.</string>
@@ -310,7 +277,6 @@
   <string name="pref_subtitles_font_copy_failed">تعذر تحميل الخطوط: %1$s</string>
   <string name="pref_subtitles_autoload_title">تحميل الترجمة تلقائيًا</string>
   <string name="pref_subtitles_autoload_summary">تحميل ملفات الترجمة الخارجية ذات الاسم نفسه تلقائيًا.</string>
-  <string name="pref_subtitles_save_location">موقع حفظ الترجمة</string>
   <string name="pref_subtitles_search_online">البحث عن ترجمة عبر الإنترنت…</string>
   <string name="pref_subtitles_search_languages">لغات الترجمة</string>
   <string name="all_languages">الكل (تصفية انتقائية)</string>
@@ -326,8 +292,6 @@
   <string name="pref_audio_volume_normalization_title">توحيد مستوى الصوت</string>
   <string name="pref_audio_volume_normalization_summary">ضبط مستوى الصوت تلقائيًا للحفاظ على مستوى علو ثابت</string>
   <string name="pref_music_tabs_title">علامات تبويب مكتبة الموسيقى</string>
-  <string name="pref_music_visualizer_title">مؤثر مرئي للموسيقى</string>
-  <string name="pref_music_visualizer_summary">عرض مؤثر مرئي متفاعل مع الصوت أثناء تشغيل الموسيقى</string>
   <string name="pref_audio_visualizer_style_title">نمط المؤثر المرئي</string>
   <string name="pref_audio_visualizer_style_blob">كتلة</string>
   <string name="pref_audio_visualizer_style_galaxy">مجرة</string>
@@ -373,14 +337,11 @@
   <string name="pref_thumbnail_cache_clear_failed">فشل مسح ذاكرة الصور المصغّرة: %1$s</string>
   <string name="pref_advanced_enable_recently_played_title">المشغّل مؤخرًا</string>
   <string name="pref_advanced_enable_recently_played_summary">تتبع وعرض مقاطع الفيديو وقوائم التشغيل التي تم تشغيلها مؤخرًا</string>
-  <string name="pref_advanced_features_tooltip">تفعيل ميزات تجريبية أو متقدمة مثل صفحة الإحصاءات ورفع الدقة باستخدام Anime4K</string>
   <string name="pref_anime4k_title">رفع الدقة باستخدام Anime4K</string>
   <string name="pref_anime4k_summary">تفعيل مرشح رفع الدقة Anime4K</string>
   <string name="pref_anime4k_incompatibility">عدم توافق Anime4K</string>
   <string name="pref_anime4k_gpu_next_error">يتطلب Anime4K إما gpu القديم، أو gpu-next مع تفعيل Vulkan. وسيعود gpu-next على OpenGL إلى gpu القديم لضمان توافق المظللات.</string>
-  <string name="pref_anime4k_cannot_use_with_gpu_next">لا يمكن استخدام Anime4K مع gpu-next إلا عند تفعيل Vulkan</string>
   <string name="anime4k_mode_title">إعدادات Anime4K المسبقة</string>
-  <string name="anime4k_mode_toast">Anime4K: الإعداد المسبق %1$s</string>
   <string name="pref_anime4k_quality_title">جودة Anime4K</string>
   <!-- Anime4K Modes (Renamed to Presets in UI) -->
   <string name="anime4k_mode_off">إيقاف</string>
@@ -405,12 +366,6 @@
   <string name="pref_about_title">حول</string>
   <string name="pref_about_summary">شكر وتقدير، تراخيص</string>
   <string name="pref_about_oss_libraries">المكتبات</string>
-  <string name="pref_about_donate_title">تبرع</string>
-  <string name="pref_about_donate_kofi">Ko-fi</string>
-  <string name="pref_about_donate_kofi_summary">ادعم المطور على Ko-fi</string>
-  <string name="pref_about_donate_paypal">PayPal</string>
-  <string name="pref_about_donate_paypal_summary">ادعم المطور على PayPal</string>
-  <string name="pref_about_donate_upi">UPI</string>
   <string name="player_sheets_add_ext_sub">إضافة ترجمة خارجية</string>
   <string name="player_sheets_add_ext_audio">إضافة مسارات صوت خارجية</string>
   <string name="player_sheets_embedded_audio_tracks">مسارات صوت مضمنة</string>
@@ -425,7 +380,6 @@
   <string name="player_sheets_subtitles_settings_title">إعدادات الترجمة</string>
   <string name="player_sheets_subtitles_color_text">النص</string>
   <string name="player_sheets_subtitles_color_border">الحدود</string>
-  <string name="player_sheets_subtitles_color_background">الخلفية</string>
   <string name="player_sheets_subtitles_color_shadow">الظل</string>
   <string name="player_sheets_sub_ass_override_warning">التجاوزات غير فعالة لتنسيق ASS/SSA. فعّل تجاوز ASS للتخصيص.</string>
   <string name="player_sheets_subtitles_border_style">نمط الحدود</string>
@@ -464,9 +418,6 @@
   <string name="player_sheets_delay_offset_seconds">%1$+d ث</string>
   <string name="player_sheets_delay_offset_zero_seconds">0 ث</string>
   <string name="player_sheets_sub_delay_card_speed">السرعة</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary">الترجمة الأساسية</string>
-  <string name="player_sheets_sub_delay_subtitle_type_secondary">الترجمة الثانوية</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary_and_secondary">كلاهما</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">سماع الصوت</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">رؤية النص</string>
   <string name="player_sheets_delay_set_as_default">تعيين كافتراضي</string>
@@ -490,7 +441,6 @@
   <string name="player_sheets_filters_hue">تدرج اللون</string>
   <string name="player_sheets_filters_sharpness">الحدة</string>
   <string name="player_sheets_filters_warning">قد لا تعمل بعض المرشحات مع برنامج تشغيل الفيديو الحالي</string>
-  <string name="player_sheets_speed_slider_label">السرعة</string>
   <string name="player_sheets_speed_make_default">جعلها السرعة الافتراضية</string>
   <string name="player_sheets_decoder_formatted" formatted="false">%s (%s)</string>
   <string name="numeric_chooser_value_too_big">القيمة كبيرة جدًا</string>
@@ -498,12 +448,6 @@
   <string name="player_sheets_more_title">المزيد</string>
   <string name="player_sheets_stats_page_title">صفحة الإحصاءات الافتراضية</string>
   <string name="player_sheets_stats_page_chip">الصفحة %d</string>
-  <string name="player_sheets_stats_page_0_desc">معطّل. لا توجد إحصاءات متراكبة.</string>
-  <string name="player_sheets_stats_page_1_desc">نظرة عامة. استخدام CPU/GPU، مزامنة A/V، الإطارات الساقطة، سرعة الساعة.</string>
-  <string name="player_sheets_stats_page_2_desc">توقيت الإطارات. أوقات فك الترميز/العرض، معلومات التحجيم.</string>
-  <string name="player_sheets_stats_page_3_desc">حالة الذاكرة المؤقتة. سلامة المخزن المؤقت، ذاكرة demuxer، النطاقات القابلة للتقديم.</string>
-  <string name="player_sheets_stats_page_4_desc">اختصارات المفاتيح الحالية. قائمة اختصارات لوحة المفاتيح المعيّنة.</string>
-  <string name="player_sheets_stats_page_5_desc">قائمة المسارات. تفاصيل مسارات الفيديو والصوت والترجمة.</string>
   <string name="player_aspect_fit">ملاءمة الشاشة</string>
   <string name="player_aspect_crop">اقتصاص</string>
   <string name="player_aspect_stretch">تمديد</string>
@@ -523,20 +467,13 @@
   <string name="crash_screen_report_id">معرّف التعطل: %1$s</string>
   <string name="crash_screen_reset_confirm">سيؤدي هذا إلى حذف قاعدة بيانات التطبيق نهائيًا، بما فيها سجل التشغيل وقوائم التشغيل وإعدادات المكتبة. لن تُحذف ملفات الوسائط. قد لا تؤدي إعادة الضبط إلى إصلاح التعطل.</string>
   <string name="crash_screen_reset_failed">تعذرت إعادة ضبط قاعدة البيانات. لم تتم محاولة إعادة التشغيل.</string>
-  <string name="oss_crashx_description">استعادة التطبيق بعد التعطل من TutorialsAndroid، استنادًا إلى CustomActivityOnCrash من Eduard Ereza Martínez.</string>
   <string name="timer_picker_enter_timer">أدخل الوقت</string>
-  <string name="timer_picker_pick_time">اختر الوقت</string>
   <string name="timer_title">مؤقت النوم</string>
   <string name="timer_remaining">متبقٍ %s</string>
   <string name="toast_sleep_timer_ended">انتهى مؤقت النوم</string>
   <string name="swap_the_volume_and_brightness_slider">تبديل شريطي مستوى الصوت والسطوع</string>
   <string name="pref_player_display_reduce_player_animation">تقليل حركة المشغّل</string>
   <!-- Animation settings -->
-  <string name="pref_anim_section">الرسوم المتحركة</string>
-  <string name="pref_anim_controls_style">نمط حركة عناصر التحكم</string>
-  <string name="pref_anim_video_open">حركة فتح الفيديو</string>
-  <string name="pref_anim_nav_style">نمط التنقل بين علامات التبويب</string>
-  <string name="pref_anim_speed">سرعة الحركة</string>
   <string name="pref_player_display_hide_player_control_time">إخفاء وقت عناصر تحكم المشغّل</string>
   <string name="show_splash_ovals_on_double_tap_to_seek">إظهار تموج عند التقديم بالنقر المزدوج</string>
   <string name="show_time_on_double_tap_to_seek">إظهار وقت التقديم</string>
@@ -548,7 +485,6 @@
     <item quantity="other">%1$d ثوانٍ</item>
   </plurals>
   <!-- Background Playback -->
-  <string name="background_playback_title">التشغيل في الخلفية</string>
   <string name="pref_audio_background_playback_title">التشغيل في الخلفية (مشغل الصوت)</string>
   <string name="pref_audio_background_playback_summary">مواصلة تشغيل الصوت عند مغادرة مشغل الصوت أو إيقاف الشاشة</string>
   <string name="pref_audio_mini_player_track_switching_title">تغيير الأغاني في المشغل المصغر</string>
@@ -568,19 +504,10 @@
   <string name="got_it">فهمت</string>
   <string name="general">عام</string>
   <string name="not_set_video_default">غير محدد (سيُستخدم الإعداد الافتراضي للفيديو)</string>
-  <string name="enter_language_codes">أدخل رموز اللغات مفصولة بفواصل (مثال: eng,jpn,spa)</string>
-  <string name="language_codes_placeholder">eng,jpn,spa</string>
-  <string name="pref_audio_channels_auto_safe_desc">اختيار تلقائي آمن وافتراضي</string>
-  <string name="pref_audio_channels_auto_desc">اختيار تلقائي</string>
-  <string name="pref_audio_channels_mono_desc">مزج إلى أحادي</string>
-  <string name="pref_audio_channels_stereo_desc">مزج إلى ستيريو</string>
-  <string name="pref_audio_channels_reverse_stereo_desc">تبديل القناتين اليسرى واليمنى</string>
-  <string name="not_set_system_fonts">غير محدد (استخدام خطوط النظام)</string>
   <string name="fonts_loaded">تم تحميل %1$d خطًا</string>
   <string name="reload_fonts">إعادة تحميل الخطوط</string>
   <string name="reload_fonts_summary">إعادة فحص مجلد المصدر المحدد وتحديث قائمة الخطوط</string>
   <string name="clear_font_directory">مسح مجلد الخطوط</string>
-  <string name="reset_to_default_font">إعادة الضبط إلى الخط الافتراضي</string>
   <string name="set_as_default">تعيين كافتراضي</string>
   <!-- Notification strings -->
   <string name="notification_channel_name">تشغيل الوسائط</string>
@@ -588,9 +515,6 @@
   <string name="notification_playing">قيد التشغيل</string>
   <string name="notification_add_to_favorites">إضافة إلى المفضلة</string>
   <string name="notification_saved_to_favorites">تم الحفظ في المفضلة</string>
-  <string name="notification_repeat_off">إيقاف التكرار</string>
-  <string name="notification_repeat_one">تكرار عنصر واحد</string>
-  <string name="notification_repeat_all">تكرار الكل</string>
   <string name="notification_chapter_counter">الفصل %1$d من %2$d</string>
   <string name="notification_playback_progress">انقضى %1$s - متبقٍ %2$s</string>
   <string name="notification_permission_denied">يلزم إذن الإشعارات لعناصر تحكم التشغيل في الخلفية.</string>
@@ -602,8 +526,6 @@
   <!-- Folders Preferences -->
   <string name="pref_folders_title">المجلدات</string>
   <string name="pref_folders_summary">إدارة القائمة السوداء للمجلدات ومعالجة .nomedia</string>
-  <string name="pref_folders_include_nomedia_title">تضمين مجلدات .nomedia</string>
-  <string name="pref_folders_include_nomedia_summary">عند التفعيل، تشمل عمليات الفحص أيضًا مقاطع الفيديو من المجلدات المخفية بواسطة .nomedia ومجلداتها الفرعية.</string>
   <string name="pref_folders_empty_title">لا توجد مجلدات في القائمة السوداء</string>
   <string name="pref_folders_empty_message">انقر على الزر أدناه لإضافة المجلدات التي تريد إخفاءها من قائمة المجلدات</string>
   <string name="pref_folders_add_folder">إضافة مجلد إلى القائمة السوداء</string>
@@ -616,24 +538,14 @@
   <string name="pref_folders_blacklist">القائمة السوداء</string>
   <string name="pref_folders_blacklisted">تم إدراج المجلد/المجلدات في القائمة السوداء</string>
   <!-- M3U Playlist Strings -->
-  <string name="pref_subtitles_searching">جارٍ البحث…</string>
-  <string name="pref_subtitles_found">تم العثور على %d ترجمة</string>
-  <string name="pref_subtitles_online_search_title">البحث عن ترجمة عبر الإنترنت</string>
   <!-- M3U Playlist Strings -->
-  <string name="playlist_add_m3u_title">إضافة قائمة تشغيل M3U</string>
-  <string name="playlist_add_m3u_description">أدخل عنوان URL لملف قائمة تشغيل M3U</string>
   <string name="playlist_url_label">عنوان URL لقائمة التشغيل</string>
-  <string name="playlist_url_placeholder">https://example.com/playlist.m3u</string>
   <string name="playlist_url_hint">يدعم تنسيقي .m3u و.m3u8</string>
   <string name="playlist_add_success">تمت إضافة قائمة تشغيل M3U بنجاح</string>
-  <string name="playlist_add_error">فشل إضافة قائمة تشغيل M3U: %s</string>
   <string name="playlist_create_empty">إنشاء قائمة تشغيل فارغة</string>
   <string name="playlist_add_local_folder">إضافة مجلد قوائم تشغيل محلي</string>
   <string name="playlist_local_access_failed">تعذر الوصول إلى هذا الموقع: %1$s</string>
-  <string name="playlist_add_from_url">إضافة من عنوان URL بصيغة M3U/M3U8</string>
-  <string name="playlist_refresh_m3u">تحديث قائمة تشغيل M3U</string>
   <string name="playlist_refresh_success">تم تحديث قائمة التشغيل بنجاح</string>
-  <string name="playlist_refresh_error">فشل تحديث قائمة التشغيل: %s</string>
   <string name="playlist_m3u_badge">M3U</string>
   <string name="playlist_favorite_songs">الأغاني المفضلة</string>
   <string name="playlist_favorite_videos">مقاطع الفيديو المفضلة</string>
@@ -669,9 +581,7 @@
   <string name="pref_section_appearance">المظهر</string>
   <string name="pref_section_playback">التشغيل</string>
   <string name="pref_section_gestures_controls">الإيماءات وعناصر التحكم</string>
-  <string name="pref_section_subtitles">الترجمة</string>
   <string name="pref_section_storage">التخزين</string>
-  <string name="pref_section_storage_summary">مسارات الوسائط، المجلدات المخفية</string>
   <string name="pref_section_ai">الذكاء الاصطناعي</string>
   <string name="pref_section_ai_title">تكامل الذكاء الاصطناعي</string>
   <string name="pref_section_ai_summary">إعادة التسمية بالذكاء الاصطناعي، ترجمة الترجمة النصية، تحويل الكلام إلى نص، نماذج بلا اتصال (OpenCode/Groq/OpenAI)</string>
@@ -683,13 +593,8 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_section_animations">الرسوم المتحركة</string>
   <string name="pref_anim_controls_style_title">نمط حركة عناصر التحكم</string>
-  <string name="pref_anim_controls_style_summary">اختر كيفية ظهور عناصر تحكم المشغّل واختفائها</string>
   <string name="pref_anim_video_open_title">حركة فتح الفيديو</string>
-  <string name="pref_anim_video_open_summary">اختر الانتقال عند بدء التشغيل</string>
-  <string name="pref_anim_tab_nav_style_title">نمط التنقل بين علامات التبويب</string>
-  <string name="pref_anim_tab_nav_style_summary">تأثير الانتقال بين علامات التبويب السفلية</string>
   <string name="pref_anim_screen_nav_style_title">نمط التنقل بين الشاشات</string>
-  <string name="pref_anim_screen_nav_style_summary">تأثير الانتقال بين شاشات الإعدادات</string>
   <string name="pref_anim_speed_title">سرعة الحركة</string>
   <string name="pref_anim_speed_very_fast">سريع جدًا (%.1f×)</string>
   <string name="pref_anim_speed_fast">سريع (%.1f×)</string>
@@ -779,8 +684,6 @@
   <string name="pref_section_subtitle_fonts">الخطوط</string>
   <string name="pref_section_subtitle_search">البحث عن الترجمة</string>
   <string name="pref_wyzie_api_key_title">مفتاح Wyzie API</string>
-  <string name="pref_wyzie_api_key_summary_error">مطلوب للبحث عن الترجمة</string>
-  <string name="pref_wyzie_api_key_summary_saved">محفوظ على هذا الجهاز</string>
   <string name="pref_wyzie_api_key_dialog_text">الصق مفتاحك من sub.wyzie.io/redeem</string>
   <string name="pref_wyzie_api_key_placeholder">wyzie-…</string>
   <string name="pref_subtitles_all_keyless_sources">كل المصادر التي لا تتطلب مفتاح API</string>
@@ -838,18 +741,14 @@
   <string name="pref_config_cache_cleared_toast">تم مسح ذاكرة الإعدادات المؤقتة</string>
   <string name="pref_thumbnail_cache_confirm_title">مسح ذاكرة الصور المصغّرة؟</string>
   <string name="pref_thumbnail_cache_confirm_subtitle">سيؤدي هذا إلى حذف الصور المصغّرة المخزّنة مؤقتًا من التخزين والذاكرة.</string>
-  <string name="pref_section_notification">الإشعارات</string>
   <string name="pref_section_logging">التسجيل</string>
   <string name="pref_export_failed_toast">فشل التصدير: %1$s</string>
-  <string name="pref_import_failed_toast">فشل الاستيراد: %1$s</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- AI Integration                                             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_ai_features_section">ميزات الذكاء الاصطناعي</string>
   <string name="pref_ai_enabled_title">تفعيل ميزات الذكاء الاصطناعي</string>
-  <string name="pref_ai_enabled_summary">ميزات الذكاء الاصطناعي نشطة</string>
-  <string name="pref_ai_disabled_summary">ميزات الذكاء الاصطناعي معطّلة</string>
   <string name="pref_ai_provider_section">المزوّد</string>
   <string name="pref_ai_provider_title">مزوّد الذكاء الاصطناعي</string>
   <string name="pref_api_config_section">إعداد API</string>
@@ -860,12 +759,8 @@
   <string name="pref_model_section">النموذج</string>
   <string name="pref_available_models_header">النماذج المتاحة</string>
   <string name="pref_fetch_models">جلب النماذج</string>
-  <string name="pref_select_model_placeholder">انقر لتحديد نموذج</string>
   <string name="pref_verify_model_header">التحقق من النموذج</string>
   <string name="pref_check_model_access">فحص الوصول إلى النموذج</string>
-  <string name="pref_general_settings_section">الإعدادات العامة</string>
-  <string name="pref_show_ai_reasoning_title">إظهار استدلال الذكاء الاصطناعي (التفكير)</string>
-  <string name="pref_show_ai_reasoning_summary">فعّل هذا لرؤية عملية التفكير الداخلية للنموذج في النماذج المدعومة</string>
   <string name="pref_ai_features_subsection">الميزات</string>
   <string name="pref_ai_rename_title">إعادة تسمية مدعومة بالذكاء الاصطناعي</string>
   <string name="pref_ai_rename_summary">استخدام الذكاء الاصطناعي لإنشاء أسماء ملفات مرتبة لعمليات إعادة التسمية الجماعية</string>
@@ -889,50 +784,23 @@
   <string name="pref_stt_provider_title">مزوّد تحويل الكلام إلى نص</string>
   <string name="pref_stt_provider_summary">يُستخدم للبث في الوقت الفعلي وإنشاء الترجمة النصية بالدُفعات</string>
   <string name="pref_audio_language_title">لغة الصوت</string>
-  <string name="pref_audio_language_summary">اكتشاف لغة الكلام تلقائيًا</string>
   <string name="pref_translation_section">ترجمة الترجمة النصية</string>
   <string name="pref_enable_translation_title">تفعيل الترجمة</string>
   <string name="pref_enable_translation_summary">ترجمة ملفات الترجمة الخارجية باستخدام الذكاء الاصطناعي</string>
   <string name="pref_custom_prompt_section">موجه مخصص</string>
   <string name="pref_override_instructions_title">تجاوز التعليمات الافتراضية</string>
-  <string name="pref_override_instructions_enabled_summary">سيُستخدم الموجه المخصص بدلًا من التعليمات المدمجة</string>
-  <string name="pref_override_instructions_disabled_summary">ستُستخدم تعليمات الذكاء الاصطناعي المدمجة</string>
   <string name="pref_custom_prompts_header">موجهات مخصصة</string>
   <string name="pref_custom_prompts_description">اترك الحقل فارغًا لاستخدام التعليمات المدمجة للمهمة. إذا كان لديك موجه عام قديم محفوظ، فسيُستخدم كخيار احتياطي.</string>
   <string name="pref_custom_rename_prompt_label">موجه إعادة تسمية مخصص</string>
-  <string name="pref_custom_rename_prompt_placeholder">تعليمات لإعادة تسمية الملفات بالذكاء الاصطناعي…</string>
   <string name="pref_custom_translation_prompt_label">موجه ترجمة نصية مخصص</string>
-  <string name="pref_custom_translation_prompt_placeholder">تعليمات لترجمة الترجمة النصية بالذكاء الاصطناعي…</string>
   <string name="pref_custom_format_prompt_label">موجه تنسيق ترجمة مخصص</string>
-  <string name="pref_custom_format_prompt_placeholder">تعليمات لتنسيق استعلامات البحث عن الترجمة…</string>
   <string name="pref_legacy_prompt_info">تم حفظ موجه عام قديم. سيُستخدم عندما يكون الموجه الخاص بالمهمة فارغًا.</string>
-  <string name="pref_translation_warning_title">ترجمة الترجمة النصية</string>
-  <string name="pref_translation_warning_text">قد تكون ترجمة الترجمة النصية غير دقيقة قليلًا. لأفضل النتائج استخدم نماذج أفضل ولا تشتكِ من عدم عملها كما ينبغي.</string>
 
   <!-- AI - API Key titles/placeholders for each provider         -->
-  <string name="pref_opencode_api_key_title">مفتاح OpenCode API</string>
-  <string name="pref_opencode_api_key_hint">احصل على مفتاحك من opencode.ai/auth</string>
-  <string name="pref_opencode_api_key_placeholder">sk-…</string>
-  <string name="pref_groq_api_key_title">مفتاح Groq API</string>
-  <string name="pref_groq_api_key_hint">احصل على مفتاح من console.groq.com</string>
-  <string name="pref_groq_api_key_placeholder">gsk_…</string>
-  <string name="pref_openai_api_key_title">مفتاح OpenAI API</string>
-  <string name="pref_openai_api_key_hint">احصل على مفتاح من platform.openai.com</string>
-  <string name="pref_openai_api_key_placeholder">sk-…</string>
-  <string name="pref_anthropic_api_key_title">مفتاح Anthropic API</string>
-  <string name="pref_anthropic_api_key_hint">احصل على مفتاح من console.anthropic.com</string>
-  <string name="pref_anthropic_api_key_placeholder">sk-ant-…</string>
-  <string name="pref_openrouter_api_key_title">مفتاح API لـ OpenRouter</string>
-  <string name="pref_openrouter_api_key_hint">احصل على مفتاح من openrouter.ai</string>
-  <string name="pref_openrouter_api_key_placeholder">sk-or-…</string>
-  <string name="pref_together_api_key_title">مفتاح API لـ Together</string>
-  <string name="pref_together_api_key_hint">احصل على مفتاح من api.together.ai</string>
-  <string name="pref_together_api_key_placeholder">…</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_storage_screen_title">التخزين</string>
   <string name="pref_media_library_section">مكتبة الوسائط</string>
   <string name="pref_hidden_folders_section">المجلدات المخفية</string>
   <string name="pref_clear_content_desc">مسح</string>
@@ -940,36 +808,14 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Search Index Entries (SearchablePreference.kt)             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="search_online_skip_markers_summary">جلب علامات المقدمة والملخص والخاتمة وشارات النهاية والمعاينة من مزوّد عبر الإنترنت</string>
-  <string name="search_marker_provider_summary">اختر IntroDB أو TIDB أو AniSkip أو Anime Skip لعلامات المقدمة والخاتمة عبر الإنترنت</string>
-  <string name="search_chapter_detect_summary">إنشاء علامات تخطٍ من أسماء الفصول مثل المقدمة أو النهاية أو شارات النهاية أو المعاينة</string>
-  <string name="search_auto_skip_intro_summary">تخطّي علامات المقدمة تلقائيًا أثناء التشغيل</string>
-  <string name="search_auto_skip_outro_summary">تخطّي علامات النهاية تلقائيًا أثناء التشغيل</string>
-  <string name="search_subtitle_save_folder_title">مجلد حفظ الترجمة</string>
-  <string name="search_subtitle_save_folder_summary">مكان حفظ الترجمات المُنزّلة</string>
-  <string name="search_fonts_folder_title">مجلد الخطوط</string>
-  <string name="search_fonts_folder_summary">الخطوط المستخدمة لعرض الترجمة</string>
-  <string name="search_base_storage_summary">المجلد الجذر — ينشئ تلقائيًا المجلدين Subtitles/ وFonts/</string>
-  <string name="search_ai_integration_summary">إعادة تسمية مدعومة بالذكاء الاصطناعي، وتنسيق الترجمة، وتحويل الكلام إلى نص، وترجمة الترجمة، ونماذج دون اتصال</string>
-  <string name="search_ai_provider_summary">اختر OpenCode أو Groq أو OpenAI أو Anthropic أو OpenRouter أو Together أو نماذج محلية دون اتصال</string>
   <string name="search_api_key_config_title">إعداد مفتاح API</string>
-  <string name="search_api_key_config_summary">أدخل مفتاح API لمزوّد الذكاء الاصطناعي وتحقّق منه</string>
   <string name="search_ai_model_selection_title">اختيار نموذج الذكاء الاصطناعي</string>
-  <string name="search_ai_model_selection_summary">جلب نماذج الذكاء الاصطناعي المتاحة واختيار النموذج المراد استخدامه</string>
-  <string name="search_ai_reasoning_summary">عرض عملية التفكير الداخلية للنموذج في النماذج المدعومة</string>
-  <string name="search_ai_rename_summary">استخدام الذكاء الاصطناعي لإنشاء أسماء ملفات مرتبة لعمليات إعادة التسمية المجمّعة</string>
-  <string name="search_ai_search_summary">تنسيق عناوين الفيديو تلقائيًا للبحث عن الترجمة عبر Wyzie/SubHub</string>
   <string name="search_stt_title">تحويل الكلام إلى نص</string>
-  <string name="search_stt_summary">إعداد مزوّد تحويل الكلام إلى نص والنموذج الفوري ولغة الصوت وتنسيق الإخراج</string>
-  <string name="search_translation_summary">ترجمة الترجمات الخارجية بالذكاء الاصطناعي مع لغات هدف للترجمة التلقائية</string>
   <string name="search_custom_ai_prompts_title">مطالبات ذكاء اصطناعي مخصّصة</string>
-  <string name="search_custom_ai_prompts_summary">تجاوز التعليمات الافتراضية لمهام إعادة التسمية والترجمة والتنسيق</string>
-  <string name="search_offline_ai_models_summary">تنزيل النماذج اللغوية المحلية وإدارتها لاستخدام ميزات الذكاء الاصطناعي دون اتصال بالكامل</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Decoder Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_decoder_vulkan_experimental_suffix">(تجريبي)</string>
   <string name="pref_anime4k_link">github.com/bloc97/Anime4K</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -977,33 +823,20 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="generic_hide_key">إخفاء المفتاح</string>
   <string name="generic_show_key">إظهار المفتاح</string>
-  <string name="generic_verify">تحقّق</string>
-  <string name="generic_fetch">جلب</string>
-  <string name="generic_got_it">حسنًا</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Advanced - Cache Sizes & Counts                            -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_clear_playback_history_summary">مسح مواضع التشغيل والترجمات المحددة ومسارات الصوت والتأخيرات والسرعات</string>
   <string name="pref_clear_playback_history_recently_played">يمسح أيضًا %1$d عنصرًا تم تشغيله مؤخرًا</string>
   <string name="pref_clear_playback_history_recently_played_none">لا توجد عناصر تم تشغيلها مؤخرًا لمسحها</string>
   <string name="pref_config_cache_summary">مسح إعدادات mpv.conf المخزّنة مؤقتًا</string>
   <string name="pref_config_cache_size">الحجم: %1$s</string>
   <string name="pref_thumbnail_cache_summary">حذف جميع الصور المصغرة المخزّنة مؤقتًا (ستُنشأ مجددًا أثناء تصفح المجلدات)</string>
   <string name="pref_thumbnail_cache_size">الحجم: %1$s</string>
-  <string name="pref_fonts_cache_summary">إزالة جميع خطوط الترجمة المخزّنة مؤقتًا</string>
   <string name="pref_fonts_cache_size">الحجم: %1$s · %2$d خط</string>
   <string name="pref_failed_to_clear">تعذّر المسح: %1$s</string>
   <string name="pref_export_failed">فشل التصدير: %1$s</string>
   <string name="pref_import_failed">فشل الاستيراد: %1$s</string>
-  <string name="pref_size_bytes">%1$d بايت</string>
-  <string name="pref_size_kb">%.1f كيلوبايت</string>
-  <string name="pref_size_mb">%.1f ميغابايت</string>
-  <string name="toast_need_ytdl">يجب تثبيت yt-dlp لتشغيل هذا الرابط (الإعدادات &gt; متقدم &gt; مدير yt-dlp)</string>
-  <string name="pref_ytdl_quality_any">أي جودة</string>
-  <string name="pref_ytdl_prefer_h264_title">تفضيل H.264 ‏(AVC)</string>
-  <string name="pref_ytdl_prefer_h264_summary">يزيد التوافق مع الأجهزة القديمة لكنه قد يحد من الجودة</string>
-  <string name="pref_ytdl_quality_title">الجودة المفضلة</string>
 
   <!-- Customizable Skip Keywords -->
   <string name="pref_custom_intro_keywords_enabled">استخدام كلمات مفتاحية مخصّصة لتخطّي المقدمات</string>
@@ -1059,8 +892,6 @@
   <string name="ui_add_button">إضافة زر</string>
   <string name="compressor_start_batch">بدء الضغط الدفعي</string>
   <string name="compressor_start">بدء الضغط</string>
-  <string name="pref_benchmark">اختبار الأداء</string>
-  <string name="pref_retest">إعادة الاختبار</string>
   <string name="pref_add_language">إضافة لغة</string>
   <string name="player_hdr_shaders_unavailable">تأثيرات HDR Toys غير متاحة</string>
   <string name="player_ambience_on">وضع الإضاءة المحيطية: مفعّل</string>
@@ -1137,26 +968,17 @@
     <item quantity="many">%1$d تعليقًا</item>
     <item quantity="other">%1$d تعليق</item>
   </plurals>
-  <string name="pref_section_contributors">المساهمون</string>
   <string name="contributors_loading">جارٍ تحميل المساهمين...</string>
   <string name="contributors_load_error">تعذر تحميل المساهمين</string>
   <string name="contributors_empty">لم يتم العثور على مساهمين.</string>
   <string name="contributors_retry">إعادة المحاولة</string>
-  <string name="contributors_view_all">عرض جميع المساهمين</string>
   <string name="network_connection_invalid_port">أدخل منفذًا من 1 إلى 65535</string>
   <plurals name="contributors_contribution_count">
     <item quantity="one">%1$d مساهمة</item>
     <item quantity="other">%1$d مساهمة</item>
   </plurals>
-  <string name="ytdlp_engine_installer">مثبّت المحرك</string>
-  <string name="ytdlp_quality_format">الجودة والتنسيق</string>
-  <string name="ytdlp_video_codec">ترميز الفيديو</string>
-  <string name="ytdlp_hdr_preference">تفضيل HDR</string>
   <string name="ytdlp_container">الحاوية</string>
-  <string name="ytdlp_audio_preference">تفضيل الصوت</string>
-  <string name="ytdlp_audio_quality">جودة الصوت</string>
   <string name="ytdlp_subtitles_language">الترجمة واللغة</string>
-  <string name="ytdlp_advanced_networking">خيارات الشبكة المتقدمة</string>
   <string name="ytdlp_playlist_behavior">سلوك قائمة التشغيل</string>
   <string name="ui_file_size">حجم الملف</string>
   <string name="ui_duration">المدة</string>
@@ -1177,7 +999,6 @@
   <string name="ambient_color">اللون</string>
   <string name="ambient_edge_blend">مزج الحواف</string>
   <string name="ambient_compositing">الدمج</string>
-  <string name="ambient_visual_style">النمط المرئي</string>
   <string name="controls_reset_default_title">إعادة الضبط إلى الافتراضي؟</string>
   <string name="controls_reset_default_summary">سيؤدي هذا إلى إعادة عناصر التحكم في هذه المنطقة إلى إعداداتها الافتراضية.</string>
   <string name="ui_no_audio_found">لم يتم العثور على صوت</string>
@@ -1185,7 +1006,6 @@
   <string name="pref_screenshots_section">لقطات الشاشة</string>
   <string name="lua_no_mpv_folder">لم يتم تحديد مجلد MPV</string>
   <string name="lua_no_scripts_found">لم يتم العثور على برامج نصية</string>
-  <string name="ambient_frame_extend">تمديد الإطار</string>
   <string name="lua_delete_script_title">حذف البرنامج النصي؟</string>
   <string name="lua_delete_script_message">هل أنت متأكد من حذف "%1$s"؟ لا يمكن التراجع عن هذا الإجراء.</string>
   <string name="search_category_advanced">متقدم</string>
@@ -1197,7 +1017,6 @@
   <string name="search_category_gestures">الإيماءات</string>
   <string name="search_category_player">المشغّل</string>
   <string name="search_category_subtitles">الترجمة</string>
-  <string name="search_generated_summary">إعداد خيار %1$s.</string>
   <string name="compressor_reduction_percent">−%1$d%%</string>
   <string name="compressor_add_preset">إضافة إعداد مسبق</string>
   <string name="compressor_default_audio">الصوت الافتراضي</string>
@@ -1296,7 +1115,6 @@
   <string name="media_info_stat_channels">القنوات</string>
   <string name="media_info_stat_sample_rate">معدل العينات</string>
   <string name="player_unknown_video">فيديو غير معروف</string>
-  <string name="ui_logcat">Logcat:</string>
   <string name="ui_home">الرئيسية</string>
   <string name="ui_recents">الأخيرة</string>
   <string name="ui_playlists">قوائم التشغيل</string>
@@ -1318,7 +1136,6 @@
   <string name="ui_pin_folders">تثبيت المجلدات</string>
   <string name="ui_unpin_folders">إلغاء تثبيت المجلدات</string>
   <string name="ui_add_to_playlist">إضافة إلى قائمة التشغيل</string>
-  <string name="ui_copy_path">نسخ المسار</string>
   <string name="ui_add_network_connection">إضافة اتصال شبكة</string>
   <string name="ui_name">الاسم</string>
   <string name="ui_protocol">البروتوكول</string>
@@ -1356,8 +1173,6 @@
   <string name="ui_ai_is_thinking">الذكاء الاصطناعي يفكّر...</string>
   <string name="ui_ai_rename">إعادة التسمية بالذكاء الاصطناعي</string>
   <string name="ui_fields">الحقول</string>
-  <string name="ui_folder_grid">شبكة المجلدات</string>
-  <string name="ui_video_grid">شبكة الفيديو</string>
   <string name="ui_loading_video_info">جارٍ تحميل معلومات الفيديو</string>
   <string name="ui_compressor">الضاغط</string>
   <string name="ui_save_to">حفظ في</string>
@@ -1401,9 +1216,7 @@
   <string name="ui_add_connection">إضافة اتصال</string>
   <string name="ui_local_network">الشبكة المحلية</string>
   <string name="ui_no_network_connections">لا توجد اتصالات شبكة</string>
-  <string name="ui_no_recent_links">لا توجد روابط بث أو ملفات تورنت حديثة حتى الآن. الصق رابط بث أعلاه للبدء.</string>
   <string name="ui_add_smb_ftp_or_webdav_connections_to_browse_network_files">أضف اتصالات SMB أو FTP أو WebDAV لتصفح ملفات الشبكة</string>
-  <string name="ui_stream_link">رابط البث</string>
   <string name="ui_enter_stream_url">أدخل رابط البث…</string>
   <string name="ui_paste_stream_url">لصق رابط البث</string>
   <string name="ui_clear_stream_url">مسح رابط البث</string>
@@ -1477,7 +1290,6 @@
   <string name="ui_invalid_url">رابط غير صالح</string>
   <string name="ui_playlist_options">خيارات قائمة التشغيل</string>
   <string name="ui_create_a_new_blank_playlist">إنشاء قائمة تشغيل فارغة جديدة</string>
-  <string name="ui_add_m3u_playlist_from_url">إضافة قائمة تشغيل M3U من رابط</string>
   <string name="ui_add_playlist_from_url">إضافة قائمة تشغيل من رابط</string>
   <string name="ui_import_a_playlist_from_a_web_url">استيراد قائمة تشغيل من رابط ويب</string>
   <string name="ui_custom_user_agent_optional">User-Agent مخصّص (اختياري)</string>
@@ -1485,8 +1297,6 @@
   <string name="ui_choose_local_m3u_file">اختيار ملف M3U محلي</string>
   <string name="ui_add_from_url">إضافة من رابط</string>
   <string name="ui_playlist_created_successfully">تم إنشاء قائمة التشغيل بنجاح</string>
-  <string name="ui_storage_access_required">يلزم الوصول إلى وحدة التخزين</string>
-  <string name="ui_allow_access">السماح بالوصول</string>
   <string name="ui_why_do_i_see_this">لماذا أرى هذا؟</string>
   <string name="ui_why_this_permission_is_needed">لماذا يلزم هذا الإذن</string>
   <string name="ui_mpvrx_needs_access_to_your_video_files_to_provide_its_core_funct">يحتاج mpvRx إلى الوصول إلى ملفات الفيديو لتوفير وظائفه الأساسية كمشغّل وسائط.</string>
@@ -1509,8 +1319,6 @@
   <string name="ui_notification_permission_desc">اختياري. مطلوب لعناصر التحكم في تشغيل الوسائط والحالة في الخلفية وتنبيهات التحديث.</string>
   <string name="ui_audio_record_permission_title">تسجيل الصوت</string>
   <string name="ui_audio_record_permission_desc">اختياري. مطلوب للمؤثرات المرئية للصوت لمعالجة الطيف وطاقة التردد في الوقت الفعلي.</string>
-  <string name="ui_permission_mandatory">إجباري</string>
-  <string name="ui_permission_optional">اختياري</string>
   <string name="ui_permission_granted">مسموح</string>
   <string name="ui_next">التالي</string>
   <string name="ui_grant_permission_hint">انقر لمنح الإذن</string>
@@ -1546,8 +1354,6 @@
   <string name="ui_enable_ass_override">تفعيل تجاوز ASS</string>
   <string name="ui_filter_presets">إعدادات الفلاتر المسبقة</string>
   <string name="ui_yt_dlp_manager">مدير yt-dlp</string>
-  <string name="ui_install_core">تثبيت النواة</string>
-  <string name="ui_update_core">تحديث النواة</string>
   <string name="ui_aspect_ratio">نسبة العرض إلى الارتفاع</string>
   <string name="ui_auto_crop_black_bars">قص الحواف السوداء تلقائيًا</string>
   <string name="ui_auto_crop_black_bars_summary">أخذ عينات من عدة إطارات في الخلفية وقص الحواف السوداء الثابتة المضمّنة في الفيديو.</string>
@@ -1602,8 +1408,6 @@
   <string name="ui_instructions_for_ai_subtitle_translation">تعليمات لترجمة الترجمة بالذكاء الاصطناعي...</string>
   <string name="ui_instructions_for_formatting_subtitle_search_queries">تعليمات لتنسيق استعلامات البحث عن الترجمة...</string>
   <string name="ui_subtitle_translation_can_be_a_bit_messy">قد تكون ترجمة الترجمات غير دقيقة بعض الشيء. </string>
-  <string name="ui_use_model">استخدام النموذج</string>
-  <string name="ui_active">نشط</string>
   <string name="ui_real_time_model">نموذج فوري</string>
   <string name="ui_auto_translate_target_languages">لغات هدف للترجمة التلقائية</string>
   <string name="ui_when_translating_subtitles_if_1_language_is_configured_it_transl">عند ترجمة الترجمات، إذا تم إعداد لغة واحدة فستُترجم مباشرة. وإذا تم إعداد لغتين أو أكثر فسيظهر محدّد.</string>
@@ -1616,11 +1420,7 @@
   <string name="ui_include_audio_files">تضمين ملفات الصوت</string>
   <string name="ui_show_audio_files_in_the_browser">إظهار ملفات الصوت في المتصفح</string>
   <string name="ui_minimum_audio_duration">الحد الأدنى لمدة الصوت</string>
-  <string name="ui_audio_blob_visualizer">مرئيات الفقاعة الصوتية</string>
-  <string name="ui_show_opengl_blob_visualizer_when_playing_audio">إظهار مرئيات فقاعة OpenGL أثناء تشغيل الصوت</string>
-  <string name="ui_keep_audio_and_video_playing_when_leaving_the_player_or_locking">إبقاء الصوت والفيديو قيد التشغيل عند مغادرة المشغّل أو قفل الشاشة</string>
   <string name="ui_unsaved_changes">تغييرات غير محفوظة</string>
-  <string name="ui_reset_incompatible_configuration">إعادة ضبط الإعداد غير المتوافق</string>
   <string name="ui_help">مساعدة</string>
   <string name="ui_no_storage_location_set">لم يتم تعيين موقع التخزين</string>
   <string name="ui_failed_to_create_file">تعذّر إنشاء الملف</string>
@@ -1676,37 +1476,10 @@
   <string name="ui_restricted_requires_paid_api_key">مقيّد (يتطلب مفتاح API مدفوعًا)</string>
   <string name="ui_restricted">مقيّد</string>
   <string name="ui_yt_dlp_streaming">بث yt-dlp</string>
-  <string name="ui_yt_dlp_core_engine">المحرك الأساسي لـ yt-dlp</string>
-  <string name="ui_manage_yt_dlp_environment">إدارة بيئة yt-dlp</string>
-  <string name="ui_download_the_latest_wrapper_modules_and_compile_python_friendly">تنزيل أحدث وحدات التغليف وتجميع ملفات ثنائية أصلية متوافقة مع Python داخل مجلدات محلية معزولة.</string>
-  <string name="ui_update_to_nightly_build">التحديث إلى الإصدار الليلي</string>
-  <string name="ui_streaming_quality">جودة البث</string>
-  <string name="ui_bitrate_caps_apply_when_yt_dlp_reports_audio_bitrate_metadata">تُطبّق حدود معدل البت عندما يبلّغ yt-dlp عن بيانات معدل بت الصوت.</string>
-  <string name="ui_generated_format_string">سلسلة التنسيق المنشأة</string>
   <string name="ui_download_media_subtitles">تنزيل ترجمات الوسائط</string>
   <string name="ui_automatically_extract_and_load_physical_subtitle_tracks_from_sup">استخراج مسارات الترجمة الفعلية وتحميلها تلقائيًا من الروابط المدعومة.</string>
   <string name="ui_include_auto_generated_subtitles">تضمين الترجمات المنشأة تلقائيًا</string>
   <string name="ui_fetch_auto_caption_tracks_e_g_youtube_speech_to_text_when_regula">جلب مسارات التسميات التلقائية (مثل تحويل كلام YouTube إلى نص) عند غياب الترجمات العادية.</string>
-  <string name="ui_overrides_app_subtitle_languages_only_for_yt_dlp_downloads">يتجاوز لغات الترجمة في التطبيق لتنزيلات yt-dlp فقط.</string>
-  <string name="ui_advanced_configurations">إعدادات متقدمة</string>
-  <string name="ui_custom_http_agent_proxy_extractor_args_sponsorblock_and_raw_opti">وكيل HTTP مخصّص، وProxy، ووسائط المستخرج، وSponsorBlock، وخيارات خام</string>
-  <string name="ui_format_sort">ترتيب التنسيقات</string>
-  <string name="ui_passed_to_yt_dlp_as_format_sort_for_advanced_ranking">يُمرّر إلى yt-dlp كـ format-sort للترتيب المتقدم.</string>
-  <string name="ui_merge_output_format">تنسيق دمج الإخراج</string>
-  <string name="ui_custom_user_agent_override">تجاوز User-Agent مخصّص</string>
-  <string name="ui_leave_blank_to_use_default_browser_user_agent_helps_bypass_anti">اتركه فارغًا لاستخدام User-Agent الافتراضي للمتصفح. يساعد على تجاوز أدوات منع الروبوتات.</string>
-  <string name="ui_referer">الصفحة المُحيلة</string>
-  <string name="ui_cookies_file">ملف Cookies</string>
-  <string name="ui_proxy">الوكيل</string>
-  <string name="ui_extractor_args">وسائط المستخرج</string>
-  <string name="ui_geo_bypass">تجاوز القيود الجغرافية</string>
-  <string name="ui_ask_yt_dlp_to_use_its_extractor_level_region_bypass_logic">اطلب من yt-dlp استخدام منطق تجاوز المنطقة على مستوى المستخرج.</string>
-  <string name="ui_live_from_start">البث المباشر من البداية</string>
-  <string name="ui_start_live_streams_from_the_beginning_when_the_extractor_support">بدء البث المباشر من البداية عندما يدعم المستخرج ذلك.</string>
-  <string name="ui_sponsorblock_mark">تعليم SponsorBlock</string>
-  <string name="ui_sponsorblock_remove">إزالة SponsorBlock</string>
-  <string name="ui_raw_yt_dlp_options">خيارات yt-dlp الخام</string>
-  <string name="ui_anything_not_exposed_above_separate_options_with_new_lines_or_co">أي خيار غير معروض أعلاه. افصل الخيارات بأسطر جديدة أو فواصل؛ وضع القيم التي تتضمن فواصل بين علامتي اقتباس.</string>
   <string name="ui_video_title">عنوان الفيديو</string>
   <string name="ui_1_06_chapter_1">1:06 • الفصل 1</string>
   <string name="ui_downloading">جارٍ التنزيل...</string>
@@ -1794,7 +1567,6 @@
   <string name="filter_preset_save">حفظ</string>
   <string name="syncplay_title">Syncplay</string>
   <string name="syncplay_description">شاهد مقاطع الفيديو متزامنة مع أصدقائك. اتصل بخادم Syncplay لبدء المشاهدة معًا.</string>
-  <string name="syncplay_open">فتح Syncplay</string>
   <string name="syncplay_connected_as">متصل باسم %1$s في الغرفة %2$s</string>
   <string name="syncplay_users_in_room">المستخدمون في الغرفة:</string>
   <string name="syncplay_disconnect">قطع الاتصال</string>
@@ -1804,7 +1576,6 @@
   <string name="syncplay_room_name">اسم الغرفة</string>
   <string name="syncplay_password_optional">كلمة المرور (اختيارية)</string>
   <string name="syncplay_error">خطأ: %1$s</string>
-  <string name="syncplay_connection_failed">فشل الاتصال</string>
   <string name="syncplay_connect">اتصال</string>
   <string name="syncplay_connecting">جارٍ الاتصال…</string>
   <string name="syncplay_player_status">Syncplay: %1$s (%2$d مستخدمين)</string>
@@ -1822,33 +1593,18 @@
   <string name="player_sheets_track_lang_wo_title">#%1$d: %2$s</string>
   <string name="player_sheets_track_title_w_lang">#%1$d: %2$s (%3$s)</string>
   <string name="player_sheets_track_title_wo_lang">#%1$d: %2$s</string>
-  <string name="pref_about_donate_kofi_url">https://ko-fi.com/adityanarvekar</string>
-  <string name="pref_about_donate_paypal_url">https://paypal.me/aadinarvekar</string>
-  <string name="pref_about_donate_upi_id">aadiinarvekar@upi</string>
   <string name="ui_24fps">24fps</string>
   <string name="ui_30fps">30fps</string>
   <string name="ui_60fps">60fps</string>
-  <string name="ui_all_or_en_ja">all or en.*,ja</string>
   <string name="ui_av1">AV1</string>
-  <string name="ui_extractor_args_2">extractor-args=\"youtube:player_client=android,web\"\ngeo-bypass=</string>
   <string name="ui_h_264">H.264</string>
   <string name="ui_h_265">H.265</string>
-  <string name="ui_mozilla_5_0">Mozilla/5.0 ...</string>
-  <string name="ui_mp4_mkv_webm">mp4, mkv, webm</string>
-  <string name="ui_res_fps_hdr_12_vcodec_vp9_2">res,fps,hdr:12,vcodec:vp9.2</string>
-  <string name="ui_socks5_127_0_0_1_1080">socks5://127.0.0.1:1080</string>
-  <string name="ui_sponsor">sponsor</string>
-  <string name="ui_sponsor_selfpromo">sponsor,selfpromo</string>
-  <string name="ui_storage_emulated_0_download_cookies_txt">/storage/emulated/0/Download/cookies.txt</string>
-  <string name="ui_youtube_player_client_android_web">youtube:player_client=android,web</string>
   <string name="volume_slider_absolute_value">%d</string>
 
   <!-- Secure Folder -->
   <string name="secure_folder_title">المجلد الآمن</string>
-  <string name="secure_folder_summary">مساحة محمية برمز PIN للفيديوهات التي تريد إخفاءها من المكتبة.</string>
   <string name="secure_folder_dont_ask_again">عدم السؤال مرة أخرى</string>
   <string name="secure_folder_enter_pin">أدخل رمز PIN</string>
-  <string name="secure_folder_unlock">إلغاء القفل</string>
   <string name="secure_folder_forgot_pin">نسيت رمز PIN؟</string>
   <string name="secure_folder_setup_title">إعداد المجلد الآمن</string>
   <string name="secure_folder_setup_subtitle">اختر رمز PIN وسؤال أمان للاسترداد.</string>
@@ -1862,7 +1618,6 @@
   <string name="secure_folder_confirm_pin">تأكيد رمز PIN</string>
   <string name="secure_folder_security_question">سؤال الأمان</string>
   <string name="secure_folder_new_security_question">سؤال أمان جديد</string>
-  <string name="secure_folder_question">السؤال</string>
   <string name="secure_folder_answer">الإجابة</string>
   <string name="secure_folder_answer_security_question">أجب عن سؤال الأمان الخاص بك</string>
   <string name="secure_folder_no_question_set">لم يتم تعيين سؤال أمان.</string>
@@ -1875,11 +1630,7 @@
   <string name="secure_folder_pin_changed">تم تغيير رمز PIN بنجاح</string>
   <string name="secure_folder_security_question_changed">تم تحديث سؤال الأمان</string>
   <string name="secure_folder_use_fingerprint">استخدام بصمة الإصبع</string>
-  <string name="secure_folder_enable_fingerprint">تفعيل بصمة الإصبع</string>
-  <string name="secure_folder_disable_fingerprint">تعطيل بصمة الإصبع</string>
   <string name="secure_folder_use_face_unlock">استخدام فتح الوجه</string>
-  <string name="secure_folder_enable_face_unlock">تفعيل فتح الوجه</string>
-  <string name="secure_folder_disable_face_unlock">تعطيل فتح الوجه</string>
   <string name="secure_folder_sq_pet">ما هو اسم أول حيوان أليف لك؟</string>
   <string name="secure_folder_sq_mother">ما هو اسم عائلة والدتك قبل الزواج؟</string>
   <string name="secure_folder_sq_school">ما هو اسم أول مدرسة ارتدتها؟</string>
@@ -1900,14 +1651,7 @@
   <string name="secure_folder_hide_entry_title">إخفاء المجلد الآمن من التفضيلات؟</string>
   <string name="secure_folder_hide_entry_subtitle">سيتم إزالة صف \"المجلد الآمن\" من التفضيلات. لفتحه لاحقاً، انقر مرتين على اسم التطبيق في أعلى الشاشة الرئيسية وأدخل رمز PIN.</string>
   <string name="secure_folder_working_on_it">جاري العمل…</string>
-  <string name="secure_folder_selected_count">تم تحديد %1$d</string>
-  <string name="secure_folder_cancel_selection">إلغاء التحديد</string>
   <string name="secure_folder_restore">استعادة</string>
-  <string name="secure_folder_delete_forever">حذف نهائي</string>
-  <string name="secure_folder_show_in_preferences">إظهار في التفضيلات</string>
-  <string name="secure_folder_hide_from_preferences">إخفاء من التفضيلات</string>
-  <string name="secure_folder_change_pin">تغيير رمز PIN</string>
-  <string name="secure_folder_change_security_question">تغيير سؤال الأمان</string>
   <string name="secure_folder_move_to">نقل إلى المجلد الآمن</string>
   <string name="secure_folder_moving_progress">جاري النقل إلى المجلد الآمن…</string>
   <string name="secure_folder_move_folders_title">نقل %1$d مجلد إلى المجلد الآمن؟</string>
@@ -1918,7 +1662,6 @@
   <string name="secure_folder_moved_partial">تم نقل %1$d، وفشل %2$d</string>
   <string name="secure_folder_move_failed">فشل نقل الملفات إلى المجلد الآمن</string>
   <string name="secure_folder_error_incorrect_pin">رمز PIN غير صحيح</string>
-  <string name="secure_folder_error_pin_min_digits">يجب أن يتكون رمز PIN من 4 أرقام</string>
   <string name="secure_folder_error_pins_dont_match">رموز PIN غير متطابقة</string>
   <string name="secure_folder_error_answer_question">يرجى الإجابة على سؤال الأمان</string>
   <string name="secure_folder_error_fill_both_fields">يرجى ملء كلا الحقلين</string>
@@ -1987,12 +1730,11 @@
   <string name="pref_codecs_hardware_features">ميزات العتاد:</string>
   <string name="pref_codecs_min_resolution">أدنى دقة: %s</string>
   <string name="pref_codecs_alignment">محاذاة البكسل: %1$dx%2$d</string>
-  <string name="ui_music">Music</string>
+  <string name="ui_music">موسيقى</string>
   <string name="pref_nav_music_title">إظهار تبويب الموسيقى</string>
   <string name="pref_nav_music_summary">إظهار الموسيقى أو إخفاؤها في شريط التنقل السفلي</string>
   <string name="player_up_next_title">قائمة التشغيل</string>
   <string name="player_lyrics_title">كلمات الأغاني</string>
-  <string name="lyrics_loading_label">جارٍ جلب الكلمات…</string>
   <string name="instrumental">موسيقى فقط</string>
   <string name="lyrics_source_embedded">مضمنة</string>
   <string name="lyrics_source_online">عبر الإنترنت</string>
@@ -2008,15 +1750,7 @@
   <string name="pref_section_p2p_streaming">بث P2P</string>
   <string name="pref_network_summary">بث P2P ومدير yt-dlp</string>
   <string name="toast_torrent_streaming_disabled">فعّل بث التورنت P2P في الإعدادات المتقدمة أولاً</string>
-  <string name="ui_recent_stream_links">الروابط الأخيرة</string>
-  <string name="ui_torrent_files">تورنت</string>
-  <string name="ui_expand_torrent_group">إظهار ملفات التورنت</string>
-  <string name="ui_collapse_torrent_group">إخفاء ملفات التورنت</string>
-  <string name="ui_delete_torrent_group">إزالة التورنت</string>
-  <string name="torrent_picker_back">إغلاق التورنت</string>
   <string name="torrent_picker_choose_title">اختر ما تريد تشغيله</string>
-  <string name="torrent_picker_finding_details">جارٍ البحث عن الغلاف والتفاصيل…</string>
-  <string name="torrent_picker_play_file">تشغيل %1$s</string>
   <string name="torrent_picker_preparing_title">جارٍ قراءة التورنت</string>
   <string name="torrent_picker_preparing_description">جارٍ الاتصال بالأقران والبحث عن ملفات قابلة للتشغيل…</string>
   <string name="torrent_picker_error_title">تعذّر فتح التورنت</string>
@@ -2025,10 +1759,6 @@
   <string name="torrent_picker_single_episode_label">الحلقة %1$d</string>
   <string name="ui_new_password_keep_existing">كلمة مرور جديدة (اتركها فارغة للإبقاء على كلمة المرور المحفوظة)</string>
   <string name="ui_clear_saved_password">مسح كلمة المرور المحفوظة</string>
-  <plurals name="ui_torrent_group_file_count">
-    <item quantity="one">%1$d ملف قابل للتشغيل</item>
-    <item quantity="other">%1$d ملفات قابلة للتشغيل</item>
-  </plurals>
   <plurals name="torrent_picker_playable_count">
     <item quantity="one">%1$d ملف قابل للتشغيل</item>
     <item quantity="other">%1$d ملفات قابلة للتشغيل</item>
@@ -2041,21 +1771,9 @@
     <string name="pref_enable_hls_proxy_title">تفعيل وكيل بث HLS</string>
     <string name="pref_enable_hls_proxy_summary">معالجة تدفقات HLS التكيفية وتقسيم مسارات الصوت والفيديو</string>
     <string name="ui_recent_streams">روابط البث الأخيرة</string>
-    <string name="ui_autofill_stream_url">ملء عنوان رابط البث تلقائياً</string>
-    <string name="ui_torrent_media_anime">أنمي</string>
-    <string name="ui_torrent_media_series">مسلسل</string>
-    <string name="ui_torrent_media_movie">فيلم</string>
-    <string name="ui_torrent_media_torrent">تورنت</string>
-    <string name="ui_resume_playback">استئناف</string>
     <string name="ui_play_now">تشغيل</string>
-    <string name="ui_show_more">عرض المزيد</string>
-    <string name="ui_show_less">عرض أقل</string>
-    <string name="ui_episodes">الحلقات</string>
-    <string name="ui_no_torrents_title">لا توجد ملفات تورنت محفوظة</string>
-    <string name="ui_no_torrents_description">الصق رابط مغناطيسي أو عنوان URL للتورنت أعلاه لبث الأنمي والأفلام.</string>
     <string name="ui_no_saved_media_title">لا توجد روابط محفوظة</string>
     <string name="ui_no_saved_media_description">الصق رابط بث أو رابط مغناطيسي أو احفظ من الروابط الأخيرة لبناء مجموعتك.</string>
-    <string name="ui_save_to_media">حفظ في الوسائط</string>
     <string name="ui_search_episodes">بحث في الحلقات…</string>
     <string name="ui_sort_ascending">ترتيب تصاعدي</string>
     <string name="ui_sort_descending">ترتيب تنازلي</string>
@@ -2067,12 +1785,8 @@
   <string name="pref_mpv_conf_overrides_title">ملكية خيارات mpv.conf</string>
   <string name="pref_mpv_conf_overrides_summary_app_owned">يتحكم التطبيق في جميع خيارات التشغيل المدعومة (موصى به)</string>
   <string name="pref_mpv_conf_overrides_summary_config_owned">تم تحديد %1$d من المجموعات وإسناد %2$d من خيارات التطبيق إلى mpv.conf</string>
-  <string name="pref_mpv_conf_overrides_dialog_title">السماح لـ mpv.conf بالتحكم في الخيارات</string>
-  <string name="pref_mpv_conf_overrides_dialog_message">حدد الفئات أو الخيارات لإسنادها إلى mpv.conf. سيتم تعطيل عناصر تحكم التطبيق للخيارات المحددة.</string>
   <string name="pref_mpv_conf_overrides_empty_config_warning">لم يتم اكتشاف ملف mpv.conf نشط. ستستخدم القيم الافتراضية حتى يتم ضبطها.</string>
-  <string name="pref_mpv_conf_overrides_protected_message">تظل إدارة دورة حياة Android وأوامر التشغيل والترويسات والشهادات تحت إدارة التطبيق دائمًا.</string>
   <string name="pref_mpv_conf_overrides_reset">إعادة جميع الفئات إلى تحكم التطبيق</string>
-  <string name="pref_mpv_conf_overrides_selected_count">تم تحديد %1$d من أصل %2$d خيارًا</string>
   <string name="pref_mpv_conf_override_renderer">العارض وواجهة GPU الخلفية</string>
   <string name="pref_mpv_conf_override_renderer_summary">يتجاوز إعدادات واجهة GPU وVulkan والملف الشخصي.</string>
   <string name="pref_mpv_conf_override_decoder">وحدة فك الترميز المادية</string>
@@ -2113,22 +1827,14 @@
   <string name="lyrics_translation_off">كلمات الأغاني الأصلية</string>
   <string name="lyrics_translation_failed">تعذّرت ترجمة كلمات الأغنية. حاول مرة أخرى.</string>
   <string name="lyrics_translation_partial">تعذّرت ترجمة بعض أسطر كلمات الأغنية.</string>
-  <string name="lyrics_select_language">تحديد اللغة المستهدفة</string>
 
   <!-- Clip -->
   <string name="clip_action">إنشاء مقطع</string>
   <string name="clip_options">خيارات المقطع</string>
-  <string name="clip_crop_action">اقتصاص وإنشاء مقطع</string>
-  <string name="clip_mark_start">تحديد البداية</string>
-  <string name="clip_mark_end">تحديد النهاية</string>
   <string name="clip_crop">اقتصاص</string>
   <string name="clip_save">حفظ المقطع</string>
   <string name="clip_cancel">إلغاء</string>
   <string name="clip_done">تم</string>
-  <string name="clip_clear">مسح المقطع</string>
-  <string name="clip_start_time">البداية: %1$s</string>
-  <string name="clip_end_time">النهاية: %1$s</string>
-  <string name="clip_end_not_set">النهاية: غير محددة</string>
   <string name="clip_crop_size">الاقتصاص: %1$d × %2$d</string>
   <string name="clip_crop_full_frame">الاقتصاص: الإطار الكامل</string>
   <string name="clip_select_crop">غيّر حجم الإطار للاحتفاظ بالجزء المطلوب</string>
@@ -2146,20 +1852,15 @@
   <string name="seerr_connect_server">الاتصال بـ Seerr</string>
   <string name="seerr_server_url">رابط خادم Seerr</string>
   <string name="seerr_server_url_hint">http://192.168.1.100:5055</string>
-  <string name="seerr_use_jellyfin_account">استخدام حساب Jellyfin</string>
-  <string name="seerr_use_jellyfin_account_desc">تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور في Jellyfin</string>
   <string name="seerr_api_key">مفتاح API</string>
   <string name="seerr_api_key_hint">مفتاح API لـ Overseerr / Jellyseerr</string>
   <string name="seerr_username">اسم المستخدم أو البريد الإلكتروني</string>
   <string name="seerr_password">كلمة المرور</string>
   <string name="seerr_login">اتصال</string>
   <string name="seerr_disconnect">قطع الاتصال</string>
-  <string name="seerr_connected_as">متصل كـ %1$s</string>
   <string name="seerr_not_connected">غير متصل بخادم Seerr</string>
   <string name="seerr_connect_cta">اتصل بخادم Jellyseerr أو Overseerr لاستكشاف وطلب الأفلام والمسلسلات.</string>
   <string name="seerr_recently_added">أُضيف حديثًا</string>
-  <string name="seerr_active_requests">الطلبات النشطة</string>
-  <string name="seerr_available_requests">الطلبات المتاحة</string>
   <string name="seerr_trending">الأكثر تداولاً</string>
   <string name="seerr_popular_movies">أفلام شائعة</string>
   <string name="seerr_popular_tv">مسلسلات شائعة</string>
@@ -2167,36 +1868,22 @@
   <string name="seerr_upcoming_tv">مسلسلات قادمة</string>
   <string name="seerr_request_movie">طلب فيلم</string>
   <string name="seerr_request_tv">طلب مسلسل</string>
-  <string name="seerr_request_4k">طلب بجودة 4K</string>
-  <string name="seerr_all_seasons">جميع المواسم</string>
   <string name="seerr_select_seasons">تحديد المواسم</string>
   <string name="seerr_status_pending">بانتظار الموافقة</string>
   <string name="seerr_status_processing">قيد المعالجة</string>
   <string name="seerr_status_available">متاح</string>
   <string name="seerr_status_partially_available">متاح جزئيًا</string>
   <string name="seerr_status_requested">مطلوب</string>
-  <string name="seerr_status_not_requested">غير مطلوب</string>
   <string name="seerr_approve">موافقة</string>
   <string name="seerr_decline">رفض</string>
-  <string name="seerr_delete">حذف</string>
   <string name="seerr_play_in_jellyfin">تشغيل في mpvRx</string>
-  <string name="seerr_open_in_jellyfin">فتح في Jellyfin</string>
-  <string name="seerr_available_on_jellyfin">متاح في المكتبة</string>
   <string name="seerr_search_placeholder">البحث عن أفلام ومسلسلات في Seerr…</string>
-  <string name="seerr_request_success">تم إرسال الطلب بنجاح</string>
-  <string name="seerr_request_error">فشل إرسال الطلب</string>
-  <string name="seerr_tab_all">الكل</string>
-  <string name="seerr_tab_movies">أفلام</string>
-  <string name="seerr_tab_tv">مسلسلات</string>
-  <string name="seerr_tab_my_requests">طلباتي</string>
   <string name="ui_release_channel">قناة الإصدار</string>
   <string name="ui_install_stable">تثبيت الإصدار المستقر</string>
   <string name="ui_update_stable">تحديث الإصدار المستقر</string>
   <string name="ui_switch_to_stable">التبديل إلى الإصدار المستقر</string>
   <string name="ui_update_nightly">تحديث الإصدار الليلي</string>
   <string name="ui_switch_to_nightly">التبديل إلى الإصدار الليلي</string>
-  <string name="ui_playback_defaults">إعدادات التشغيل الافتراضية</string>
-  <string name="ui_maximum_quality">أقصى جودة</string>
   <string name="ui_checking_yt_dlp">جارٍ التحقق من yt-dlp</string>
   <string name="ui_yt_dlp_not_installed">yt-dlp غير مثبت</string>
   <string name="ui_yt_dlp_stable_release">الإصدار المستقر</string>
@@ -2225,7 +1912,6 @@
   <string name="update_beta_build_format">تجريبي r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(تجريبي)</string>
   <string name="player_video_quality">جودة الفيديو</string>
-  <string name="player_video_quality_summary">اختر جودة متاحة لهذا البث.</string>
   <string name="player_video_quality_button">جودة الفيديو</string>
   <string name="network_bookmark_add">وضع إشارة مرجعية للمجلد</string>
   <string name="network_bookmark_remove">إزالة إشارة المجلد المرجعية</string>
@@ -2238,14 +1924,6 @@
   <string name="onboarding_get_started">ابدأ</string>
   <string name="onboarding_all_set_title">كل شيء جاهز</string>
   <string name="onboarding_all_set_desc">يمكنك تغيير الأذونات في أي وقت من إعدادات النظام.</string>
-  <string name="onboarding_show_tutorial_title">عرض جولة سريعة</string>
-  <string name="onboarding_show_tutorial_desc">ثلاث نصائح سريعة بعد الإعداد</string>
-  <string name="tutorial_tabs_title">الأقسام</string>
-  <string name="tutorial_tabs_desc">اسحب أو انقر للتبديل.</string>
-  <string name="tutorial_search_title">بحث</string>
-  <string name="tutorial_search_desc">اعثر على أي ملف بسرعة.</string>
-  <string name="tutorial_settings_title">الإعدادات</string>
-  <string name="tutorial_settings_desc">اضبط كل شيء من هنا.</string>
   <string name="onboarding_missing_permissions_title">غير ممنوحة</string>
   <string name="onboarding_missing_permissions_desc">يمكنك منحها لاحقًا عند الحاجة.</string>
   <string name="storage_permission_needed_title">مطلوب إذن التخزين</string>
@@ -2282,8 +1960,6 @@
   <string name="downloads_empty_hint">تظهر هنا التنزيلات من الروابط وJellyfin</string>
   <string name="downloads_active_section">نشطة</string>
   <string name="downloads_completed_section">مكتملة</string>
-  <string name="downloads_pause">إيقاف مؤقت</string>
-  <string name="downloads_resume">استئناف</string>
   <string name="downloads_retry">إعادة المحاولة</string>
   <string name="downloads_cancel">إلغاء</string>
   <string name="downloads_remove_entry">إزالة من القائمة</string>
@@ -2308,7 +1984,6 @@
   <string name="downloads_play">تشغيل</string>
   <string name="downloads_open_downloads">فتح التنزيلات</string>
   <string name="pref_player_resume_playback_title">استئناف التشغيل</string>
-  <string name="pref_player_resume_playback_summary">اختر كيفية فتح مقاطع الفيديو التي شاهدتها سابقًا</string>
   <string name="pref_player_resume_mode_always">الاستئناف دائمًا</string>
   <string name="pref_player_resume_mode_always_summary">استئناف التشغيل تلقائيًا من آخر موضع محفوظ</string>
   <string name="pref_player_resume_mode_ask">اسأل في كل مرة</string>
@@ -2324,26 +1999,17 @@
   <string name="pref_resume_indicator_overlay_summary">عرض مؤشرات موضع الاستئناف أو البدء. وضع السؤال يعرض دائمًا مؤشر الاستئناف التفاعلي</string>
 
   <!-- Media Servers Settings -->
-  <string name="pref_section_media_servers">خوادم الوسائط</string>
   <string name="pref_media_servers_title">خوادم الوسائط</string>
   <string name="pref_media_servers_summary">Jellyfin و Seerr ومكتبات البث</string>
   <string name="pref_jellyfin_title">Jellyfin</string>
   <string name="pref_jellyfin_server_management">إدارة الخوادم</string>
-  <string name="pref_jellyfin_server_management_desc">إدارة الخوادم المتصلة والمثيل النشط</string>
   <string name="pref_music_player_switch_title">تبديل مشغل الموسيقى</string>
-  <string name="pref_music_player_switch_desc">اختر مصدر الصوت الافتراضي لتبويب الموسيقى</string>
   <string name="music_source_local">الجهاز المحلي</string>
-  <string name="music_source_local_desc">تشغيل الملفات الصوتية المخزنة على الجهاز</string>
   <string name="music_source_jellyfin">موسيقى Jellyfin</string>
-  <string name="music_source_jellyfin_desc">بث الموسيقى من خادم Jellyfin الخاص بك</string>
   <string name="pref_seerr_title">Seerr</string>
   <string name="pref_seerr_add_server">الاتصال بـ Seerr</string>
   <string name="pref_seerr_add_server_desc">إضافة خادم Seerr والاتصال به</string>
   <string name="pref_seerr_server_management">اتصال الخادم</string>
-  <string name="pref_seerr_server_management_desc">تهيئة رابط ومصادقة مثيل Seerr</string>
-  <string name="pref_seerr_disconnect">قطع الاتصال</string>
-  <string name="pref_seerr_connected_as">متصل كـ %1$s</string>
-  <string name="pref_seerr_not_connected">غير متصل</string>
   <string name="pref_jellyfin_no_server">لا يوجد خادم Jellyfin متصل</string>
   <string name="pref_jellyfin_add_server">الاتصال بـ Jellyfin</string>
   <string name="pref_jellyfin_add_server_desc">إضافة خادم Jellyfin والاتصال به</string>
@@ -2353,8 +2019,7 @@
   <string name="pref_server_set_active">تعيين كنشط</string>
   <string name="pref_server_more_options">مزيد من الخيارات</string>
   <string name="jellyfin_no_music_library">لم يتم العثور على مكتبة موسيقى في خادم Jellyfin هذا</string>
-  <string name="pref_appearance_custom_theme_title">سمة مخصصة</string><string name="pref_appearance_custom_theme_name">اسم السمة</string><string name="pref_appearance_custom_theme_light_primary">اللون الأساسي الفاتح</string><string name="pref_appearance_custom_theme_dark_primary">اللون الأساسي الداكن</string><string name="pref_appearance_custom_theme_light_background">لون الخلفية الفاتحة</string><string name="pref_appearance_custom_theme_dark_background">لون الخلفية الداكنة</string><string name="pref_appearance_custom_theme_none">لا توجد سمة مخصصة محفوظة</string><string name="pref_appearance_custom_theme_edit">إنشاء أو تعديل</string><string name="pref_appearance_custom_theme_clear">مسح</string><string name="pref_appearance_custom_theme_save">حفظ</string><string name="pref_appearance_custom_wallpaper_title">الخلفية</string><string name="pref_appearance_custom_wallpaper_summary">إظهار صورة بملء الشاشة خلف محتوى المتصفح والشريط العلوي</string><string name="pref_appearance_custom_wallpaper_choose">اختيار خلفية</string><string name="pref_appearance_custom_wallpaper_replace">استبدال الخلفية</string><string name="pref_appearance_custom_wallpaper_clear">مسح الخلفية</string>
-  <string name="pref_appearance_custom_wallpaper_home_preview">معاينة الشاشة الرئيسية</string>
+  <string name="pref_appearance_custom_theme_title">سمة مخصصة</string><string name="pref_appearance_custom_theme_name">اسم السمة</string><string name="pref_appearance_custom_theme_light_primary">اللون الأساسي الفاتح</string><string name="pref_appearance_custom_theme_dark_primary">اللون الأساسي الداكن</string><string name="pref_appearance_custom_theme_light_background">لون الخلفية الفاتحة</string><string name="pref_appearance_custom_theme_dark_background">لون الخلفية الداكنة</string><string name="pref_appearance_custom_theme_edit">إنشاء أو تعديل</string><string name="pref_appearance_custom_theme_clear">مسح</string><string name="pref_appearance_custom_theme_save">حفظ</string><string name="pref_appearance_custom_wallpaper_title">الخلفية</string><string name="pref_appearance_custom_wallpaper_summary">إظهار صورة بملء الشاشة خلف محتوى المتصفح والشريط العلوي</string>  <string name="pref_appearance_custom_wallpaper_home_preview">معاينة الشاشة الرئيسية</string>
   <string name="pref_appearance_custom_wallpaper_home_preview_close">اضغط في أي مكان للإغلاق</string>
   <string name="wallpaper_aspect_device">الجهاز</string>
   <string name="wallpaper_presets_label">الخلفيات</string>
@@ -2369,12 +2034,10 @@
   <string name="wallpaper_none_hint">بلا خلفية</string>
   <string name="pref_appearance_custom_wallpaper_preview_locked">المعاينة مقفلة</string>
   <string name="pref_appearance_custom_wallpaper_preview_unlocked">المعاينة غير مقفلة</string>
-  <string name="pref_appearance_custom_wallpaper_aspect_free">حر</string>
   <string name="pref_appearance_custom_wallpaper_crop_title">ضبط الخلفية</string><string name="pref_appearance_custom_wallpaper_zoom">تكبير</string><string name="pref_appearance_custom_wallpaper_horizontal">الموضع الأفقي</string><string name="pref_appearance_custom_wallpaper_vertical">الموضع العمودي</string><string name="pref_appearance_custom_wallpaper_save">حفظ الخلفية</string>
-  <string name="pref_appearance_custom_theme_new">سمة مخصصة جديدة</string><string name="pref_appearance_custom_theme_edit_title">تعديل السمة المخصصة</string><string name="pref_appearance_custom_theme_preview">معاينة</string><string name="pref_appearance_custom_theme_live_preview">معاينة مباشرة</string><string name="pref_appearance_custom_theme_name_required">أدخل اسم السمة</string><string name="pref_appearance_custom_theme_name_duplicate">توجد سمة بهذا الاسم بالفعل</string><string name="pref_appearance_custom_theme_hex_invalid">استخدم لونًا سداسيًا مثل #6750A4</string><string name="pref_appearance_custom_wallpaper_adjust">ضبط</string><string name="pref_appearance_custom_wallpaper_gesture_hint">اسحب لتغيير الموضع. قرّب بإصبعين للتكبير.</string><string name="pref_appearance_custom_wallpaper_reset">إعادة تعيين</string>
+  <string name="pref_appearance_custom_theme_new">سمة مخصصة جديدة</string><string name="pref_appearance_custom_theme_edit_title">تعديل السمة المخصصة</string><string name="pref_appearance_custom_theme_preview">معاينة</string><string name="pref_appearance_custom_theme_live_preview">معاينة مباشرة</string><string name="pref_appearance_custom_theme_name_required">أدخل اسم السمة</string><string name="pref_appearance_custom_theme_name_duplicate">توجد سمة بهذا الاسم بالفعل</string><string name="pref_appearance_custom_theme_hex_invalid">استخدم لونًا سداسيًا مثل #6750A4</string><string name="pref_appearance_custom_wallpaper_gesture_hint">اسحب لتغيير الموضع. قرّب بإصبعين للتكبير.</string><string name="pref_appearance_custom_wallpaper_reset">إعادة تعيين</string>
   <string name="pref_appearance_custom_theme_light_secondary">اللون الثانوي الفاتح</string><string name="pref_appearance_custom_theme_dark_secondary">اللون الثانوي الداكن</string><string name="pref_appearance_custom_theme_light_tertiary">اللون الثالث الفاتح</string><string name="pref_appearance_custom_theme_dark_tertiary">اللون الثالث الداكن</string>
-  <string name="pref_appearance_custom_wallpaper_fit">احتواء</string><string name="pref_appearance_custom_wallpaper_fill">ملء</string><string name="pref_appearance_custom_wallpaper_replace_action">استبدال</string><string name="pref_appearance_custom_wallpaper_clear_action">مسح</string>
-  <string name="pref_appearance_custom_wallpaper_use_colors">استخدام ألوان الخلفية</string>
+  <string name="pref_appearance_custom_wallpaper_fit">احتواء</string><string name="pref_appearance_custom_wallpaper_fill">ملء</string><string name="pref_appearance_custom_wallpaper_replace_action">استبدال</string>  <string name="pref_appearance_custom_wallpaper_use_colors">استخدام ألوان الخلفية</string>
   <string name="pref_appearance_custom_wallpaper_use_colors_summary">إنشاء سمة التطبيق من ألوان هذه الخلفية</string>
   <string name="pref_appearance_custom_wallpaper_colors_failed">تعذّر استخراج الألوان من هذه الخلفية</string>
   <string name="wallpaper_save_failed">تعذر حفظ الخلفية. يرجى اختيار الصورة مرة أخرى.</string>
@@ -2392,14 +2055,6 @@
   <string name="generic_configure">تهيئة</string>
   <string name="generic_install">تثبيت</string>
   <string name="music_source_navidrome">موسيقى Navidrome</string>
-  <string name="music_source_navidrome_desc">استمع إلى الموسيقى بالبث من خادم Navidrome</string>
-  <string name="navidrome_connect">اتصال</string>
-  <string name="navidrome_connect_failed">تعذر الاتصال بخادم Navidrome</string>
-  <string name="navidrome_connecting">جارٍ الاتصال…</string>
-  <string name="navidrome_password">كلمة المرور</string>
-  <string name="navidrome_server_address">عنوان الخادم</string>
-  <string name="navidrome_server_name">اسم الخادم (اختياري)</string>
-  <string name="navidrome_username">اسم المستخدم</string>
   <string name="notification_close">إغلاق</string>
   <string name="pp_desc_anime">تقليل التشويش وزيادة الحدة لمحتوى الأنمي.</string>
   <string name="pp_desc_bloom">إضافة هالة مضيئة حول المناطق الساطعة.</string>
@@ -2508,8 +2163,6 @@
   <string name="audiobook_language">اللغة</string>
   <string name="audiobook_publisher">الناشر</string>
   <string name="audiobook_published">تاريخ النشر</string>
-  <string name="audiobook_abridged">مختصر</string>
-  <string name="audiobook_unabridged">غير مختصر</string>
   <string name="audiobook_details">تفاصيل الكتاب</string>
   <string name="audiobook_edit">تعديل الكتاب</string>
   <string name="audiobook_save">حفظ</string>
@@ -2524,16 +2177,13 @@
   <string name="audiobook_in_progress">قيد الاستماع</string>
   <string name="audiobook_finished">مكتمل</string>
   <string name="audiobook_remaining">المتبقي %1$s</string>
-  <string name="audiobook_book_time">الكتاب</string>
   <string name="audiobook_chapters">الفصول</string>
   <string name="audiobook_previous_chapter">الفصل السابق</string>
   <string name="audiobook_next_chapter">الفصل التالي</string>
   <string name="audiobook_chapter_number">الفصل %1$d</string>
   <string name="audiobook_files">الملفات</string>
-  <string name="audiobook_bookmarks">الإشارات المرجعية</string>
   <string name="audiobook_add_bookmark">إضافة إشارة مرجعية</string>
   <string name="audiobook_bookmark_name">اسم الإشارة المرجعية</string>
-  <string name="audiobook_no_bookmarks">لا توجد إشارات مرجعية</string>
   <string name="audiobook_delete_bookmark">حذف الإشارة المرجعية</string>
   <string name="audiobook_sleep_timer">مؤقت النوم</string>
   <string name="audiobook_timer_off">إيقاف</string>
@@ -2541,12 +2191,8 @@
   <string name="audiobook_minutes">%1$d دقيقة</string>
   <string name="audiobook_smart_rewind">الرجوع بعد الإيقاف المؤقت</string>
   <string name="audiobook_seconds">%1$d ثانية</string>
-  <string name="audiobook_rewind">الرجوع 15 ثانية</string>
-  <string name="audiobook_forward">التقدم 30 ثانية</string>
   <string name="audiobook_pause">إيقاف مؤقت</string>
-  <string name="audiobook_stop">إيقاف الاستماع</string>
   <string name="audiobook_search">البحث عن كتب ومؤلفين ورواة</string>
-  <string name="audiobook_save_failed">تعذر حفظ تقدم الاستماع.</string>
   <string name="audiobook_play_failed">تعذر فتح هذا الكتاب. تحقق من إمكانية الوصول إلى ملفاته.</string>
   <string name="audiobook_retry">إعادة المحاولة</string>
   <string name="playback_bookmarks_empty">لا توجد إشارات مرجعية أو فصول</string>
@@ -2560,7 +2206,6 @@
   <string name="pref_audiobookshelf_add_another_server">إضافة خادم آخر</string>
   <string name="pref_audiobookshelf_add_another_server_desc">الاتصال بخادم Audiobookshelf إضافي</string>
   <string name="audiobook_source_audiobookshelf">Audiobookshelf</string>
-  <string name="audiobook_source_audiobookshelf_desc">تشغيل الكتب الصوتية من خادم Audiobookshelf</string>
   <string name="audiobook_source_local">الكتب الصوتية المحلية</string>
   <string name="pref_audiobookshelf_no_server">لا يوجد خادم Audiobookshelf متصل</string>
   <string name="audio_swipe_delete_title">حذف الملفات الصوتية؟</string>
@@ -2685,7 +2330,6 @@
   <string name="snapshot_sort_item_count">عدد اللقطات</string>
 
   <string name="snapshot_search_folder_placeholder">البحث في المجلدات واللقطات</string>
-  <string name="snapshot_folder_count">%1$d لقطات</string>
   <string name="playlist_add_zip">إضافة أرشيف ZIP</string>
   <string name="playlist_zip_import_success">تم حفظ قائمة تشغيل ZIP</string>
   <string name="playlist_zip_import_failed">تعذرت إضافة أرشيف ZIP. اختر ملف ZIP قابلًا للقراءة ويدعم الوصول العشوائي ويحتوي على ملفات صوت أو فيديو.</string>
@@ -2702,9 +2346,7 @@
   <string name="pref_auto_backup_summary">يحفظ الإعدادات المتغيرة في Configuration/Backup عند انتقال mpvRx إلى الخلفية، مع الاحتفاظ بآخر سبع نسخ.</string>
   <string name="pref_auto_backup_select_folder">اختر مجلد الإعدادات أولًا</string>
   <string name="pref_auto_backup_last_backup">آخر نسخة: %1$s</string>
-  <string name="pref_auto_backup_folder_title">مجلد النسخ الاحتياطي</string>
   <string name="watch_stats_title">إحصاءات المشاهدة</string>
-  <string name="watch_stats_summary">وقت التشغيل والنشاط والوسائط الأكثر مشاهدة</string>
   <string name="watch_stats_total_time">إجمالي وقت المشاهدة</string>
   <string name="watch_stats_sessions">%1$d جلسات تشغيل</string>
   <string name="watch_stats_reset">إعادة تعيين</string>
@@ -2729,7 +2371,6 @@
   <string name="pref_seekbar_preview_skip_markers">علامات التخطي</string>
   <string name="pref_liquid_glass_optics">البصريات</string>
   <string name="pref_liquid_glass_opacity">عتامة الخلفية</string>
-  <string name="pref_liquid_glass_blur">شدة التمويه</string>
   <string name="pref_liquid_glass_refraction_height">عرض حافة الانكسار</string>
   <string name="pref_liquid_glass_refraction_amount">شدة الانكسار</string>
   <string name="pref_liquid_glass_depth">تأثير العمق</string>
@@ -2762,11 +2403,6 @@
   <string name="network_smb_share_hint">اتركه فارغًا أو استخدم / لتصفح جميع المجلدات المشتركة. أدخل /Media أو /Media/Movies لفتح مجلد محدد.</string>
   <string name="pref_app_icon_title">أيقونة التطبيق</string>
   <string name="pref_app_icon_summary">اختر الأيقونة التي تظهر في المشغل</string>
-  <string name="pref_app_icon_description">اختر أيقونة التطبيق. يمكن إضافة تصاميم أخرى لاحقًا.</string>
-  <string name="app_icon_purple">الشريط البنفسجي</string>
-  <string name="app_icon_purple_description">شعار mpvRx المتدرج الجديد (الافتراضي)</string>
-  <string name="app_icon_classic">الكلاسيكية</string>
-  <string name="app_icon_classic_description">أيقونة mpvRx الأصلية</string>
   <string name="app_icon_change_failed">تعذر تغيير أيقونة التطبيق.</string>
   <string name="lyrics_provider_auto_best">أفضل تطابق: %1$s</string>
   <string name="lyrics_provider_row_current">المزوّد الحالي</string>
@@ -2799,4 +2435,172 @@
   <string name="lyrics_empty_line_4">دع اللحن يتكلم</string>
   <string name="lyrics_empty_line_5">ضاعت الكلمات</string>
   <string name="lyrics_empty_line_6">غنِّ من الذاكرة</string>
+
+  <string name="generic_back">رجوع</string>
+  <string name="generic_home">الرئيسية</string>
+  <string name="cast_playback_speed">سرعة التشغيل</string>
+  <string name="generic_search">بحث</string>
+  <string name="generic_no_matching_options">لا توجد خيارات مطابقة</string>
+  <string name="generic_unknown">غير معروف</string>
+  <string name="pref_appearance_category_liquid_glass">الزجاج السائل</string>
+  <string name="ui_select_model">اختر نموذجًا</string>
+  <string name="ai_model_search_empty">لا توجد نماذج مطابقة</string>
+  <string name="ai_model_none_available">لا توجد نماذج متاحة</string>
+  <plurals name="ai_model_result_count">
+    <item quantity="zero">لا توجد نماذج (%1$d)</item>
+    <item quantity="one">نموذج واحد (%1$d)</item>
+    <item quantity="two">نموذجان (%1$d)</item>
+    <item quantity="few">%1$d نماذج</item>
+    <item quantity="many">%1$d نموذجًا</item>
+    <item quantity="other">%1$d نموذج</item>
+  </plurals>
+  <string name="folder_search_hint">ابحث عن مجلدات</string>
+  <string name="folder_blacklist_scope">استبعاد من</string>
+  <string name="folder_blacklist_both">كليهما</string>
+  <string name="folder_blacklist_video">الفيديو</string>
+  <string name="folder_blacklist_audio">الصوت</string>
+  <string name="subtitle_source_search_hint">ابحث عن مصادر الترجمة</string>
+  <string name="subtitle_sources_load_error">تعذر تحميل مصادر الترجمة</string>
+  <string name="hall_of_fame_subtitle">نحتفي بأبرز المساهمين</string>
+  <string name="hall_of_fame_featured_subtitle">أشخاص رائعون يجعلون هذا المشروع أفضل</string>
+  <string name="hall_of_fame_view_all">عرض الكل</string>
+  <string name="hall_of_fame_contributor_badge">مساهم</string>
+  <string name="hall_of_fame_tester_badge">مختبِر</string>
+  <string name="hall_of_fame_show_section">إظهار</string>
+  <string name="hall_of_fame_hide_section">إخفاء</string>
+  <string name="media_widget_name">تشغيل mpvRx</string>
+  <string name="media_widget_description">تحكم في تشغيل الصوت والفيديو</string>
+  <string name="media_widget_pill_name">شريط موسيقى mpvRx</string>
+  <string name="media_widget_pill_description">عناصر تحكم مصغرة لتشغيل الموسيقى</string>
+  <string name="media_widget_empty">لا شيء قيد التشغيل</string>
+  <string name="media_widget_audio">صوت</string>
+  <string name="media_widget_video">فيديو</string>
+  <string name="playlist_search_hint">ابحث عن قوائم تشغيل</string>
+  <string name="playlist_search_empty">لا توجد قوائم تشغيل مطابقة</string>
+  <string name="playlist_search_empty_hint">جرّب اسمًا آخر أو أنشئ قائمة تشغيل جديدة</string>
+  <string name="playlist_no_compatible_items">لا توجد عناصر متوافقة لإضافتها</string>
+  <string name="playlist_add_failed">تعذرت إضافة العناصر إلى قائمة التشغيل</string>
+  <plurals name="playlist_picker_song_count">
+    <item quantity="zero">لا توجد أغانٍ لإضافتها (%1$d)</item>
+    <item quantity="one">إضافة أغنية واحدة (%1$d)</item>
+    <item quantity="two">إضافة أغنيتين (%1$d)</item>
+    <item quantity="few">إضافة %1$d أغانٍ</item>
+    <item quantity="many">إضافة %1$d أغنيةً</item>
+    <item quantity="other">إضافة %1$d أغنية</item>
+  </plurals>
+  <plurals name="playlist_picker_video_count">
+    <item quantity="zero">لا توجد مقاطع فيديو لإضافتها (%1$d)</item>
+    <item quantity="one">إضافة مقطع فيديو واحد (%1$d)</item>
+    <item quantity="two">إضافة مقطعي فيديو (%1$d)</item>
+    <item quantity="few">إضافة %1$d مقاطع فيديو</item>
+    <item quantity="many">إضافة %1$d مقطع فيديو</item>
+    <item quantity="other">إضافة %1$d مقطع فيديو</item>
+  </plurals>
+  <plurals name="playlist_item_count_value">
+    <item quantity="zero">لا توجد عناصر (%1$d)</item>
+    <item quantity="one">عنصر واحد (%1$d)</item>
+    <item quantity="two">عنصران (%1$d)</item>
+    <item quantity="few">%1$d عناصر</item>
+    <item quantity="many">%1$d عنصرًا</item>
+    <item quantity="other">%1$d عنصر</item>
+  </plurals>
+  <string name="ui_select_storage_location">اختر موقع تخزين</string>
+  <string name="ui_search_files">ابحث عن ملفات ومجلدات</string>
+  <string name="ui_no_matching_files">لا توجد ملفات أو مجلدات مطابقة</string>
+  <string name="ui_system_picker">منتقي الملفات في النظام</string>
+  <string name="ui_sort_by">ترتيب حسب</string>
+  <string name="ui_media_types">أنواع الوسائط</string>
+  <string name="ui_retry">إعادة المحاولة</string>
+  <string name="ui_image_load_failed">تعذر تحميل هذه الصورة</string>
+  <string name="ui_no_items">لا توجد عناصر</string>
+  <string name="ui_no_items_match">لا توجد عناصر تطابق «%1$s»</string>
+  <string name="ui_folder_no_files_or_folders">لا يحتوي هذا المجلد على ملفات أو مجلدات</string>
+  <string name="ui_folder_no_media">لا يحتوي هذا المجلد على ملفات وسائط</string>
+  <string name="ui_folder_no_videos_or_folders">لا يحتوي هذا المجلد على فيديوهات أو مجلدات</string>
+  <string name="ui_folder_only_images_hidden">يحتوي هذا المجلد على صور فقط. فعّل الصور في خيارات الترتيب والعرض لإظهارها.</string>
+  <string name="playlist_open_action">فتح قائمة التشغيل</string>
+  <string name="syncplay_failure_dns">تعذر العثور على عنوان الخادم. تحقق من اسم المضيف وإعدادات DNS لشبكتك.</string>
+  <string name="syncplay_failure_refused">رفض الخادم الاتصال. تحقق من المنفذ ومن أن خادم Syncplay يعمل.</string>
+  <string name="syncplay_failure_timeout">لم يستجب الخادم في الوقت المحدد. تحقق من اتصالك ومن عدم حظر هذا المنفذ.</string>
+  <string name="syncplay_failure_unreachable">لا يمكن الوصول إلى الخادم عبر هذه الشبكة. جرّب شبكة Wi-Fi أخرى أو اتصال بيانات الهاتف.</string>
+  <string name="syncplay_failure_handshake">تم فتح الاتصال، لكن الخادم لم يكمل تسجيل الدخول إلى Syncplay. تحقق من أن الخادم والمنفذ مخصصان لـ Syncplay.</string>
+  <string name="syncplay_failure_closed">أغلق الخادم الاتصال. تحقق من إعدادات الخادم وحاول الاتصال مجددًا.</string>
+  <string name="syncplay_failure_protocol">أرسل الخادم استجابة Syncplay غير صالحة. تحقق من عنوان الخادم والمنفذ.</string>
+  <string name="syncplay_failure_network">تعذر الاتصال بخادم Syncplay. تحقق من شبكتك وعنوان الخادم والمنفذ.</string>
+  <string name="secure_folder_biometric_enable_confirm">أدخل رمز PIN للمجلد الآمن لتفعيل الفتح بالقياسات الحيوية</string>
+  <string name="secure_folder_error_pin_incomplete">أدخل رمز PIN كاملًا</string>
+  <string name="secure_folder_pin_length">طول رمز PIN</string>
+  <string name="secure_folder_pin_length_option">%1$d أرقام</string>
+  <string name="lyrics_provider_auto">تلقائي</string>
+  <string name="lyrics_provider_auto_with">تلقائي (%1$s)</string>
+  <string name="lyrics_by">كلمات الأغنية من %1$s</string>
+  <string name="lyrics_provider_not_found">لا توجد كلمات لهذه الأغنية لدى %1$s</string>
+  <string name="lyrics_provider_sheet_title">مصدر كلمات الأغاني</string>
+  <string name="lyrics_search_online">بحث عبر الإنترنت</string>
+  <string name="pref_paxsenix_api_key">مفتاح API لـ PaxSenix</string>
+  <string name="pref_paxsenix_api_key_summary">يتيح مسارات Spotify وMusixmatch</string>
+  <string name="pref_paxsenix_api_key_dialog_desc">الصق مفتاح API لـ PaxSenix. اتركه فارغًا لاستخدام المسارات التي لا تتطلب مفتاحًا فقط.</string>
+  <string name="pref_lyrics_sources_category">كلمات الأغاني عبر الإنترنت</string>
+  <string name="pref_lyrics_auto_fetch_online">جلب كلمات الأغاني من الإنترنت تلقائيًا</string>
+  <string name="pref_lyrics_auto_fetch_online_summary">ابحث في المصادر عبر الإنترنت فقط عند عدم توفر كلمات مضمّنة أو محلية. يمكنك البحث عبر الإنترنت يدويًا أيضًا.</string>
+  <string name="lyrics_translation_off_summary">عرض اللغة الأصلية دون ترجمة</string>
+  <string name="lyrics_translation_dual_line">سطران</string>
+  <string name="lyrics_translation_replace">استبدال الأصل</string>
+  <string name="lyrics_translation_romanized">النطق / الكتابة اللاتينية</string>
+  <string name="lyrics_translation_no_languages">لا توجد لغات مطابقة</string>
+  <string name="audiobook_search_online_title">البحث عن الغلاف عبر الإنترنت</string>
+  <string name="audiobook_search_online_query">ابحث بالعنوان أو المؤلف أو الكلمات المفتاحية</string>
+  <string name="audiobook_search_online_searching">جارٍ البحث في Apple Books وOpen Library…</string>
+  <string name="audiobook_narrated_by">بصوت %1$s</string>
+  <string name="audiobook_search_online_empty">لم يُعثر على أغلفة عبر الإنترنت لهذا البحث.</string>
+  <string name="oss_python_description">بيئة تشغيل Python مضمّنة لاستخراج الوسائط عبر الإنترنت.</string>
+  <string name="watch_stats_today">اليوم: %1$s</string>
+  <string name="watch_stats_media_breakdown">التوزيع حسب الوسائط</string>
+  <string name="watch_stats_overall_playback">إجمالي التشغيل</string>
+  <string name="network_server_no_matches">لا توجد عناوين مطابقة. يمكنك إدخال عنوان يدويًا.</string>
+  <string name="network_server_none_found">لم يُعثر على خوادم تعلن عن نفسها. تحقق من اتصال الجهازين بالشبكة نفسها، ثم أعد المحاولة أو أدخل العنوان يدويًا.</string>
+  <string name="network_server_saved">عنوان محفوظ</string>
+  <string name="network_server_nearby">خادم قريب</string>
+  <string name="network_server_this_device">هذا الجهاز على الشبكة المحلية</string>
+  <string name="network_server_loopback">هذا الجهاز (عنوان الاسترجاع)</string>
+  <string name="network_server_address_only">عنوان فقط</string>
+  <string name="network_server_scan">ابحث عن خوادم قريبة</string>
+  <string name="network_server_scanning">جارٍ البحث عن خوادم قريبة…</string>
+  <string name="network_server_scan_unavailable">الاكتشاف غير متاح أو غير مكتمل. اختر عنوانًا محفوظًا أو أدخل عنوانًا.</string>
+  <string name="network_server_discovery_hint">يبحث عن الخوادم التي تعلن عن نفسها على شبكتك المحلية. عناوين الأجهزة اختصارات وليست خوادم مكتشفة. أدخل بيانات الدخول أدناه.</string>
+  <string name="network_smb_username_hint">استخدم اسم المستخدم أو DOMAIN\\username لحساب ضمن نطاق.</string>
+  <string name="pref_playstore_hidden_title">المجلدات المخفية المختارة</string>
+  <string name="pref_playstore_hidden_summary">اختر مجلدًا لتضمين وسائطه ومجلداته الفرعية.</string>
+  <string name="pref_playstore_hidden_selected">المجلدات التي سمحت بالوصول إليها</string>
+  <string name="pref_playstore_hidden_add">اختر مجلدًا مخفيًا</string>
+  <string name="pref_playstore_hidden_remove">إلغاء الوصول إلى المجلد</string>
+  <string name="pref_playstore_hidden_grant_failed">لا يمكن الوصول إلى هذا المجلد. اختر مجلدًا مدعومًا وامنح إذن القراءة.</string>
+  <string name="pref_playstore_hidden_limitations">يقيّد Android الوصول إلى بعض المجلدات. اسحب للتحديث وإظهار الملفات الجديدة.</string>
+  <string name="app_icon_picker_description">اختر خلفية وشعارًا. ستتغير أيقونة التطبيق بعد تطبيق الاختيار.</string>
+  <string name="app_icon_section_background">الخلفية</string>
+  <string name="app_icon_section_logo">الشعار</string>
+  <string name="app_icon_apply">تطبيق</string>
+  <string name="app_icon_preview">معاينة أيقونة التطبيق</string>
+  <string name="app_icon_background_hint">اسحب أو انقر لاختيار لون</string>
+  <string name="app_icon_logo_hint">بعض الشعارات غير متاحة مع هذه الخلفية</string>
+  <string name="app_icon_current">الأيقونة الحالية</string>
+  <string name="app_icon_pending">معاينة · لم تُطبّق</string>
+  <string name="app_icon_confirm_title">هل تريد تغيير أيقونة التطبيق؟</string>
+  <string name="app_icon_confirm_message">ستتغير أيقونة التطبيق إلى %1$s.</string>
+  <string name="app_icon_confirm_action">تغيير الأيقونة</string>
+  <string name="app_icon_bg_black">أسود</string>
+  <string name="app_icon_bg_white">أبيض</string>
+  <string name="app_icon_bg_charcoal">فحمي</string>
+  <string name="app_icon_bg_indigo">نيلي</string>
+  <string name="app_icon_bg_violet">بنفسجي</string>
+  <string name="app_icon_bg_lagoon">لون البحيرة</string>
+  <string name="app_icon_bg_azure">سماوي</string>
+  <string name="app_icon_bg_lilac">أرجواني فاتح</string>
+  <string name="app_icon_bg_mint">نعناعي</string>
+  <string name="app_icon_bg_ember">جمري</string>
+  <string name="app_icon_logo_solid">بنفسجي موحّد</string>
+  <string name="app_icon_logo_gradient">بنفسجي متدرّج</string>
+  <string name="app_icon_logo_white">أبيض</string>
+  <string name="app_icon_logo_black">أسود</string>
+  <string name="app_icon_logo_classic">كلاسيكي</string>
 </resources>

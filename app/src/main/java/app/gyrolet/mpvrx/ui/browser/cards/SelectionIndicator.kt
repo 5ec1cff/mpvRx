@@ -4,6 +4,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -12,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -21,6 +25,23 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
+
+/** One restrained press response for local, network and music cards, including their thumbnails. */
+@Composable
+internal fun Modifier.mediaCardClickable(
+  onClick: () -> Unit,
+  onLongClick: (() -> Unit)? = null,
+): Modifier {
+  val interactionSource = remember { MutableInteractionSource() }
+  return appPressFeedback(interactionSource, pressedScale = 0.985f)
+    .combinedClickable(
+      interactionSource = interactionSource,
+      indication = LocalIndication.current,
+      onClick = onClick,
+      onLongClick = onLongClick,
+    )
+}
 
 /**
  * Stable, visible empty space between neighboring media surfaces. Kept in the layout (not

@@ -113,6 +113,7 @@ import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserBottomBar
 import app.gyrolet.mpvrx.ui.browser.components.rememberBrowserBottomBarBackdrop
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
+import app.gyrolet.mpvrx.ui.browser.components.mediaItemMotion
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
 import app.gyrolet.mpvrx.ui.browser.dialogs.DeleteConfirmationDialog
@@ -1473,6 +1474,7 @@ private fun GridContent(
 
         FolderCard(
           folder = folder,
+          modifier = mediaItemMotion(),
           isSelected = selectionManager.isSelected(folder),
           selectionNeighbors = mediaSelectionNeighbors(index, folders.size, computedColumns) { neighbor ->
             selectionManager.isSelected(folders[neighbor])
@@ -1575,6 +1577,7 @@ private fun ListContent(
 
         FolderCard(
           folder = folder,
+          modifier = mediaItemMotion(),
           isSelected = selectionManager.isSelected(folder),
           selectionNeighbors = mediaSelectionNeighbors(index, folders.size, 1) { neighbor ->
             selectionManager.isSelected(folders[neighbor])

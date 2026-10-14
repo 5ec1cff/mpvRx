@@ -10,15 +10,26 @@
 package app.gyrolet.mpvrx.ui.icons
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import androidx.compose.material3.Icon as MaterialIcon
 
 @Immutable
@@ -69,5 +80,34 @@ fun Icon(
       modifier = mirroredModifier,
       tint = tint,
     )
+  }
+}
+
+/** Only the glyph changes; accessibility always describes the current action, not the outgoing one. */
+@Composable
+fun AnimatedIcon(
+  imageVector: AppIcon,
+  contentDescription: String?,
+  modifier: Modifier = Modifier,
+  tint: Color = LocalContentColor.current,
+  reduceMotion: Boolean = AppMotion.shouldReduceMotion(),
+) {
+  val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+  val animatedTint by animateColorAsState(
+    targetValue = tint,
+    animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+    label = "appActionIconTint",
+  )
+  AnimatedContent(
+    targetState = imageVector,
+    contentKey = { it.drawableRes ?: it.resolve(isRtl) },
+    modifier = modifier.size(24.dp).clearAndSetSemantics {
+      if (contentDescription != null) this.contentDescription = contentDescription
+    },
+    transitionSpec = { AppMotion.iconChange(reduceMotion).using(null) },
+    contentAlignment = Alignment.Center,
+    label = "appActionIcon",
+  ) { shown ->
+    Icon(shown, contentDescription = null, modifier = Modifier.fillMaxSize(), tint = animatedTint)
   }
 }

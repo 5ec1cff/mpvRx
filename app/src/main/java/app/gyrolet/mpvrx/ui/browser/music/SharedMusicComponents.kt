@@ -8,8 +8,6 @@ import android.net.Uri
 import android.text.format.DateUtils
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,6 +71,8 @@ import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.rememberMediaSelectionShape
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
+import app.gyrolet.mpvrx.ui.browser.cards.mediaCardClickable
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
@@ -127,13 +127,7 @@ fun SharedMusicTrackListItem(
       .clip(cardShape)
       .tvContextMenu(onLongClick)
       .semantics { selected = isSelected }
-      .then(
-        if (onLongClick != null) {
-          Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-        } else {
-          Modifier.clickable(onClick = onClick)
-        }
-      ),
+      .mediaCardClickable(onClick = onClick, onLongClick = onLongClick),
     shape = cardShape,
     colors = CardDefaults.cardColors(
       containerColor = animatedSelectionColor(
@@ -253,7 +247,7 @@ fun SharedMusicTrackListItem(
           onClick = onFavoriteClick,
           modifier = Modifier.size(48.dp),
         ) {
-          Icon(
+          AnimatedIcon(
             imageVector = if (isFavorite) Icons.RoundedFilled.Favorite else Icons.RoundedFilled.FavoriteBorder,
             contentDescription = stringResource(
               if (isFavorite) R.string.generic_remove_from_favorites else R.string.notification_add_to_favorites,
@@ -298,7 +292,7 @@ fun SharedMusicGridCard(
       .clip(cardShape)
       .semantics { selected = isSelected }
       .tvContextMenu(onLongClick)
-      .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+      .mediaCardClickable(onClick = onClick, onLongClick = onLongClick),
     shape = cardShape,
     colors = CardDefaults.cardColors(
       containerColor = animatedSelectionColor(
@@ -486,7 +480,7 @@ fun <T> SharedCompactTrackGridSection(
           modifier = Modifier
             .width(itemWidth)
             .clip(MaterialTheme.shapes.medium)
-            .clickable { onTrackClick(track) },
+            .mediaCardClickable(onClick = { onTrackClick(track) }),
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Box(

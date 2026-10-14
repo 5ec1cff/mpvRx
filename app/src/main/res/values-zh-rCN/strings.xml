@@ -13,7 +13,6 @@
   <string name="generic_confirm">确认</string>
   <string name="generic_cancel">取消</string>
   <string name="generic_ok">确定</string>
-  <string name="generic_unit_ms">毫秒</string>
   <string name="generic_disabled">已禁用</string>
   <string name="pref_preferences">偏好设置</string>
   <string name="pref_appearance_title">外观</string>
@@ -42,12 +41,6 @@
   <string name="app_font_no_downloaded">尚未下载字体</string>
   <string name="app_font_delete_title">删除字体</string>
   <string name="app_font_delete_message">要从此设备删除 %1$s 吗？字幕和应用将恢复使用默认字体。</string>
-  <string name="lyrics_provider_status_current">正在显示</string>
-  <string name="lyrics_provider_status_found">已找到</string>
-  <string name="lyrics_provider_status_missing">未找到</string>
-  <string name="lyrics_provider_status_fetching">正在获取…</string>
-  <string name="lyrics_provider_status_unfetched">尚未获取</string>
-  <string name="lyrics_provider_status_failed">失败</string>
   <string name="app_font_downloaded">已下载</string>
   <string name="app_font_catalog_error">无法加载 Google Fonts</string>
   <string name="app_font_download_error">无法下载 %1$s</string>
@@ -56,9 +49,6 @@
   <string name="pref_appearance_ui_scale_restart_title">需要重启</string>
   <string name="pref_appearance_ui_scale_restart_message">重启 mpvRx 以应用新的 %1$d%% 应用界面缩放。</string>
   <string name="pref_appearance_ui_scale_restart_now">立即重启</string>
-  <string name="pref_appearance_material_you_title">Material You</string>
-  <string name="pref_appearance_material_you_summary">启用动态颜色</string>
-  <string name="pref_appearance_material_you_summary_disabled">仅适用于 Android 12 及更高版本</string>
   <string name="pref_appearance_unlimited_name_lines_title">显示完整名称</string>
   <string name="pref_appearance_unlimited_name_lines_summary">完整显示文件夹和视频名称，不截断</string>
   <string name="pref_appearance_hide_player_buttons_background_title">隐藏播放器按钮背景</string>
@@ -84,27 +74,17 @@
   <string name="pref_appearance_thumbnail_position_summary">截取视频 %1$d%% 位置的画面</string>
   <string name="pref_appearance_show_network_thumbnails_title">显示网络缩略图（实验性）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">为网络流生成缩略图（可能会增加移动网络的数据用量）</string>
-  <string name="pref_nav_home_title">显示“首页”标签页</string>
-  <string name="pref_nav_home_summary">在底部导航栏中显示或隐藏“首页”</string>
   <string name="pref_nav_network_title">显示“网络”标签页</string>
   <string name="pref_nav_network_summary">在底部导航栏中显示或隐藏“网络”</string>
   <string name="pref_quick_play_fab_title">快速播放悬浮按钮</string>
   <string name="pref_quick_play_fab_summary">在浏览器界面中显示快速播放悬浮按钮</string>
   <string name="pref_quick_play_fab_direct_title">直接快速播放</string>
   <string name="pref_quick_play_fab_direct_summary">点击悬浮按钮时直接播放最近播放的视频，而不显示选项菜单</string>
-  <string name="pref_appearance_nav_style_slide">滑动</string>
-  <string name="pref_appearance_nav_style_fade">淡入淡出</string>
-  <string name="pref_appearance_nav_style_none">无（立即）</string>
   <string name="pref_appearance_theme_picker_label">应用主题</string>
   <string name="pref_appearance_auto_scroll_title">自动滚动到上次播放位置</string>
   <string name="pref_appearance_auto_scroll_summary">打开视频列表时自动滚动到上次播放的视频</string>
-  <string name="pref_appearance_watched_threshold_title">已观看阈值</string>
-  <string name="pref_appearance_watched_threshold_summary">播放进度达到 %d%% 时将视频标记为已观看</string>
-  <string name="pref_appearance_watched_threshold_summary_infinite">永不自动标记为已观看（无限）</string>
   <string name="pref_tree_flatten_depth_title">树路径压缩</string>
   <string name="pref_tree_flatten_depth_summary">对于仅有一个子项的文件夹，每次导航跳过 %1$s</string>
-  <string name="ytdl_audio_quality_title">yt-dlp 音频质量</string>
-  <string name="ytdl_audio_quality_reload_summary">用于下一个链接，或重新加载当前链接时使用。</string>
   <string name="toast_playback_load_failed">无法加载此链接</string>
   <string name="video_label_new">新</string>
   <string name="video_label_watched">已观看</string>
@@ -147,8 +127,6 @@
   <string name="settings_search_no_results">未找到设置</string>
   <string name="settings_search_title">搜索</string>
   <!-- Player Preferences Hardcoded -->
-  <string name="pref_autoplay_title">启用上一个/下一个导航</string>
-  <string name="pref_autoplay_summary">为文件夹中的所有视频显示上一个/下一个按钮</string>
   <string name="pref_autoplay_next_video_title">自动播放下一个视频</string>
   <string name="pref_autoplay_next_video_summary">当前视频结束时自动播放下一个视频</string>
   <string name="pref_autoplay_next_video_summary_disabled">结束时停留在当前视频</string>
@@ -173,7 +151,6 @@
   <string name="pref_player_show_buffered_range_summary">在进度条上显示播放位置前方的在线缓冲范围。</string>
   <string name="pref_player_show_chapter_indicators_title">在进度条上显示章节标记</string>
   <string name="pref_player_show_chapter_indicators_summary">沿进度条直观区分各个章节。</string>
-  <string name="pref_show_navigation_bar_title">显示带控制项的导航栏</string>
   <!-- Gesture Preferences Hardcoded -->
   <string name="pref_double_tap_seek_area_width_title">双击快进区域宽度</string>
   <!-- Advanced Preferences Hardcoded -->
@@ -197,8 +174,6 @@
   <string name="pref_layout_bottom_left_controls">左下角控制项</string>
   <string name="pref_layout_portrait_bottom_controls">竖屏底部控制项</string>
   <string name="pref_layout_preview">预览</string>
-  <string name="pref_layout_reset_title">重置布局？</string>
-  <string name="pref_layout_reset_summary">所有自定义的播放器控制布局都将恢复到默认位置</string>
   <string name="pref_player">播放器</string>
   <string name="pref_player_summary">方向、手势和控制</string>
   <string name="pref_player_orientation">屏幕方向</string>
@@ -217,7 +192,6 @@
   <string name="pref_player_seeking_title">定位播放</string>
   <string name="pref_player_close_after_eof">播放结束后关闭</string>
   <string name="pref_player_remember_brightness">记住屏幕亮度</string>
-  <string name="pref_player_gestures">手势</string>
   <string name="pref_player_gestures_brightness">亮度手势</string>
   <string name="pref_player_gestures_volume">音量手势</string>
   <string name="pref_player_gestures_pinch_to_zoom">双指捏合缩放</string>
@@ -228,18 +202,13 @@
   <string name="pref_player_gestures_swipe_subtitles_invert_direction">反转字幕滑动方向</string>
   <string name="pref_player_gestures_swipe_subtitles_invert_direction_summary">从右向左滑动可快进，从左向右滑动可后退</string>
   <string name="pref_player_gestures_horizontal_swipe_to_seek">水平滑动定位播放</string>
-  <string name="pref_player_gestures_horizontal_swipe_to_seek_summary">在屏幕上左右滑动以快进或后退</string>
   <string name="pref_player_gestures_enable_center_swipe_up_gesture">在中间向上滑动打开播放列表</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity">水平滑动灵敏度</string>
   <string name="pref_player_gestures_horizontal_swipe_sensitivity_summary">调整每次滑动所移动的距离</string>
   <string name="pref_player_gestures_hold_for_multiple_speed">长按使用多倍速</string>
-  <string name="pref_player_controls">控制</string>
   <string name="pref_player_controls_allow_gestures_in_panels">允许在面板中使用手势</string>
-  <string name="pref_player_controls_display_volume_as_percentage">以百分比显示音量</string>
   <string name="pref_player_controls_show_loading_circle">显示加载圆圈</string>
   <string name="pref_player_display_show_status_bar">显示带控制项的系统状态栏</string>
-  <string name="pref_player_display_panel_opacity">面板不透明度</string>
-  <string name="pref_player_display">显示</string>
   <string name="pref_gesture">手势</string>
   <string name="pref_gesture_summary">双击、媒体控制</string>
   <string name="pref_gesture_double_tap_title">双击</string>
@@ -255,7 +224,6 @@
   <string name="pref_gesture_use_single_tap_for_center_summary">中间区域的手势（如播放/暂停）使用单击，而不是双击。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">拖动以移动字幕</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">长按屏幕中央后上下拖动，可移动主字幕。直接长按任意字幕后拖动，可单独移动该字幕轨道。普通滑动仍会打开播放列表。</string>
-  <string name="pref_gesture_view_title">视图</string>
   <string name="pref_gesture_double_tap_custom_info">可在 input.conf 中使用以下按键代码为这些手势绑定自定义操作：
 
 左侧：MBTN_LEFT_DBL
@@ -283,7 +251,6 @@
   <string name="pref_decoder_gpu_next_purple_screen_fix">如果出现紫屏，请尝试在高级设置（mpv.conf）中禁用 opengl-pbo：</string>
   <string name="pref_decoder_gpu_next_enable_anyway">仍然启用</string>
   <string name="pref_decoder_debanding_title">去色带</string>
-  <string name="pref_decoder_vulkan_title">使用 Vulkan</string>
   <string name="pref_decoder_vulkan_summary">在受支持的设备上启用 Vulkan 渲染（可能提高性能）</string>
   <string name="pref_decoder_vulkan_not_supported">不支持（需要 Android 13+ 和 Vulkan 1.3）</string>
   <string name="pref_decoder_vulkan_excluded_supported_device">仅支持 OpenGL；如需 Vulkan，请安装标准版。</string>
@@ -310,7 +277,6 @@
   <string name="pref_subtitles_font_copy_failed">无法加载字体：%1$s</string>
   <string name="pref_subtitles_autoload_title">自动加载字幕</string>
   <string name="pref_subtitles_autoload_summary">自动加载同名的外部字幕。</string>
-  <string name="pref_subtitles_save_location">字幕保存位置</string>
   <string name="pref_subtitles_search_online">在线字幕搜索…</string>
   <string name="pref_subtitles_search_languages">字幕语言</string>
   <string name="all_languages">全部（选择性筛选）</string>
@@ -326,8 +292,6 @@
   <string name="pref_audio_volume_normalization_title">音量标准化</string>
   <string name="pref_audio_volume_normalization_summary">自动调整音量以保持一致的响度</string>
   <string name="pref_music_tabs_title">音乐库标签页</string>
-  <string name="pref_music_visualizer_title">音乐可视化</string>
-  <string name="pref_music_visualizer_summary">播放音乐时显示随音频变化的可视化效果</string>
   <string name="pref_audio_visualizer_style_title">可视化样式</string>
   <string name="pref_audio_visualizer_style_blob">流体</string>
   <string name="pref_audio_visualizer_style_galaxy">星系</string>
@@ -373,14 +337,11 @@
   <string name="pref_thumbnail_cache_clear_failed">清除缩略图缓存失败：%1$s</string>
   <string name="pref_advanced_enable_recently_played_title">最近播放</string>
   <string name="pref_advanced_enable_recently_played_summary">跟踪并显示最近播放的视频和播放列表</string>
-  <string name="pref_advanced_features_tooltip">启用统计页面和 Anime4K 超分辨率等实验性或高级功能</string>
   <string name="pref_anime4k_title">Anime4K 超分辨率</string>
   <string name="pref_anime4k_summary">启用 Anime4K 超分辨率滤镜</string>
   <string name="pref_anime4k_incompatibility">Anime4K 不兼容</string>
   <string name="pref_anime4k_gpu_next_error">Anime4K 需要传统 gpu，或启用了 Vulkan 的 gpu-next。OpenGL 上的 gpu-next 会回退到传统 gpu，以确保着色器兼容性。</string>
-  <string name="pref_anime4k_cannot_use_with_gpu_next">除非启用 Vulkan，否则无法将 Anime4K 与 gpu-next 一起使用</string>
   <string name="anime4k_mode_title">Anime4K 预设</string>
-  <string name="anime4k_mode_toast">Anime4K：预设 %1$s</string>
   <string name="pref_anime4k_quality_title">Anime4K 质量</string>
   <!-- Anime4K Modes (Renamed to Presets in UI) -->
   <string name="anime4k_mode_off">关闭</string>
@@ -405,12 +366,6 @@
   <string name="pref_about_title">关于</string>
   <string name="pref_about_summary">致谢、许可证</string>
   <string name="pref_about_oss_libraries">库</string>
-  <string name="pref_about_donate_title">捐赠</string>
-  <string name="pref_about_donate_kofi">Ko-fi</string>
-  <string name="pref_about_donate_kofi_summary">在 Ko-fi 上支持开发者</string>
-  <string name="pref_about_donate_paypal">PayPal</string>
-  <string name="pref_about_donate_paypal_summary">通过 PayPal 支持开发者</string>
-  <string name="pref_about_donate_upi">UPI</string>
   <string name="player_sheets_add_ext_sub">添加外部字幕</string>
   <string name="player_sheets_add_ext_audio">添加外部音轨</string>
   <string name="player_sheets_embedded_audio_tracks">内嵌音轨</string>
@@ -425,7 +380,6 @@
   <string name="player_sheets_subtitles_settings_title">字幕设置</string>
   <string name="player_sheets_subtitles_color_text">文本</string>
   <string name="player_sheets_subtitles_color_border">边框</string>
-  <string name="player_sheets_subtitles_color_background">背景</string>
   <string name="player_sheets_subtitles_color_shadow">阴影</string>
   <string name="player_sheets_sub_ass_override_warning">ASS/SSA 格式的覆盖设置当前无效。请启用 ASS 覆盖以进行自定义。</string>
   <string name="player_sheets_subtitles_border_style">边框样式</string>
@@ -464,9 +418,6 @@
   <string name="player_sheets_delay_offset_seconds">%1$+d 秒</string>
   <string name="player_sheets_delay_offset_zero_seconds">0 秒</string>
   <string name="player_sheets_sub_delay_card_speed">速度</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary">主字幕</string>
-  <string name="player_sheets_sub_delay_subtitle_type_secondary">次字幕</string>
-  <string name="player_sheets_sub_delay_subtitle_type_primary_and_secondary">两者</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">听到人声</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">看到文字</string>
   <string name="player_sheets_delay_set_as_default">设为默认</string>
@@ -490,7 +441,6 @@
   <string name="player_sheets_filters_hue">色相</string>
   <string name="player_sheets_filters_sharpness">锐度</string>
   <string name="player_sheets_filters_warning">部分滤镜可能无法在当前视频驱动程序上运行</string>
-  <string name="player_sheets_speed_slider_label">速度</string>
   <string name="player_sheets_speed_make_default">设为默认速度</string>
   <string name="player_sheets_decoder_formatted" formatted="false">%s（%s）</string>
   <string name="numeric_chooser_value_too_big">数值过大</string>
@@ -498,12 +448,6 @@
   <string name="player_sheets_more_title">更多</string>
   <string name="player_sheets_stats_page_title">默认统计页面</string>
   <string name="player_sheets_stats_page_chip">第 %d 页</string>
-  <string name="player_sheets_stats_page_0_desc">已禁用。不显示叠加统计信息。</string>
-  <string name="player_sheets_stats_page_1_desc">概览。CPU/GPU 使用率、A/V 同步、丢帧、时钟速度。</string>
-  <string name="player_sheets_stats_page_2_desc">帧计时。解码/渲染时间、缩放器信息。</string>
-  <string name="player_sheets_stats_page_3_desc">缓存状态。缓冲健康状况、分离器缓存、可定位范围。</string>
-  <string name="player_sheets_stats_page_4_desc">当前按键绑定。已映射键盘快捷键列表。</string>
-  <string name="player_sheets_stats_page_5_desc">轨道列表。视频、音频和字幕轨道的详细信息。</string>
   <string name="player_aspect_fit">适应屏幕</string>
   <string name="player_aspect_crop">裁剪</string>
   <string name="player_aspect_stretch">拉伸</string>
@@ -523,20 +467,13 @@
   <string name="crash_screen_report_id">崩溃 ID：%1$s</string>
   <string name="crash_screen_reset_confirm">这将永久删除应用数据库，包括播放历史、播放列表和媒体库设置。不会删除媒体文件。重置不一定能解决崩溃问题。</string>
   <string name="crash_screen_reset_failed">无法重置数据库，未尝试重新启动。</string>
-  <string name="oss_crashx_description">由 TutorialsAndroid 提供的崩溃恢复功能，基于 Eduard Ereza Martínez 的 CustomActivityOnCrash。</string>
   <string name="timer_picker_enter_timer">输入时间</string>
-  <string name="timer_picker_pick_time">选择时间</string>
   <string name="timer_title">睡眠定时器</string>
   <string name="timer_remaining">剩余 %s</string>
   <string name="toast_sleep_timer_ended">睡眠定时器已结束</string>
   <string name="swap_the_volume_and_brightness_slider">交换音量和亮度滑块</string>
   <string name="pref_player_display_reduce_player_animation">减少播放器动画</string>
   <!-- Animation settings -->
-  <string name="pref_anim_section">动画</string>
-  <string name="pref_anim_controls_style">控制项动画样式</string>
-  <string name="pref_anim_video_open">视频打开动画</string>
-  <string name="pref_anim_nav_style">标签页导航样式</string>
-  <string name="pref_anim_speed">动画速度</string>
   <string name="pref_player_display_hide_player_control_time">隐藏播放器控制时间</string>
   <string name="show_splash_ovals_on_double_tap_to_seek">双击定位播放时显示波纹</string>
   <string name="show_time_on_double_tap_to_seek">显示定位时间</string>
@@ -548,7 +485,6 @@
     <item quantity="other">%1$d 秒</item>
   </plurals>
   <!-- Background Playback -->
-  <string name="background_playback_title">后台播放</string>
   <string name="pref_audio_background_playback_title">后台播放（音频播放器）</string>
   <string name="pref_audio_background_playback_summary">在离开音频播放器或关闭屏幕时保持音频播放</string>
   <string name="pref_audio_mini_player_track_switching_title">在迷你播放器中切歌</string>
@@ -568,21 +504,12 @@
   <string name="got_it">知道了</string>
   <string name="general">常规</string>
   <string name="not_set_video_default">未设置（将使用视频默认值）</string>
-  <string name="enter_language_codes">输入以逗号分隔的语言代码（例如 eng,jpn,spa）</string>
-  <string name="language_codes_placeholder">eng,jpn,spa</string>
   <string name="enter_subtitle_title_preferences">按优先级输入字幕轨标题关键词或语言代码，用逗号分隔；越靠前优先级越高，并列时继续匹配后续关键词。</string>
   <string name="subtitle_title_preferences_placeholder">特效,简体,chs,zh</string>
-  <string name="pref_audio_channels_auto_safe_desc">默认、安全的自动选择</string>
-  <string name="pref_audio_channels_auto_desc">自动选择</string>
-  <string name="pref_audio_channels_mono_desc">混音为单声道</string>
-  <string name="pref_audio_channels_stereo_desc">混音为立体声</string>
-  <string name="pref_audio_channels_reverse_stereo_desc">交换左右声道</string>
-  <string name="not_set_system_fonts">未设置（使用系统字体）</string>
   <string name="fonts_loaded">已加载 %1$d 种字体</string>
   <string name="reload_fonts">重新加载字体</string>
   <string name="reload_fonts_summary">重新扫描所选来源文件夹并刷新字体列表</string>
   <string name="clear_font_directory">清除字体目录</string>
-  <string name="reset_to_default_font">恢复默认字体</string>
   <string name="set_as_default">设为默认</string>
   <!-- Notification strings -->
   <string name="notification_channel_name">媒体播放</string>
@@ -590,9 +517,6 @@
   <string name="notification_playing">正在播放</string>
   <string name="notification_add_to_favorites">添加到收藏</string>
   <string name="notification_saved_to_favorites">已保存到收藏</string>
-  <string name="notification_repeat_off">重复播放关闭</string>
-  <string name="notification_repeat_one">单曲循环</string>
-  <string name="notification_repeat_all">全部循环</string>
   <string name="notification_chapter_counter">第 %1$d 章，共 %2$d 章</string>
   <string name="notification_playback_progress">已播放 %1$s - 剩余 %2$s</string>
   <string name="notification_permission_denied">后台播放控制需要通知权限。</string>
@@ -604,8 +528,6 @@
   <!-- Folders Preferences -->
   <string name="pref_folders_title">文件夹</string>
   <string name="pref_folders_summary">管理文件夹黑名单和 .nomedia 处理</string>
-  <string name="pref_folders_include_nomedia_title">.nomedia 文件夹也包括在内</string>
-  <string name="pref_folders_include_nomedia_summary">启用后，扫描还会包含由 .nomedia 隐藏的文件夹及其子文件夹中的视频。</string>
   <string name="pref_folders_empty_title">没有列入黑名单的文件夹</string>
   <string name="pref_folders_empty_message">点击下方按钮添加要从文件夹列表中隐藏的文件夹</string>
   <string name="pref_folders_add_folder">将文件夹添加到黑名单</string>
@@ -618,24 +540,14 @@
   <string name="pref_folders_blacklist">黑名单</string>
   <string name="pref_folders_blacklisted">文件夹已加入黑名单</string>
   <!-- M3U Playlist Strings -->
-  <string name="pref_subtitles_searching">正在搜索…</string>
-  <string name="pref_subtitles_found">找到 %d 条字幕</string>
-  <string name="pref_subtitles_online_search_title">在线字幕搜索</string>
   <!-- M3U Playlist Strings -->
-  <string name="playlist_add_m3u_title">添加 M3U 播放列表</string>
-  <string name="playlist_add_m3u_description">输入 M3U 播放列表文件的 URL</string>
   <string name="playlist_url_label">播放列表 URL</string>
-  <string name="playlist_url_placeholder">https://example.com/playlist.m3u</string>
   <string name="playlist_url_hint">支持 .m3u 和 .m3u8 格式</string>
   <string name="playlist_add_success">已成功添加 M3U 播放列表</string>
-  <string name="playlist_add_error">添加 M3U 播放列表失败：%s</string>
   <string name="playlist_create_empty">创建空播放列表</string>
   <string name="playlist_add_local_folder">添加本地播放列表文件夹</string>
   <string name="playlist_local_access_failed">无法访问此位置：%1$s</string>
-  <string name="playlist_add_from_url">从 M3U/M3U8 URL 添加</string>
-  <string name="playlist_refresh_m3u">刷新 M3U 播放列表</string>
   <string name="playlist_refresh_success">播放列表刷新成功</string>
-  <string name="playlist_refresh_error">刷新播放列表失败：%s</string>
   <string name="playlist_m3u_badge">M3U</string>
   <string name="playlist_favorite_songs">喜爱的歌曲</string>
   <string name="playlist_favorite_videos">喜爱的视频</string>
@@ -671,9 +583,7 @@
   <string name="pref_section_appearance">外观</string>
   <string name="pref_section_playback">播放</string>
   <string name="pref_section_gestures_controls">手势和控制</string>
-  <string name="pref_section_subtitles">字幕</string>
   <string name="pref_section_storage">存储</string>
-  <string name="pref_section_storage_summary">媒体路径、隐藏文件夹</string>
   <string name="pref_section_ai">AI</string>
   <string name="pref_section_ai_title">AI 集成</string>
   <string name="pref_section_ai_summary">AI 重命名、字幕翻译、语音转文字、离线模型（OpenCode/Groq/OpenAI）</string>
@@ -685,13 +595,8 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_section_animations">动画</string>
   <string name="pref_anim_controls_style_title">控制项动画样式</string>
-  <string name="pref_anim_controls_style_summary">选择播放器控制项的显示和消失方式</string>
   <string name="pref_anim_video_open_title">视频打开动画</string>
-  <string name="pref_anim_video_open_summary">选择开始播放时的过渡效果</string>
-  <string name="pref_anim_tab_nav_style_title">标签页导航样式</string>
-  <string name="pref_anim_tab_nav_style_summary">底部标签页之间的过渡效果</string>
   <string name="pref_anim_screen_nav_style_title">屏幕导航样式</string>
-  <string name="pref_anim_screen_nav_style_summary">设置屏幕之间的过渡效果</string>
   <string name="pref_anim_speed_title">动画速度</string>
   <string name="pref_anim_speed_very_fast">非常快（%.1f×）</string>
   <string name="pref_anim_speed_fast">快速（%.1f×）</string>
@@ -781,8 +686,6 @@
   <string name="pref_section_subtitle_fonts">字体</string>
   <string name="pref_section_subtitle_search">字幕搜索</string>
   <string name="pref_wyzie_api_key_title">Wyzie API 密钥</string>
-  <string name="pref_wyzie_api_key_summary_error">字幕搜索必需</string>
-  <string name="pref_wyzie_api_key_summary_saved">已保存在此设备上</string>
   <string name="pref_wyzie_api_key_dialog_text">粘贴来自 sub.wyzie.io/redeem 的密钥</string>
   <string name="pref_wyzie_api_key_placeholder">wyzie-…</string>
   <string name="pref_subtitles_all_keyless_sources">所有无需 API 密钥的来源</string>
@@ -840,18 +743,14 @@
   <string name="pref_config_cache_cleared_toast">已清除配置缓存</string>
   <string name="pref_thumbnail_cache_confirm_title">清除缩略图缓存？</string>
   <string name="pref_thumbnail_cache_confirm_subtitle">这将从存储空间和内存中删除缓存的缩略图。</string>
-  <string name="pref_section_notification">通知</string>
   <string name="pref_section_logging">日志</string>
   <string name="pref_export_failed_toast">导出失败：%1$s</string>
-  <string name="pref_import_failed_toast">导入失败：%1$s</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- AI Integration                                             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_ai_features_section">AI 功能</string>
   <string name="pref_ai_enabled_title">启用 AI 功能</string>
-  <string name="pref_ai_enabled_summary">AI 功能已启用</string>
-  <string name="pref_ai_disabled_summary">AI 功能已禁用</string>
   <string name="pref_ai_provider_section">提供商</string>
   <string name="pref_ai_provider_title">AI 提供商</string>
   <string name="pref_api_config_section">API 配置</string>
@@ -862,12 +761,8 @@
   <string name="pref_model_section">模型</string>
   <string name="pref_available_models_header">可用模型</string>
   <string name="pref_fetch_models">获取模型</string>
-  <string name="pref_select_model_placeholder">点击选择模型</string>
   <string name="pref_verify_model_header">验证模型</string>
   <string name="pref_check_model_access">检查模型访问权限</string>
-  <string name="pref_general_settings_section">常规设置</string>
-  <string name="pref_show_ai_reasoning_title">显示 AI 推理（思考）</string>
-  <string name="pref_show_ai_reasoning_summary">启用后可查看受支持模型的内部思考过程</string>
   <string name="pref_ai_features_subsection">功能</string>
   <string name="pref_ai_rename_title">AI 重命名</string>
   <string name="pref_ai_rename_summary">使用 AI 为批量重命名生成整洁的文件名</string>
@@ -891,50 +786,23 @@
   <string name="pref_stt_provider_title">语音转文字提供商</string>
   <string name="pref_stt_provider_summary">同时用于实时流处理和批量字幕生成</string>
   <string name="pref_audio_language_title">音频语言</string>
-  <string name="pref_audio_language_summary">自动检测语音语言</string>
   <string name="pref_translation_section">字幕翻译</string>
   <string name="pref_enable_translation_title">启用翻译</string>
   <string name="pref_enable_translation_summary">使用 AI 翻译外部字幕</string>
   <string name="pref_custom_prompt_section">自定义提示词</string>
   <string name="pref_override_instructions_title">覆盖默认指令</string>
-  <string name="pref_override_instructions_enabled_summary">将使用自定义提示词代替内置指令</string>
-  <string name="pref_override_instructions_disabled_summary">将使用内置 AI 指令</string>
   <string name="pref_custom_prompts_header">自定义提示词</string>
   <string name="pref_custom_prompts_description">留空即可使用该任务的内置指令。如果保存了旧的全局提示词，它将作为备用。</string>
   <string name="pref_custom_rename_prompt_label">自定义重命名提示词</string>
-  <string name="pref_custom_rename_prompt_placeholder">AI 文件重命名指令…</string>
   <string name="pref_custom_translation_prompt_label">自定义字幕翻译提示词</string>
-  <string name="pref_custom_translation_prompt_placeholder">AI 字幕翻译指令…</string>
   <string name="pref_custom_format_prompt_label">自定义字幕格式化提示词</string>
-  <string name="pref_custom_format_prompt_placeholder">字幕搜索查询格式化指令…</string>
   <string name="pref_legacy_prompt_info">已保存旧的全局提示词。当任务专用提示词为空时，将使用它。</string>
-  <string name="pref_translation_warning_title">字幕翻译</string>
-  <string name="pref_translation_warning_text">字幕翻译可能会有些混乱。要获得更好效果，请使用更好的模型，也不要抱怨字幕不能正常工作。</string>
 
   <!-- AI - API Key titles/placeholders for each provider         -->
-  <string name="pref_opencode_api_key_title">OpenCode API 密钥</string>
-  <string name="pref_opencode_api_key_hint">从 opencode.ai/auth 获取密钥</string>
-  <string name="pref_opencode_api_key_placeholder">sk-…</string>
-  <string name="pref_groq_api_key_title">Groq API 密钥</string>
-  <string name="pref_groq_api_key_hint">从 console.groq.com 获取密钥</string>
-  <string name="pref_groq_api_key_placeholder">gsk_…</string>
-  <string name="pref_openai_api_key_title">OpenAI API 密钥</string>
-  <string name="pref_openai_api_key_hint">从 platform.openai.com 获取密钥</string>
-  <string name="pref_openai_api_key_placeholder">sk-…</string>
-  <string name="pref_anthropic_api_key_title">Anthropic API 密钥</string>
-  <string name="pref_anthropic_api_key_hint">从 console.anthropic.com 获取密钥</string>
-  <string name="pref_anthropic_api_key_placeholder">sk-ant-…</string>
-  <string name="pref_openrouter_api_key_title">OpenRouter API 密钥</string>
-  <string name="pref_openrouter_api_key_hint">从 openrouter.ai 获取密钥</string>
-  <string name="pref_openrouter_api_key_placeholder">sk-or-…</string>
-  <string name="pref_together_api_key_title">Together API 密钥</string>
-  <string name="pref_together_api_key_hint">从 api.together.ai 获取密钥</string>
-  <string name="pref_together_api_key_placeholder">…</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_storage_screen_title">存储</string>
   <string name="pref_media_library_section">媒体库</string>
   <string name="pref_hidden_folders_section">隐藏文件夹</string>
   <string name="pref_clear_content_desc">清除</string>
@@ -942,36 +810,14 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Search Index Entries (SearchablePreference.kt)             -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="search_online_skip_markers_summary">从在线提供商获取片头、回顾、片尾、演职员表和预览标记</string>
-  <string name="search_marker_provider_summary">选择 IntroDB、TIDB、AniSkip 或 Anime Skip 作为在线片头/片尾标记提供商</string>
-  <string name="search_chapter_detect_summary">根据片头、片尾、演职员表或预览等章节名称创建跳过标记</string>
-  <string name="search_auto_skip_intro_summary">播放期间自动跳过片头标记</string>
-  <string name="search_auto_skip_outro_summary">播放期间自动跳过片尾标记</string>
-  <string name="search_subtitle_save_folder_title">字幕保存文件夹</string>
-  <string name="search_subtitle_save_folder_summary">下载字幕的保存位置</string>
-  <string name="search_fonts_folder_title">字体文件夹</string>
-  <string name="search_fonts_folder_summary">用于渲染字幕的字体</string>
-  <string name="search_base_storage_summary">根文件夹——自动创建 Subtitles/ 和 Fonts/ 子目录</string>
-  <string name="search_ai_integration_summary">AI 重命名、字幕格式化、语音转文字、字幕翻译和离线模型</string>
-  <string name="search_ai_provider_summary">选择 OpenCode、Groq、OpenAI、Anthropic、OpenRouter、Together 或本地离线模型</string>
   <string name="search_api_key_config_title">API 密钥配置</string>
-  <string name="search_api_key_config_summary">输入并验证 AI 提供商的 API 密钥</string>
   <string name="search_ai_model_selection_title">AI 模型选择</string>
-  <string name="search_ai_model_selection_summary">获取可用的 AI 模型并选择要使用的模型</string>
-  <string name="search_ai_reasoning_summary">为支持的模型显示其内部思考过程</string>
-  <string name="search_ai_rename_summary">使用 AI 为批量重命名生成整洁的文件名</string>
-  <string name="search_ai_search_summary">自动格式化视频标题以用于 Wyzie/SubHub 字幕搜索</string>
   <string name="search_stt_title">语音转文字</string>
-  <string name="search_stt_summary">配置语音转文字提供商、实时模型、音频语言和输出格式</string>
-  <string name="search_translation_summary">使用 AI 翻译外部字幕并设置自动翻译目标语言</string>
   <string name="search_custom_ai_prompts_title">自定义 AI 提示词</string>
-  <string name="search_custom_ai_prompts_summary">覆盖重命名、翻译和格式化任务的默认指令</string>
-  <string name="search_offline_ai_models_summary">下载并管理本地大语言模型，实现完全离线的 AI 功能</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Decoder Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_decoder_vulkan_experimental_suffix">（实验性）</string>
   <string name="pref_anime4k_link">github.com/bloc97/Anime4K</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -979,33 +825,20 @@
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="generic_hide_key">隐藏密钥</string>
   <string name="generic_show_key">显示密钥</string>
-  <string name="generic_verify">验证</string>
-  <string name="generic_fetch">获取</string>
-  <string name="generic_got_it">知道了</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Advanced - Cache Sizes & Counts                            -->
   <!-- ═══════════════════════════════════════════════════════════ -->
-  <string name="pref_clear_playback_history_summary">清除播放位置、已选字幕、音轨、延迟和速度</string>
   <string name="pref_clear_playback_history_recently_played">同时清除 %1$d 个最近播放的项目</string>
   <string name="pref_clear_playback_history_recently_played_none">没有可清除的最近播放项目</string>
   <string name="pref_config_cache_summary">清除缓存的 mpv.conf 设置</string>
   <string name="pref_config_cache_size">大小：%1$s</string>
   <string name="pref_thumbnail_cache_summary">删除所有缓存的视频缩略图（浏览文件夹时将重新生成）</string>
   <string name="pref_thumbnail_cache_size">大小：%1$s</string>
-  <string name="pref_fonts_cache_summary">移除所有缓存的字幕字体</string>
   <string name="pref_fonts_cache_size">大小：%1$s · %2$d 个字体</string>
   <string name="pref_failed_to_clear">清除失败：%1$s</string>
   <string name="pref_export_failed">导出失败：%1$s</string>
   <string name="pref_import_failed">导入失败：%1$s</string>
-  <string name="pref_size_bytes">%1$d B</string>
-  <string name="pref_size_kb">%.1f KB</string>
-  <string name="pref_size_mb">%.1f MB</string>
-  <string name="toast_need_ytdl">需要安装 yt-dlp 才能播放此链接（设置 &gt; 高级 &gt; yt-dlp 管理器）</string>
-  <string name="pref_ytdl_quality_any">任意</string>
-  <string name="pref_ytdl_prefer_h264_title">优先 H.264（AVC）</string>
-  <string name="pref_ytdl_prefer_h264_summary">提高与旧设备的兼容性，但可能限制画质</string>
-  <string name="pref_ytdl_quality_title">首选画质</string>
 
   <!-- Customizable Skip Keywords -->
   <string name="pref_custom_intro_keywords_enabled">使用自定义关键词跳过片头</string>
@@ -1061,8 +894,6 @@
   <string name="ui_add_button">添加按钮</string>
   <string name="compressor_start_batch">开始批量压缩</string>
   <string name="compressor_start">开始压缩</string>
-  <string name="pref_benchmark">性能测试</string>
-  <string name="pref_retest">重新测试</string>
   <string name="pref_add_language">添加语言</string>
   <string name="player_hdr_shaders_unavailable">HDR Toys 着色器不可用</string>
   <string name="player_ambience_on">环境光模式：开</string>
@@ -1124,25 +955,16 @@
   <plurals name="hall_of_fame_feedback_count">
     <item quantity="other">%1$d 条反馈评论</item>
   </plurals>
-  <string name="pref_section_contributors">贡献者</string>
   <string name="contributors_loading">正在加载贡献者...</string>
   <string name="contributors_load_error">无法加载贡献者</string>
   <string name="contributors_empty">未找到贡献者。</string>
   <string name="contributors_retry">重试</string>
-  <string name="contributors_view_all">查看所有贡献者</string>
   <string name="network_connection_invalid_port">请输入 1 到 65535 之间的端口号</string>
   <plurals name="contributors_contribution_count">
     <item quantity="other">%1$d 次贡献</item>
   </plurals>
-  <string name="ytdlp_engine_installer">引擎安装器</string>
-  <string name="ytdlp_quality_format">质量与格式</string>
-  <string name="ytdlp_video_codec">视频编解码器</string>
-  <string name="ytdlp_hdr_preference">HDR 偏好</string>
   <string name="ytdlp_container">封装格式</string>
-  <string name="ytdlp_audio_preference">音频偏好</string>
-  <string name="ytdlp_audio_quality">音频质量</string>
   <string name="ytdlp_subtitles_language">字幕与语言</string>
-  <string name="ytdlp_advanced_networking">高级网络设置</string>
   <string name="ytdlp_playlist_behavior">播放列表行为</string>
   <string name="ui_file_size">文件大小</string>
   <string name="ui_duration">时长</string>
@@ -1163,7 +985,6 @@
   <string name="ambient_color">颜色</string>
   <string name="ambient_edge_blend">边缘融合</string>
   <string name="ambient_compositing">合成</string>
-  <string name="ambient_visual_style">视觉样式</string>
   <string name="controls_reset_default_title">重置为默认值？</string>
   <string name="controls_reset_default_summary">这会将此区域中的控件重置为默认配置。</string>
   <string name="ui_no_audio_found">未找到音频</string>
@@ -1171,7 +992,6 @@
   <string name="pref_screenshots_section">屏幕截图</string>
   <string name="lua_no_mpv_folder">未选择 MPV 文件夹</string>
   <string name="lua_no_scripts_found">未找到脚本</string>
-  <string name="ambient_frame_extend">画面延伸</string>
   <string name="lua_delete_script_title">删除脚本？</string>
   <string name="lua_delete_script_message">确定要删除 "%1$s" 吗？此操作无法撤销。</string>
   <string name="search_category_advanced">高级</string>
@@ -1183,7 +1003,6 @@
   <string name="search_category_gestures">手势</string>
   <string name="search_category_player">播放器</string>
   <string name="search_category_subtitles">字幕</string>
-  <string name="search_generated_summary">配置 %1$s 选项。</string>
   <string name="compressor_reduction_percent">−%1$d%%</string>
   <string name="compressor_add_preset">添加预设</string>
   <string name="compressor_default_audio">默认音频</string>
@@ -1282,7 +1101,6 @@
   <string name="media_info_stat_channels">声道</string>
   <string name="media_info_stat_sample_rate">采样率</string>
   <string name="player_unknown_video">未知视频</string>
-  <string name="ui_logcat">Logcat：</string>
   <string name="ui_home">主页</string>
   <string name="ui_recents">最近</string>
   <string name="ui_playlists">播放列表</string>
@@ -1304,7 +1122,6 @@
   <string name="ui_pin_folders">固定文件夹</string>
   <string name="ui_unpin_folders">取消固定文件夹</string>
   <string name="ui_add_to_playlist">添加到播放列表</string>
-  <string name="ui_copy_path">复制路径</string>
   <string name="ui_add_network_connection">添加网络连接</string>
   <string name="ui_name">名称</string>
   <string name="ui_protocol">协议</string>
@@ -1342,8 +1159,6 @@
   <string name="ui_ai_is_thinking">AI 正在思考...</string>
   <string name="ui_ai_rename">AI 重命名</string>
   <string name="ui_fields">字段</string>
-  <string name="ui_folder_grid">文件夹网格</string>
-  <string name="ui_video_grid">视频网格</string>
   <string name="ui_loading_video_info">正在加载视频信息</string>
   <string name="ui_compressor">压缩器</string>
   <string name="ui_save_to">保存到</string>
@@ -1395,9 +1210,7 @@
   <string name="ui_add_connection">添加连接</string>
   <string name="ui_local_network">本地网络</string>
   <string name="ui_no_network_connections">没有网络连接</string>
-  <string name="ui_no_recent_links">暂无最近的流媒体链接或种子。请在上方粘贴流媒体 URL 以开始使用。</string>
   <string name="ui_add_smb_ftp_or_webdav_connections_to_browse_network_files">添加 SMB、FTP 或 WebDAV 连接以浏览网络文件</string>
-  <string name="ui_stream_link">流媒体链接</string>
   <string name="ui_enter_stream_url">输入流媒体 URL…</string>
   <string name="ui_paste_stream_url">粘贴流媒体 URL</string>
   <string name="ui_clear_stream_url">清除流媒体 URL</string>
@@ -1471,7 +1284,6 @@
   <string name="ui_invalid_url">无效 URL</string>
   <string name="ui_playlist_options">播放列表选项</string>
   <string name="ui_create_a_new_blank_playlist">新建空白播放列表</string>
-  <string name="ui_add_m3u_playlist_from_url">从 URL 添加 M3U 播放列表</string>
   <string name="ui_add_playlist_from_url">通过 URL 添加播放列表</string>
   <string name="ui_import_a_playlist_from_a_web_url">从网页 URL 导入播放列表</string>
   <string name="ui_custom_user_agent_optional">自定义 User-Agent（可选）</string>
@@ -1479,8 +1291,6 @@
   <string name="ui_choose_local_m3u_file">选择本地 M3U 文件</string>
   <string name="ui_add_from_url">从 URL 添加</string>
   <string name="ui_playlist_created_successfully">播放列表创建成功</string>
-  <string name="ui_storage_access_required">需要存储访问权限</string>
-  <string name="ui_allow_access">允许访问</string>
   <string name="ui_why_do_i_see_this">为什么会看到这个？</string>
   <string name="ui_why_this_permission_is_needed">为什么需要此权限</string>
   <string name="ui_mpvrx_needs_access_to_your_video_files_to_provide_its_core_funct">mpvRx 需要访问您的视频文件，才能提供媒体播放器的核心功能。</string>
@@ -1503,8 +1313,6 @@
   <string name="ui_notification_permission_desc">可选。用于媒体播放控制、后台状态和更新提醒。</string>
   <string name="ui_audio_record_permission_title">录制音频</string>
   <string name="ui_audio_record_permission_desc">可选。用于音频可视化效果实时处理频谱和频率能量。</string>
-  <string name="ui_permission_mandatory">必需</string>
-  <string name="ui_permission_optional">可选</string>
   <string name="ui_permission_granted">已授权</string>
   <string name="ui_next">下一步</string>
   <string name="ui_grant_permission_hint">点击以授予权限</string>
@@ -1540,8 +1348,6 @@
   <string name="ui_enable_ass_override">启用 ASS 覆盖</string>
   <string name="ui_filter_presets">滤镜预设</string>
   <string name="ui_yt_dlp_manager">yt-dlp 管理器</string>
-  <string name="ui_install_core">安装核心</string>
-  <string name="ui_update_core">更新核心</string>
   <string name="ui_aspect_ratio">宽高比</string>
   <string name="ui_auto_crop_black_bars">自动去除黑边</string>
   <string name="ui_auto_crop_black_bars_summary">后台抽取多帧，自动裁掉视频文件中持续存在的黑边。</string>
@@ -1596,8 +1402,6 @@
   <string name="ui_instructions_for_ai_subtitle_translation">AI 字幕翻译说明...</string>
   <string name="ui_instructions_for_formatting_subtitle_search_queries">字幕搜索查询格式化说明...</string>
   <string name="ui_subtitle_translation_can_be_a_bit_messy">字幕翻译可能会有些不准确。 </string>
-  <string name="ui_use_model">使用模型</string>
-  <string name="ui_active">活动</string>
   <string name="ui_real_time_model">实时模型</string>
   <string name="ui_auto_translate_target_languages">自动翻译目标语言</string>
   <string name="ui_when_translating_subtitles_if_1_language_is_configured_it_transl">翻译字幕时，如果配置了 1 种语言则直接翻译；如果配置了 2 种或更多语言，则会显示选择器。</string>
@@ -1610,11 +1414,7 @@
   <string name="ui_include_audio_files">包含音频文件</string>
   <string name="ui_show_audio_files_in_the_browser">在浏览器中显示音频文件</string>
   <string name="ui_minimum_audio_duration">最短音频时长</string>
-  <string name="ui_audio_blob_visualizer">音频流体可视化</string>
-  <string name="ui_show_opengl_blob_visualizer_when_playing_audio">播放音频时显示 OpenGL 流体可视化</string>
-  <string name="ui_keep_audio_and_video_playing_when_leaving_the_player_or_locking">离开播放器或锁屏时继续播放音频和视频</string>
   <string name="ui_unsaved_changes">未保存的更改</string>
-  <string name="ui_reset_incompatible_configuration">重置不兼容配置</string>
   <string name="ui_help">帮助</string>
   <string name="ui_no_storage_location_set">未设置存储位置</string>
   <string name="ui_failed_to_create_file">创建文件失败</string>
@@ -1670,37 +1470,10 @@
   <string name="ui_restricted_requires_paid_api_key">受限（需要付费 API 密钥）</string>
   <string name="ui_restricted">受限</string>
   <string name="ui_yt_dlp_streaming">yt-dlp 流媒体</string>
-  <string name="ui_yt_dlp_core_engine">yt-dlp 核心引擎</string>
-  <string name="ui_manage_yt_dlp_environment">管理 yt-dlp 环境</string>
-  <string name="ui_download_the_latest_wrapper_modules_and_compile_python_friendly">下载最新封装模块，并在本地沙盒文件夹中编译适用于 Python 的原生二进制文件。</string>
-  <string name="ui_update_to_nightly_build">更新到每夜构建版</string>
-  <string name="ui_streaming_quality">流媒体质量</string>
-  <string name="ui_bitrate_caps_apply_when_yt_dlp_reports_audio_bitrate_metadata">当 yt-dlp 报告音频比特率元数据时，会应用比特率上限。</string>
-  <string name="ui_generated_format_string">生成的格式字符串</string>
   <string name="ui_download_media_subtitles">下载媒体字幕</string>
   <string name="ui_automatically_extract_and_load_physical_subtitle_tracks_from_sup">从支持的 URL 自动提取并加载实际字幕轨道。</string>
   <string name="ui_include_auto_generated_subtitles">包含自动生成字幕</string>
   <string name="ui_fetch_auto_caption_tracks_e_g_youtube_speech_to_text_when_regula">当普通字幕缺失时获取自动字幕轨道（例如 YouTube 语音转文字）。</string>
-  <string name="ui_overrides_app_subtitle_languages_only_for_yt_dlp_downloads">仅对 yt-dlp 下载覆盖应用的字幕语言设置。</string>
-  <string name="ui_advanced_configurations">高级配置</string>
-  <string name="ui_custom_http_agent_proxy_extractor_args_sponsorblock_and_raw_opti">自定义 HTTP 代理标识、代理服务器、提取器参数、SponsorBlock 和原始选项</string>
-  <string name="ui_format_sort">格式排序</string>
-  <string name="ui_passed_to_yt_dlp_as_format_sort_for_advanced_ranking">作为 format-sort 传递给 yt-dlp，以进行高级排序。</string>
-  <string name="ui_merge_output_format">合并输出格式</string>
-  <string name="ui_custom_user_agent_override">自定义 User-Agent 覆盖</string>
-  <string name="ui_leave_blank_to_use_default_browser_user_agent_helps_bypass_anti">留空以使用默认浏览器 User-Agent，有助于绕过反机器人拦截。</string>
-  <string name="ui_referer">Referer</string>
-  <string name="ui_cookies_file">Cookie 文件</string>
-  <string name="ui_proxy">代理服务器</string>
-  <string name="ui_extractor_args">提取器参数</string>
-  <string name="ui_geo_bypass">绕过地区限制</string>
-  <string name="ui_ask_yt_dlp_to_use_its_extractor_level_region_bypass_logic">要求 yt-dlp 使用提取器级别的地区绕过逻辑。</string>
-  <string name="ui_live_from_start">直播从头播放</string>
-  <string name="ui_start_live_streams_from_the_beginning_when_the_extractor_support">当提取器支持时，从头开始播放直播流。</string>
-  <string name="ui_sponsorblock_mark">SponsorBlock 标记</string>
-  <string name="ui_sponsorblock_remove">SponsorBlock 移除</string>
-  <string name="ui_raw_yt_dlp_options">原始 yt-dlp 选项</string>
-  <string name="ui_anything_not_exposed_above_separate_options_with_new_lines_or_co">任何未在上方列出的选项。使用换行或逗号分隔；包含逗号的值请加引号。</string>
   <string name="ui_video_title">视频标题</string>
   <string name="ui_1_06_chapter_1">1:06 • 第 1 章</string>
   <string name="ui_downloading">正在下载...</string>
@@ -1788,7 +1561,6 @@
   <string name="filter_preset_save">保存</string>
   <string name="syncplay_title">Syncplay</string>
   <string name="syncplay_description">与朋友同步观看视频。连接到 Syncplay 服务器即可开始一起观看。</string>
-  <string name="syncplay_open">打开 Syncplay</string>
   <string name="syncplay_connected_as">已以 %1$s 身份连接到房间 %2$s</string>
   <string name="syncplay_users_in_room">房间中的用户：</string>
   <string name="syncplay_disconnect">断开连接</string>
@@ -1798,7 +1570,6 @@
   <string name="syncplay_room_name">房间名称</string>
   <string name="syncplay_password_optional">密码（可选）</string>
   <string name="syncplay_error">错误：%1$s</string>
-  <string name="syncplay_connection_failed">连接失败</string>
   <string name="syncplay_connect">连接</string>
   <string name="syncplay_connecting">正在连接…</string>
   <string name="syncplay_player_status">Syncplay：%1$s（%2$d 位用户）</string>
@@ -1816,33 +1587,18 @@
   <string name="player_sheets_track_lang_wo_title">#%1$d: %2$s</string>
   <string name="player_sheets_track_title_w_lang">#%1$d: %2$s (%3$s)</string>
   <string name="player_sheets_track_title_wo_lang">#%1$d: %2$s</string>
-  <string name="pref_about_donate_kofi_url">https://ko-fi.com/adityanarvekar</string>
-  <string name="pref_about_donate_paypal_url">https://paypal.me/aadinarvekar</string>
-  <string name="pref_about_donate_upi_id">aadiinarvekar@upi</string>
   <string name="ui_24fps">24fps</string>
   <string name="ui_30fps">30fps</string>
   <string name="ui_60fps">60fps</string>
-  <string name="ui_all_or_en_ja">all or en.*,ja</string>
   <string name="ui_av1">AV1</string>
-  <string name="ui_extractor_args_2">extractor-args=\"youtube:player_client=android,web\"\ngeo-bypass=</string>
   <string name="ui_h_264">H.264</string>
   <string name="ui_h_265">H.265</string>
-  <string name="ui_mozilla_5_0">Mozilla/5.0 ...</string>
-  <string name="ui_mp4_mkv_webm">mp4, mkv, webm</string>
-  <string name="ui_res_fps_hdr_12_vcodec_vp9_2">res,fps,hdr:12,vcodec:vp9.2</string>
-  <string name="ui_socks5_127_0_0_1_1080">socks5://127.0.0.1:1080</string>
-  <string name="ui_sponsor">sponsor</string>
-  <string name="ui_sponsor_selfpromo">sponsor,selfpromo</string>
-  <string name="ui_storage_emulated_0_download_cookies_txt">/storage/emulated/0/Download/cookies.txt</string>
-  <string name="ui_youtube_player_client_android_web">youtube:player_client=android,web</string>
   <string name="volume_slider_absolute_value">%d</string>
 
   <!-- Secure Folder -->
   <string name="secure_folder_title">安全文件夹</string>
-  <string name="secure_folder_summary">受PIN保护的空间，用于存放要在媒体库中隐藏的视频。</string>
   <string name="secure_folder_dont_ask_again">不再询问</string>
   <string name="secure_folder_enter_pin">输入PIN码</string>
-  <string name="secure_folder_unlock">解锁</string>
   <string name="secure_folder_forgot_pin">忘记PIN码？</string>
   <string name="secure_folder_setup_title">设置安全文件夹</string>
   <string name="secure_folder_setup_subtitle">选择PIN码和用于恢复的安全问题。</string>
@@ -1856,7 +1612,6 @@
   <string name="secure_folder_confirm_pin">确认PIN码</string>
   <string name="secure_folder_security_question">安全问题</string>
   <string name="secure_folder_new_security_question">新安全问题</string>
-  <string name="secure_folder_question">问题</string>
   <string name="secure_folder_answer">答案</string>
   <string name="secure_folder_answer_security_question">回答您的安全问题</string>
   <string name="secure_folder_no_question_set">未设置安全问题。</string>
@@ -1869,11 +1624,7 @@
   <string name="secure_folder_pin_changed">PIN码修改成功</string>
   <string name="secure_folder_security_question_changed">安全问题已更新</string>
   <string name="secure_folder_use_fingerprint">使用指纹</string>
-  <string name="secure_folder_enable_fingerprint">启用指纹</string>
-  <string name="secure_folder_disable_fingerprint">禁用指纹</string>
   <string name="secure_folder_use_face_unlock">使用面部解锁</string>
-  <string name="secure_folder_enable_face_unlock">启用面部解锁</string>
-  <string name="secure_folder_disable_face_unlock">禁用面部解锁</string>
   <string name="secure_folder_sq_pet">您的第一只宠物的名字是什么？</string>
   <string name="secure_folder_sq_mother">您母亲的婚前姓氏是什么？</string>
   <string name="secure_folder_sq_school">您就读的第一所学校叫什么名字？</string>
@@ -1894,14 +1645,7 @@
   <string name="secure_folder_hide_entry_title">在首选项中隐藏安全文件夹？</string>
   <string name="secure_folder_hide_entry_subtitle">“安全文件夹”选项将从首选项中移除。如需稍后再次打开，请双击主屏幕顶部的应用名称并输入PIN码。</string>
   <string name="secure_folder_working_on_it">正在处理…</string>
-  <string name="secure_folder_selected_count">已选择 %1$d 项</string>
-  <string name="secure_folder_cancel_selection">取消选择</string>
   <string name="secure_folder_restore">恢复</string>
-  <string name="secure_folder_delete_forever">永久删除</string>
-  <string name="secure_folder_show_in_preferences">在首选项中显示</string>
-  <string name="secure_folder_hide_from_preferences">在首选项中隐藏</string>
-  <string name="secure_folder_change_pin">更改PIN码</string>
-  <string name="secure_folder_change_security_question">更改安全问题</string>
   <string name="secure_folder_move_to">移动到安全文件夹</string>
   <string name="secure_folder_moving_progress">正在移动到安全文件夹…</string>
   <string name="secure_folder_move_folders_title">将 %1$d 个文件夹移动到安全文件夹？</string>
@@ -1912,7 +1656,6 @@
   <string name="secure_folder_moved_partial">已移动 %1$d 个文件，%2$d 个失败</string>
   <string name="secure_folder_move_failed">无法将文件移动到安全文件夹</string>
   <string name="secure_folder_error_incorrect_pin">PIN码错误</string>
-  <string name="secure_folder_error_pin_min_digits">PIN码必须为4位数字</string>
   <string name="secure_folder_error_pins_dont_match">PIN码不匹配</string>
   <string name="secure_folder_error_answer_question">请回答安全问题</string>
   <string name="secure_folder_error_fill_both_fields">请填写两个字段</string>
@@ -1981,12 +1724,11 @@
   <string name="pref_codecs_hardware_features">硬件特性：</string>
   <string name="pref_codecs_min_resolution">最低分辨率：%s</string>
   <string name="pref_codecs_alignment">像素对齐：%1$dx%2$d</string>
-  <string name="ui_music">Music</string>
+  <string name="ui_music">音乐</string>
   <string name="pref_nav_music_title">显示音乐标签页</string>
   <string name="pref_nav_music_summary">在底部导航栏中显示或隐藏音乐</string>
   <string name="player_up_next_title">播放列表</string>
   <string name="player_lyrics_title">歌词</string>
-  <string name="lyrics_loading_label">正在获取歌词…</string>
   <string name="instrumental">纯音乐</string>
   <string name="lyrics_source_embedded">内嵌</string>
   <string name="lyrics_source_online">在线</string>
@@ -2000,15 +1742,7 @@
   <string name="pref_section_p2p_streaming">P2P 流媒体播放</string>
   <string name="pref_network_summary">P2P 流媒体播放、yt-dlp 管理器</string>
   <string name="toast_torrent_streaming_disabled">请先在高级设置中启用 P2P 种子流媒体播放</string>
-  <string name="ui_recent_stream_links">最近的链接</string>
-  <string name="ui_torrent_files">种子</string>
-  <string name="ui_expand_torrent_group">显示种子文件</string>
-  <string name="ui_collapse_torrent_group">隐藏种子文件</string>
-  <string name="ui_delete_torrent_group">移除种子</string>
-  <string name="torrent_picker_back">关闭种子</string>
   <string name="torrent_picker_choose_title">选择要播放的内容</string>
-  <string name="torrent_picker_finding_details">正在查找封面和详细信息…</string>
-  <string name="torrent_picker_play_file">播放 %1$s</string>
   <string name="torrent_picker_preparing_title">正在读取种子</string>
   <string name="torrent_picker_preparing_description">正在连接对等节点并查找可播放文件…</string>
   <string name="torrent_picker_error_title">无法打开种子</string>
@@ -2017,10 +1751,6 @@
   <string name="torrent_picker_single_episode_label">第 %1$d 集</string>
   <string name="ui_new_password_keep_existing">新密码（留空则保留已保存的密码）</string>
   <string name="ui_clear_saved_password">清除已保存的密码</string>
-  <plurals name="ui_torrent_group_file_count">
-    <item quantity="one">%1$d 个可播放文件</item>
-    <item quantity="other">%1$d 个可播放文件</item>
-  </plurals>
   <plurals name="torrent_picker_playable_count">
     <item quantity="one">%1$d 个可播放文件</item>
     <item quantity="other">%1$d 个可播放文件</item>
@@ -2033,21 +1763,9 @@
     <string name="pref_enable_hls_proxy_title">启用 HLS 流式传输代理</string>
     <string name="pref_enable_hls_proxy_summary">规范化自适应 HLS 清单并处理分离的音频/视频流</string>
     <string name="ui_recent_streams">最近的流媒体链接</string>
-    <string name="ui_autofill_stream_url">自动填充流媒体 URL</string>
-    <string name="ui_torrent_media_anime">动漫</string>
-    <string name="ui_torrent_media_series">剧集</string>
-    <string name="ui_torrent_media_movie">电影</string>
-    <string name="ui_torrent_media_torrent">种子</string>
-    <string name="ui_resume_playback">继续播放</string>
     <string name="ui_play_now">播放</string>
-    <string name="ui_show_more">显示更多</string>
-    <string name="ui_show_less">显示更少</string>
-    <string name="ui_episodes">剧集列表</string>
-    <string name="ui_no_torrents_title">未保存任何种子</string>
-    <string name="ui_no_torrents_description">在上方粘贴磁力链接或种子 URL 以流式播放动漫和电影。</string>
     <string name="ui_no_saved_media_title">未保存任何链接</string>
     <string name="ui_no_saved_media_description">粘贴流媒体 URL、磁力链接或从最近链接保存以建立您的媒体库。</string>
-    <string name="ui_save_to_media">保存到媒体</string>
     <string name="ui_search_episodes">搜索剧集…</string>
     <string name="ui_sort_ascending">升序排列</string>
     <string name="ui_sort_descending">降序排列</string>
@@ -2059,12 +1777,8 @@
   <string name="pref_mpv_conf_overrides_title">mpv.conf 选项控制权</string>
   <string name="pref_mpv_conf_overrides_summary_app_owned">应用控制所有受支持的播放选项（推荐）</string>
   <string name="pref_mpv_conf_overrides_summary_config_owned">已选择 %1$d 个分组，已将 %2$d 个应用选项交给 mpv.conf</string>
-  <string name="pref_mpv_conf_overrides_dialog_title">让 mpv.conf 控制选项</string>
-  <string name="pref_mpv_conf_overrides_dialog_message">选择要交给 mpv.conf 的类别或选项。相应的应用控件将被禁用。</string>
   <string name="pref_mpv_conf_overrides_empty_config_warning">未检测到有效的 mpv.conf。配置前将使用默认值。</string>
-  <string name="pref_mpv_conf_overrides_protected_message">生命周期、播放命令、标头和证书始终由应用管理。</string>
   <string name="pref_mpv_conf_overrides_reset">将所有分组恢复为由应用控制</string>
-  <string name="pref_mpv_conf_overrides_selected_count">已选择 %2$d 个选项中的 %1$d 个</string>
   <string name="pref_mpv_conf_override_renderer">渲染器和 GPU 后端</string>
   <string name="pref_mpv_conf_override_renderer_summary">覆盖 GPU API、Vulkan 和配置文件设置。</string>
   <string name="pref_mpv_conf_override_decoder">硬件解码器</string>
@@ -2105,22 +1819,14 @@
   <string name="lyrics_translation_off">原始歌词</string>
   <string name="lyrics_translation_failed">无法翻译歌词，请重试。</string>
   <string name="lyrics_translation_partial">部分歌词未能翻译。</string>
-  <string name="lyrics_select_language">选择目标语言</string>
 
   <!-- Clip -->
   <string name="clip_action">创建片段</string>
   <string name="clip_options">片段选项</string>
-  <string name="clip_crop_action">裁剪并创建片段</string>
-  <string name="clip_mark_start">标记开始</string>
-  <string name="clip_mark_end">标记结束</string>
   <string name="clip_crop">裁剪</string>
   <string name="clip_save">保存片段</string>
   <string name="clip_cancel">取消</string>
   <string name="clip_done">完成</string>
-  <string name="clip_clear">清除片段</string>
-  <string name="clip_start_time">开始：%1$s</string>
-  <string name="clip_end_time">结束：%1$s</string>
-  <string name="clip_end_not_set">结束：未设置</string>
   <string name="clip_crop_size">裁剪：%1$d × %2$d</string>
   <string name="clip_crop_full_frame">裁剪：完整画面</string>
   <string name="clip_select_crop">调整边框大小以保留需要的区域</string>
@@ -2138,20 +1844,15 @@
   <string name="seerr_connect_server">连接到 Seerr</string>
   <string name="seerr_server_url">Seerr 服务器地址</string>
   <string name="seerr_server_url_hint">http://192.168.1.100:5055</string>
-  <string name="seerr_use_jellyfin_account">使用 Jellyfin 账号</string>
-  <string name="seerr_use_jellyfin_account_desc">使用您当前的 Jellyfin 用户名和密码登录</string>
   <string name="seerr_api_key">API 密钥</string>
   <string name="seerr_api_key_hint">Overseerr / Jellyseerr API 密钥</string>
   <string name="seerr_username">用户名或邮箱</string>
   <string name="seerr_password">密码</string>
   <string name="seerr_login">连接</string>
   <string name="seerr_disconnect">断开连接</string>
-  <string name="seerr_connected_as">已连接为 %1$s</string>
   <string name="seerr_not_connected">未连接到 Seerr 服务器</string>
   <string name="seerr_connect_cta">连接您的 Jellyseerr 或 Overseerr 服务器以发现和请求电影与剧集。</string>
   <string name="seerr_recently_added">最近添加</string>
-  <string name="seerr_active_requests">进行中的请求</string>
-  <string name="seerr_available_requests">已可用的请求</string>
   <string name="seerr_trending">热播趋势</string>
   <string name="seerr_popular_movies">热门电影</string>
   <string name="seerr_popular_tv">热门剧集</string>
@@ -2159,36 +1860,22 @@
   <string name="seerr_upcoming_tv">即将播出剧集</string>
   <string name="seerr_request_movie">请求电影</string>
   <string name="seerr_request_tv">请求剧集</string>
-  <string name="seerr_request_4k">请求 4K</string>
-  <string name="seerr_all_seasons">全部季</string>
   <string name="seerr_select_seasons">选择季</string>
   <string name="seerr_status_pending">等待批准</string>
   <string name="seerr_status_processing">处理中</string>
   <string name="seerr_status_available">已可用</string>
   <string name="seerr_status_partially_available">部分可用</string>
   <string name="seerr_status_requested">已请求</string>
-  <string name="seerr_status_not_requested">未请求</string>
   <string name="seerr_approve">批准</string>
   <string name="seerr_decline">拒绝</string>
-  <string name="seerr_delete">删除</string>
   <string name="seerr_play_in_jellyfin">在 mpvRx 中播放</string>
-  <string name="seerr_open_in_jellyfin">在 Jellyfin 中打开</string>
-  <string name="seerr_available_on_jellyfin">已在媒体库中</string>
   <string name="seerr_search_placeholder">在 Seerr 中搜索电影、剧集…</string>
-  <string name="seerr_request_success">请求已成功提交</string>
-  <string name="seerr_request_error">提交请求失败</string>
-  <string name="seerr_tab_all">全部</string>
-  <string name="seerr_tab_movies">电影</string>
-  <string name="seerr_tab_tv">剧集</string>
-  <string name="seerr_tab_my_requests">我的请求</string>
   <string name="ui_release_channel">发布渠道</string>
   <string name="ui_install_stable">安装稳定版</string>
   <string name="ui_update_stable">更新稳定版</string>
   <string name="ui_switch_to_stable">切换到稳定版</string>
   <string name="ui_update_nightly">更新 Nightly</string>
   <string name="ui_switch_to_nightly">切换到 Nightly</string>
-  <string name="ui_playback_defaults">播放默认设置</string>
-  <string name="ui_maximum_quality">最高画质</string>
   <string name="ui_checking_yt_dlp">正在检查 yt-dlp</string>
   <string name="ui_yt_dlp_not_installed">未安装 yt-dlp</string>
   <string name="ui_yt_dlp_stable_release">稳定版</string>
@@ -2217,7 +1904,6 @@
   <string name="update_beta_build_format">测试版 r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020（测试版）</string>
   <string name="player_video_quality">视频质量</string>
-  <string name="player_video_quality_summary">选择此流可用的视频质量。</string>
   <string name="player_video_quality_button">视频质量</string>
   <string name="network_bookmark_add">收藏文件夹</string>
   <string name="network_bookmark_remove">取消收藏文件夹</string>
@@ -2230,14 +1916,6 @@
   <string name="onboarding_get_started">开始使用</string>
   <string name="onboarding_all_set_title">一切就绪</string>
   <string name="onboarding_all_set_desc">可随时在系统设置中更改权限。</string>
-  <string name="onboarding_show_tutorial_title">显示快速导览</string>
-  <string name="onboarding_show_tutorial_desc">设置完成后显示三个快速提示</string>
-  <string name="tutorial_tabs_title">版块</string>
-  <string name="tutorial_tabs_desc">滑动或点按即可切换。</string>
-  <string name="tutorial_search_title">搜索</string>
-  <string name="tutorial_search_desc">快速找到任何文件。</string>
-  <string name="tutorial_settings_title">设置</string>
-  <string name="tutorial_settings_desc">在此调整所有设置。</string>
   <string name="onboarding_missing_permissions_title">未授予</string>
   <string name="onboarding_missing_permissions_desc">需要时可以稍后授予。</string>
   <string name="storage_permission_needed_title">需要存储访问权限</string>
@@ -2274,8 +1952,6 @@
   <string name="downloads_empty_hint">来自链接和 Jellyfin 的下载会显示在这里</string>
   <string name="downloads_active_section">进行中</string>
   <string name="downloads_completed_section">已完成</string>
-  <string name="downloads_pause">暂停</string>
-  <string name="downloads_resume">继续</string>
   <string name="downloads_retry">重试</string>
   <string name="downloads_cancel">取消</string>
   <string name="downloads_remove_entry">从列表中移除</string>
@@ -2300,7 +1976,6 @@
   <string name="downloads_play">播放</string>
   <string name="downloads_open_downloads">打开下载</string>
   <string name="pref_player_resume_playback_title">继续播放</string>
-  <string name="pref_player_resume_playback_summary">选择之前看过的视频如何打开</string>
   <string name="pref_player_resume_mode_always">始终继续播放</string>
   <string name="pref_player_resume_mode_always_summary">自动从上次保存的位置继续播放</string>
   <string name="pref_player_resume_mode_ask">每次询问</string>
@@ -2316,26 +1991,17 @@
   <string name="pref_resume_indicator_overlay_summary">显示继续播放或起始位置反馈提示条。询问模式始终显示可操作的继续播放提示条</string>
 
   <!-- Media Servers Settings -->
-  <string name="pref_section_media_servers">媒体服务器</string>
   <string name="pref_media_servers_title">媒体服务器</string>
   <string name="pref_media_servers_summary">Jellyfin、Seerr 与流媒体库</string>
   <string name="pref_jellyfin_title">Jellyfin</string>
   <string name="pref_jellyfin_server_management">服务器管理</string>
-  <string name="pref_jellyfin_server_management_desc">管理已连接服务器与当前活动实例</string>
   <string name="pref_music_player_switch_title">切换音乐播放器</string>
-  <string name="pref_music_player_switch_desc">选择“音乐”标签页的默认音频源</string>
   <string name="music_source_local">本地设备</string>
-  <string name="music_source_local_desc">播放存储在设备上的音频文件</string>
   <string name="music_source_jellyfin">Jellyfin 音乐</string>
-  <string name="music_source_jellyfin_desc">从 Jellyfin 服务器串流音乐</string>
   <string name="pref_seerr_title">Seerr</string>
   <string name="pref_seerr_add_server">连接 Seerr</string>
   <string name="pref_seerr_add_server_desc">添加并连接到 Seerr 服务器</string>
   <string name="pref_seerr_server_management">服务器连接</string>
-  <string name="pref_seerr_server_management_desc">配置 Seerr 实例 URL 与凭据</string>
-  <string name="pref_seerr_disconnect">断开连接</string>
-  <string name="pref_seerr_connected_as">已连接为 %1$s</string>
-  <string name="pref_seerr_not_connected">未连接</string>
   <string name="pref_jellyfin_no_server">未连接 Jellyfin 服务器</string>
   <string name="pref_jellyfin_add_server">连接 Jellyfin</string>
   <string name="pref_jellyfin_add_server_desc">添加并连接到 Jellyfin 服务器</string>
@@ -2345,8 +2011,7 @@
   <string name="pref_server_set_active">设为活动服务器</string>
   <string name="pref_server_more_options">更多选项</string>
   <string name="jellyfin_no_music_library">在此 Jellyfin 服务器上未找到音乐库</string>
-  <string name="pref_appearance_custom_theme_title">自定义主题</string><string name="pref_appearance_custom_theme_name">主题名称</string><string name="pref_appearance_custom_theme_light_primary">浅色主色</string><string name="pref_appearance_custom_theme_dark_primary">深色主色</string><string name="pref_appearance_custom_theme_light_background">浅色背景色</string><string name="pref_appearance_custom_theme_dark_background">深色背景色</string><string name="pref_appearance_custom_theme_none">未保存自定义主题</string><string name="pref_appearance_custom_theme_edit">创建或编辑</string><string name="pref_appearance_custom_theme_clear">清除</string><string name="pref_appearance_custom_theme_save">保存</string><string name="pref_appearance_custom_wallpaper_title">壁纸</string><string name="pref_appearance_custom_wallpaper_summary">在浏览器内容和顶部栏后显示全屏图片</string><string name="pref_appearance_custom_wallpaper_choose">选择壁纸</string><string name="pref_appearance_custom_wallpaper_replace">替换壁纸</string><string name="pref_appearance_custom_wallpaper_clear">清除壁纸</string>
-  <string name="pref_appearance_custom_wallpaper_home_preview">主屏幕预览</string>
+  <string name="pref_appearance_custom_theme_title">自定义主题</string><string name="pref_appearance_custom_theme_name">主题名称</string><string name="pref_appearance_custom_theme_light_primary">浅色主色</string><string name="pref_appearance_custom_theme_dark_primary">深色主色</string><string name="pref_appearance_custom_theme_light_background">浅色背景色</string><string name="pref_appearance_custom_theme_dark_background">深色背景色</string><string name="pref_appearance_custom_theme_edit">创建或编辑</string><string name="pref_appearance_custom_theme_clear">清除</string><string name="pref_appearance_custom_theme_save">保存</string><string name="pref_appearance_custom_wallpaper_title">壁纸</string><string name="pref_appearance_custom_wallpaper_summary">在浏览器内容和顶部栏后显示全屏图片</string>  <string name="pref_appearance_custom_wallpaper_home_preview">主屏幕预览</string>
   <string name="pref_appearance_custom_wallpaper_home_preview_close">点击任意位置关闭</string>
   <string name="wallpaper_aspect_device">设备</string>
   <string name="wallpaper_presets_label">壁纸</string>
@@ -2361,12 +2026,10 @@
   <string name="wallpaper_none_hint">无壁纸</string>
   <string name="pref_appearance_custom_wallpaper_preview_locked">预览已锁定</string>
   <string name="pref_appearance_custom_wallpaper_preview_unlocked">预览已解锁</string>
-  <string name="pref_appearance_custom_wallpaper_aspect_free">自由</string>
   <string name="pref_appearance_custom_wallpaper_crop_title">调整壁纸</string><string name="pref_appearance_custom_wallpaper_zoom">缩放</string><string name="pref_appearance_custom_wallpaper_horizontal">水平位置</string><string name="pref_appearance_custom_wallpaper_vertical">垂直位置</string><string name="pref_appearance_custom_wallpaper_save">保存壁纸</string>
-  <string name="pref_appearance_custom_theme_new">新建自定义主题</string><string name="pref_appearance_custom_theme_edit_title">编辑自定义主题</string><string name="pref_appearance_custom_theme_preview">预览</string><string name="pref_appearance_custom_theme_live_preview">实时预览</string><string name="pref_appearance_custom_theme_name_required">请输入主题名称</string><string name="pref_appearance_custom_theme_name_duplicate">已存在同名主题</string><string name="pref_appearance_custom_theme_hex_invalid">请使用类似 #6750A4 的十六进制颜色</string><string name="pref_appearance_custom_wallpaper_adjust">调整</string><string name="pref_appearance_custom_wallpaper_gesture_hint">拖动以调整位置，双指捏合以缩放。</string><string name="pref_appearance_custom_wallpaper_reset">重置</string>
+  <string name="pref_appearance_custom_theme_new">新建自定义主题</string><string name="pref_appearance_custom_theme_edit_title">编辑自定义主题</string><string name="pref_appearance_custom_theme_preview">预览</string><string name="pref_appearance_custom_theme_live_preview">实时预览</string><string name="pref_appearance_custom_theme_name_required">请输入主题名称</string><string name="pref_appearance_custom_theme_name_duplicate">已存在同名主题</string><string name="pref_appearance_custom_theme_hex_invalid">请使用类似 #6750A4 的十六进制颜色</string><string name="pref_appearance_custom_wallpaper_gesture_hint">拖动以调整位置，双指捏合以缩放。</string><string name="pref_appearance_custom_wallpaper_reset">重置</string>
   <string name="pref_appearance_custom_theme_light_secondary">浅色辅助色</string><string name="pref_appearance_custom_theme_dark_secondary">深色辅助色</string><string name="pref_appearance_custom_theme_light_tertiary">浅色第三色</string><string name="pref_appearance_custom_theme_dark_tertiary">深色第三色</string>
-  <string name="pref_appearance_custom_wallpaper_fit">适应</string><string name="pref_appearance_custom_wallpaper_fill">填充</string><string name="pref_appearance_custom_wallpaper_replace_action">替换</string><string name="pref_appearance_custom_wallpaper_clear_action">清除</string>
-  <string name="pref_appearance_custom_wallpaper_use_colors">使用壁纸颜色</string>
+  <string name="pref_appearance_custom_wallpaper_fit">适应</string><string name="pref_appearance_custom_wallpaper_fill">填充</string><string name="pref_appearance_custom_wallpaper_replace_action">替换</string>  <string name="pref_appearance_custom_wallpaper_use_colors">使用壁纸颜色</string>
   <string name="pref_appearance_custom_wallpaper_use_colors_summary">根据此壁纸的颜色生成应用主题</string>
   <string name="pref_appearance_custom_wallpaper_colors_failed">无法从此壁纸提取颜色</string>
   <string name="wallpaper_save_failed">无法保存壁纸，请重新选择图片。</string>
@@ -2383,14 +2046,6 @@
   <string name="generic_configure">配置</string>
   <string name="generic_install">安装</string>
   <string name="music_source_navidrome">Navidrome 音乐</string>
-  <string name="music_source_navidrome_desc">从你的 Navidrome 服务器串流音乐</string>
-  <string name="navidrome_connect">连接</string>
-  <string name="navidrome_connect_failed">无法连接到 Navidrome 服务器</string>
-  <string name="navidrome_connecting">正在连接…</string>
-  <string name="navidrome_password">密码</string>
-  <string name="navidrome_server_address">服务器地址</string>
-  <string name="navidrome_server_name">服务器名称（可选）</string>
-  <string name="navidrome_username">用户名</string>
   <string name="notification_close">关闭</string>
   <string name="pp_desc_anime">为动漫内容降噪并增强锐度。</string>
   <string name="pp_desc_bloom">在明亮区域叠加光晕。</string>
@@ -2498,8 +2153,6 @@
   <string name="audiobook_language">语言</string>
   <string name="audiobook_publisher">出版方</string>
   <string name="audiobook_published">出版时间</string>
-  <string name="audiobook_abridged">删节版</string>
-  <string name="audiobook_unabridged">完整版</string>
   <string name="audiobook_details">书籍详情</string>
   <string name="audiobook_edit">编辑书籍</string>
   <string name="audiobook_save">保存</string>
@@ -2514,16 +2167,13 @@
   <string name="audiobook_in_progress">收听中</string>
   <string name="audiobook_finished">已听完</string>
   <string name="audiobook_remaining">剩余 %1$s</string>
-  <string name="audiobook_book_time">全书</string>
   <string name="audiobook_chapters">章节</string>
   <string name="audiobook_previous_chapter">上一章</string>
   <string name="audiobook_next_chapter">下一章</string>
   <string name="audiobook_chapter_number">第 %1$d 章</string>
   <string name="audiobook_files">文件</string>
-  <string name="audiobook_bookmarks">书签</string>
   <string name="audiobook_add_bookmark">添加书签</string>
   <string name="audiobook_bookmark_name">书签名称</string>
-  <string name="audiobook_no_bookmarks">暂无书签</string>
   <string name="audiobook_delete_bookmark">删除书签</string>
   <string name="audiobook_sleep_timer">睡眠定时器</string>
   <string name="audiobook_timer_off">关闭</string>
@@ -2531,12 +2181,8 @@
   <string name="audiobook_minutes">%1$d 分钟</string>
   <string name="audiobook_smart_rewind">暂停后回退</string>
   <string name="audiobook_seconds">%1$d 秒</string>
-  <string name="audiobook_rewind">后退 15 秒</string>
-  <string name="audiobook_forward">前进 30 秒</string>
   <string name="audiobook_pause">暂停</string>
-  <string name="audiobook_stop">停止收听</string>
   <string name="audiobook_search">搜索书籍、作者、朗读者</string>
-  <string name="audiobook_save_failed">无法保存收听进度。</string>
   <string name="audiobook_play_failed">无法打开此书。请检查其文件是否仍可访问。</string>
   <string name="audiobook_retry">重试</string>
   <string name="playback_bookmarks_empty">暂无书签或章节</string>
@@ -2550,7 +2196,6 @@
   <string name="pref_audiobookshelf_add_another_server">添加其他服务器</string>
   <string name="pref_audiobookshelf_add_another_server_desc">连接额外的 Audiobookshelf 服务器</string>
   <string name="audiobook_source_audiobookshelf">Audiobookshelf</string>
-  <string name="audiobook_source_audiobookshelf_desc">从 Audiobookshelf 服务器串流有声书</string>
   <string name="audiobook_source_local">本地有声书</string>
   <string name="pref_audiobookshelf_no_server">未连接 Audiobookshelf 服务器</string>
   <string name="audio_swipe_delete_title">删除音频文件？</string>
@@ -2658,7 +2303,6 @@
   <string name="snapshot_sort_item_count">快照数量</string>
 
   <string name="snapshot_search_folder_placeholder">搜索文件夹和快照</string>
-  <string name="snapshot_folder_count">%1$d 张快照</string>
   <string name="playlist_add_zip">添加 ZIP 压缩包</string>
   <string name="playlist_zip_import_success">ZIP 播放列表已保存</string>
   <string name="playlist_zip_import_failed">无法添加 ZIP 压缩包。请选择可读取、支持随机访问且包含音频或视频文件的 ZIP。</string>
@@ -2675,9 +2319,7 @@
   <string name="pref_auto_backup_summary">mpvRx 进入后台时将已更改的设置保存到 Configuration/Backup，并保留最近七份备份。</string>
   <string name="pref_auto_backup_select_folder">请先选择配置文件夹</string>
   <string name="pref_auto_backup_last_backup">上次备份：%1$s</string>
-  <string name="pref_auto_backup_folder_title">备份文件夹</string>
   <string name="watch_stats_title">观看统计</string>
-  <string name="watch_stats_summary">播放时长、活动和最常观看的媒体</string>
   <string name="watch_stats_total_time">总观看时长</string>
   <string name="watch_stats_sessions">%1$d 次播放</string>
   <string name="watch_stats_reset">重置</string>
@@ -2702,7 +2344,6 @@
   <string name="pref_seekbar_preview_skip_markers">跳过标记</string>
   <string name="pref_liquid_glass_optics">光学效果</string>
   <string name="pref_liquid_glass_opacity">背景不透明度</string>
-  <string name="pref_liquid_glass_blur">模糊强度</string>
   <string name="pref_liquid_glass_refraction_height">折射边缘宽度</string>
   <string name="pref_liquid_glass_refraction_amount">折射强度</string>
   <string name="pref_liquid_glass_depth">深度效果</string>
@@ -2735,11 +2376,6 @@
   <string name="network_smb_share_hint">留空或输入 / 可浏览所有共享文件夹。输入 /Media 或 /Media/Movies 可打开指定文件夹。</string>
   <string name="pref_app_icon_title">应用图标</string>
   <string name="pref_app_icon_summary">选择启动器中显示的图标</string>
-  <string name="pref_app_icon_description">选择应用图标。未来版本可以添加更多设计。</string>
-  <string name="app_icon_purple">紫色丝带</string>
-  <string name="app_icon_purple_description">全新渐变 mpvRx 图标（默认）</string>
-  <string name="app_icon_classic">经典</string>
-  <string name="app_icon_classic_description">原版 mpvRx 图标</string>
   <string name="app_icon_change_failed">无法更改应用图标。</string>
   <string name="lyrics_provider_auto_best">最佳匹配：%1$s</string>
   <string name="lyrics_provider_row_current">当前来源</string>
@@ -2772,4 +2408,144 @@
   <string name="lyrics_empty_line_4">让旋律来诉说</string>
   <string name="lyrics_empty_line_5">歌词不见了</string>
   <string name="lyrics_empty_line_6">凭记忆跟唱吧</string>
+
+  <string name="generic_back">返回</string>
+  <string name="generic_home">主页</string>
+  <string name="cast_playback_speed">播放速度</string>
+  <string name="generic_search">搜索</string>
+  <string name="generic_no_matching_options">没有匹配的选项</string>
+  <string name="generic_unknown">未知</string>
+  <string name="pref_appearance_category_liquid_glass">液态玻璃</string>
+  <string name="ui_select_model">选择模型</string>
+  <string name="ai_model_search_empty">没有匹配的模型</string>
+  <string name="ai_model_none_available">没有可用的模型</string>
+  <plurals name="ai_model_result_count">
+    <item quantity="other">%1$d 个模型</item>
+  </plurals>
+  <string name="folder_search_hint">搜索文件夹</string>
+  <string name="folder_blacklist_scope">排除范围</string>
+  <string name="folder_blacklist_both">两者</string>
+  <string name="folder_blacklist_video">视频</string>
+  <string name="folder_blacklist_audio">音频</string>
+  <string name="subtitle_source_search_hint">搜索字幕来源</string>
+  <string name="subtitle_sources_load_error">无法加载字幕来源</string>
+  <string name="hall_of_fame_subtitle">致敬杰出贡献者</string>
+  <string name="hall_of_fame_featured_subtitle">让这个项目变得更好的优秀伙伴</string>
+  <string name="hall_of_fame_view_all">查看全部</string>
+  <string name="hall_of_fame_contributor_badge">贡献者</string>
+  <string name="hall_of_fame_tester_badge">测试者</string>
+  <string name="hall_of_fame_show_section">显示</string>
+  <string name="hall_of_fame_hide_section">隐藏</string>
+  <string name="media_widget_name">mpvRx 播放</string>
+  <string name="media_widget_description">控制音频和视频播放</string>
+  <string name="media_widget_pill_name">mpvRx 音乐胶囊</string>
+  <string name="media_widget_pill_description">小巧的音乐播放控件</string>
+  <string name="media_widget_empty">未在播放</string>
+  <string name="media_widget_audio">音频</string>
+  <string name="media_widget_video">视频</string>
+  <string name="playlist_search_hint">搜索播放列表</string>
+  <string name="playlist_search_empty">没有匹配的播放列表</string>
+  <string name="playlist_search_empty_hint">尝试其他名称，或创建新的播放列表</string>
+  <string name="playlist_no_compatible_items">没有可添加的兼容项目</string>
+  <string name="playlist_add_failed">无法将项目添加到播放列表</string>
+  <plurals name="playlist_picker_song_count">
+    <item quantity="other">添加 %1$d 首歌曲</item>
+  </plurals>
+  <plurals name="playlist_picker_video_count">
+    <item quantity="other">添加 %1$d 个视频</item>
+  </plurals>
+  <plurals name="playlist_item_count_value">
+    <item quantity="other">%1$d 项</item>
+  </plurals>
+  <string name="ui_select_storage_location">选择存储位置</string>
+  <string name="ui_search_files">搜索文件和文件夹</string>
+  <string name="ui_no_matching_files">没有匹配的文件或文件夹</string>
+  <string name="ui_system_picker">系统文件选择器</string>
+  <string name="ui_sort_by">排序依据</string>
+  <string name="ui_media_types">媒体类型</string>
+  <string name="playlist_open_action">打开播放列表</string>
+  <string name="syncplay_failure_dns">找不到服务器地址。请检查主机名和网络的 DNS 设置。</string>
+  <string name="syncplay_failure_refused">服务器拒绝了连接。请检查端口，并确认 Syncplay 服务器正在运行。</string>
+  <string name="syncplay_failure_timeout">服务器未及时响应。请检查连接，以及此端口是否被阻止。</string>
+  <string name="syncplay_failure_unreachable">无法通过此网络访问服务器。请尝试其他 Wi-Fi 或移动网络。</string>
+  <string name="syncplay_failure_handshake">连接已建立，但服务器未完成 Syncplay 登录。请确认这是 Syncplay 服务器及其端口。</string>
+  <string name="syncplay_failure_closed">服务器关闭了连接。请检查服务器设置，然后重新连接。</string>
+  <string name="syncplay_failure_protocol">服务器返回了无效的 Syncplay 响应。请检查服务器地址和端口。</string>
+  <string name="syncplay_failure_network">无法连接到 Syncplay 服务器。请检查网络、服务器地址和端口。</string>
+  <string name="secure_folder_biometric_enable_confirm">请输入安全文件夹的 PIN 码以启用生物识别解锁</string>
+  <string name="secure_folder_error_pin_incomplete">请输入完整的 PIN 码</string>
+  <string name="secure_folder_pin_length">PIN 码长度</string>
+  <string name="secure_folder_pin_length_option">%1$d 位</string>
+  <string name="lyrics_provider_auto">自动</string>
+  <string name="lyrics_provider_auto_with">自动（%1$s）</string>
+  <string name="lyrics_by">歌词来源：%1$s</string>
+  <string name="lyrics_provider_not_found">%1$s 没有这首歌曲的歌词</string>
+  <string name="lyrics_provider_sheet_title">歌词来源</string>
+  <string name="lyrics_search_online">在线搜索</string>
+  <string name="pref_paxsenix_api_key">PaxSenix API 密钥</string>
+  <string name="pref_paxsenix_api_key_summary">启用 Spotify 和 Musixmatch 获取通道</string>
+  <string name="pref_paxsenix_api_key_dialog_desc">粘贴您的 PaxSenix API 密钥。留空则仅使用不需要密钥的获取通道。</string>
+  <string name="pref_lyrics_sources_category">在线歌词</string>
+  <string name="pref_lyrics_auto_fetch_online">自动获取在线歌词</string>
+  <string name="pref_lyrics_auto_fetch_online_summary">仅在没有内嵌或本地歌词时搜索在线来源。您仍可手动在线搜索。</string>
+  <string name="lyrics_translation_off_summary">显示原文，不进行翻译</string>
+  <string name="lyrics_translation_dual_line">双行显示</string>
+  <string name="lyrics_translation_replace">替换原文</string>
+  <string name="lyrics_translation_romanized">发音／罗马字</string>
+  <string name="lyrics_translation_no_languages">没有匹配的语言</string>
+  <string name="audiobook_search_online_title">在线搜索封面</string>
+  <string name="audiobook_search_online_query">按书名、作者或关键词搜索</string>
+  <string name="audiobook_search_online_searching">正在搜索 Apple Books 和 Open Library…</string>
+  <string name="audiobook_narrated_by">朗读者：%1$s</string>
+  <string name="audiobook_search_online_empty">未找到符合此搜索条件的在线封面。</string>
+  <string name="oss_python_description">用于提取在线媒体的内嵌 Python 运行环境。</string>
+  <string name="watch_stats_today">今天：%1$s</string>
+  <string name="watch_stats_media_breakdown">媒体分类统计</string>
+  <string name="watch_stats_overall_playback">总体播放统计</string>
+  <string name="network_server_no_matches">没有匹配的地址。您仍可手动输入。</string>
+  <string name="network_server_none_found">未找到广播服务的服务器。请确认两台设备处于同一网络后重试，或手动输入地址。</string>
+  <string name="network_server_saved">已保存的地址</string>
+  <string name="network_server_nearby">附近的服务器</string>
+  <string name="network_server_this_device">此设备在局域网中的地址</string>
+  <string name="network_server_loopback">此设备（回环地址）</string>
+  <string name="network_server_address_only">仅地址</string>
+  <string name="network_server_scan">查找附近的服务器</string>
+  <string name="network_server_scanning">正在查找附近的服务器…</string>
+  <string name="network_server_scan_unavailable">发现功能不可用或未完成。请选择已保存的地址，或手动输入。</string>
+  <string name="network_server_discovery_hint">查找在局域网中广播服务的服务器。设备地址只是快捷入口，并非检测到的服务器。请在下方输入登录凭据。</string>
+  <string name="network_smb_username_hint">使用您的用户名；域账户请使用 DOMAIN\\username。</string>
+  <string name="pref_playstore_hidden_title">已选择的隐藏文件夹</string>
+  <string name="pref_playstore_hidden_summary">选择一个文件夹，以包含其中的媒体和子文件夹。</string>
+  <string name="pref_playstore_hidden_selected">您已授权的文件夹</string>
+  <string name="pref_playstore_hidden_add">选择隐藏文件夹</string>
+  <string name="pref_playstore_hidden_remove">撤销文件夹访问权限</string>
+  <string name="pref_playstore_hidden_grant_failed">无法访问该文件夹。请选择受支持的文件夹，并授予读取权限。</string>
+  <string name="pref_playstore_hidden_limitations">Android 会限制部分文件夹的访问。请下拉刷新以显示新文件。</string>
+  <string name="app_icon_picker_description">选择背景和标志。应用后，桌面图标将随之更改。</string>
+  <string name="app_icon_section_background">背景</string>
+  <string name="app_icon_section_logo">标志</string>
+  <string name="app_icon_apply">应用</string>
+  <string name="app_icon_preview">桌面图标预览</string>
+  <string name="app_icon_background_hint">滑动或点按以选择颜色</string>
+  <string name="app_icon_logo_hint">部分标志无法搭配此背景使用</string>
+  <string name="app_icon_current">当前图标</string>
+  <string name="app_icon_pending">预览 · 尚未应用</string>
+  <string name="app_icon_confirm_title">更改应用图标？</string>
+  <string name="app_icon_confirm_message">您的桌面图标将更改为 %1$s。</string>
+  <string name="app_icon_confirm_action">更改图标</string>
+  <string name="app_icon_bg_black">黑色</string>
+  <string name="app_icon_bg_white">白色</string>
+  <string name="app_icon_bg_charcoal">炭灰色</string>
+  <string name="app_icon_bg_indigo">靛蓝色</string>
+  <string name="app_icon_bg_violet">紫罗兰色</string>
+  <string name="app_icon_bg_lagoon">湖绿色</string>
+  <string name="app_icon_bg_azure">蔚蓝色</string>
+  <string name="app_icon_bg_lilac">丁香紫</string>
+  <string name="app_icon_bg_mint">薄荷绿</string>
+  <string name="app_icon_bg_ember">余烬色</string>
+  <string name="app_icon_logo_solid">纯紫色</string>
+  <string name="app_icon_logo_gradient">紫色渐变</string>
+  <string name="app_icon_logo_white">白色</string>
+  <string name="app_icon_logo_black">黑色</string>
+  <string name="app_icon_logo_classic">经典</string>
 </resources>

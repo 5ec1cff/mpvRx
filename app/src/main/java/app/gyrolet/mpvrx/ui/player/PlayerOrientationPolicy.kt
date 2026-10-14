@@ -20,6 +20,25 @@ internal object PlayerOrientationPolicy {
   private const val LANDSCAPE = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
   private const val PORTRAIT = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
 
+  /** Display aspect of the live session's video, kept for the next player Activity instance. */
+  @Volatile
+  private var lastVideoAspect: Pair<String, Double>? = null
+
+  /**
+   * Re-entry from the mini player or notification attaches to the running session, and its intent
+   * carries no geometry. Remembering the aspect lets "Video" mode open the right way round again.
+   */
+  fun rememberVideoAspect(
+    mediaId: String?,
+    aspect: Double?,
+  ) {
+    if (mediaId == null || aspect == null || !aspect.isFinite() || aspect <= 0.0) return
+    lastVideoAspect = mediaId to aspect
+  }
+
+  fun rememberedVideoAspect(mediaId: String?): Double? =
+    lastVideoAspect?.takeIf { mediaId != null && it.first == mediaId }?.second
+
   /**
    * Maps a user preference to an orientation, or null when the preference needs video geometry that
    * mpv has not reported yet.

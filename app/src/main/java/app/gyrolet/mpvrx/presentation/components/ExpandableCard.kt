@@ -14,6 +14,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.theme.spacing
 
 @Composable
@@ -71,6 +73,7 @@ fun ExpandableCard(
   content: @Composable () -> Unit,
 ) {
   val reduceMotion = AppMotion.shouldReduceMotion()
+  val interactionSource = remember { MutableInteractionSource() }
   val actionLabel = stringResource(if (isExpanded) R.string.generic_collapse else R.string.generic_expand)
   val rotationState by animateFloatAsState(
     targetValue = if (isExpanded) 0f else 180f,
@@ -89,7 +92,14 @@ fun ExpandableCard(
         Modifier
           .fillMaxWidth()
           .heightIn(min = 48.dp)
-          .clickable(role = Role.Button, onClickLabel = actionLabel, onClick = { onExpand(!isExpanded) })
+          .appPressFeedback(interactionSource, pressedScale = 0.99f)
+          .clickable(
+            interactionSource = interactionSource,
+            indication = androidx.compose.material3.ripple(),
+            role = Role.Button,
+            onClickLabel = actionLabel,
+            onClick = { onExpand(!isExpanded) },
+          )
           .padding(
             horizontal = MaterialTheme.spacing.medium,
             vertical = MaterialTheme.spacing.smaller,

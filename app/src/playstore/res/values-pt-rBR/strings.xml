@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="ui_no_saved_media_description">Cole uma URL de transmissão ou salve dos links recentes para criar sua coleção.</string>
-  <string name="ui_no_recent_links">Ainda não há links de transmissão recentes. Cole uma URL de transmissão acima para começar.</string>
   <string name="pref_section_p2p_streaming">Streaming</string>
   <string name="pref_network_summary">Streaming e proxy HLS</string>
 </resources>

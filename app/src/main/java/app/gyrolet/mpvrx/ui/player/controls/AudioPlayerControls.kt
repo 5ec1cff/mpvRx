@@ -52,7 +52,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -186,6 +185,9 @@ import app.gyrolet.mpvrx.preferences.LyricsTranslationDisplayMode
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.Panels
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
@@ -1853,11 +1855,14 @@ fun AudioPlayerControls(
               },
               modifier = Modifier.size(40.dp),
             ) {
-              Icon(
+              AnimatedIcon(
                 imageVector = if (isCurrentTrackFavorite) Icons.RoundedFilled.Favorite else Icons.RoundedFilled.FavoriteBorder,
-                contentDescription = if (isCurrentTrackFavorite) "Remove from Favorites" else "Add to Favorites",
+                contentDescription = stringResource(
+                  if (isCurrentTrackFavorite) R.string.generic_remove_from_favorites else R.string.notification_add_to_favorites,
+                ),
                 tint = if (isCurrentTrackFavorite) Color.White else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(28.dp),
+                reduceMotion = AppMotion.playerReducedMotion(),
               )
             }
 
@@ -2268,11 +2273,12 @@ fun AudioPlayerControls(
           shadowElevation = 8.dp,
         ) {
           Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(
+            AnimatedIcon(
               imageVector = if (isPlaying) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-              contentDescription = null,
+              contentDescription = stringResource(if (isPlaying) R.string.audiobook_pause else R.string.ui_play),
               tint = MaterialTheme.colorScheme.onPrimary,
               modifier = Modifier.size(if (isPortrait) 44.dp else 36.dp),
+              reduceMotion = AppMotion.playerReducedMotion(),
             )
           }
         }
@@ -2320,15 +2326,17 @@ fun AudioPlayerControls(
           enabled = playlistModeEnabled,
           modifier = Modifier.size(40.dp),
         ) {
-          Icon(if (shuffleEnabled) Icons.RoundedFilled.ShuffleOn else Icons.RoundedFilled.Shuffle, null,
-            tint = if (shuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+          AnimatedIcon(if (shuffleEnabled) Icons.RoundedFilled.ShuffleOn else Icons.RoundedFilled.Shuffle, null,
+            tint = if (shuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            reduceMotion = AppMotion.playerReducedMotion())
         }
         ReactiveIconButton(onClick = { viewModel.cycleRepeatMode(); actionHaptics.confirm() }, modifier = Modifier.size(40.dp)) {
-          Icon(when (repeatMode) {
+          AnimatedIcon(when (repeatMode) {
             RepeatMode.OFF -> Icons.RoundedFilled.Repeat
             RepeatMode.ONE -> Icons.RoundedFilled.RepeatOne
             RepeatMode.ALL -> Icons.RoundedFilled.RepeatOn
-          }, null, tint = if (repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+          }, null, tint = if (repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            reduceMotion = AppMotion.playerReducedMotion())
         }
       }
     }
@@ -3227,26 +3235,14 @@ private fun ReactiveIconButton(
   content: @Composable () -> Unit,
 ) {
   val interactionSource = remember { MutableInteractionSource() }
-  val isPressed by interactionSource.collectIsPressedAsState()
   val reducedMotion = app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()
-
-  val scale by animateFloatAsState(
-    targetValue = if (isPressed && enabled && !reducedMotion) 0.96f else 1f,
-    animationSpec =
-      if (reducedMotion) androidx.compose.animation.core.snap() else
-        app.gyrolet.mpvrx.ui.theme.AppMotion.Spatial.ExpressiveFast,
-    label = "reactive_icon_button_scale",
-  )
 
   if (onLongClick != null) {
     Box(
       modifier =
         modifier
           .tvFocusHighlight(CircleShape, enabled = enabled, focusedScale = 1.08f)
-          .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-          }
+          .appPressFeedback(interactionSource, enabled, pressedScale = 0.96f, reduceMotion = reducedMotion)
           .clip(CircleShape)
           .combinedClickable(
             interactionSource = interactionSource,
@@ -3269,10 +3265,7 @@ private fun ReactiveIconButton(
       modifier =
         modifier
           .tvFocusHighlight(CircleShape, enabled = enabled, focusedScale = 1.08f)
-          .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-          },
+          .appPressFeedback(interactionSource, enabled, pressedScale = 0.96f, reduceMotion = reducedMotion),
     ) {
       content()
     }
@@ -3290,16 +3283,7 @@ private fun ReactiveSurfaceButton(
   content: @Composable () -> Unit,
 ) {
   val interactionSource = remember { MutableInteractionSource() }
-  val isPressed by interactionSource.collectIsPressedAsState()
   val reducedMotion = app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()
-
-  val scale by animateFloatAsState(
-    targetValue = if (isPressed && enabled && !reducedMotion) 0.95f else 1f,
-    animationSpec =
-      if (reducedMotion) androidx.compose.animation.core.snap() else
-        app.gyrolet.mpvrx.ui.theme.AppMotion.Spatial.ExpressiveFast,
-    label = "reactive_surface_button_scale",
-  )
 
   Surface(
     onClick = onClick,
@@ -3311,10 +3295,7 @@ private fun ReactiveSurfaceButton(
     modifier =
       modifier
         .tvFocusHighlight(shape, enabled = enabled, focusedScale = 1.06f)
-        .graphicsLayer {
-          scaleX = scale
-          scaleY = scale
-        },
+        .appPressFeedback(interactionSource, enabled, pressedScale = 0.95f, reduceMotion = reducedMotion),
   ) {
     content()
   }

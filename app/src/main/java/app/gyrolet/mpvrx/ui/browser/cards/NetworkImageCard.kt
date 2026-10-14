@@ -177,7 +177,7 @@ private fun NetworkImageCardGridLayout(
     modifier = modifier
       .fillMaxWidth()
       .tvFocusHighlight(AppShapeScale.large, focusedScale = 1.03f)
-      .clickable(onClick = onClick),
+      .mediaCardClickable(onClick = onClick),
     shape = AppShapeScale.large,
     colors = CardDefaults.cardColors(
       containerColor = Color.Transparent,
@@ -281,7 +281,7 @@ private fun NetworkImageCardListLayout(
     modifier = modifier
       .fillMaxWidth()
       .tvFocusHighlight(AppShapeScale.medium)
-      .clickable(onClick = onClick)
+      .mediaCardClickable(onClick = onClick)
       .padding(horizontal = 8.dp, vertical = 6.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),

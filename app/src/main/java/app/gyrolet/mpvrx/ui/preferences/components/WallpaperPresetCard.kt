@@ -10,6 +10,10 @@
 package app.gyrolet.mpvrx.ui.preferences.components
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -26,6 +30,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +45,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 
@@ -55,6 +63,12 @@ fun WallpaperPresetCard(
   content: @Composable BoxScope.() -> Unit,
 ) {
   val selectionColor = MaterialTheme.colorScheme.primary
+  val interactionSource = remember { MutableInteractionSource() }
+  val borderColor by animateColorAsState(
+    targetValue = if (isSelected) selectionColor else MaterialTheme.colorScheme.outlineVariant,
+    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    label = "wallpaperSelectionOutline",
+  )
   val shape = RoundedCornerShape(12.dp)
   val glow = if (isSelected) selectionColor.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.2f)
 
@@ -62,9 +76,10 @@ fun WallpaperPresetCard(
     modifier =
       modifier
         .width(100.dp)
+        .appPressFeedback(interactionSource, pressedScale = 0.96f)
         .semantics { selected = isSelected }
         .tvFocusHighlight(shape, focusedScale = 1.05f)
-        .clickable(onClick = onClick),
+        .clickable(interactionSource, LocalIndication.current, onClick = onClick),
     horizontalAlignment = Alignment.CenterHorizontally,
   ) {
     Box(
@@ -76,7 +91,7 @@ fun WallpaperPresetCard(
           .background(MaterialTheme.colorScheme.surfaceContainerLow)
           .border(
             width = if (isSelected) 3.dp else 1.dp,
-            color = if (isSelected) selectionColor else MaterialTheme.colorScheme.outlineVariant,
+            color = borderColor,
             shape = shape,
           ),
     ) {

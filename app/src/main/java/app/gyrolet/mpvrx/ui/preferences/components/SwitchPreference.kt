@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.preferences.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +38,7 @@ import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.preferences.SelectedPreferenceTile
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
@@ -65,6 +68,7 @@ fun SwitchPreference(
     }
   }
   val haptics = rememberAppHaptics()
+  val interactionSource = remember { MutableInteractionSource() }
   val updateValue: (Boolean) -> Unit = { checked ->
     if (checked != value) {
       onValueChange(checked)
@@ -107,8 +111,16 @@ fun SwitchPreference(
       modifier =
         Modifier
           .fillMaxWidth()
+          .appPressFeedback(interactionSource, enabled = enabled, pressedScale = 0.99f)
           .clip(shape)
-          .toggleable(value = value, enabled = enabled, role = Role.Switch, onValueChange = updateValue)
+          .toggleable(
+            value = value,
+            enabled = enabled,
+            role = Role.Switch,
+            interactionSource = interactionSource,
+            indication = androidx.compose.material3.ripple(),
+            onValueChange = updateValue,
+          )
           .padding(horizontal = 16.dp, vertical = 12.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
