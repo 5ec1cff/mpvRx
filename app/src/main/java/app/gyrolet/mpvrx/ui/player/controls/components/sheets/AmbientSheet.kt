@@ -77,7 +77,11 @@ fun AmbientSheet(
   val opacity by viewModel.ambientOpacity.collectAsState()
   val glowEdgeBlend by viewModel.ambientGlowEdgeBlend.collectAsState()
   val youTubeEdgeBlend by viewModel.ambientYouTubeEdgeBlend.collectAsState()
-  val edgeBlend = if (ambientStyle == AmbientStyle.Glow) glowEdgeBlend else youTubeEdgeBlend
+  val edgeBlend = when (ambientStyle) {
+    AmbientStyle.Glow    -> glowEdgeBlend
+    AmbientStyle.YouTube -> youTubeEdgeBlend
+    else                 -> 0f  // Cinema/Echo/Mirror: no exposed edge-blend parameter
+  }
   val isFast =
     remember(
       blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity,
@@ -131,23 +135,27 @@ fun AmbientSheet(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
       )
 
-      SliderItem(
-        label = stringResource(R.string.ambient_edge_blend),
-        valueText = "%.1f%%".format(edgeBlend * 100f),
-        value = edgeBlend,
-        onChange = { viewModel.setAmbientEdgeBlend(ambientStyle, it) },
-        min = 0f,
-        max = 0.1f,
-        steps = 19,
-        icon = {
-          AppSymbolIcon(
-            imageVector = Icons.RoundedFilled.Gradient,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
-          )
-        },
-      )
+      // Edge-blend is only relevant for modes where it is a tunable parameter.
+      // Cinema, Echo, and Mirror blend the transition internally at fixed values.
+      if (ambientStyle == AmbientStyle.Glow || ambientStyle == AmbientStyle.YouTube) {
+        SliderItem(
+          label = stringResource(R.string.ambient_edge_blend),
+          valueText = "%.1f%%".format(edgeBlend * 100f),
+          value = edgeBlend,
+          onChange = { viewModel.setAmbientEdgeBlend(ambientStyle, it) },
+          min = 0f,
+          max = 0.1f,
+          steps = 19,
+          icon = {
+            AppSymbolIcon(
+              imageVector = Icons.RoundedFilled.Gradient,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(20.dp),
+            )
+          },
+        )
+      }
 
       if (ambientStyle == AmbientStyle.Glow) {
       // ── Quality Presets ──────────────────────────────────────────────
@@ -434,9 +442,18 @@ fun AmbientSheet(
       }
 
       Spacer(modifier = Modifier.height(8.dp))
-      } else {
+      } else if (ambientStyle == AmbientStyle.YouTube) {
         Text(
           text = stringResource(R.string.ambient_youtube_auto_hint),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.padding(horizontal = MaterialTheme.spacing.large, vertical = 8.dp),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+      } else {
+        // Cinema, Echo, Mirror — fully automatic, no tunable parameters.
+        Text(
+          text = stringResource(R.string.ambient_fx_auto_hint),
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.padding(horizontal = MaterialTheme.spacing.large, vertical = 8.dp),
