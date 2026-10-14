@@ -2593,4 +2593,13 @@
   <string name="app_icon_logo_white">White</string>
   <string name="app_icon_logo_black">Black</string>
   <string name="app_icon_logo_classic">Classic</string>
+  <string name="downloads_all">All downloads</string>
+  <string name="downloads_attention_section">Needs attention</string>
+  <string name="downloads_search_hint">Search downloads</string>
+  <string name="downloads_no_matches_hint">Try another filter or search.</string>
+  <string name="search_clear_query">Clear search</string>
+  <string name="libraries_built_together">Built together</string>
+  <string name="libraries_count">Libraries · %1$d</string>
+  <string name="libraries_search_hint">Search libraries or licenses</string>
+  <string name="libraries_open_project">Open project website</string>
 </resources>

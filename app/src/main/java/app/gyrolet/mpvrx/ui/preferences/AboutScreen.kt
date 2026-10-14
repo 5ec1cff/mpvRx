@@ -26,27 +26,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -55,9 +48,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import app.gyrolet.mpvrx.ui.components.IconSwitch
-import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -83,13 +73,15 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.update.AppUpdateChannel
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.crash.CrashActivity.Companion.collectDeviceInfo
+import app.gyrolet.mpvrx.ui.components.IconSwitch
+import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.update.UpdateViewModel
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
-import app.gyrolet.mpvrx.ui.update.UpdateViewModel
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -747,110 +739,7 @@ private fun collectSystemStats(context: Context): List<Pair<String, String>> {
   )
 }
 
-@Suppress("DEPRECATION")
-@Serializable
-object LibrariesScreen : Screen {
-  @OptIn(ExperimentalMaterial3Api::class)
-  @Composable
-  override fun Content() {
-    val context = LocalContext.current
-    val backstack = LocalBackStack.current
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = {
-            Text(
-              text = stringResource(id = R.string.pref_about_oss_libraries),
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.primary,
-            )
-          },
-          navigationIcon = {
-            IconButton(onClick = { backstack.popSafely() }) {
-              Icon(
-                imageVector = Icons.RoundedFilled.ArrowBack,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-              )
-            }
-          },
-        )
-      },
-    ) { paddingValues ->
-      LazyColumn(
-        modifier =
-          Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        item(key = "libraries-introduction") {
-          Text(
-            text =
-              androidx.compose.ui.res.stringResource(
-                app.gyrolet.mpvrx.R.string.ui_core_open_source_dependencies_used_by_mpvrx,
-              ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
-
-        items(
-          items = OPEN_SOURCE_LIBRARIES,
-          key = OpenSourceLibrary::artifact,
-        ) { library ->
-          Card(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .clickable {
-                  context.startActivity(
-                    Intent(Intent.ACTION_VIEW, library.url.toUri()),
-                  )
-                },
-            colors =
-              CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-              ),
-            shape = RoundedCornerShape(18.dp),
-          ) {
-            Column(
-              modifier = Modifier.padding(16.dp),
-              verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-              Text(
-                text = library.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-              )
-              Text(
-                text = library.artifact,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-              )
-              Text(
-                text = stringResource(library.descriptionRes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-              Text(
-                text = library.license,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.secondary,
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-private data class OpenSourceLibrary(
+internal data class OpenSourceLibrary(
   val name: String,
   val artifact: String,
   @StringRes val descriptionRes: Int,
@@ -858,7 +747,7 @@ private data class OpenSourceLibrary(
   val url: String,
 )
 
-private val OPEN_SOURCE_LIBRARIES =
+internal val OPEN_SOURCE_LIBRARIES =
   listOf(
     OpenSourceLibrary(
       name = "Jetpack Compose",
