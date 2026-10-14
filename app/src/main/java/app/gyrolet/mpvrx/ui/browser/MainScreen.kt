@@ -985,10 +985,10 @@ internal fun ExpressivePillNavigationBar(
                   glassSettings.highlight(Highlight.Ambient.copy(alpha = 0.58f * glowStrength))
                 },
                 shadow = {
-                  glassSettings.shadow(Shadow(
+                  Shadow(
                     radius = 8.dp,
                     color = Color.Black.copy(alpha = 0.14f * glowStrength),
-                  ))
+                  )
                 },
                 onDrawSurface = {
                   drawRect(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))

@@ -2365,11 +2365,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_liquid_glass_highlight_strength">Intensidad de los reflejos</string>
   <string name="pref_liquid_glass_highlight_width">Ancho de los reflejos</string>
   <string name="pref_liquid_glass_highlight_blur">Suavidad de los reflejos</string>
-  <string name="pref_liquid_glass_shadows">Sombras</string>
-  <string name="pref_liquid_glass_shadow_strength">Intensidad de la sombra</string>
-  <string name="pref_liquid_glass_shadow_radius">Suavidad de la sombra</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Intensidad de la sombra interior</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">Suavidad de la sombra interior</string>
   <string name="debug_logs_save_to_config">Guardar registros en la carpeta de configuración</string>
   <string name="debug_logs_config_required">Selecciona primero una carpeta de configuración en Ajustes avanzados.</string>
   <string name="debug_logs_config_saved">Registros guardados en %1$s dentro de tu carpeta de configuración.</string>

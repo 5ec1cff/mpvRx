@@ -90,10 +90,6 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_strength, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_width, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_blur, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_shadow_strength, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_shadow_radius, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_inner_shadow_strength, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_inner_shadow_radius, itemIndex = 11),
       ),
     PlayerControlsPreferencesScreen to
       listOf(

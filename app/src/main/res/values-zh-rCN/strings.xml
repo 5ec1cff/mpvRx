@@ -2364,11 +2364,6 @@
   <string name="pref_liquid_glass_highlight_strength">高光强度</string>
   <string name="pref_liquid_glass_highlight_width">高光宽度</string>
   <string name="pref_liquid_glass_highlight_blur">高光柔和度</string>
-  <string name="pref_liquid_glass_shadows">阴影</string>
-  <string name="pref_liquid_glass_shadow_strength">阴影强度</string>
-  <string name="pref_liquid_glass_shadow_radius">阴影柔和度</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">内阴影强度</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">内阴影柔和度</string>
   <string name="debug_logs_save_to_config">将日志保存到配置文件夹</string>
   <string name="debug_logs_config_required">请先在高级设置中选择配置文件夹。</string>
   <string name="debug_logs_config_saved">日志已保存到配置文件夹中的 %1$s。</string>

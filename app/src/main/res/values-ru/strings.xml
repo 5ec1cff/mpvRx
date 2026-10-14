@@ -2379,11 +2379,6 @@
   <string name="pref_liquid_glass_highlight_strength">Сила бликов</string>
   <string name="pref_liquid_glass_highlight_width">Ширина бликов</string>
   <string name="pref_liquid_glass_highlight_blur">Мягкость бликов</string>
-  <string name="pref_liquid_glass_shadows">Тени</string>
-  <string name="pref_liquid_glass_shadow_strength">Сила тени</string>
-  <string name="pref_liquid_glass_shadow_radius">Мягкость тени</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Сила внутренней тени</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">Мягкость внутренней тени</string>
   <string name="debug_logs_save_to_config">Сохранить журналы в папку конфигурации</string>
   <string name="debug_logs_config_required">Сначала выберите папку конфигурации в расширенных настройках.</string>
   <string name="debug_logs_config_saved">Журналы сохранены в %1$s в вашей папке конфигурации.</string>

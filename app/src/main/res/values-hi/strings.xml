@@ -2273,11 +2273,6 @@
   <string name="pref_liquid_glass_highlight_strength">चमक की तीव्रता</string>
   <string name="pref_liquid_glass_highlight_width">चमक की चौड़ाई</string>
   <string name="pref_liquid_glass_highlight_blur">चमक की कोमलता</string>
-  <string name="pref_liquid_glass_shadows">छायाएँ</string>
-  <string name="pref_liquid_glass_shadow_strength">छाया की तीव्रता</string>
-  <string name="pref_liquid_glass_shadow_radius">छाया की कोमलता</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">अंदरूनी छाया की तीव्रता</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">अंदरूनी छाया की कोमलता</string>
   <string name="debug_logs_save_to_config">कॉन्फ़िगरेशन फ़ोल्डर में लॉग सहेजें</string>
   <string name="debug_logs_config_required">पहले उन्नत सेटिंग में कॉन्फ़िगरेशन फ़ोल्डर चुनें।</string>
   <string name="debug_logs_config_saved">आपके कॉन्फ़िगरेशन फ़ोल्डर के %1$s में लॉग सहेजे गए।</string>

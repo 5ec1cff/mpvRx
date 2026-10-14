@@ -2391,11 +2391,6 @@
   <string name="pref_liquid_glass_highlight_strength">شدة الإضاءة</string>
   <string name="pref_liquid_glass_highlight_width">عرض الإضاءة</string>
   <string name="pref_liquid_glass_highlight_blur">نعومة الإضاءة</string>
-  <string name="pref_liquid_glass_shadows">الظلال</string>
-  <string name="pref_liquid_glass_shadow_strength">شدة الظل</string>
-  <string name="pref_liquid_glass_shadow_radius">نعومة الظل</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">شدة الظل الداخلي</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">نعومة الظل الداخلي</string>
   <string name="debug_logs_save_to_config">حفظ السجلات في مجلد الإعدادات</string>
   <string name="debug_logs_config_required">اختر مجلد الإعدادات في الإعدادات المتقدمة أولاً.</string>
   <string name="debug_logs_config_saved">تم حفظ السجلات في %1$s داخل مجلد الإعدادات.</string>

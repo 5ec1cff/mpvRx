@@ -179,17 +179,17 @@ fun LiquidToggle(
                         ))
                     },
                     shadow = {
-                        glassSettings.shadow(Shadow(
+                        Shadow(
                             radius = 4f.dp,
                             color = Color.Black.copy(alpha = 0.05f)
-                        ))
+                        )
                     },
                     innerShadow = {
                         val progress = dampedDragAnimation.pressProgress
-                        glassSettings.innerShadow(InnerShadow(
+                        InnerShadow(
                             radius = 4f.dp * progress,
                             alpha = progress
-                        ))
+                        )
                     },
                     layerBlock = {
                         scaleX = dampedDragAnimation.scaleX

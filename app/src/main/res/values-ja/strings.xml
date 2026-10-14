@@ -2358,11 +2358,6 @@
   <string name="pref_liquid_glass_highlight_strength">ハイライトの強さ</string>
   <string name="pref_liquid_glass_highlight_width">ハイライトの幅</string>
   <string name="pref_liquid_glass_highlight_blur">ハイライトの柔らかさ</string>
-  <string name="pref_liquid_glass_shadows">影</string>
-  <string name="pref_liquid_glass_shadow_strength">影の強さ</string>
-  <string name="pref_liquid_glass_shadow_radius">影の柔らかさ</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">内側の影の強さ</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">内側の影の柔らかさ</string>
   <string name="debug_logs_save_to_config">設定フォルダにログを保存</string>
   <string name="debug_logs_config_required">先に詳細設定で設定フォルダを選択してください。</string>
   <string name="debug_logs_config_saved">設定フォルダ内の %1$s にログを保存しました。</string>

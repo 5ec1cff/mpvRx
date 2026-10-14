@@ -84,10 +84,6 @@ class AppearancePreferences(
   val liquidGlassHighlightStrength = preferenceStore.getFloat("liquid_glass_highlight_strength", 1f)
   val liquidGlassHighlightWidth = preferenceStore.getFloat("liquid_glass_highlight_width", 1f)
   val liquidGlassHighlightBlur = preferenceStore.getFloat("liquid_glass_highlight_blur", 1f)
-  val liquidGlassShadowStrength = preferenceStore.getFloat("liquid_glass_shadow_strength", 1f)
-  val liquidGlassShadowRadius = preferenceStore.getFloat("liquid_glass_shadow_radius", 1f)
-  val liquidGlassInnerShadowStrength = preferenceStore.getFloat("liquid_glass_inner_shadow_strength", 1f)
-  val liquidGlassInnerShadowRadius = preferenceStore.getFloat("liquid_glass_inner_shadow_radius", 1f)
   val navigationBarGlow = preferenceStore.getBoolean("navigation_bar_glow", true)
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
   val googleFontFamily = preferenceStore.getString("google_font_family", "")
@@ -117,7 +113,6 @@ class AppearancePreferences(
       liquidGlassDepthEffect, liquidGlassChromaticAberration, liquidGlassVibrancy,
       liquidGlassSaturation, liquidGlassBrightness, liquidGlassContrast,
       liquidGlassHighlightStyle, liquidGlassHighlightStrength, liquidGlassHighlightWidth, liquidGlassHighlightBlur,
-      liquidGlassShadowStrength, liquidGlassShadowRadius, liquidGlassInnerShadowStrength, liquidGlassInnerShadowRadius,
     ).forEach { it.delete() }
   }
 

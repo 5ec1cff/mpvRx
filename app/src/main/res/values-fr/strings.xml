@@ -2365,11 +2365,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_liquid_glass_highlight_strength">Intensité des reflets</string>
   <string name="pref_liquid_glass_highlight_width">Largeur des reflets</string>
   <string name="pref_liquid_glass_highlight_blur">Douceur des reflets</string>
-  <string name="pref_liquid_glass_shadows">Ombres</string>
-  <string name="pref_liquid_glass_shadow_strength">Intensité de l\'ombre</string>
-  <string name="pref_liquid_glass_shadow_radius">Douceur de l\'ombre</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Intensité de l\'ombre intérieure</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">Douceur de l\'ombre intérieure</string>
   <string name="debug_logs_save_to_config">Enregistrer les journaux dans le dossier de configuration</string>
   <string name="debug_logs_config_required">Sélectionnez d\'abord un dossier de configuration dans les paramètres avancés.</string>
   <string name="debug_logs_config_saved">Journaux enregistrés dans %1$s de votre dossier de configuration.</string>

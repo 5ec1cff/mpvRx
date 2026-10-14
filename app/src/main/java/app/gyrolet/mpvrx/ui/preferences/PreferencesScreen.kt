@@ -238,7 +238,6 @@ object PreferencesScreen : Screen {
                   stringResource(R.string.pref_liquid_glass_optics),
                   stringResource(R.string.pref_liquid_glass_colors),
                   stringResource(R.string.pref_liquid_glass_highlights),
-                  stringResource(R.string.pref_liquid_glass_shadows),
                 ).joinToString(", "),
               icon = Icons.RoundedFilled.BlurOn,
               screen = LiquidGlassPreferencesScreen,

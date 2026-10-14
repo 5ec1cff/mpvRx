@@ -126,8 +126,8 @@ fun LiquidButton(
           )
         },
         highlight = { glassSettings.highlight(Highlight.Default) },
-        shadow = { glassSettings.shadow(Shadow(radius = 6.dp)) },
-        innerShadow = { glassSettings.innerShadow(InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f))) },
+        shadow = { Shadow(radius = 6.dp) },
+        innerShadow = { InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f)) },
         layerBlock = if (animatePress) pressTransform else null,
         onDrawSurface = {
           // The backdrop API samples a rectangular offscreen layer, but the visible
@@ -163,13 +163,7 @@ fun LiquidButton(
       )
       Modifier
         .graphicsLayer(pressTransform)
-        .shadow(
-          elevation = if (glassSettings.shadowStrength > 0f) 6.dp * glassSettings.shadowRadius else 0.dp,
-          shape = Capsule(),
-          clip = false,
-          ambientColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceIn(0f, 1f)),
-          spotColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceIn(0f, 1f)),
-        )
+        .shadow(elevation = 6.dp, shape = Capsule(), clip = false)
         .clip(Capsule())
         .background(fill, Capsule())
         .then(

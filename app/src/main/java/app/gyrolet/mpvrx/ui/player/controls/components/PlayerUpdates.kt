@@ -191,14 +191,10 @@ fun PlayerUpdate(
             )
           },
           shadow = {
-            glassSettings.shadow(
-              Shadow(radius = 8.dp, color = Color.Black.copy(alpha = 0.16f)),
-            )
+            Shadow(radius = 8.dp, color = Color.Black.copy(alpha = 0.16f))
           },
           innerShadow = {
-            glassSettings.innerShadow(
-              InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.14f)),
-            )
+            InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.14f))
           },
           onDrawSurface = {
             drawRect(glassSettings.surfaceColor(pillColor))
@@ -216,8 +212,10 @@ fun PlayerUpdate(
       modifier =
         modifier
           .offset { IntOffset(0, controlsOffset.value.roundToPx()) }
-          .animateContentSize()
-          .then(glassModifier),
+          // animateContentSize() clips to its bounds, so it must sit inside the glass; otherwise the
+          // drop shadow gets cut into a rectangular box around the capsule.
+          .then(glassModifier)
+          .animateContentSize(),
     ) {
       Box(
         modifier =

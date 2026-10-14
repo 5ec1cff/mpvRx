@@ -149,8 +149,8 @@ private fun GlassSliderPanel(
           )
         },
         highlight = { glassSettings.highlight(Highlight.Default) },
-        shadow = { glassSettings.shadow(Shadow(color = Color.Black.copy(alpha = 0.25f), radius = 12.dp)) },
-        innerShadow = { glassSettings.innerShadow(InnerShadow(color = Color.White.copy(alpha = 0.15f), radius = 2.dp)) },
+        shadow = { Shadow(color = Color.Black.copy(alpha = 0.25f), radius = 12.dp) },
+        innerShadow = { InnerShadow(color = Color.White.copy(alpha = 0.15f), radius = 2.dp) },
       )
   } else {
     modifier

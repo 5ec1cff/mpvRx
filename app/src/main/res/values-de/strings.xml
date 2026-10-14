@@ -2365,11 +2365,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_liquid_glass_highlight_strength">Glanzlichtstärke</string>
   <string name="pref_liquid_glass_highlight_width">Glanzlichtbreite</string>
   <string name="pref_liquid_glass_highlight_blur">Glanzlichtweichheit</string>
-  <string name="pref_liquid_glass_shadows">Schatten</string>
-  <string name="pref_liquid_glass_shadow_strength">Schattenstärke</string>
-  <string name="pref_liquid_glass_shadow_radius">Schattenweichheit</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Stärke des inneren Schattens</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">Weichheit des inneren Schattens</string>
   <string name="debug_logs_save_to_config">Protokolle im Konfigurationsordner speichern</string>
   <string name="debug_logs_config_required">Wähle zuerst einen Konfigurationsordner in den erweiterten Einstellungen.</string>
   <string name="debug_logs_config_saved">Protokolle unter %1$s im Konfigurationsordner gespeichert.</string>

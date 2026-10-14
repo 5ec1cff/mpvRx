@@ -57,11 +57,6 @@
   <string name="pref_liquid_glass_highlight_strength">Highlight strength</string>
   <string name="pref_liquid_glass_highlight_width">Highlight width</string>
   <string name="pref_liquid_glass_highlight_blur">Highlight softness</string>
-  <string name="pref_liquid_glass_shadows">Shadows</string>
-  <string name="pref_liquid_glass_shadow_strength">Shadow strength</string>
-  <string name="pref_liquid_glass_shadow_radius">Shadow softness</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Inner shadow strength</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">Inner shadow softness</string>
   <string name="pref_appearance_system_font_title">Use system font</string>
   <string name="pref_appearance_system_font_summary">Use the Android system typeface across mpvRx instead of Google Sans</string>
   <string name="pref_appearance_app_font_title">App font</string>

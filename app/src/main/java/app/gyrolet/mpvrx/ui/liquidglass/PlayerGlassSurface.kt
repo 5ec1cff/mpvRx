@@ -77,8 +77,8 @@ internal fun Modifier.playerGlassSurface(
       )
     },
     highlight = { settings.highlight(Highlight.Ambient.copy(alpha = if (reducedMotion) 0.15f else 0.30f)) },
-    shadow = { settings.shadow(Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f))) },
-    innerShadow = { settings.innerShadow(InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.12f))) },
+    shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
+    innerShadow = { InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.12f)) },
     onDrawSurface = { drawRect(tint) },
   )
 }

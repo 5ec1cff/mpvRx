@@ -2385,11 +2385,6 @@
   <string name="pref_liquid_glass_highlight_strength">Сила відблисків</string>
   <string name="pref_liquid_glass_highlight_width">Ширина відблисків</string>
   <string name="pref_liquid_glass_highlight_blur">М\'якість відблисків</string>
-  <string name="pref_liquid_glass_shadows">Тіні</string>
-  <string name="pref_liquid_glass_shadow_strength">Сила тіні</string>
-  <string name="pref_liquid_glass_shadow_radius">М\'якість тіні</string>
-  <string name="pref_liquid_glass_inner_shadow_strength">Сила внутрішньої тіні</string>
-  <string name="pref_liquid_glass_inner_shadow_radius">М\'якість внутрішньої тіні</string>
   <string name="debug_logs_save_to_config">Зберегти журнали в папку конфігурації</string>
   <string name="debug_logs_config_required">Спочатку виберіть папку конфігурації в розширених налаштуваннях.</string>
   <string name="debug_logs_config_saved">Журнали збережено в %1$s у вашій папці конфігурації.</string>

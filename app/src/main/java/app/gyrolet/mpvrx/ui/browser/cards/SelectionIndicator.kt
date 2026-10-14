@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
-import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 
 /** One restrained press response for local, network and music cards, including their thumbnails. */
 @Composable
@@ -34,8 +33,7 @@ internal fun Modifier.mediaCardClickable(
   onLongClick: (() -> Unit)? = null,
 ): Modifier {
   val interactionSource = remember { MutableInteractionSource() }
-  return appPressFeedback(interactionSource, pressedScale = 0.985f)
-    .combinedClickable(
+  return Modifier.combinedClickable(
       interactionSource = interactionSource,
       indication = LocalIndication.current,
       onClick = onClick,

@@ -141,29 +141,6 @@ fun LazyListScope.liquidGlassPreferences(
       LiquidGlassSlider(preferences.liquidGlassHighlightBlur, R.string.pref_liquid_glass_highlight_blur, enabled)
     }
   }
-
-  item {
-    PreferenceSectionHeader(title = stringResource(R.string.pref_liquid_glass_shadows))
-  }
-  item {
-    PreferenceCard {
-      LiquidGlassSlider(preferences.liquidGlassShadowStrength, R.string.pref_liquid_glass_shadow_strength, enabled)
-      PreferenceDivider()
-      LiquidGlassSlider(preferences.liquidGlassShadowRadius, R.string.pref_liquid_glass_shadow_radius, enabled)
-      PreferenceDivider()
-      LiquidGlassSlider(
-        preferences.liquidGlassInnerShadowStrength,
-        R.string.pref_liquid_glass_inner_shadow_strength,
-        enabled,
-      )
-      PreferenceDivider()
-      LiquidGlassSlider(
-        preferences.liquidGlassInnerShadowRadius,
-        R.string.pref_liquid_glass_inner_shadow_radius,
-        enabled,
-      )
-    }
-  }
   item {
     TextButton(
       onClick = preferences::resetLiquidGlassOptions,

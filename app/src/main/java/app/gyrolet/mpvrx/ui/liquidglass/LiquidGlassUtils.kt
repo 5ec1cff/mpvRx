@@ -27,7 +27,6 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.util.fastCoerceIn
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.BackdropEffectScope
@@ -37,8 +36,6 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.opacity
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.InnerShadow
-import com.kyant.backdrop.shadow.Shadow
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.LiquidGlassHighlightStyle
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
@@ -83,10 +80,6 @@ data class LiquidGlassSettings(
     val highlightStrength: Float,
     val highlightWidth: Float,
     val highlightBlur: Float,
-    val shadowStrength: Float,
-    val shadowRadius: Float,
-    val innerShadowStrength: Float,
-    val innerShadowRadius: Float,
 ) {
     fun surfaceColor(base: Color): Color = base
 
@@ -100,18 +93,6 @@ data class LiquidGlassSettings(
         alpha = (base.alpha * highlightStrength).coerceIn(0f, 1f),
         width = base.width * highlightWidth,
         blurRadius = base.blurRadius * highlightBlur,
-    )
-
-    fun shadow(base: Shadow): Shadow = base.copy(
-        color = base.color.copy(alpha = (base.color.alpha * shadowStrength).coerceIn(0f, 1f)),
-        radius = base.radius * shadowRadius,
-        offset = DpOffset(base.offset.x * shadowRadius, base.offset.y * shadowRadius),
-    )
-
-    fun innerShadow(base: InnerShadow): InnerShadow = base.copy(
-        color = base.color.copy(alpha = (base.color.alpha * innerShadowStrength).coerceIn(0f, 1f)),
-        radius = base.radius * innerShadowRadius,
-        offset = DpOffset(base.offset.x * innerShadowRadius, base.offset.y * innerShadowRadius),
     )
 }
 
@@ -132,10 +113,6 @@ fun rememberLiquidGlassSettings(): LiquidGlassSettings {
     val highlightStrength by preferences.liquidGlassHighlightStrength.collectAsState()
     val highlightWidth by preferences.liquidGlassHighlightWidth.collectAsState()
     val highlightBlur by preferences.liquidGlassHighlightBlur.collectAsState()
-    val shadowStrength by preferences.liquidGlassShadowStrength.collectAsState()
-    val shadowRadius by preferences.liquidGlassShadowRadius.collectAsState()
-    val innerShadowStrength by preferences.liquidGlassInnerShadowStrength.collectAsState()
-    val innerShadowRadius by preferences.liquidGlassInnerShadowRadius.collectAsState()
     fun Float.bounded(default: Float, range: ClosedFloatingPointRange<Float> = 0f..2f): Float =
         if (isFinite()) coerceIn(range) else default
 
@@ -145,8 +122,6 @@ fun rememberLiquidGlassSettings(): LiquidGlassSettings {
         depthEffect, chromaticAberration, vibrancy,
         saturation.bounded(1f), brightness.bounded(0f, -1f..1f), contrast.bounded(1f),
         highlightStyle, highlightStrength.bounded(1f), highlightWidth.bounded(1f), highlightBlur.bounded(1f),
-        shadowStrength.bounded(1f), shadowRadius.bounded(1f),
-        innerShadowStrength.bounded(1f), innerShadowRadius.bounded(1f),
     )
 }
 

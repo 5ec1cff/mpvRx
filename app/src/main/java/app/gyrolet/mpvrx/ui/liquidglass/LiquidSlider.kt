@@ -259,10 +259,10 @@ fun LiquidSlider(
               alpha = progress,
             ))
           },
-          shadow = { settings.shadow(Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f))) },
+          shadow = { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) },
           innerShadow = {
             val progress = animation.pressProgress
-            settings.innerShadow(InnerShadow(radius = 4.dp * progress, alpha = progress))
+            InnerShadow(radius = 4.dp * progress, alpha = progress)
           },
           layerBlock = {
             scaleX = animation.scaleX

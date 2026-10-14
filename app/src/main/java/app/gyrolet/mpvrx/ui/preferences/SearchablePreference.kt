@@ -122,10 +122,6 @@ object SearchablePreferences {
         R.string.pref_liquid_glass_highlight_strength to listOf("highlight", "strength"),
         R.string.pref_liquid_glass_highlight_width to listOf("highlight", "width", "rim"),
         R.string.pref_liquid_glass_highlight_blur to listOf("highlight", "blur", "softness"),
-        R.string.pref_liquid_glass_shadow_strength to listOf("shadow", "strength"),
-        R.string.pref_liquid_glass_shadow_radius to listOf("shadow", "blur", "softness"),
-        R.string.pref_liquid_glass_inner_shadow_strength to listOf("inner shadow", "strength"),
-        R.string.pref_liquid_glass_inner_shadow_radius to listOf("inner shadow", "blur", "softness"),
       ).forEach { (titleRes, keywords) ->
         add(
           SearchablePreference(

@@ -56,10 +56,10 @@ fun LiquidGlassEditingBarSurface(
           settings.highlight(Highlight.Ambient.copy(alpha = if (reducedMotion) 0.24f else 0.48f))
         },
         shadow = {
-          settings.shadow(Shadow(radius = 10.dp, color = Color.Black.copy(alpha = 0.17f)))
+          Shadow(radius = 10.dp, color = Color.Black.copy(alpha = 0.17f))
         },
         innerShadow = {
-          settings.innerShadow(InnerShadow(radius = 3.dp, color = Color.White.copy(alpha = 0.16f)))
+          InnerShadow(radius = 3.dp, color = Color.White.copy(alpha = 0.16f))
         },
         onDrawSurface = { drawRect(settings.surfaceColor(glassColor)) },
       )

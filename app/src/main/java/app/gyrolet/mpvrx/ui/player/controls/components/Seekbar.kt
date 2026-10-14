@@ -1821,17 +1821,17 @@ private fun LiquidSeekbar(
             ))
           },
           shadow = {
-            glassSettings.shadow(Shadow(
+            Shadow(
               radius = 4.dp,
               color = Color.Black.copy(alpha = 0.05f),
-            ))
+            )
           },
           innerShadow = {
             val progress = dampedDragAnimation.pressProgress
-            glassSettings.innerShadow(InnerShadow(
+            InnerShadow(
               radius = 4.dp * progress,
               alpha = progress,
-            ))
+            )
           },
           layerBlock = {
             scaleX = dampedDragAnimation.scaleX

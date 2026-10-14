@@ -121,16 +121,16 @@ fun LiquidGlassSurface(
             glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
           },
           shadow = {
-            glassSettings.shadow(Shadow(
+            Shadow(
               radius = shadowElevation,
               color = Color.Black.copy(alpha = 0.16f * glowStrength),
-            ))
+            )
           },
           innerShadow = {
-            glassSettings.innerShadow(InnerShadow(
+            InnerShadow(
               radius = 2.dp,
               color = Color.White.copy(alpha = 0.14f * glowStrength),
-            ))
+            )
           },
           onDrawSurface = {
             drawRect(glassSettings.surfaceColor(glassColor))

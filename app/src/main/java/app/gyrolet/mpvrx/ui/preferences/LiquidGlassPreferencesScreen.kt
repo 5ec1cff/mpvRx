@@ -217,8 +217,8 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
                   )
                 },
                 highlight = { settings.highlight(Highlight.Default) },
-                shadow = { settings.shadow(Shadow.Default) },
-                innerShadow = { settings.innerShadow(InnerShadow(radius = 4.dp, alpha = 0.2f)) },
+                shadow = { Shadow.Default },
+                innerShadow = { InnerShadow(radius = 4.dp, alpha = 0.2f) },
                 onDrawSurface = { drawRect(settings.surfaceColor(colors.surface.copy(alpha = 0.35f))) },
               )
             } else {

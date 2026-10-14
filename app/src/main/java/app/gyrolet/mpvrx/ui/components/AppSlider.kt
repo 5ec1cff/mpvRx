@@ -168,8 +168,8 @@ private fun GlassSliderThumb(
           )
         },
         highlight = { settings.highlight(Highlight.Ambient) },
-        shadow = { settings.shadow(Shadow(radius = 4.dp)) },
-        innerShadow = { settings.innerShadow(InnerShadow(radius = 4.dp)) },
+        shadow = { Shadow(radius = 4.dp) },
+        innerShadow = { InnerShadow(radius = 4.dp) },
         onDrawSurface = { drawRect(settings.surfaceColor(tint)) },
       )
   Box(Modifier.size(40.dp, 24.dp).then(materialModifier))

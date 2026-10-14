@@ -138,12 +138,15 @@ fun AdaptiveControlsContainer(
       ?: if (liquidGlassEnabled) PlayerLiquidTokens.surfaceColor else playerButtonContainerColor()
   val contentTint =
     if (enabled) resolvedTint else resolvedTint.copy(alpha = resolvedTint.alpha * PlayerButtonAlpha.DISABLED_CONTENT)
+  val renderLiquidGlass = liquidGlassEnabled && useGlass && !hideBackground
   val controlModifier =
     modifier
-      .tvFocusHighlight(CircleShape, isInteractive && enabled)
+      // LiquidButton already clips its glass to the capsule. Clipping again here, over the larger
+      // minimum touch target, would cut its drop shadow into a hard-edged halo.
+      .tvFocusHighlight(CircleShape, isInteractive && enabled, clipToShape = !renderLiquidGlass)
       .then(if (isInteractive) Modifier.minimumInteractiveComponentSize() else Modifier)
 
-  if (liquidGlassEnabled && useGlass && !hideBackground) {
+  if (renderLiquidGlass) {
     CompositionLocalProvider(LocalContentColor provides contentTint) {
       LiquidButton(
         onClick = {
