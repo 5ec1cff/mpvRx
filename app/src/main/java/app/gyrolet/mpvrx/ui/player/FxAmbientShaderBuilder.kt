@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 
@@ -194,6 +194,14 @@ ${videoPrologue("1.35")}
     highp float zoom = 1.10 + 0.28 * dn;
     highp vec2 c_uv  = (video_uv - 0.5) / zoom + 0.5;
 
+    // FIX: c_uv is outside [0,1] for all bar pixels because video_uv is already
+    // negative/overflow. Without clamping, all Poisson taps pile up on the same
+    // 1px border strip at varying Y positions, producing a mirror-like artifact.
+    // Clamp to video bounds first, then apply the same inward nudge used by Glow
+    // (mix toward 0.5) so taps don't re-clamp back to the border wall.
+    highp vec2 c_uv_safe    = clamp(c_uv, safe_min, safe_max);
+    highp vec2 sample_c_uv  = mix(c_uv_safe, vec2(0.5), 0.04 + 0.06 * dn);
+
     // -- 8-tap spiral Gaussian blur ------------------------------------------
     // Blend radius interpolates from baseRadius (sharp, near edge) to
     // farRadius (blurry, at bar end) as a linear function of dn.
@@ -204,7 +212,7 @@ ${videoPrologue("1.35")}
     mediump float twt = 0.0;
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap_off = CINEMA_TAPS[i] * br_scale;
-        mediump vec3  s = HOOKED_tex(clamp(c_uv + tap_off, safe_min, safe_max)).rgb;
+        mediump vec3  s = HOOKED_tex(clamp(sample_c_uv + tap_off, safe_min, safe_max)).rgb;
         mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
@@ -248,33 +256,37 @@ ${videoPrologue("1.20")}
     // -- Edge origin (nearest video pixel) -----------------------------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
 
+    // FIX: Apply an inward nudge identical to Glow's sample_origin.
+    // edge_origin sits exactly on the 1px video border wall. Smear taps that
+    // extend in the inward direction immediately re-clamp back to the same
+    // border texel, creating a pile-up that looks like a mirror reflection.
+    // Nudging toward 0.5 by 2-7% ensures all 5 taps spread into real content.
+    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.02 + 0.05 * dn);
+
     // -- Determine smear axis (parallel to bar, perpendicular to outward) ----
     // For pillarbox bars (left/right) smear vertically; for letterbox smear horizontally.
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
 
     // Smear width in video-UV space grows from tight at edge to wide at depth.
-    mediump float sw = 0.02 + 0.12 * dn;
+    mediump float sw = 0.02 + 0.10 * dn;
 
-    // -- 5-tap Gaussian along smear axis -------------------------------------
-    mediump vec3  acc = vec3(0.0);
-    mediump float twt = 0.0;
+    // -- 5-tap Gaussian along smear axis (weights sum to 1.0 -- no divider needed)
     const float W0 = 0.0625;
     const float W1 = 0.25;
     const float W2 = 0.375;
 
-    highp vec2 t0 = clamp(edge_origin - smear_dir * (sw * 2.0), safe_min, safe_max);
-    highp vec2 t1 = clamp(edge_origin - smear_dir * sw,          safe_min, safe_max);
-    highp vec2 t2 = edge_origin;
-    highp vec2 t3 = clamp(edge_origin + smear_dir * sw,          safe_min, safe_max);
-    highp vec2 t4 = clamp(edge_origin + smear_dir * (sw * 2.0), safe_min, safe_max);
+    highp vec2 t0 = clamp(echo_origin - smear_dir * (sw * 2.0), safe_min, safe_max);
+    highp vec2 t1 = clamp(echo_origin - smear_dir * sw,          safe_min, safe_max);
+    highp vec2 t2 = echo_origin;
+    highp vec2 t3 = clamp(echo_origin + smear_dir * sw,          safe_min, safe_max);
+    highp vec2 t4 = clamp(echo_origin + smear_dir * (sw * 2.0), safe_min, safe_max);
 
-    mediump vec3 s0 = HOOKED_tex(t0).rgb; acc += s0 * W0; twt += W0;
-    mediump vec3 s1 = HOOKED_tex(t1).rgb; acc += s1 * W1; twt += W1;
-    mediump vec3 s2 = HOOKED_tex(t2).rgb; acc += s2 * W2; twt += W2;
-    mediump vec3 s3 = HOOKED_tex(t3).rgb; acc += s3 * W1; twt += W1;
-    mediump vec3 s4 = HOOKED_tex(t4).rgb; acc += s4 * W0; twt += W0;
-    mediump vec3 col = acc / max(twt, 0.001);
+    mediump vec3 col = HOOKED_tex(t0).rgb * W0
+                     + HOOKED_tex(t1).rgb * W1
+                     + HOOKED_tex(t2).rgb * W2
+                     + HOOKED_tex(t3).rgb * W1
+                     + HOOKED_tex(t4).rgb * W0;
 
     // -- Colour grade --------------------------------------------------------
     col = vibrance(col, 1.15);
