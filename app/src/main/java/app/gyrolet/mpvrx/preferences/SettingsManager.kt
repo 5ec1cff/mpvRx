@@ -22,6 +22,7 @@ import app.gyrolet.mpvrx.domain.network.NetworkProtocol
 import app.gyrolet.mpvrx.preferences.preference.PreferenceStore
 import app.gyrolet.mpvrx.preferences.preference.defaultSharedPreferences
 import app.gyrolet.mpvrx.ui.theme.saveWallpaperCopy
+import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -116,7 +117,7 @@ class SettingsManager(
       try {
         val configurationRoot = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
           ?: error("Backup folder is unavailable")
-        val root = configurationRoot.findFile("Backup")?.also { existing ->
+        val root = configurationRoot.findChildIgnoreCase("Backup")?.also { existing ->
           require(existing.isDirectory) { "Backup exists but is not a folder" }
         } ?: configurationRoot.createDirectory("Backup")
           ?: error("Unable to create Backup folder")

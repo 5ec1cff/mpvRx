@@ -14,6 +14,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.preferences.DownloadPreferences
+import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
 import java.io.File
 
 /**
@@ -57,7 +58,7 @@ class DownloadLocations(
     childName: String,
   ): String? {
     val root = DocumentFile.fromTreeUri(context, treeUri) ?: return null
-    val child = root.findFile(childName)?.takeIf { it.isDirectory }
+    val child = root.findChildIgnoreCase(childName)?.takeIf { it.isDirectory }
       ?: root.createDirectory(childName)
       ?: return null
     val rootPath = resolveTreeUriToPath(treeUri) ?: return null
@@ -74,7 +75,7 @@ class DownloadLocations(
     val path = prepareLocationUnderTree(treeUri, childName) ?: return null
     preferences.downloadLocationTreeUri.set(treeUri.toString())
     preferences.downloadLocationPath.set(path)
-    preferences.downloadLocationChildName.set(childName)
+    preferences.downloadLocationChildName.set(File(path).name)
     return path
   }
 

@@ -72,6 +72,7 @@ import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
+import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -236,7 +237,7 @@ object AdvancedPreferencesScreen : Screen {
         subtitlesPreferences.subtitleSaveFolder.set(uriString)
         val root = DocumentFile.fromTreeUri(context, uri) ?: return@rememberLauncherForActivityResult
         listOf("Backup", "Downloads", "fonts", "Subtitles", "scripts", "script-opts", "shaders").forEach { name ->
-          if (root.findFile(name) == null) root.createDirectory(name)
+          if (root.findChildIgnoreCase(name) == null) root.createDirectory(name)
         }
         if (downloadLocations.setLocationUnderTree(uri, "Downloads") == null) {
           Toast.makeText(context, context.getString(R.string.onboarding_configuration_restore_failed, unknownError), Toast.LENGTH_LONG).show()

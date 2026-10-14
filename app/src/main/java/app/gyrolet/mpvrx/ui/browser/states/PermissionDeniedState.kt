@@ -113,6 +113,7 @@ import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.expressiveDisplayFontForText
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -265,7 +266,7 @@ fun PermissionDeniedState(
           withContext(Dispatchers.IO) {
             val root = DocumentFile.fromTreeUri(context, uri) ?: error("Configuration folder is unavailable")
             listOf("Backup", "Downloads", "fonts", "Subtitles", "scripts", "script-opts", "shaders").forEach { name ->
-              val existing = root.findFile(name)
+              val existing = root.findChildIgnoreCase(name)
               if (existing == null) root.createDirectory(name) else require(existing.isDirectory) { "$name is not a folder" }
             }
             check(downloadLocations.prepareLocationUnderTree(uri, "Downloads") != null) {

@@ -49,3 +49,14 @@ fun openPersistedTreeDocument(
 fun listTreeFilesSafely(document: DocumentFile): Array<DocumentFile> =
   runCatching { document.listFiles() }
     .getOrDefault(emptyArray())
+
+/**
+ * Case-insensitive replacement for [DocumentFile.findFile]. Shared storage is case-insensitive, so a
+ * case-sensitive miss followed by createDirectory() makes the provider add a "name (1)" duplicate
+ * next to an existing "Name" folder. An exact-case match is preferred when both exist.
+ */
+fun DocumentFile.findChildIgnoreCase(name: String): DocumentFile? {
+  val children = listTreeFilesSafely(this).map { child -> child to child.name }
+  return children.firstOrNull { (_, childName) -> childName == name }?.first
+    ?: children.firstOrNull { (_, childName) -> childName.equals(name, ignoreCase = true) }?.first
+}

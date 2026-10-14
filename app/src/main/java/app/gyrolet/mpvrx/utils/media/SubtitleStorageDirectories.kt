@@ -25,7 +25,7 @@ fun resolveSubtitleStorageDirectory(
 
   if (root.name.equals(SUBTITLES_DIRECTORY_NAME, ignoreCase = true)) return root
 
-  runCatching { root.findFile(SUBTITLES_DIRECTORY_NAME) }
+  runCatching { root.findChildIgnoreCase(SUBTITLES_DIRECTORY_NAME) }
     .getOrNull()
     ?.takeIf { it.exists() && it.isDirectory }
     ?.let { return it }
@@ -47,7 +47,7 @@ fun resolveSubtitleLookupDirectories(
 
   val directories =
     buildList {
-      runCatching { root.findFile(SUBTITLES_DIRECTORY_NAME) }
+      runCatching { root.findChildIgnoreCase(SUBTITLES_DIRECTORY_NAME) }
         .getOrNull()
         ?.takeIf { it.exists() && it.isDirectory }
         ?.let(::add)
