@@ -49,13 +49,17 @@ internal fun isAndroidDataAccessiblePath(file: File?): Boolean {
   return normalizedPath.endsWith("/android") || normalizedPath.contains("/android/data")
 }
 
+private val REPEATED_SEPARATORS = Regex("/+")
+
 internal fun normalizeStoragePath(path: String?): String? {
   val rawPath = path?.trim()?.replace('\\', '/') ?: return null
   if (rawPath.isBlank()) {
     return null
   }
 
-  val collapsedSeparators = rawPath.replace(Regex("/+"), "/")
+  // Hot path: runs for every scanned row, and almost no path contains "//".
+  val collapsedSeparators =
+    if (rawPath.contains("//")) rawPath.replace(REPEATED_SEPARATORS, "/") else rawPath
   val normalized =
     if (collapsedSeparators.length > 1) {
       collapsedSeparators.trimEnd('/')

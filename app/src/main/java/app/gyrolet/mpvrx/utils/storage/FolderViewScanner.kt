@@ -722,17 +722,20 @@ object FolderViewScanner {
 
           // Collect videos by folder
           val videosByFolder = mutableMapOf<String, FolderAggregate>()
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
+          val existenceCache = FolderListingExistenceCache()
 
           while (cursor.moveToNext()) {
             val videoPath = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(videoPath)
 
-            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
             if (!FileTypeUtils.isVideoFile(file)) continue
-            if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
 
-            val folderPath = normalizeStoragePath(file.parent) ?: continue
-            val folderKey = storagePathKey(folderPath) ?: continue
+            val folderPath = folder.path
+            val folderKey = folder.key
             val size = cursor.getLong(sizeColumn)
             val duration = cursor.getLong(durationColumn)
             val dateModified = cursor.getLong(dateColumn)
@@ -741,7 +744,9 @@ object FolderViewScanner {
               videosByFolder.getOrPut(folderKey) {
                 FolderAggregate(path = folderPath)
               }
-            aggregate.path = choosePreferredStoragePath(aggregate.path, folderPath)
+            if (aggregate.path != folderPath) {
+              aggregate.path = choosePreferredStoragePath(aggregate.path, folderPath)
+            }
             aggregate.videos.add(
               VideoInfo(size, duration, dateModified),
             )
@@ -820,31 +825,32 @@ object FolderViewScanner {
           val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
           val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
           val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
+          val existenceCache = FolderListingExistenceCache()
           while (cursor.moveToNext()) {
             val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
-            if ((!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) ||
-              noMediaPathFilter.shouldExcludeDirectory(file.parentFile)
-            ) continue
             if (!FileTypeUtils.isAudioFile(file)) continue
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
             val duration = cursor.getLong(durationColumn)
             if (!options.includesAudioDuration(duration)) continue
-            val folderPath = normalizeStoragePath(file.parent) ?: continue
-            val folderKey = storagePathKey(folderPath) ?: continue
-            val aggregate = audioByFolder.getOrPut(folderKey) { FolderAggregate(folderPath) }
+            val aggregate = audioByFolder.getOrPut(folder.key) { FolderAggregate(folder.path) }
             aggregate.videos += VideoInfo(cursor.getLong(sizeColumn), duration, cursor.getLong(dateColumn))
           }
         }
+
+      // One pass instead of comparing every folder against every other folder.
+      val audioParentKeys =
+        audioByFolder.values.mapNotNullTo(HashSet()) { storagePathKey(it.path.substringBeforeLast('/')) }
 
       for ((folderKey, aggregate) in audioByFolder) {
         val existing = folders[folderKey]
         val audioSize = aggregate.videos.sumOf { it.size }
         val audioDuration = aggregate.videos.sumOf { it.duration }
         val audioModified = aggregate.videos.maxOfOrNull { it.dateModified } ?: 0L
-        val hasAudioSubfolders =
-          audioByFolder.values.any { child ->
-            areEquivalentStoragePaths(child.path.substringBeforeLast('/'), aggregate.path)
-          }
+        val hasAudioSubfolders = storagePathKey(aggregate.path) in audioParentKeys
         folders[folderKey] =
           if (existing == null) {
             FolderData(
@@ -939,7 +945,7 @@ object FolderViewScanner {
   ) {
     currentCoroutineContext().ensureActive()
     if (currentDepth >= maxDepth) return
-    if (!directory.exists() || !directory.canRead() || !directory.isDirectory) return
+    if (!directory.isDirectory || !directory.canRead()) return
     if (FileFilterUtils.shouldSkipFolder(directory, options, noMediaPathFilter)) return
 
     try {
@@ -947,19 +953,21 @@ object FolderViewScanner {
       val files = directory.listFiles() ?: return
 
       val mediaFiles = mutableListOf<File>()
+      val mediaStats = HashMap<File, FileEntryStat>()
       val audioDurations = mutableMapOf<File, Long>()
       val subdirectories = mutableListOf<File>()
 
       for (file in files) {
         currentCoroutineContext().ensureActive()
         try {
+          val stat = readFileEntryStat(file) ?: continue
           when {
-            file.isDirectory -> {
+            stat.isDirectory -> {
               if (!FileFilterUtils.shouldSkipFolder(file, options, noMediaPathFilter)) {
                 subdirectories.add(file)
               }
             }
-            file.isFile -> {
+            stat.isFile -> {
               if (FileFilterUtils.shouldSkipFile(file, options, noMediaPathFilter)) {
                 continue
               }
@@ -970,6 +978,7 @@ object FolderViewScanner {
                   audioDurations[file] = duration
                 }
                 mediaFiles.add(file)
+                mediaStats[file] = stat
               }
             }
           }
@@ -990,11 +999,12 @@ object FolderViewScanner {
 
           var totalDuration = 0L
           for (media in mediaFiles) {
-            totalSize += media.length()
+            val stat = mediaStats.getValue(media)
+            totalSize += stat.size
             if (FileTypeUtils.isAudioFile(media)) {
               totalDuration += audioDurations[media] ?: FileTypeUtils.getDurationMs(media)
             }
-            val modified = media.lastModified()
+            val modified = stat.lastModifiedMs
             if (modified > lastModified) {
               lastModified = modified
             }

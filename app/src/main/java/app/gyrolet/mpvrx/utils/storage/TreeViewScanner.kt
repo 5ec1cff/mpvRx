@@ -114,7 +114,7 @@ object TreeViewScanner {
       // Recompute recursive counts after removing blacklisted branches, otherwise their
       // old parent counters leave empty phantom folders visible in Tree view.
       val visibleFolders = filterBlacklistedTree(context, allFolders, blacklistedPaths)
-      getEffectiveChildren(parentPath, visibleFolders, maxAutoFlattenLevels)
+      getEffectiveChildren(parentPath, indexDirectChildren(visibleFolders), maxAutoFlattenLevels)
         .map(::toFolderData)
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
@@ -145,7 +145,7 @@ object TreeViewScanner {
 
       allFolders[folderKey]?.let { return@withContext toFolderData(it) }
 
-      val children = getEffectiveChildren(normalizedFolderPath, allFolders)
+      val children = getEffectiveChildren(normalizedFolderPath, indexDirectChildren(allFolders))
       if (children.isEmpty()) {
         return@withContext null
       }
@@ -435,19 +435,23 @@ object TreeViewScanner {
           val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
 
           val videosByFolder = mutableMapOf<String, FolderAggregate>()
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
+          val existenceCache = FolderListingExistenceCache()
 
           while (cursor.moveToNext()) {
             val videoPath = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(videoPath)
 
-            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
             if (!FileTypeUtils.isVideoFile(file)) continue
-            if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
 
-            val folderPath = normalizeStoragePath(file.parent) ?: continue
-            val folderKey = storagePathKey(folderPath) ?: continue
-            val aggregate = videosByFolder.getOrPut(folderKey) { FolderAggregate(path = folderPath) }
-            aggregate.path = choosePreferredStoragePath(aggregate.path, folderPath)
+            val folderPath = folder.path
+            val aggregate = videosByFolder.getOrPut(folder.key) { FolderAggregate(path = folderPath) }
+            if (aggregate.path != folderPath) {
+              aggregate.path = choosePreferredStoragePath(aggregate.path, folderPath)
+            }
             aggregate.videos.add(
               VideoInfo(
                 displayName = cursor.getString(displayNameColumn) ?: file.name,
@@ -537,19 +541,19 @@ object TreeViewScanner {
           val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
           val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
           val audioByFolder = mutableMapOf<String, FolderAggregate>()
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
+          val existenceCache = FolderListingExistenceCache()
 
           while (cursor.moveToNext()) {
             val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
-            if ((!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) ||
-              noMediaPathFilter.shouldExcludeDirectory(file.parentFile)
-            ) continue
             if (!FileTypeUtils.isAudioFile(file)) continue
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
             val duration = cursor.getLong(durationColumn)
             if (!options.includesAudioDuration(duration)) continue
-            val folderPath = normalizeStoragePath(file.parent) ?: continue
-            val folderKey = storagePathKey(folderPath) ?: continue
-            audioByFolder.getOrPut(folderKey) { FolderAggregate(folderPath) }.videos +=
+            audioByFolder.getOrPut(folder.key) { FolderAggregate(folder.path) }.videos +=
               VideoInfo(
                 displayName = cursor.getString(nameColumn) ?: file.name,
                 filePath = file.absolutePath,
@@ -658,24 +662,28 @@ object TreeViewScanner {
     currentDepth: Int = 0,
   ) {
     if (currentDepth >= maxDepth) return
-    if (!directory.exists() || !directory.canRead() || !directory.isDirectory) return
+    if (!directory.isDirectory || !directory.canRead()) return
     if (FileFilterUtils.shouldSkipFolder(directory, options, noMediaPathFilter)) return
 
     try {
       val files = directory.listFiles() ?: return
       val mediaFiles = mutableListOf<File>()
+      val mediaStats = HashMap<File, FileEntryStat>()
+      // Decoding duration is the most expensive step; it used to run twice per audio file.
+      val audioDurations = HashMap<File, Long>()
       val subdirectories = mutableListOf<File>()
 
       for (file in files) {
         try {
+          val stat = readFileEntryStat(file) ?: continue
           when {
-            file.isDirectory -> {
+            stat.isDirectory -> {
               if (!FileFilterUtils.shouldSkipFolder(file, options, noMediaPathFilter)) {
                 subdirectories.add(file)
               }
             }
 
-            file.isFile -> {
+            stat.isFile -> {
               if (FileFilterUtils.shouldSkipFile(file, options, noMediaPathFilter)) {
                 continue
               }
@@ -684,6 +692,8 @@ object TreeViewScanner {
                 val duration = if (isAudio) FileTypeUtils.getDurationMs(file) else 0L
                 if (!isAudio || options.includesAudioDuration(duration)) {
                   mediaFiles.add(file)
+                  mediaStats[file] = stat
+                  if (isAudio) audioDurations[file] = duration
                 }
               }
             }
@@ -703,7 +713,7 @@ object TreeViewScanner {
               isVideoNew(
                 displayName = file.name,
                 filePath = file.absolutePath,
-                dateModifiedSeconds = file.lastModified() / 1000L,
+                dateModifiedSeconds = mediaStats.getValue(file).lastModifiedMs / 1000L,
                 currentTimeMs = currentTimeMs,
                 newBadgeConfig = newBadgeConfig,
               )
@@ -718,9 +728,9 @@ object TreeViewScanner {
               path = folderPath,
               name = leafStorageName(folderPath),
               directVideoCount = mediaFiles.size,
-              directSize = mediaFiles.sumOf { it.length() },
-              directDuration = mediaFiles.filter(FileTypeUtils::isAudioFile).sumOf(FileTypeUtils::getDurationMs),
-              directLastModified = (mediaFiles.maxOfOrNull { it.lastModified() } ?: 0L) / 1000L,
+              directSize = mediaFiles.sumOf { mediaStats.getValue(it).size },
+              directDuration = audioDurations.values.sum(),
+              directLastModified = (mediaFiles.maxOfOrNull { mediaStats.getValue(it).lastModifiedMs } ?: 0L) / 1000L,
               directNewCount = directNewCount,
               hasDirectSubfolders = subdirectories.isNotEmpty(),
             )
@@ -828,6 +838,7 @@ object TreeViewScanner {
         .sortedBy { normalizeStoragePath(it.path)?.count { c -> c == '/' } ?: 0 }
         .mapNotNull { storagePathKey(it.path) }
         .distinct()
+    val childIndex = indexDirectChildren(folders)
 
     for (pathKey in sortedPaths) {
       val node = folders[pathKey] ?: continue
@@ -836,7 +847,7 @@ object TreeViewScanner {
       }
 
       val childrenWithMedia =
-        getDirectChildren(node.path, folders)
+        getDirectChildren(node.path, childIndex)
           .filter { it.recursiveVideoCount > 0 }
 
       if (childrenWithMedia.size == 1 && pathKey !in storageRootKeys) {
@@ -845,33 +856,41 @@ object TreeViewScanner {
     }
   }
 
+  /**
+   * Parent key -> direct children, in map order. Replaces a full scan of every node per lookup,
+   * which made flattening and tree navigation O(N^2) on large libraries.
+   */
+  private fun indexDirectChildren(allNodes: Map<String, FolderNode>): Map<String, List<FolderNode>> {
+    val index = HashMap<String, MutableList<FolderNode>>()
+    for ((key, node) in allNodes) {
+      val childKey = storagePathKey(node.path) ?: continue
+      val parentKey = childKey.substringBeforeLast('/', "")
+      if (parentKey.isEmpty() || !key.startsWith("$parentKey/")) continue
+      index.getOrPut(parentKey) { mutableListOf() }.add(node)
+    }
+    return index
+  }
+
   private fun getDirectChildren(
     parentPath: String,
-    allNodes: Map<String, FolderNode>,
+    childIndex: Map<String, List<FolderNode>>,
   ): List<FolderNode> {
     val parentKey = storagePathKey(parentPath) ?: return emptyList()
-    val prefix = "$parentKey/"
-    val candidates = mutableListOf<FolderNode>()
-    for ((key, node) in allNodes) {
-      if (key.startsWith(prefix) && isDirectStorageChild(parentPath, node.path)) {
-        candidates.add(node)
-      }
-    }
-    return candidates
+    return childIndex[parentKey].orEmpty()
   }
 
   private fun getEffectiveChildren(
     parentPath: String,
-    allNodes: Map<String, FolderNode>,
+    childIndex: Map<String, List<FolderNode>>,
     remainingLevels: Int = -1,
   ): List<FolderNode> {
-    val directChildren = getDirectChildren(parentPath, allNodes)
+    val directChildren = getDirectChildren(parentPath, childIndex)
     val result = mutableListOf<FolderNode>()
 
     for (child in directChildren) {
       if (child.isFlattened && remainingLevels != 0) {
         val nextLevel = if (remainingLevels < 0) -1 else remainingLevels - 1
-        result += getEffectiveChildren(child.path, allNodes, nextLevel)
+        result += getEffectiveChildren(child.path, childIndex, nextLevel)
       } else {
         result += child
       }

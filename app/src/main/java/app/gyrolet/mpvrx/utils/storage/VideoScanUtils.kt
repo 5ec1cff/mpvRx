@@ -47,6 +47,17 @@ object VideoScanUtils : KoinComponent {
    */
   private const val VIDEO_ROTATION_COLUMN = "rotation"
 
+  /**
+   * Direct children only. The old `LIKE 'folder/%'` returned the whole subtree, so opening a storage
+   * root marshalled every media row in the library across Binder just to discard all but a few.
+   * The NOT LIKE pattern needs at least one more '/' after the folder than a direct child path has,
+   * so it only drops nested rows; the Kotlin direct-child check still runs on every returned row.
+   */
+  private const val DIRECT_CHILD_SELECTION = "LOWER(%1\$s) LIKE ? AND LOWER(%1\$s) NOT LIKE ?"
+
+  private fun directChildSelectionArgs(folderKey: String): Array<String> =
+    arrayOf("$folderKey/%", "$folderKey/%/%")
+
   // Extensions where MediaStore duration is unreliable (returns 0)
   private val MEDIASTORE_DURATION_UNRELIABLE = setOf("ts", "mts", "m2ts")
 
@@ -71,9 +82,10 @@ object VideoScanUtils : KoinComponent {
       }
 
       // Try MediaStore first (fast)
-      scanVideosFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter)
+      val keyResolver = MediaPathKeyResolver()
+      scanVideosFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, keyResolver)
       if (options.includeAudio) {
-        scanAudioFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, options)
+        scanAudioFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, options, keyResolver)
       }
 
       // MediaStore returns 0 duration for .ts/.mts/.m2ts — fix those entries now
@@ -112,7 +124,7 @@ object VideoScanUtils : KoinComponent {
         folder.canRead() &&
         shouldRunFilesystemVideoCheck(forceFileSystemCheck, videosMap.size)
       ) {
-        scanVideosFromFileSystem(context, folder, videosMap, options, noMediaPathFilter)
+        scanVideosFromFileSystem(context, folder, videosMap, options, noMediaPathFilter, keyResolver)
       }
 
       videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) }
@@ -126,6 +138,7 @@ object VideoScanUtils : KoinComponent {
     folderPath: String,
     videosMap: MutableMap<String, Video>,
     noMediaPathFilter: NoMediaPathFilter,
+    keyResolver: MediaPathKeyResolver,
   ) {
     val baseProjection =
       arrayOf(
@@ -144,8 +157,8 @@ object VideoScanUtils : KoinComponent {
 
     val normalizedFolderPath = normalizeStoragePath(folderPath) ?: return
     val normalizedFolderKey = storagePathKey(normalizedFolderPath) ?: return
-    val selection = "LOWER(${MediaStore.Video.Media.DATA}) LIKE ?"
-    val selectionArgs = arrayOf("$normalizedFolderKey/%")
+    val selection = DIRECT_CHILD_SELECTION.format(MediaStore.Video.Media.DATA)
+    val selectionArgs = directChildSelectionArgs(normalizedFolderKey)
 
     try {
       val cursor =
@@ -180,18 +193,20 @@ object VideoScanUtils : KoinComponent {
           val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
           val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
           val rotationColumn = cursor.getColumnIndex(VIDEO_ROTATION_COLUMN)
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
+          val existenceCache = FolderListingExistenceCache()
 
           while (cursor.moveToNext()) {
             currentCoroutineContext().ensureActive()
             val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
-            val normalizedPath = normalizeStoragePath(path) ?: continue
 
-            // Only direct children
-            if (!areEquivalentStoragePaths(file.parent, normalizedFolderPath)) continue
-            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
             if (!FileTypeUtils.isVideoFile(file)) continue
-            if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
+            // Only direct children
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.key != normalizedFolderKey || folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
+            val normalizedPath = normalizeStoragePath(path) ?: continue
 
             val id = cursor.getLong(idColumn)
             val displayName = cursor.getString(nameColumn)?.takeIf { it.isNotBlank() } ?: file.name
@@ -211,7 +226,7 @@ object VideoScanUtils : KoinComponent {
                 id.toString(),
               )
 
-            val videoKey = mediaPathKey(normalizedPath) ?: normalizedPath
+            val videoKey = keyResolver.key(normalizedPath) ?: normalizedPath
             videosMap[videoKey] =
               Video(
                 id = id,
@@ -251,6 +266,7 @@ object VideoScanUtils : KoinComponent {
     videosMap: MutableMap<String, Video>,
     noMediaPathFilter: NoMediaPathFilter,
     options: MediaScanOptions,
+    keyResolver: MediaPathKeyResolver,
   ) {
     val projection =
       arrayOf(
@@ -266,7 +282,7 @@ object VideoScanUtils : KoinComponent {
       )
     val normalizedFolderPath = normalizeStoragePath(folderPath) ?: return
     val normalizedFolderKey = storagePathKey(normalizedFolderPath) ?: return
-    val selection = "LOWER(${MediaStore.Audio.Media.DATA}) LIKE ?"
+    val selection = DIRECT_CHILD_SELECTION.format(MediaStore.Audio.Media.DATA)
 
     try {
       context.contentResolver
@@ -274,7 +290,7 @@ object VideoScanUtils : KoinComponent {
           MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
           projection,
           selection,
-          arrayOf("$normalizedFolderKey/%"),
+          directChildSelectionArgs(normalizedFolderKey),
           "${MediaStore.Audio.Media.DISPLAY_NAME} ASC",
         )?.use { cursor ->
           val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -286,15 +302,16 @@ object VideoScanUtils : KoinComponent {
           val modifiedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
           val addedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
           val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.MIME_TYPE)
+          val folderResolver = MediaFolderResolver(noMediaPathFilter)
 
           while (cursor.moveToNext()) {
             currentCoroutineContext().ensureActive()
             val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
             val file = File(path)
-            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.isFile) continue
-            if (!areEquivalentStoragePaths(file.parent, normalizedFolderPath)) continue
-            if (noMediaPathFilter.shouldExcludeDirectory(file.parentFile)) continue
             if (!FileTypeUtils.isAudioFile(file)) continue
+            val folder = folderResolver.resolve(file.parent) ?: continue
+            if (folder.key != normalizedFolderKey || folder.excluded) continue
+            if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !file.isFile) continue
             val duration = cursor.getLong(durationColumn)
             if (!options.includesAudioDuration(duration)) continue
             val normalizedPath = normalizeStoragePath(path) ?: continue
@@ -303,7 +320,7 @@ object VideoScanUtils : KoinComponent {
             val title = cursor.getString(titleColumn)?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
             val size = cursor.getLong(sizeColumn)
             val uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
-            videosMap[mediaPathKey(normalizedPath) ?: normalizedPath] =
+            videosMap[keyResolver.key(normalizedPath) ?: normalizedPath] =
               Video(
                 id = id,
                 title = title,
@@ -344,23 +361,26 @@ object VideoScanUtils : KoinComponent {
     videosMap: MutableMap<String, Video>,
     options: MediaScanOptions,
     noMediaPathFilter: NoMediaPathFilter,
+    keyResolver: MediaPathKeyResolver,
   ) {
     try {
       val files = folder.listFiles() ?: return
       val filesToProcess = mutableListOf<File>()
+      val fileStats = HashMap<File, FileEntryStat>()
 
       for (file in files) {
         currentCoroutineContext().ensureActive()
-        if (!file.isFile) continue
+        if (!FileTypeUtils.isSupportedMediaFile(file, options)) continue
+        val stat = readFileEntryStat(file) ?: continue
+        if (!stat.isFile) continue
         if (FileFilterUtils.shouldSkipFile(file, options, noMediaPathFilter)) continue
 
-        if (!FileTypeUtils.isSupportedMediaFile(file, options)) continue
-
         val path = normalizeStoragePath(file.absolutePath) ?: continue
-        val videoKey = mediaPathKey(path) ?: path
+        val videoKey = keyResolver.key(path) ?: path
         if (videosMap.containsKey(videoKey)) continue
 
         filesToProcess.add(file)
+        fileStats[file] = stat
       }
 
       if (filesToProcess.isEmpty()) return
@@ -376,12 +396,13 @@ object VideoScanUtils : KoinComponent {
         currentCoroutineContext().ensureActive()
         try {
           val path = normalizeStoragePath(file.absolutePath) ?: continue
-          val videoKey = mediaPathKey(path) ?: path
+          val videoKey = keyResolver.key(path) ?: path
           val uri = Uri.fromFile(file)
           val displayName = file.name
           val title = file.nameWithoutExtension
-          val fileSize = file.length()
-          val dateModified = file.lastModified() / 1000
+          val stat = fileStats.getValue(file)
+          val fileSize = stat.size
+          val dateModified = stat.lastModifiedMs / 1000
           val cachedMetadata = metadataMap[path]
           val isAudio = FileTypeUtils.isAudioFile(file)
           val duration = cachedMetadata?.durationMs ?: 0L
