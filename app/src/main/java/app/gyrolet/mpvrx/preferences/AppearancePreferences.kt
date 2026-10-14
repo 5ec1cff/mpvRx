@@ -60,6 +60,8 @@ class AppearancePreferences(
   val customTheme = preferenceStore.getString("custom_theme", "")
   val selectedCustomThemeName = preferenceStore.getString("selected_custom_theme_name", "")
   val customWallpaperUri = preferenceStore.getString(CUSTOM_WALLPAPER_URI_KEY, "")
+  // Independent of the app wallpaper: only the launcher icon preview uses this photo.
+  val appIconPreviewWallpaper = preferenceStore.getString("app_icon_preview_wallpaper", "")
   val customWallpaperZoom = preferenceStore.getFloat("custom_wallpaper_zoom", 1f)
   val customWallpaperOffsetX = preferenceStore.getFloat("custom_wallpaper_offset_x", 0f)
   val customWallpaperOffsetY = preferenceStore.getFloat("custom_wallpaper_offset_y", 0f)

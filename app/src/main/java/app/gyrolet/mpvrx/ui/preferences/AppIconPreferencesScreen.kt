@@ -15,9 +15,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,6 +24,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
@@ -34,12 +34,14 @@ import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,12 +57,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -70,6 +77,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.connectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.coroutines.launch
@@ -104,32 +116,35 @@ object AppIconPreferencesScreen : Screen {
         )
       },
     ) { padding ->
-      Column(
-        modifier = Modifier
-          .fillMaxSize()
-          .verticalScroll(rememberScrollState())
-          .padding(
-            start = 16.dp,
-            end = 16.dp,
-            top = padding.calculateTopPadding() + 12.dp,
-            bottom = padding.calculateBottomPadding() + 24.dp,
-          ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-      ) {
-        Text(
-          text = stringResource(R.string.app_icon_picker_description),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          textAlign = TextAlign.Center,
-        )
-        IconBuilder(pending = pending, onPick = { pending = it })
-        Button(
-          onClick = { confirming = true },
-          enabled = pending != current,
-          modifier = Modifier.fillMaxWidth(),
+      Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
+        Column(
+          modifier = Modifier
+            .widthIn(max = 600.dp)
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(
+              start = 16.dp,
+              end = 16.dp,
+              top = 12.dp,
+              bottom = 24.dp,
+            ),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(stringResource(R.string.app_icon_apply))
+          Text(
+            text = stringResource(R.string.app_icon_picker_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+          )
+          IconBuilder(pending = pending, current = current, onPick = { pending = it })
+          Button(
+            onClick = { confirming = true },
+            enabled = pending != current,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+          ) {
+            Text(stringResource(R.string.app_icon_apply), style = MaterialTheme.typography.titleMedium)
+          }
         }
       }
     }
@@ -171,7 +186,7 @@ private fun iconName(icon: LauncherIcon): String {
 }
 
 @Composable
-private fun IconBuilder(pending: LauncherIcon, onPick: (LauncherIcon) -> Unit) {
+private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (LauncherIcon) -> Unit) {
   val backgrounds = IconBackground.entries
   val scope = rememberCoroutineScope()
   val pager = rememberPagerState(initialPage = pending.background.ordinal) { backgrounds.size }
@@ -196,90 +211,138 @@ private fun IconBuilder(pending: LauncherIcon, onPick: (LauncherIcon) -> Unit) {
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
-    IconPreview(
-      background = pending.background,
-      mark = pending.mark,
-      size = 132.dp,
-      modifier = Modifier.pointerInput(Unit) {
-        var travelled = 0f
-        detectHorizontalDragGestures(
-          onDragStart = { travelled = 0f },
-          onDragEnd = { if (abs(travelled) > 48.dp.toPx()) turn(if (travelled < 0f) 1 else -1) },
-        ) { change, delta ->
-          change.consume()
-          travelled += delta
-        }
-      },
-    )
+    IconPreviewCard {
+      IconPreview(
+        background = pending.background,
+        mark = pending.mark,
+        size = 132.dp,
+        modifier = Modifier.pointerInput(Unit) {
+          var travelled = 0f
+          detectHorizontalDragGestures(
+            onDragStart = { travelled = 0f },
+            onDragEnd = { if (abs(travelled) > 48.dp.toPx()) turn(if (travelled < 0f) 1 else -1) },
+          ) { change, delta ->
+            change.consume()
+            travelled += delta
+          }
+        },
+      )
 
-    AnimatedContent(
-      targetState = iconName(pending),
-      transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-      label = "iconName",
-    ) { name ->
+      AnimatedContent(
+        targetState = iconName(pending),
+        transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+        label = "iconName",
+      ) { name ->
+        Text(
+          text = name,
+          style = MaterialTheme.typography.titleLarge,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onSurface,
+          textAlign = TextAlign.Center,
+          modifier = Modifier
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+      }
       Text(
-        text = name,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface,
+        text = stringResource(if (pending == current) R.string.app_icon_current else R.string.app_icon_pending),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+          .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), RoundedCornerShape(20.dp))
+          .padding(horizontal = 12.dp, vertical = 6.dp),
       )
     }
 
-    SectionLabel(stringResource(R.string.app_icon_section_background))
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-      val swatch = 56.dp
-      val gap = 16.dp
-      HorizontalPager(
-        state = pager,
-        pageSize = PageSize.Fixed(swatch + gap),
-        // Centres the current swatch and lets its neighbours peek in from both sides
-        contentPadding = PaddingValues(horizontal = (maxWidth - swatch - gap) / 2),
-        modifier = Modifier.fillMaxWidth(),
-      ) { page ->
-        val background = backgrounds[page]
-        val distance = abs(page - pager.currentPage - pager.currentPageOffsetFraction).coerceAtMost(2f)
-        Box(
-          modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-              val factor = 1f - 0.18f * distance
-              scaleX = factor
-              scaleY = factor
-              alpha = 1f - 0.25f * distance
+    Surface(shape = RoundedCornerShape(AppConnectedShapeTokens.outerCorner), color = MaterialTheme.colorScheme.surfaceContainer) {
+      Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        SectionLabel(stringResource(R.string.app_icon_section_background), stringResource(R.string.app_icon_background_hint))
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+          val swatch = 56.dp
+          val gap = 16.dp
+          HorizontalPager(
+            state = pager,
+            pageSize = PageSize.Fixed(swatch + gap),
+            // Centres the current swatch and lets its neighbours peek in from both sides
+            contentPadding = PaddingValues(horizontal = (maxWidth - swatch - gap) / 2),
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+          ) { page ->
+            val background = backgrounds[page]
+            val distance = abs(page - pager.currentPage - pager.currentPageOffsetFraction).coerceAtMost(2f)
+            val label = stringResource(background.label)
+            val selected = background == pending.background
+            Box(
+              modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                  val factor = 1f - 0.18f * distance
+                  scaleX = factor
+                  scaleY = factor
+                  alpha = 1f - 0.25f * distance
+                }
+                .clip(RoundedCornerShape(24.dp))
+                .selectable(selected = selected, role = Role.RadioButton) {
+                  scope.launch { pager.animateScrollToPage(page) }
+                }
+                .semantics { contentDescription = label }
+                .padding(4.dp)
+                .border(
+                  width = 2.dp,
+                  color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                  shape = RoundedCornerShape(20.dp),
+                )
+                .padding(4.dp),
+              contentAlignment = Alignment.Center,
+            ) {
+              IconPreview(background, LauncherIcon.resolve(background, pending.mark).mark, swatch)
             }
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-              scope.launch { pager.animateScrollToPage(page) }
-            },
-          contentAlignment = Alignment.Center,
-        ) {
-          IconPreview(background, LauncherIcon.resolve(background, pending.mark).mark, swatch)
+          }
         }
       }
     }
 
-    SectionLabel(stringResource(R.string.app_icon_section_logo))
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      IconMark.entries.forEach { mark ->
-        val icon = LauncherIcon.of(pending.background, mark)
-        MarkTile(
-          background = pending.background,
-          mark = mark,
-          selected = pending.mark == mark,
-          enabled = icon != null,
-          onClick = { icon?.let(onPick) },
-          modifier = Modifier.weight(1f),
-        )
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+      SectionLabel(stringResource(R.string.app_icon_section_logo), stringResource(R.string.app_icon_logo_hint))
+      // Let labels grow with font scale instead of squeezing five choices into one row.
+      val fontScale = LocalDensity.current.fontScale
+      BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val columns = (maxWidth / (104.dp * fontScale)).toInt().coerceIn(1, IconMark.entries.size)
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+          IconMark.entries.chunked(columns).forEachIndexed { row, marks ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+              marks.forEachIndexed { column, mark ->
+                val icon = LauncherIcon.of(pending.background, mark)
+                MarkTile(
+                  background = pending.background,
+                  mark = mark,
+                  selected = pending.mark == mark,
+                  enabled = icon != null,
+                  onClick = { icon?.let(onPick) },
+                  shape = connectedShape(row * columns + column, IconMark.entries.size, ConnectedLayout.Grid, columns),
+                  modifier = Modifier.weight(1f),
+                )
+              }
+              repeat(columns - marks.size) { Box(Modifier.weight(1f)) }
+            }
+          }
+        }
       }
     }
   }
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-  Text(text = text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+private fun SectionLabel(text: String, supportingText: String) {
+  Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Text(
+      text = text,
+      style = MaterialTheme.typography.titleMedium,
+      fontWeight = FontWeight.SemiBold,
+      color = MaterialTheme.colorScheme.onSurface,
+      modifier = Modifier.semantics { heading() },
+    )
+    Text(text = supportingText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+  }
 }
 
 /** A logo choice, drawn on the background it would sit on. A logo that would not read there stays off. */
@@ -290,9 +353,9 @@ private fun MarkTile(
   selected: Boolean,
   enabled: Boolean,
   onClick: () -> Unit,
+  shape: Shape,
   modifier: Modifier = Modifier,
 ) {
-  val shape = RoundedCornerShape(16.dp)
   val border = if (selected) {
     BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
   } else {
@@ -301,24 +364,34 @@ private fun MarkTile(
   Column(
     modifier = modifier
       .clip(shape)
-      .background(MaterialTheme.colorScheme.surfaceContainer)
+      .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
       .border(border, shape)
       .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
-      .padding(horizontal = 4.dp, vertical = 10.dp),
+      .padding(horizontal = 8.dp, vertical = 12.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(6.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    Box(modifier = Modifier.alpha(if (enabled) 1f else 0.35f)) {
-      IconPreview(background, mark, 40.dp)
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+      Box(Modifier.alpha(if (enabled) 1f else 0.35f)) {
+        IconPreview(background, mark, 44.dp)
+      }
+      if (selected) {
+        Icon(
+          Icons.RoundedFilled.CheckCircle,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.primary,
+          modifier = Modifier.align(Alignment.TopEnd).size(18.dp),
+        )
+      }
     }
     Text(
       text = stringResource(mark.label),
       style = MaterialTheme.typography.bodySmall,
       fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-      color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.5f),
+      color = (if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface)
+        .copy(alpha = if (enabled) 1f else 0.5f),
       textAlign = TextAlign.Center,
       minLines = 2,
-      maxLines = 2,
     )
   }
 }
