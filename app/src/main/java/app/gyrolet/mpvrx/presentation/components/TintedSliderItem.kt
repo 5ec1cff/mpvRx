@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.SliderColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,9 +46,12 @@ fun TintedSliderItem(
   modifier: Modifier = Modifier,
   min: Int = 0,
   enabled: Boolean = true,
+  // A continuous Liquid Glass track avoids the discrete 254-step slider for colors.
+  continuous: Boolean = false,
   icon: @Composable () -> Unit = {},
 ) {
-  val haptics = rememberAdjustmentHaptics(min.toFloat(), max.toFloat(), (max - min - 1).coerceAtLeast(0))
+  val steps = if (continuous) 0 else (max - min - 1).coerceAtLeast(0)
+  val haptics = rememberAdjustmentHaptics(min.toFloat(), max.toFloat(), steps)
 
   Row(
     modifier =
@@ -84,7 +88,7 @@ fun TintedSliderItem(
               stateDescription = valueText
             },
         valueRange = min.toFloat()..max.toFloat(),
-        steps = (max - min - 1).coerceAtLeast(0),
+        steps = steps,
         tint = tint,
         enabled = enabled,
       )
@@ -102,7 +106,7 @@ fun TintedSlider(
   @IntRange steps: Int = 0,
   onValueChangeFinished: (() -> Unit)? = null,
   tint: Color = MaterialTheme.colorScheme.primaryContainer,
-  interactionSource: MutableInteractionSource = MutableInteractionSource(),
+  interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
   Slider(
     value = value,

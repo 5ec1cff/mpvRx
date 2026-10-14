@@ -226,6 +226,7 @@ fun SubtitlesColorPicker(
       max = 255,
       tint = Color.Red,
       enabled = enabled,
+      continuous = true,
     )
 
     TintedSliderItem(
@@ -236,6 +237,7 @@ fun SubtitlesColorPicker(
       max = 255,
       tint = Color.Green,
       enabled = enabled,
+      continuous = true,
     )
 
     TintedSliderItem(
@@ -246,6 +248,7 @@ fun SubtitlesColorPicker(
       max = 255,
       tint = Color.Blue,
       enabled = enabled,
+      continuous = true,
     )
 
     TintedSliderItem(
@@ -256,6 +259,7 @@ fun SubtitlesColorPicker(
       max = 255,
       tint = Color.White,
       enabled = enabled,
+      continuous = true,
     )
   }
 }
