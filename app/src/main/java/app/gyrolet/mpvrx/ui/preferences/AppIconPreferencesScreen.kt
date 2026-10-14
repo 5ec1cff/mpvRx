@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -106,7 +107,10 @@ object AppIconPreferencesScreen : Screen {
       mutableStateOf(runCatching { LauncherIconManager.current(context) }.getOrDefault(LauncherIcon.Default))
     }
     var pending by remember { mutableStateOf(current) }
-    var confirming by remember { mutableStateOf(false) }
+    val pager = rememberPagerState(initialPage = pending.background.ordinal) { IconBackground.entries.size }
+    var confirming by remember { mutableStateOf<LauncherIcon?>(null) }
+    val visibleChoice = LauncherIcon.resolve(IconBackground.entries[pager.currentPage], pending.mark)
+    val canApply = visibleChoice != current && !pager.isScrollInProgress
     val applyInteractionSource = remember { MutableInteractionSource() }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
@@ -136,13 +140,20 @@ object AppIconPreferencesScreen : Screen {
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          IconBuilder(pending = pending, current = current, onPick = { pending = it })
+          IconBuilder(pending = pending, current = current, pager = pager, onPick = { pending = it })
           Button(
-            onClick = { confirming = true },
-            enabled = pending != current,
+            onClick = {
+              // Read the visible page directly: the preview's snapshotFlow may still be catching up.
+              // Freeze this choice so a late pager emission cannot change the confirmation target.
+              if (!pager.isScrollInProgress) {
+                confirming = LauncherIcon.resolve(IconBackground.entries[pager.currentPage], pending.mark)
+                  .takeIf { it != current }
+              }
+            },
+            enabled = canApply,
             interactionSource = applyInteractionSource,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-              .appPressFeedback(applyInteractionSource, enabled = pending != current),
+              .appPressFeedback(applyInteractionSource, enabled = canApply),
           ) {
             Text(stringResource(R.string.app_icon_apply), style = MaterialTheme.typography.titleMedium)
           }
@@ -150,28 +161,28 @@ object AppIconPreferencesScreen : Screen {
       }
     }
 
-    if (confirming) {
-      val target = pending
+    confirming?.let { target ->
       AlertDialog(
-        onDismissRequest = { confirming = false },
+        onDismissRequest = { confirming = null },
         title = { Text(stringResource(R.string.app_icon_confirm_title)) },
         text = { Text(stringResource(R.string.app_icon_confirm_message, iconName(target))) },
         confirmButton = {
           TextButton(
             onClick = {
-              confirming = false
+              confirming = null
               try {
                 LauncherIconManager.select(context, target)
+                current = target
+                pending = target
               } catch (_: Exception) {
                 Toast.makeText(context, R.string.app_icon_change_failed, Toast.LENGTH_LONG).show()
+                current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
               }
-              current = runCatching { LauncherIconManager.current(context) }.getOrDefault(current)
-              pending = current
             },
           ) { Text(stringResource(R.string.app_icon_confirm_action)) }
         },
         dismissButton = {
-          TextButton(onClick = { confirming = false }) { Text(stringResource(android.R.string.cancel)) }
+          TextButton(onClick = { confirming = null }) { Text(stringResource(android.R.string.cancel)) }
         },
       )
     }
@@ -187,10 +198,9 @@ private fun iconName(icon: LauncherIcon): String {
 }
 
 @Composable
-private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (LauncherIcon) -> Unit) {
+private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, pager: PagerState, onPick: (LauncherIcon) -> Unit) {
   val backgrounds = IconBackground.entries
   val scope = rememberCoroutineScope()
-  val pager = rememberPagerState(initialPage = pending.background.ordinal) { backgrounds.size }
   val latest by rememberUpdatedState(pending)
   val reduceMotion = AppMotion.shouldReduceMotion()
 
