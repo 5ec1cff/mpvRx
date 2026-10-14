@@ -22,7 +22,10 @@ import android.view.SurfaceView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
@@ -44,7 +47,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -65,6 +68,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,14 +77,22 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.R
@@ -112,6 +124,8 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -120,6 +134,7 @@ import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 @Composable
 fun MiniPlayer(modifier: Modifier = Modifier) {
@@ -165,13 +180,37 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     PlayerSheetTransitions.releaseCollapsedHold(heldId)
   }
 
-  val isMediaActive = (isServiceRunning || collapseHoldId != null || expansionHoldId != null) && currentItem != null &&
+  val hasActiveMedia = (isServiceRunning || collapseHoldId != null || expansionHoldId != null) && currentItem != null &&
     !isSettingsScreen &&
     isMiniPlayerAllowed &&
     sessionState.phase != PlaybackPhase.IDLE &&
     sessionState.phase != PlaybackPhase.STOPPING &&
     sessionState.phase != PlaybackPhase.UNINITIALIZED &&
     sessionState.phase != PlaybackPhase.ERROR
+
+  // A tossed-away card is already off-screen when it reports in, so it leaves without an exit
+  // animation and the session ends only then, never re-laying out the card mid-flight.
+  var dismissedMediaId by remember { mutableStateOf<String?>(null) }
+  var exitAfterToss by remember { mutableStateOf(false) }
+  LaunchedEffect(dismissedMediaId, hasActiveMedia) {
+    val dismissed = dismissedMediaId ?: return@LaunchedEffect
+    // Playback that refused to stop must never be left without its controls.
+    if (hasActiveMedia) delay(DISMISS_RESTORE_TIMEOUT_MS)
+    if (dismissedMediaId == dismissed) dismissedMediaId = null
+  }
+  val isMediaActive = hasActiveMedia && dismissedMediaId != currentItem?.stableId
+  LaunchedEffect(isMediaActive) { if (isMediaActive) exitAfterToss = false }
+  val dismissPlayer: () -> Unit = remember(context) {
+    {
+      exitAfterToss = true
+      dismissedMediaId = PlaybackSession.state.value.currentItem?.stableId
+      context.startService(
+        Intent(context, MediaPlaybackService::class.java).setAction(
+          MediaPlaybackService.ACTION_NOTIFICATION_STOP,
+        ),
+      )
+    }
+  }
 
   // Keep the mini player alive while browser selection mode is active. Its outer
   // placement is lifted above the selection actions instead of hiding/overlapping.
@@ -192,15 +231,14 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
         initialOffsetY = { it / 2 },
       ) + fadeIn(animationSpec = tween(240))
     },
-    exit = if (expansionHoldId != null || sheetMotion != null) {
-      ExitTransition.None
-    } else if (reduceMotion) {
-      fadeOut(animationSpec = tween(120))
-    } else {
-      slideOutVertically(
-        animationSpec = tween(260, easing = FastOutSlowInEasing),
-        targetOffsetY = { it / 2 },
-      ) + fadeOut(animationSpec = tween(200))
+    exit = when {
+      expansionHoldId != null || sheetMotion != null || exitAfterToss -> ExitTransition.None
+      reduceMotion -> fadeOut(animationSpec = tween(120))
+      else ->
+        slideOutVertically(
+          animationSpec = tween(260, easing = FastOutLinearInEasing),
+          targetOffsetY = { it / 2 },
+        ) + fadeOut(animationSpec = tween(200, easing = FastOutLinearInEasing))
     },
     modifier = modifier,
   ) {
@@ -210,9 +248,23 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
       isAudioOnlyItem = isAudioOnlyItem,
       hasRealVideo = hasRealVideo,
       detachedPlaybackActive = isServiceRunning && expansionHoldId == null,
+      onDismiss = dismissPlayer,
     )
   }
 }
+
+private const val DISMISS_RESTORE_TIMEOUT_MS = 3_000L
+
+/** Tilt per card width of travel; the card pivots at its bottom like a held card being thrown. */
+private const val DISMISS_TILT_DEGREES = 8f
+private const val DISMISS_MAX_TILT_DEGREES = 14f
+
+/** Slightly underdamped, so a short drag wobbles home instead of sliding back flat. */
+private val DismissSettleSpring = spring(
+  dampingRatio = 0.6f,
+  stiffness = 420f,
+  visibilityThreshold = 0.5f,
+)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -222,6 +274,7 @@ private fun MiniPlayerContent(
   isAudioOnlyItem: Boolean,
   hasRealVideo: Boolean,
   detachedPlaybackActive: Boolean,
+  onDismiss: () -> Unit,
 ) {
   val sessionState by PlaybackSession.state.collectAsStateWithLifecycle()
   val queueState by PlaybackSession.queue.collectAsStateWithLifecycle()
@@ -271,12 +324,28 @@ private fun MiniPlayerContent(
 
   val coroutineScope = rememberCoroutineScope()
   val videoSurface = remember { arrayOfNulls<MiniPlayerSurfaceView>(1) }
-  var offsetX by remember { mutableFloatStateOf(0f) }
-  LaunchedEffect(currentItem?.stableId) { offsetX = 0f }
+  var dismissOffset by remember { mutableFloatStateOf(0f) }
+  val dismissMotion = remember { arrayOfNulls<Job>(1) }
+  // Once thrown, the card ignores further touches and is never pulled back by state changes.
+  var tossed by remember { mutableStateOf(false) }
+  // Resting left, right and window width, so the throw always clears the screen edge.
+  val restBounds = remember { FloatArray(3) }
+  val itemId = currentItem?.stableId
+  LaunchedEffect(itemId) {
+    if (itemId == null || tossed) return@LaunchedEffect
+    dismissMotion[0]?.cancel()
+    dismissOffset = 0f
+  }
   val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
   val density = LocalDensity.current
   val dismissThresholdPx = with(density) { 100.dp.toPx() }
+  val dismissFlingVelocityPx = with(density) { 700.dp.toPx() }
+  val tossClearancePx = with(density) { 32.dp.toPx() }
+  val buttonTossVelocityPx = with(density) { 1_600.dp.toPx() }
+  val anticipationPx = with(density) { 14.dp.toPx() }
+  val towardCloseButton = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
   val reduceMotion = AppMotion.playerReducedMotion()
+  val currentOnDismiss by rememberUpdatedState(onDismiss)
 
   val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion) {
     launch@{
@@ -325,20 +394,78 @@ private fun MiniPlayerContent(
     }
   }
 
-  val dismissPlayer = remember(context) {
-    {
-      context.startService(
-        Intent(context, MediaPlaybackService::class.java).setAction(
-          MediaPlaybackService.ACTION_NOTIFICATION_STOP,
-        ),
-      )
+  val miniPlayerShape = AppShapeScale.largeIncreased
+
+  /**
+   * Throws the card off the screen edge in [direction], keeping the release velocity and tilt.
+   * Playback is silenced at once; the session itself ends once the card has left the screen.
+   */
+  fun tossAway(direction: Float, velocity: Float, anticipate: Boolean) {
+    if (tossed) return
+    tossed = true
+    actionHaptics.confirm()
+    PlaybackSession.setPropertyBoolean("pause", true)
+    dismissMotion[0]?.cancel()
+    dismissMotion[0] = coroutineScope.launch {
+      try {
+        if (!reduceMotion) {
+          if (anticipate) {
+            // A small wind-up away from the throw makes the button toss read as deliberate.
+            animate(dismissOffset, -direction * anticipationPx, animationSpec = tween(110, easing = FastOutSlowInEasing)) { value, _ ->
+              dismissOffset = value
+            }
+          }
+          val (left, right, windowWidth) = restBounds
+          val clearance = (right - left) * 0.2f + tossClearancePx
+          val target = if (direction > 0f) windowWidth - left + clearance else -(right + clearance)
+          val launchVelocity = if (anticipate) direction * buttonTossVelocityPx else velocity
+          // Ends once well past the edge instead of creeping through the spring's tail.
+          val toss = spring(dampingRatio = 1f, stiffness = 380f, visibilityThreshold = clearance * 0.5f)
+          animate(dismissOffset, target, launchVelocity, toss) { value, _ -> dismissOffset = value }
+        }
+      } finally {
+        currentOnDismiss()
+      }
     }
   }
-  val miniPlayerShape = AppShapeScale.largeIncreased
+
+  /** Throws the card past the edge it was dragged toward, or wobbles it back home. */
+  fun settleDismissOffset(velocity: Float) {
+    if (tossed) return
+    val offset = dismissOffset
+    val towardEdge = offset != 0f && sign(velocity) == sign(offset)
+    val flung = towardEdge && abs(velocity) > dismissFlingVelocityPx
+    val pulledBack = !towardEdge && abs(velocity) > dismissFlingVelocityPx
+    if (offset != 0f && (flung || (abs(offset) > dismissThresholdPx && !pulledBack))) {
+      tossAway(sign(offset), velocity, anticipate = false)
+      return
+    }
+    dismissMotion[0]?.cancel()
+    dismissMotion[0] = coroutineScope.launch {
+      if (reduceMotion) {
+        dismissOffset = 0f
+      } else {
+        animate(offset, 0f, velocity, DismissSettleSpring) { value, _ -> dismissOffset = value }
+      }
+    }
+  }
 
   LiquidGlassSurface(
     modifier = Modifier
-      .offset { IntOffset(offsetX.roundToInt(), 0) }
+      .onGloballyPositioned { coordinates ->
+        // Measured before the toss offset, so these stay the card's resting bounds.
+        val bounds = coordinates.boundsInRoot()
+        restBounds[0] = bounds.left
+        restBounds[1] = bounds.right
+        restBounds[2] = coordinates.findRootCoordinates().size.width.toFloat()
+      }
+      .absoluteOffset { IntOffset(dismissOffset.roundToInt(), 0) }
+      .graphicsLayer {
+        val width = size.width.takeIf { it > 0f } ?: 1f
+        rotationZ = (dismissOffset / width * DISMISS_TILT_DEGREES)
+          .coerceIn(-DISMISS_MAX_TILT_DEGREES, DISMISS_MAX_TILT_DEGREES)
+        transformOrigin = TransformOrigin(0.5f, 1f)
+      }
       .then(
         if (isAudioOnlyItem) {
           Modifier.playerSheetAnchor(
@@ -355,34 +482,37 @@ private fun MiniPlayerContent(
       .swipeUpToFullPlayer(
         mediaId = currentItem?.stableId,
         animateSheet = isAudioOnlyItem,
-        onExpand = launchPlayer,
+        onExpand = { !tossed && launchPlayer() },
       )
-      .pointerInput(Unit) {
+      .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion) {
+        val velocityTracker = VelocityTracker()
+        var armed = false
         detectHorizontalDragGestures(
-          onDragEnd = {
-            if (abs(offsetX) > dismissThresholdPx) {
-              dismissPlayer()
-            } else {
-              coroutineScope.launch {
-                androidx.compose.animation.core.Animatable(offsetX).animateTo(0f) {
-                  offsetX = value
-                }
-              }
+          onDragStart = {
+            if (!tossed) {
+              dismissMotion[0]?.cancel()
+              velocityTracker.resetTracking()
+              armed = abs(dismissOffset) > dismissThresholdPx
             }
           },
-          onDragCancel = {
-            coroutineScope.launch {
-              androidx.compose.animation.core.Animatable(offsetX).animateTo(0f) {
-                offsetX = value
+          onDragEnd = { settleDismissOffset(velocityTracker.calculateVelocity().x) },
+          onDragCancel = { settleDismissOffset(0f) },
+          onHorizontalDrag = { change, dragAmount ->
+            change.consume()
+            if (!tossed) {
+              dismissOffset += dragAmount
+              // The card moves with the finger, so track its offset rather than local positions.
+              velocityTracker.addPosition(change.uptimeMillis, Offset(dismissOffset, 0f))
+              val crossed = abs(dismissOffset) > dismissThresholdPx
+              if (crossed != armed) {
+                armed = crossed
+                if (crossed) actionHaptics.tick()
               }
             }
-          },
-          onHorizontalDrag = { _, dragAmount ->
-            offsetX += dragAmount
           },
         )
       }
-      .clickable { launchPlayer() },
+      .clickable { if (!tossed) launchPlayer() },
     shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
@@ -481,7 +611,7 @@ private fun MiniPlayerContent(
           }
 
           IconButton(
-            onClick = { actionHaptics.confirm(); dismissPlayer() },
+            onClick = { tossAway(towardCloseButton, velocity = 0f, anticipate = true) },
             modifier = Modifier.size(48.dp),
           ) {
             Icon(
@@ -637,7 +767,7 @@ private fun MiniPlayerContent(
 
         // Close Action Button
         IconButton(
-          onClick = { actionHaptics.confirm(); dismissPlayer() },
+          onClick = { tossAway(towardCloseButton, velocity = 0f, anticipate = true) },
           modifier = Modifier.size(48.dp),
         ) {
           Icon(

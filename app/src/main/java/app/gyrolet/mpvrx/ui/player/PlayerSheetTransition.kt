@@ -364,7 +364,10 @@ internal object PlayerSheetTransitions {
         backdrop = null,
       )
     } else {
-      val full = fullAnchor?.takeIf { it.capture?.isRecorded == true } ?: return null
+      // Until the reopened player has drawn its controls, it shows the resting hand-off sheet.
+      val full = fullAnchor?.takeIf { it.capture?.isRecorded == true }
+        ?: restingHandOff(mediaId)?.endpoints?.full
+        ?: return null
       PlayerSheetEndpoints(
         full = full.copy(mediaId = mediaId),
         mini = browserMini?.takeIf { it.mediaId == mediaId }?.copy(bounds = placement.bounds)
@@ -478,8 +481,14 @@ internal object PlayerSheetTransitions {
     if (owned) finish(id)
   }
 
+  /** An expansion the player is still taking over; its sheet already rests full screen. */
+  private fun restingHandOff(mediaId: String): PlayerSheetMotion? =
+    motion?.takeIf { it.destination == PlayerSheetDestination.FULL && it.arrived && it.mediaId == mediaId }
+
   fun startDrag(source: PlayerSheetDestination, mediaId: String?): PlayerSheetDrag? {
-    if (mediaId == null || motion != null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    if (mediaId == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    // The just-opened player may be pulled down again while it still shows the hand-off sheet.
+    if (motion != null && (source != PlayerSheetDestination.FULL || restingHandOff(mediaId) == null)) return null
     val pair = endpoints(source, mediaId) ?: return null
     val active = PlayerSheetDrag(source, mediaId, pair, source.expansion)
     drag = active
@@ -695,12 +704,14 @@ private fun DrawScope.drawPlayerSheet(
 /**
  * Draws the player sheet for the window it lives in: the whole morph when this window hosts it,
  * the resting hand-off sheet when the player receives an expansion, and live drags.
+ * [onMinimize] lets the resting hand-off sheet be swiped straight back into the mini player.
  */
 @Composable
 internal fun PlayerSheetTransitionOverlay(
   destination: PlayerSheetDestination,
   modifier: Modifier = Modifier,
   contentReady: Boolean = true,
+  onMinimize: (() -> Boolean)? = null,
 ) {
   val motion = PlayerSheetTransitions.motion
   val drag = PlayerSheetTransitions.drag
@@ -765,6 +776,8 @@ internal fun PlayerSheetTransitionOverlay(
       // One frame for the live controls to record and draw under the still-opaque sheet.
       withFrameNanos { }
       withFrameNanos { }
+      // A drag that picked the resting sheet up owns it until it is released or restored.
+      snapshotFlow { PlayerSheetTransitions.drag?.source == destination }.first { !it }
       if (!reducedMotion) active.cover.animateTo(0f, tween(180, easing = LinearOutSlowInEasing))
     } finally {
       PlayerSheetTransitions.finish(active.id)
@@ -775,19 +788,27 @@ internal fun PlayerSheetTransitionOverlay(
   val showDrag = drag?.source == destination && !reducedMotion
   SideEffect { drawn?.let { participated[0] = it.id } }
   if (drawn == null && !showDrag) return
+  // Drags never coexist with a hosted morph, but may pick up the resting hand-off sheet.
+  val activeDrag = drag?.takeIf { showDrag && hosted == null }
+  val touches = when {
+    drawn == null -> Modifier
+    drawn === received && onMinimize != null ->
+      Modifier.swipeDownToMiniPlayer(drawn.mediaId, enabled = true, onMinimize = onMinimize)
+    else -> Modifier.blockTouches()
+  }
   Canvas(
     modifier = modifier
       .fillMaxSize()
       .onGloballyPositioned { origin[0] = it.sheetScreenBounds(view).topLeft }
       // Own layer: per-frame redraws stay here instead of replaying the screen underneath.
-      .graphicsLayer { alpha = if (drawn != null && drawn === received) drawn.cover.value else 1f }
-      .then(if (drawn != null) Modifier.blockTouches() else Modifier),
+      .graphicsLayer { alpha = if (activeDrag == null && drawn != null && drawn === received) drawn.cover.value else 1f }
+      .then(touches),
   ) {
     val drawBackdrop = destination == PlayerSheetDestination.FULL
-    if (drawn != null) {
+    if (activeDrag != null) {
+      drawPlayerSheet(activeDrag.endpoints, activeDrag.expansion, view, origin[0], drawBackdrop)
+    } else if (drawn != null) {
       drawPlayerSheet(drawn.endpoints, drawn.expansion.value, view, origin[0], drawBackdrop)
-    } else if (showDrag && drag != null) {
-      drawPlayerSheet(drag.endpoints, drag.expansion, view, origin[0], drawBackdrop)
     }
   }
 }

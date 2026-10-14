@@ -453,6 +453,7 @@ class PlayerActivity :
   // The player shrinks itself into the mini player before finishing; see PlayerSheetTransitions.
   private var sheetCollapse = SheetCollapse.NONE
   private var finishAfterSheetCollapse = false
+  private var backPressHandlerInstalled = false
   private var noisyReceiverRegistered = false
   private var isInBackgroundPlayback = false // Track if we are currently in background playback mode
   private var screenStateReceiverRegistered = false
@@ -719,6 +720,9 @@ class PlayerActivity :
     if (intent.action == MediaPlaybackService.ACTION_OPEN_PLAYER) {
       // Draw the held mini-player pose while preparation runs, without blocking the UI thread.
       if (animateSheet) setupPlayerControls(ready = false)
+      // Back may arrive before the live session is attached; it must still return to the mini
+      // player instead of falling through to the platform's Activity close animation.
+      setupBackPressHandler()
       playerCreationJob = lifecycleScope.launch {
         val initError = awaitMpvCorePreparation()
         lifecycle.withStarted {
@@ -959,6 +963,8 @@ class PlayerActivity :
   }
 
   private fun setupBackPressHandler() {
+    if (backPressHandlerInstalled) return
+    backPressHandlerInstalled = true
     // Always own Back inside PlayerActivity. Letting a plain video fall through to the
     // platform back implementation can defer finish() behind an Activity exit transition,
     // leaving libmpv audio audible after the player UI has already started disappearing.
@@ -984,6 +990,12 @@ class PlayerActivity :
           val sheetDrag = predictivePlayerSheetDrag
           predictivePlayerSheetDrag = null
           resetPredictiveBackProgress(animate = false)
+          if (!mpvInitialized) {
+            abandonPendingPlayerOpen()
+            // Consumed by the collapse when it started; otherwise it must not outlive this window.
+            sheetDrag?.let(PlayerSheetTransitions::cancelDrag)
+            return
+          }
           handleBackPress()
           if (sheetDrag != null && PlayerSheetTransitions.drag === sheetDrag) {
             predictivePlayerSheetRestoreJob = lifecycleScope.launch {
@@ -1004,14 +1016,17 @@ class PlayerActivity :
   }
 
   private fun applyPredictiveBackProgress(backEvent: BackEventCompat) {
-    if (
-      isReady && isCurrentPlaybackAudio() && isMiniPlayerEnabled() &&
-      !viewModel.areControlsLocked.value &&
-      viewModel.sheetShown.value == Sheets.None &&
-      viewModel.panelShown.value == Panels.None &&
-      !gesturePreferences.confirmBackToExit.get() &&
-      !PlayerSheetTransitions.reducedMotion
-    ) {
+    val sheetGesture =
+      if (mpvInitialized) {
+        isReady && isCurrentPlaybackAudio() && isMiniPlayerEnabled() &&
+          !viewModel.areControlsLocked.value &&
+          viewModel.sheetShown.value == Sheets.None &&
+          viewModel.panelShown.value == Panels.None &&
+          !gesturePreferences.confirmBackToExit.get()
+      } else {
+        canReturnPendingOpenToMiniPlayer()
+      }
+    if (sheetGesture && !PlayerSheetTransitions.reducedMotion) {
       predictivePlayerSheetRestoreJob?.cancel()
       val active = predictivePlayerSheetDrag
         ?: PlayerSheetTransitions.startDrag(PlayerSheetDestination.FULL, PlaybackSession.state.value.currentItem?.stableId)
@@ -1265,6 +1280,7 @@ class PlayerActivity :
             PlayerSheetTransitionOverlay(
               PlayerSheetDestination.FULL,
               contentReady = playerControlsReady,
+              onMinimize = ::minimizeFromHandOff,
             )
           }
         }
@@ -2107,6 +2123,38 @@ class PlayerActivity :
     PlaybackSession.state.value.currentItem?.stableId?.let(PlayerSheetTransitions::releaseCollapsedHold)
     PlayerSheetTransitions.reverseCollapse()
   }
+
+  /** Reopened from the mini player, still showing its hand-off sheet over the live session. */
+  private fun canReturnPendingOpenToMiniPlayer(): Boolean =
+    !mpvInitialized && reusingPlaybackSessionOnLaunch && playerControlsComposed &&
+      MediaPlaybackService.isNotificationOwnerReady()
+
+  /**
+   * Back or swipe-down before the reopened player has attached to the live session. The service
+   * still owns playback, so shrink straight back into the mini player instead of closing through
+   * a window animation; onStop returns the session to it via [restorePendingPlayerHandoff].
+   */
+  private fun abandonPendingPlayerOpen(): Boolean {
+    if (mpvInitialized || isFinishing || isDestroyed) return false
+    if (sheetCollapse != SheetCollapse.NONE) return true
+    val returnsToMiniPlayer = canReturnPendingOpenToMiniPlayer()
+    val stillDetached = reusingPlaybackSessionOnLaunch && MediaPlaybackService.isNotificationOwnerReady()
+    // The creation must never take the session over while the sheet is already leaving.
+    playerCreationJob?.cancel()
+    when {
+      returnsToMiniPlayer && startSheetCollapse() -> finishAfterSheetCollapse = true
+      stillDetached -> {
+        PlayerSheetTransitions.holdCollapsed(PlaybackSession.state.value.currentItem?.stableId)
+        completeFinish(sheetArrived = false)
+      }
+      else -> finish()
+    }
+    return true
+  }
+
+  /** Swipe-down on the hand-off sheet, before or while the live controls take over. */
+  private fun minimizeFromHandOff(): Boolean =
+    if (mpvInitialized) minimizeToMiniPlayer() else abandonPendingPlayerOpen()
 
   private fun completeFinish(sheetArrived: Boolean) {
     if (isFinishing) return
