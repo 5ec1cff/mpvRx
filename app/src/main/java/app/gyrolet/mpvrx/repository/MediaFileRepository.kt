@@ -396,6 +396,7 @@ object MediaFileRepository : KoinComponent {
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
             foldersPreferences.scopedHiddenFolderUris.get(),
             minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
+            excludeMediaStoreItems = true,
           )
         } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           emptyList()
@@ -431,7 +432,9 @@ object MediaFileRepository : KoinComponent {
             id,
             includeAudioOverride = includeAudioOverride,
           ).forEach { media ->
-            val key = mediaPathKey(media.path) ?: media.path
+            val key = if (BuildConfig.SCOPED_STORAGE_ONLY && ScopedHiddenFolderScanner.isScopedFolder(media.path)) {
+              ScopedHiddenFolderScanner.documentKey(media.uri)
+            } else mediaPathKey(media.path) ?: media.path
             val existing = result[key]
             if (existing == null || shouldReplaceMedia(existing, media)) {
               result[key] = media

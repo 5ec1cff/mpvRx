@@ -5,11 +5,16 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
+import android.os.storage.StorageManager
+import android.provider.DocumentsContract
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
+import app.gyrolet.mpvrx.utils.storage.MediaScanOptions
+import app.gyrolet.mpvrx.utils.storage.StorageVolumeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +26,7 @@ import java.util.ArrayDeque
 import java.util.Locale
 
 /**
- * Play Store-safe explicit folder grants. Never tries to translate a SAF URI into a raw file path:
+ * Play Store-safe explicit folder grants. Never opens a SAF item through a raw file path:
  * every playable item retains its content:// URI. A single user-picked tree grant also covers
  * its nested directories. Each directory with playable media appears as its own folder, using a
  * document URI under the original grant; no raw paths or broad storage permissions are needed.
@@ -33,6 +38,61 @@ object ScopedHiddenFolderScanner {
 
   fun isScopedFolder(bucketId: String): Boolean =
     bucketId.startsWith("content://") && Uri.parse(bucketId).path?.startsWith("/tree/") == true
+
+  /** A document keeps its identity when reached through a parent grant or a child grant. */
+  internal fun documentKey(uri: Uri): String = runCatching {
+    val id = runCatching { DocumentsContract.getDocumentId(uri) }
+      .getOrElse { DocumentsContract.getTreeDocumentId(uri) }
+    DocumentsContract.buildDocumentUri(uri.authority, id).toString()
+  }.getOrDefault(uri.toString())
+
+  /**
+   * ExternalStorageProvider defines volume:path document IDs. This location is used ONLY to
+   * compare against the normal browser's MediaStore results; playback always keeps its SAF URI.
+   * Other providers have opaque IDs and must never be guessed from display names.
+   */
+  private fun mediaStoreLocation(context: Context, uri: Uri): String? = runCatching {
+    if (uri.authority != "com.android.externalstorage.documents") return null
+    val id = DocumentsContract.getDocumentId(uri)
+    val separator = id.indexOf(':')
+    if (separator < 1) return null
+    val volumeId = id.substring(0, separator)
+    val relativePath = id.substring(separator + 1)
+    if (relativePath.startsWith('/') || relativePath.split('/').any { it == ".." || it == "." }) return null
+    val root = when {
+      volumeId.equals("primary", ignoreCase = true) -> Environment.getExternalStorageDirectory().absolutePath
+      volumeId == "home" -> File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOCUMENTS).path
+      else -> {
+        val manager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
+        val volume = manager.storageVolumes.firstOrNull { it.uuid.equals(volumeId, ignoreCase = true) } ?: return null
+        StorageVolumeUtils.getVolumePath(volume) ?: return null
+      }
+    }
+    "$root/$relativePath"
+  }.getOrNull()
+
+  private suspend fun visibleMediaStorePaths(
+    context: Context,
+    children: Array<DocumentFile>,
+    includeAudio: Boolean,
+    minimumAudioDurationSeconds: Int,
+    audioOnly: Boolean,
+  ): Set<String> {
+    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return emptySet()
+    val parents = children.mapNotNull { mediaStoreLocation(context, it.uri)?.let { path -> File(path).parent } }.toSet()
+    val visible = mutableSetOf<String>()
+    for (parent in parents) {
+      currentCoroutineContext().ensureActive()
+      // Use the same scanner/filters as the normal browser. A grant or a matching name is not
+      // evidence of a duplicate: only rows actually readable through MediaStore are excluded.
+      // Denied video permission leaves videos visible through SAF; audio is handled separately.
+      VideoScanUtils.getVideosInFolder(
+        context, parent,
+        MediaScanOptions(includeAudio = includeAudio, minimumAudioDurationSeconds = minimumAudioDurationSeconds),
+      ).filter { !audioOnly || it.isAudio }.forEach { visible += it.path }
+    }
+    return visible
+  }
 
   // Keep walks bounded even if a document provider exposes cyclic or excessively deep trees.
   private const val MAX_DIRECTORY_DEPTH = 64
@@ -108,13 +168,13 @@ object ScopedHiddenFolderScanner {
       while (pending.isNotEmpty()) {
         currentCoroutineContext().ensureActive()
         val folder = pending.removeFirst()
-        if (!visited.add(folder.document.uri.toString())) continue
+        if (!visited.add(documentKey(folder.document.uri))) continue
         discovered[folder.bucketId] =
           IndexedDirectory(folder.document, treeUri, folder.displayName, folder.parentBucketId)
         val children = listTreeFilesSafely(folder.document)
         val videos = readVideosFromFiles(
           context, children, folder.bucketId, folder.displayName, includeAudio,
-          minimumAudioDurationSeconds, audioOnly,
+          minimumAudioDurationSeconds, audioOnly, excludeMediaStoreItems = true,
         )
         if (videos.isNotEmpty()) {
           folders += VideoFolder(
@@ -146,8 +206,10 @@ object ScopedHiddenFolderScanner {
         }
       }
     }
+    // Retain every grant alias in the index so removing one grant or using a saved folder link
+    // still resolves correctly. Only the displayed folder list collapses equivalent documents.
     indexedDirectories = discovered.toMap()
-    folders.distinctBy { it.bucketId }.sortedBy { it.name.lowercase(Locale.ROOT) }
+    folders.distinctBy { documentKey(Uri.parse(it.bucketId)) }.sortedBy { it.name.lowercase(Locale.ROOT) }
   }
 
   /**
@@ -170,11 +232,11 @@ object ScopedHiddenFolderScanner {
     while (queue.isNotEmpty()) {
       currentCoroutineContext().ensureActive()
       val folder = queue.removeFirst()
-      if (!visited.add(folder.document.uri.toString())) continue
+      if (!visited.add(documentKey(folder.document.uri))) continue
       val children = listTreeFilesSafely(folder.document)
       videos += readVideosFromFiles(
         context, children, folder.bucketId, folder.displayName, includeAudio,
-        minimumAudioDurationSeconds, audioOnly,
+        minimumAudioDurationSeconds, audioOnly, excludeMediaStoreItems = true,
       )
       if (folder.depth < MAX_DIRECTORY_DEPTH) {
         for (child in children) {
@@ -189,7 +251,7 @@ object ScopedHiddenFolderScanner {
         }
       }
     }
-    videos.distinctBy { it.uri }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+    videos.distinctBy { documentKey(it.uri) }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
   }
 
   /** Only return a real directory visited beneath a persisted SAF grant. */
@@ -210,7 +272,7 @@ object ScopedHiddenFolderScanner {
       while (queue.isNotEmpty()) {
         currentCoroutineContext().ensureActive()
         val current = queue.removeFirst()
-        if (!seen.add(current.document.uri.toString())) continue
+        if (!seen.add(documentKey(current.document.uri))) continue
         if (current.bucketId == bucketId) {
           return current.takeIf { it.document.isDirectory && (!requireWrite || it.document.canWrite()) }
         }
@@ -235,6 +297,7 @@ object ScopedHiddenFolderScanner {
     includeAudio: Boolean,
     grantedTreeUris: Set<String>,
     minimumAudioDurationSeconds: Int = 0,
+    excludeMediaStoreItems: Boolean = false,
   ): List<Video> = withContext(Dispatchers.IO) {
     if (!isGrantedFolder(bucketId, grantedTreeUris)) return@withContext emptyList()
 
@@ -244,7 +307,7 @@ object ScopedHiddenFolderScanner {
     ) {
       return@withContext readVideosFromFiles(
         context, listTreeFilesSafely(cached.document), bucketId, cached.displayName, includeAudio,
-        minimumAudioDurationSeconds,
+        minimumAudioDurationSeconds, excludeMediaStoreItems = excludeMediaStoreItems,
       )
     }
 
@@ -261,12 +324,12 @@ object ScopedHiddenFolderScanner {
       while (pending.isNotEmpty()) {
         currentCoroutineContext().ensureActive()
         val folder = pending.removeFirst()
-        if (!visited.add(folder.document.uri.toString())) continue
+        if (!visited.add(documentKey(folder.document.uri))) continue
         val children = listTreeFilesSafely(folder.document)
         if (folder.bucketId == bucketId) {
           return@withContext readVideosFromFiles(
             context, children, folder.bucketId, folder.displayName, includeAudio,
-            minimumAudioDurationSeconds,
+            minimumAudioDurationSeconds, excludeMediaStoreItems = excludeMediaStoreItems,
           )
         }
         if (folder.depth < MAX_DIRECTORY_DEPTH) {
@@ -298,8 +361,13 @@ object ScopedHiddenFolderScanner {
     includeAudio: Boolean,
     minimumAudioDurationSeconds: Int = 0,
     audioOnly: Boolean = false,
-  ): List<Video> =
-    children.mapNotNull { document ->
+    excludeMediaStoreItems: Boolean = false,
+  ): List<Video> {
+    val indexedPaths = if (excludeMediaStoreItems) {
+      visibleMediaStorePaths(context, children, includeAudio, minimumAudioDurationSeconds, audioOnly)
+    } else emptySet()
+    val seenDocuments = hashSetOf<String>()
+    return children.mapNotNull { document ->
       currentCoroutineContext().ensureActive()
       run {
         val name = document.name ?: return@run null
@@ -313,6 +381,10 @@ object ScopedHiddenFolderScanner {
           if (audioOnly && !isAudio) return@run null
           if (!(isVideo || (includeAudio && isAudio))) return@run null
           val documentUri = document.uri
+          if (!seenDocuments.add(documentKey(documentUri))) return@run null
+          if (indexedPaths.isNotEmpty() &&
+            mediaStoreLocation(context, documentUri)?.let { it in indexedPaths } == true
+          ) return@run null
           val uriString = documentUri.toString()
           val length = document.length().coerceAtLeast(0L)
           val modified = (document.lastModified() / 1_000L).coerceAtLeast(0L)
@@ -363,4 +435,5 @@ object ScopedHiddenFolderScanner {
         }
       }
     }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+  }
 }
