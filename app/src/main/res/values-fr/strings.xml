@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">Verre liquide</string>
   <string name="pref_appearance_liquid_glass_summary">Utiliser des surfaces translucides et réfractives pour le mini-lecteur et la navigation</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Disponible sous Android 12 et versions ultérieures</string>
+  <string name="pref_liquid_glass_in_hdr_title">Verre liquide en mode HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Conserver le verre en direct sur les commandes du lecteur lorsque la sortie HDR est activée. La vidéo HDR ressemblera à du SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Utiliser le verre liquide en mode HDR ?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">Le verre liquide nécessite que la vidéo soit affichée via TextureView. Android convertit la vidéo HDR affichée ainsi en SDR : la sortie HDR perd sa luminosité et son contraste supplémentaires, et la lecture peut consommer plus de batterie. Désactivez cette option à tout moment pour retrouver le vrai HDR.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Activer quand même</string>
   <string name="pref_appearance_system_font_title">Utiliser la police système</string>
   <string name="pref_appearance_system_font_summary">Utiliser la police système Android dans mpvRx à la place de Google Sans</string>
   <string name="pref_appearance_app_font_title">Police de l’application</string>
@@ -2534,12 +2539,9 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_playstore_hidden_remove">Retirer l’accès au dossier</string>
   <string name="pref_playstore_hidden_grant_failed">Impossible d’accéder à ce dossier. Choisissez un dossier pris en charge et autorisez la lecture.</string>
   <string name="pref_playstore_hidden_limitations">Android restreint l’accès à certains dossiers. Tirez pour actualiser et afficher les nouveaux fichiers.</string>
-  <string name="app_icon_picker_description">Choisissez un fond et un logo. L’icône de l’application changera après validation.</string>
-  <string name="app_icon_section_background">Fond</string>
   <string name="app_icon_section_logo">Logo</string>
   <string name="app_icon_apply">Appliquer</string>
   <string name="app_icon_preview">Aperçu du lanceur</string>
-  <string name="app_icon_background_hint">Balayez ou touchez pour choisir une couleur</string>
   <string name="app_icon_logo_hint">Certains logos ne sont pas disponibles sur ce fond</string>
   <string name="app_icon_current">Icône actuelle</string>
   <string name="app_icon_pending">Aperçu · non appliqué</string>

@@ -36,6 +36,11 @@
   <string name="pref_appearance_liquid_glass_title">Рідке скло</string>
   <string name="pref_appearance_liquid_glass_summary">Використовувати напівпрозорі поверхні з ефектом заломлення для мініплеєра та навігації</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Доступно на Android 12 та новіших версіях</string>
+  <string name="pref_liquid_glass_in_hdr_title">Рідке скло в режимі HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Зберігати живе скло на елементах керування плеєра, коли ввімкнено вивід HDR. HDR-відео виглядатиме як SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Використовувати рідке скло в режимі HDR?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">Для рідкого скла відео має відображатися через TextureView. Android перетворює HDR-відео, відображене таким способом, на SDR, тому вивід HDR втрачає додаткову яскравість і контрастність, а відтворення може споживати більше заряду акумулятора. Вимкніть цей параметр будь-коли, щоб повернути справжній HDR.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Усе одно ввімкнути</string>
   <string name="pref_appearance_system_font_title">Використовувати системний шрифт</string>
   <string name="pref_appearance_system_font_summary">Використовувати системний шрифт Android у mpvRx замість Google Sans</string>
   <string name="pref_appearance_app_font_title">Шрифт додатка</string>
@@ -2498,12 +2503,9 @@
   <string name="pref_playstore_hidden_remove">Скасувати доступ до папки</string>
   <string name="pref_playstore_hidden_grant_failed">Немає доступу до цієї папки. Виберіть підтримувану папку й дозвольте читання.</string>
   <string name="pref_playstore_hidden_limitations">Android обмежує доступ до деяких папок. Потягніть для оновлення, щоб побачити нові файли.</string>
-  <string name="app_icon_picker_description">Виберіть тло й логотип. Піктограма застосунку зміниться після застосування.</string>
-  <string name="app_icon_section_background">Тло</string>
   <string name="app_icon_section_logo">Логотип</string>
   <string name="app_icon_apply">Застосувати</string>
   <string name="app_icon_preview">Попередній перегляд у лаунчері</string>
-  <string name="app_icon_background_hint">Проведіть або торкніться, щоб вибрати колір</string>
   <string name="app_icon_logo_hint">Деякі логотипи недоступні на цьому тлі</string>
   <string name="app_icon_current">Поточна піктограма</string>
   <string name="app_icon_pending">Попередній перегляд · не застосовано</string>

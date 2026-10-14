@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">Flüssigglas</string>
   <string name="pref_appearance_liquid_glass_summary">Transluzente, lichtbrechende Oberflächen für Miniplayer und Navigation verwenden</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Verfügbar ab Android 12</string>
+  <string name="pref_liquid_glass_in_hdr_title">Flüssigglas im HDR-Modus</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Live-Glas auf den Player-Steuerelementen beibehalten, während die HDR-Ausgabe aktiv ist. HDR-Videos sehen dann wie SDR aus</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Flüssigglas im HDR-Modus verwenden?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">Flüssigglas erfordert, dass das Video über TextureView gezeichnet wird. Android wandelt so gezeichnete HDR-Videos in SDR um. Dadurch verliert die HDR-Ausgabe ihre zusätzliche Helligkeit und ihren Kontrast, und die Wiedergabe kann mehr Akku verbrauchen. Schalte diese Option jederzeit aus, um echtes HDR wiederherzustellen.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Trotzdem aktivieren</string>
   <string name="pref_appearance_system_font_title">Systemschrift verwenden</string>
   <string name="pref_appearance_system_font_summary">In mpvRx die Android-Systemschrift anstelle von Google Sans verwenden</string>
   <string name="pref_appearance_app_font_title">App-Schrift</string>
@@ -2534,12 +2539,9 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_playstore_hidden_remove">Ordnerzugriff entfernen</string>
   <string name="pref_playstore_hidden_grant_failed">Kein Zugriff auf diesen Ordner. Wähle einen unterstützten Ordner aus und erlaube Lesezugriff.</string>
   <string name="pref_playstore_hidden_limitations">Android beschränkt den Zugriff auf einige Ordner. Ziehe zum Aktualisieren, um neue Dateien anzuzeigen.</string>
-  <string name="app_icon_picker_description">Wähle einen Hintergrund und ein Logo. Das App-Symbol ändert sich nach dem Anwenden.</string>
-  <string name="app_icon_section_background">Hintergrund</string>
   <string name="app_icon_section_logo">Logo</string>
   <string name="app_icon_apply">Anwenden</string>
   <string name="app_icon_preview">Vorschau im Launcher</string>
-  <string name="app_icon_background_hint">Wische oder tippe, um eine Farbe auszuwählen</string>
   <string name="app_icon_logo_hint">Einige Logos sind auf diesem Hintergrund nicht verfügbar</string>
   <string name="app_icon_current">Aktuelles Symbol</string>
   <string name="app_icon_pending">Vorschau · nicht angewendet</string>

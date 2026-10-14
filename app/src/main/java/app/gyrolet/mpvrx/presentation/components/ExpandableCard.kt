@@ -45,7 +45,6 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
-import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.theme.spacing
 
 @Composable
@@ -92,7 +91,6 @@ fun ExpandableCard(
         Modifier
           .fillMaxWidth()
           .heightIn(min = 48.dp)
-          .appPressFeedback(interactionSource, pressedScale = 0.99f)
           .clickable(
             interactionSource = interactionSource,
             indication = androidx.compose.material3.ripple(),

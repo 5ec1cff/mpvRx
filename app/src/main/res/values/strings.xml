@@ -34,6 +34,11 @@
   <string name="pref_appearance_liquid_glass_title">Liquid glass</string>
   <string name="pref_appearance_liquid_glass_summary">Use translucent, refractive surfaces for the mini player and navigation</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Available on Android 12 and above</string>
+  <string name="pref_liquid_glass_in_hdr_title">Liquid glass in HDR mode</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Keep live glass on player controls while HDR output is on. HDR video will look like SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Use liquid glass in HDR mode?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">Liquid glass needs the video to be drawn through TextureView. Android converts HDR video drawn this way to SDR, so HDR output loses its extra brightness and contrast, and playback may use more battery. Turn this off anytime to restore true HDR.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Enable anyway</string>
   <string name="pref_appearance_category_liquid_glass">Liquid glass</string>
   <string name="pref_liquid_glass_optics">Optics</string>
   <string name="pref_liquid_glass_opacity">Backdrop opacity</string>
@@ -2566,12 +2571,9 @@
   <string name="lyrics_empty_line_5">Lyrics went missing</string>
   <string name="lyrics_empty_line_6">Sing along from memory</string>
 
-  <string name="app_icon_picker_description">Pick a background and a logo. The launcher icon changes once you apply.</string>
-  <string name="app_icon_section_background">Background</string>
   <string name="app_icon_section_logo">Logo</string>
   <string name="app_icon_apply">Apply</string>
   <string name="app_icon_preview">Launcher preview</string>
-  <string name="app_icon_background_hint">Swipe or tap to choose a color</string>
   <string name="app_icon_logo_hint">Some logos are unavailable on this background</string>
   <string name="app_icon_current">Current icon</string>
   <string name="app_icon_pending">Preview · not applied</string>

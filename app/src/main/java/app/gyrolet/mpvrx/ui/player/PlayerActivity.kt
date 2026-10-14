@@ -1239,8 +1239,9 @@ class PlayerActivity :
         combine(
           appearancePreferences.liquidGlassEnabled.changes(),
           decoderPreferences.hdrScreenOutput.changes(),
-        ) { glass, hdr ->
-          glass && !hdr && !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)
+          appearancePreferences.liquidGlassInHdr.changes(),
+        ) { glass, hdr, glassInHdr ->
+          shouldUseTextureRendering(liquidGlass = glass, hdrOutput = hdr, liquidGlassInHdr = glassInHdr)
         }.distinctUntilChanged().collect { useTexture ->
           player.setTextureRendering(useTexture)
         }

@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">Vidro líquido</string>
   <string name="pref_appearance_liquid_glass_summary">Usar superfícies translúcidas e refrativas no minirreprodutor e na navegação</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Disponível no Android 12 e versões posteriores</string>
+  <string name="pref_liquid_glass_in_hdr_title">Vidro líquido no modo HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Manter o vidro ao vivo nos controles do player enquanto a saída HDR estiver ativada. O vídeo HDR vai parecer SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Usar vidro líquido no modo HDR?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">O vidro líquido exige que o vídeo seja desenhado por meio de TextureView. O Android converte para SDR o vídeo HDR desenhado dessa forma, então a saída HDR perde o brilho e o contraste extras, e a reprodução pode consumir mais bateria. Desative esta opção a qualquer momento para restaurar o HDR real.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Ativar mesmo assim</string>
   <string name="pref_appearance_system_font_title">Usar fonte do sistema</string>
   <string name="pref_appearance_system_font_summary">Usar a fonte do sistema Android em todo o mpvRx no lugar da Google Sans</string>
   <string name="pref_appearance_app_font_title">Fonte do aplicativo</string>
@@ -2534,12 +2539,9 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_playstore_hidden_remove">Remover acesso à pasta</string>
   <string name="pref_playstore_hidden_grant_failed">Não é possível acessar essa pasta. Escolha uma pasta compatível e conceda acesso de leitura.</string>
   <string name="pref_playstore_hidden_limitations">O Android restringe algumas pastas. Puxe para atualizar e ver novos arquivos.</string>
-  <string name="app_icon_picker_description">Escolha um fundo e um logotipo. O ícone do aplicativo muda ao aplicar.</string>
-  <string name="app_icon_section_background">Fundo</string>
   <string name="app_icon_section_logo">Logotipo</string>
   <string name="app_icon_apply">Aplicar</string>
   <string name="app_icon_preview">Prévia no inicializador</string>
-  <string name="app_icon_background_hint">Deslize ou toque para escolher uma cor</string>
   <string name="app_icon_logo_hint">Alguns logotipos não estão disponíveis neste fundo</string>
   <string name="app_icon_current">Ícone atual</string>
   <string name="app_icon_pending">Prévia · não aplicada</string>

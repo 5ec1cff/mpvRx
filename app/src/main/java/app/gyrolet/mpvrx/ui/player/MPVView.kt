@@ -96,11 +96,12 @@ class MPVView(
     }
 
   init {
-    // HDR stays on a native SurfaceView: TextureView/Compose cannot preserve full HDR output.
     setTextureRendering(
-      appearancePreferences.liquidGlassEnabled.get() &&
-        !decoderPreferences.hdrScreenOutput.get() &&
-        !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT),
+      shouldUseTextureRendering(
+        liquidGlass = appearancePreferences.liquidGlassEnabled.get(),
+        hdrOutput = decoderPreferences.hdrScreenOutput.get(),
+        liquidGlassInHdr = appearancePreferences.liquidGlassInHdr.get(),
+      ),
     )
   }
 

@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">Vidrio líquido</string>
   <string name="pref_appearance_liquid_glass_summary">Usar superficies translúcidas y refractivas para el minirreproductor y la navegación</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Disponible en Android 12 y versiones posteriores</string>
+  <string name="pref_liquid_glass_in_hdr_title">Vidrio líquido en modo HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Mantener el vidrio en vivo en los controles del reproductor cuando la salida HDR está activada. El video HDR se verá como SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">¿Usar vidrio líquido en modo HDR?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">El vidrio líquido necesita que el video se dibuje mediante TextureView. Android convierte a SDR el video HDR dibujado de esta forma, por lo que la salida HDR pierde su brillo y contraste adicionales, y la reproducción puede consumir más batería. Desactívalo en cualquier momento para recuperar el HDR real.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Activar de todos modos</string>
   <string name="pref_appearance_system_font_title">Usar la fuente del sistema</string>
   <string name="pref_appearance_system_font_summary">Usar la tipografía del sistema Android en todo mpvRx en lugar de Google Sans</string>
   <string name="pref_appearance_app_font_title">Fuente de la aplicación</string>
@@ -2534,12 +2539,9 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_playstore_hidden_remove">Revocar acceso a la carpeta</string>
   <string name="pref_playstore_hidden_grant_failed">No se puede acceder a esa carpeta. Elige una carpeta compatible y concede permiso de lectura.</string>
   <string name="pref_playstore_hidden_limitations">Android restringe algunas carpetas. Desliza hacia abajo para actualizar y ver archivos nuevos.</string>
-  <string name="app_icon_picker_description">Elige un fondo y un logotipo. El icono de la aplicación cambiará al aplicar.</string>
-  <string name="app_icon_section_background">Fondo</string>
   <string name="app_icon_section_logo">Logotipo</string>
   <string name="app_icon_apply">Aplicar</string>
   <string name="app_icon_preview">Vista previa del lanzador</string>
-  <string name="app_icon_background_hint">Desliza o toca para elegir un color</string>
   <string name="app_icon_logo_hint">Algunos logotipos no están disponibles con este fondo</string>
   <string name="app_icon_current">Icono actual</string>
   <string name="app_icon_pending">Vista previa · sin aplicar</string>

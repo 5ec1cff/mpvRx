@@ -98,6 +98,15 @@ object SearchablePreferences {
           screen = LiquidGlassPreferencesScreen,
         ),
       )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_liquid_glass_in_hdr_title,
+          summaryRes = R.string.pref_liquid_glass_in_hdr_summary,
+          keywords = listOf("hdr", "liquid glass", "textureview", "surfaceview", "player controls", "sdr"),
+          category = "Appearance",
+          screen = LiquidGlassPreferencesScreen,
+        ),
+      )
       listOf(
         R.string.pref_liquid_glass_opacity to listOf("opacity", "transparency", "backdrop"),
         R.string.pref_liquid_glass_frost to listOf("frost", "blur", "frosted"),

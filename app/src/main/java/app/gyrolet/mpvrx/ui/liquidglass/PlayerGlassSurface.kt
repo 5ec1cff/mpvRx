@@ -44,8 +44,9 @@ internal fun Modifier.playerGlassSurface(
       1f to containerColor.copy(alpha = 0.80f),
     )
   }
-  // SurfaceView is composed by Android outside the Compose scene. Keep HDR untouched and
-  // show it through the same translucent backing; do not sample stale frames or fake a blur.
+  // SurfaceView (HDR without the "liquid glass in HDR" opt-in) is composed by Android outside the
+  // Compose scene. Keep HDR untouched and show it through the same translucent backing; do not
+  // sample stale frames or fake a blur.
   if (backdrop == null) {
     return background(tint, shape).then(
       if (settings.highlightWidth > 0f && settings.highlightStrength > 0f) {

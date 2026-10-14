@@ -75,6 +75,7 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
     LiquidGlassPreferencesScreen to
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_liquid_glass_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_in_hdr_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_frost, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_opacity, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_height, itemIndex = 5),

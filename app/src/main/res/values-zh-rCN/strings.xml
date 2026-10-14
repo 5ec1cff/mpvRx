@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">液态玻璃</string>
   <string name="pref_appearance_liquid_glass_summary">为迷你播放器和导航使用半透明折射效果</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">仅适用于 Android 12 及更高版本</string>
+  <string name="pref_liquid_glass_in_hdr_title">HDR 模式下的液态玻璃</string>
+  <string name="pref_liquid_glass_in_hdr_summary">开启 HDR 输出时，仍在播放器控件上保留实时玻璃效果。HDR 视频将显示为 SDR 效果</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">在 HDR 模式下使用液态玻璃？</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">液态玻璃需要通过 TextureView 绘制视频。Android 会将以这种方式绘制的 HDR 视频转换为 SDR，因此 HDR 输出会失去额外的亮度和对比度，播放时也可能更耗电。随时关闭此选项即可恢复真正的 HDR。</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">仍然启用</string>
   <string name="pref_appearance_system_font_title">使用系统字体</string>
   <string name="pref_appearance_system_font_summary">在整个 mpvRx 中使用 Android 系统字体，而不是 Google Sans</string>
   <string name="pref_appearance_app_font_title">应用字体</string>
@@ -2521,12 +2526,9 @@
   <string name="pref_playstore_hidden_remove">撤销文件夹访问权限</string>
   <string name="pref_playstore_hidden_grant_failed">无法访问该文件夹。请选择受支持的文件夹，并授予读取权限。</string>
   <string name="pref_playstore_hidden_limitations">Android 会限制部分文件夹的访问。请下拉刷新以显示新文件。</string>
-  <string name="app_icon_picker_description">选择背景和标志。应用后，桌面图标将随之更改。</string>
-  <string name="app_icon_section_background">背景</string>
   <string name="app_icon_section_logo">标志</string>
   <string name="app_icon_apply">应用</string>
   <string name="app_icon_preview">桌面图标预览</string>
-  <string name="app_icon_background_hint">滑动或点按以选择颜色</string>
   <string name="app_icon_logo_hint">部分标志无法搭配此背景使用</string>
   <string name="app_icon_current">当前图标</string>
   <string name="app_icon_pending">预览 · 尚未应用</string>

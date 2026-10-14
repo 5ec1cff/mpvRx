@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">リキッドガラス</string>
   <string name="pref_appearance_liquid_glass_summary">ミニプレーヤーとナビゲーションに半透明の屈折サーフェスを使用します</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Android 12 以降で利用できます</string>
+  <string name="pref_liquid_glass_in_hdr_title">HDR モードでのリキッドガラス</string>
+  <string name="pref_liquid_glass_in_hdr_summary">HDR 出力がオンのときもプレーヤーコントロールのライブガラスを維持します。HDR 動画は SDR のように表示されます</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">HDR モードでリキッドガラスを使用しますか？</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">リキッドガラスには TextureView による動画描画が必要です。Android はこの方法で描画される HDR 動画を SDR に変換するため、HDR 出力の明るさとコントラストが失われ、再生時のバッテリー消費が増える場合があります。本来の HDR に戻すには、いつでもこの設定をオフにしてください。</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">有効にする</string>
   <string name="pref_appearance_system_font_title">システムフォントを使用</string>
   <string name="pref_appearance_system_font_summary">Google Sansの代わりにAndroidのシステム書体をmpvRx全体で使用します</string>
   <string name="pref_appearance_app_font_title">アプリのフォント</string>
@@ -2523,12 +2528,9 @@
   <string name="pref_playstore_hidden_remove">フォルダーへのアクセスを解除</string>
   <string name="pref_playstore_hidden_grant_failed">このフォルダーにアクセスできません。対応するフォルダーを選び、読み取りを許可してください。</string>
   <string name="pref_playstore_hidden_limitations">Android により一部のフォルダーへのアクセスは制限されています。新しいファイルを表示するには、下に引いて更新してください。</string>
-  <string name="app_icon_picker_description">背景とロゴを選んでください。適用するとランチャーアイコンが変わります。</string>
-  <string name="app_icon_section_background">背景</string>
   <string name="app_icon_section_logo">ロゴ</string>
   <string name="app_icon_apply">適用</string>
   <string name="app_icon_preview">ランチャーのプレビュー</string>
-  <string name="app_icon_background_hint">スワイプまたはタップして色を選択</string>
   <string name="app_icon_logo_hint">この背景では一部のロゴを使用できません</string>
   <string name="app_icon_current">現在のアイコン</string>
   <string name="app_icon_pending">プレビュー・未適用</string>

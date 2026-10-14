@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">Жидкое стекло</string>
   <string name="pref_appearance_liquid_glass_summary">Использовать полупрозрачные поверхности с эффектом преломления для мини-плеера и навигации</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Доступно на Android 12 и новее</string>
+  <string name="pref_liquid_glass_in_hdr_title">Жидкое стекло в режиме HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">Сохранять живое стекло на элементах управления плеера при включённом выводе HDR. HDR-видео будет выглядеть как SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">Использовать жидкое стекло в режиме HDR?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">Для жидкого стекла видео должно отрисовываться через TextureView. Android преобразует HDR-видео, отрисованное таким способом, в SDR, поэтому вывод HDR теряет дополнительную яркость и контрастность, а воспроизведение может расходовать больше заряда батареи. Отключите эту опцию в любой момент, чтобы вернуть настоящий HDR.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">Всё равно включить</string>
   <string name="pref_appearance_system_font_title">Использовать системный шрифт</string>
   <string name="pref_appearance_system_font_summary">Использовать системный шрифт Android во всём mpvRx вместо Google Sans</string>
   <string name="pref_appearance_app_font_title">Шрифт приложения</string>
@@ -2556,12 +2561,9 @@
   <string name="pref_playstore_hidden_remove">Отозвать доступ к папке</string>
   <string name="pref_playstore_hidden_grant_failed">Нет доступа к этой папке. Выберите поддерживаемую папку и разрешите чтение.</string>
   <string name="pref_playstore_hidden_limitations">Android ограничивает доступ к некоторым папкам. Потяните для обновления, чтобы увидеть новые файлы.</string>
-  <string name="app_icon_picker_description">Выберите фон и логотип. Значок приложения изменится после применения.</string>
-  <string name="app_icon_section_background">Фон</string>
   <string name="app_icon_section_logo">Логотип</string>
   <string name="app_icon_apply">Применить</string>
   <string name="app_icon_preview">Предпросмотр в лаунчере</string>
-  <string name="app_icon_background_hint">Смахните или нажмите, чтобы выбрать цвет</string>
   <string name="app_icon_logo_hint">Некоторые логотипы недоступны на этом фоне</string>
   <string name="app_icon_current">Текущий значок</string>
   <string name="app_icon_pending">Предпросмотр · не применён</string>

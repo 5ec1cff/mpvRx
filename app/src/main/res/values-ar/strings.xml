@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">زجاج سائل</string>
   <string name="pref_appearance_liquid_glass_summary">استخدام أسطح شفافة ذات تأثير انكساري للمشغّل المصغّر والتنقّل</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">متاح على Android 12 والإصدارات الأحدث</string>
+  <string name="pref_liquid_glass_in_hdr_title">الزجاج السائل في وضع HDR</string>
+  <string name="pref_liquid_glass_in_hdr_summary">الإبقاء على الزجاج الحي في عناصر التحكم بالمشغل أثناء تشغيل إخراج HDR. سيبدو فيديو HDR مثل SDR</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">هل تريد استخدام الزجاج السائل في وضع HDR؟</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">يتطلب الزجاج السائل عرض الفيديو عبر TextureView. يحوّل Android فيديو HDR المعروض بهذه الطريقة إلى SDR، لذا يفقد إخراج HDR سطوعه وتباينه الإضافيين، وقد يستهلك التشغيل مزيدًا من البطارية. أوقف هذا الخيار في أي وقت لاستعادة HDR الحقيقي.</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">التفعيل على أي حال</string>
   <string name="pref_appearance_system_font_title">استخدام خط النظام</string>
   <string name="pref_appearance_system_font_summary">استخدام محرف نظام Android في mpvRx بدلًا من Google Sans</string>
   <string name="pref_appearance_app_font_title">خط التطبيق</string>
@@ -2576,12 +2581,9 @@
   <string name="pref_playstore_hidden_remove">إلغاء الوصول إلى المجلد</string>
   <string name="pref_playstore_hidden_grant_failed">لا يمكن الوصول إلى هذا المجلد. اختر مجلدًا مدعومًا وامنح إذن القراءة.</string>
   <string name="pref_playstore_hidden_limitations">يقيّد Android الوصول إلى بعض المجلدات. اسحب للتحديث وإظهار الملفات الجديدة.</string>
-  <string name="app_icon_picker_description">اختر خلفية وشعارًا. ستتغير أيقونة التطبيق بعد تطبيق الاختيار.</string>
-  <string name="app_icon_section_background">الخلفية</string>
   <string name="app_icon_section_logo">الشعار</string>
   <string name="app_icon_apply">تطبيق</string>
   <string name="app_icon_preview">معاينة أيقونة التطبيق</string>
-  <string name="app_icon_background_hint">اسحب أو انقر لاختيار لون</string>
   <string name="app_icon_logo_hint">بعض الشعارات غير متاحة مع هذه الخلفية</string>
   <string name="app_icon_current">الأيقونة الحالية</string>
   <string name="app_icon_pending">معاينة · لم تُطبّق</string>

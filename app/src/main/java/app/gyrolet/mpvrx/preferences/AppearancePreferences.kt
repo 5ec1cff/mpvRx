@@ -69,6 +69,7 @@ class AppearancePreferences(
   val customWallpaperUseColors = preferenceStore.getBoolean("custom_wallpaper_use_colors", false)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
   val liquidGlassEnabled = preferenceStore.getBoolean("liquid_glass_enabled", true)
+  val liquidGlassInHdr = preferenceStore.getBoolean("liquid_glass_in_hdr", false)
   val liquidGlassOpacity = preferenceStore.getFloat("liquid_glass_opacity", 1f)
   val liquidGlassBlur = preferenceStore.getFloat("liquid_glass_blur", 1f)
   val liquidGlassRefractionHeight = preferenceStore.getFloat("liquid_glass_refraction_height", 1f)

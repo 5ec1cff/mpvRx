@@ -43,7 +43,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,6 +70,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -136,12 +136,6 @@ object AppIconPreferencesScreen : Screen {
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-          Text(
-            text = stringResource(R.string.app_icon_picker_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-          )
           IconBuilder(pending = pending, current = current, onPick = { pending = it })
           Button(
             onClick = { confirming = true },
@@ -271,51 +265,46 @@ private fun IconBuilder(pending: LauncherIcon, current: LauncherIcon, onPick: (L
       )
     }
 
-    Surface(shape = RoundedCornerShape(AppConnectedShapeTokens.outerCorner), color = MaterialTheme.colorScheme.surfaceContainer) {
-      Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SectionLabel(stringResource(R.string.app_icon_section_background), stringResource(R.string.app_icon_background_hint))
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-          val swatch = 56.dp
-          val gap = 16.dp
-          HorizontalPager(
-            state = pager,
-            pageSize = PageSize.Fixed(swatch + gap),
-            // Centres the current swatch and lets its neighbours peek in from both sides
-            contentPadding = PaddingValues(horizontal = (maxWidth - swatch - gap) / 2),
-            modifier = Modifier.fillMaxWidth().selectableGroup(),
-          ) { page ->
-            val background = backgrounds[page]
-            val distance = abs(page - pager.currentPage - pager.currentPageOffsetFraction).coerceAtMost(2f)
-            val label = stringResource(background.label)
-            val selected = background == pending.background
-            Box(
-              modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer {
-                  val factor = if (reduceMotion) 1f else 1f - 0.18f * distance
-                  scaleX = factor
-                  scaleY = factor
-                  alpha = 1f - 0.25f * distance
-                }
-                .clip(RoundedCornerShape(24.dp))
-                .selectable(selected = selected, role = Role.RadioButton) {
-                  scope.launch {
-                    if (reduceMotion) pager.scrollToPage(page) else pager.animateScrollToPage(page)
-                  }
-                }
-                .semantics { contentDescription = label }
-                .padding(4.dp)
-                .border(
-                  width = 2.dp,
-                  color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-                  shape = RoundedCornerShape(20.dp),
-                )
-                .padding(4.dp),
-              contentAlignment = Alignment.Center,
-            ) {
-              IconPreview(background, LauncherIcon.resolve(background, pending.mark).mark, swatch)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+      val swatch = 56.dp
+      val gap = 16.dp
+      HorizontalPager(
+        state = pager,
+        pageSize = PageSize.Fixed(swatch + gap),
+        // Centres the current swatch and lets its neighbours peek in from both sides
+        contentPadding = PaddingValues(horizontal = (maxWidth - swatch - gap) / 2),
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+      ) { page ->
+        val background = backgrounds[page]
+        val distance = abs(page - pager.currentPage - pager.currentPageOffsetFraction).coerceAtMost(2f)
+        val label = stringResource(background.label)
+        val selected = background == pending.background
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+              val factor = if (reduceMotion) 1f else 1f - 0.18f * distance
+              scaleX = factor
+              scaleY = factor
+              alpha = 1f - 0.25f * distance
             }
-          }
+            .clip(RoundedCornerShape(24.dp))
+            .selectable(selected = selected, role = Role.RadioButton) {
+              scope.launch {
+                if (reduceMotion) pager.scrollToPage(page) else pager.animateScrollToPage(page)
+              }
+            }
+            .semantics { contentDescription = label }
+            .padding(4.dp)
+            .border(
+              width = 2.dp,
+              color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+              shape = RoundedCornerShape(20.dp),
+            )
+            .padding(4.dp),
+          contentAlignment = Alignment.Center,
+        ) {
+          IconPreview(background, LauncherIcon.resolve(background, pending.mark).mark, swatch)
         }
       }
     }

@@ -26,6 +26,11 @@
   <string name="pref_appearance_liquid_glass_title">लिक्विड ग्लास</string>
   <string name="pref_appearance_liquid_glass_summary">मिनी प्लेयर और नेविगेशन के लिए पारदर्शी, अपवर्तक सतहों का उपयोग करें</string>
   <string name="pref_appearance_liquid_glass_summary_unavailable">Android 12 और उसके बाद के संस्करणों पर उपलब्ध</string>
+  <string name="pref_liquid_glass_in_hdr_title">HDR मोड में लिक्विड ग्लास</string>
+  <string name="pref_liquid_glass_in_hdr_summary">HDR आउटपुट चालू होने पर भी प्लेयर कंट्रोल पर लाइव ग्लास बनाए रखें। HDR वीडियो SDR जैसा दिखेगा</string>
+  <string name="pref_liquid_glass_in_hdr_warning_title">HDR मोड में लिक्विड ग्लास इस्तेमाल करें?</string>
+  <string name="pref_liquid_glass_in_hdr_warning_message">लिक्विड ग्लास के लिए वीडियो को TextureView के ज़रिए दिखाना ज़रूरी है। Android इस तरह दिखाए गए HDR वीडियो को SDR में बदल देता है, इसलिए HDR आउटपुट की अतिरिक्त चमक और कंट्रास्ट खो जाते हैं, और प्लेबैक में ज़्यादा बैटरी लग सकती है। असली HDR वापस पाने के लिए इसे कभी भी बंद करें।</string>
+  <string name="pref_liquid_glass_in_hdr_warning_confirm">फिर भी चालू करें</string>
   <string name="pref_appearance_system_font_title">सिस्टम फॉन्ट इस्तेमाल करें</string>
   <string name="pref_appearance_system_font_summary">Google Sans की जगह mpvRx में Android सिस्टम टाइपफेस इस्तेमाल करें</string>
   <string name="pref_appearance_app_font_title">ऐप फ़ॉन्ट</string>
@@ -2438,12 +2443,9 @@
   <string name="pref_playstore_hidden_remove">फ़ोल्डर का एक्सेस हटाएँ</string>
   <string name="pref_playstore_hidden_grant_failed">इस फ़ोल्डर तक नहीं पहुँच सकते। समर्थित फ़ोल्डर चुनें और पढ़ने की अनुमति दें।</string>
   <string name="pref_playstore_hidden_limitations">Android कुछ फ़ोल्डर पर पाबंदी लगाता है। नई फ़ाइलें देखने के लिए खींचकर रीफ़्रेश करें।</string>
-  <string name="app_icon_picker_description">पृष्ठभूमि और लोगो चुनें। लागू करने पर ऐप का आइकन बदलेगा।</string>
-  <string name="app_icon_section_background">पृष्ठभूमि</string>
   <string name="app_icon_section_logo">लोगो</string>
   <string name="app_icon_apply">लागू करें</string>
   <string name="app_icon_preview">लॉन्चर पूर्वावलोकन</string>
-  <string name="app_icon_background_hint">रंग चुनने के लिए स्वाइप करें या टैप करें</string>
   <string name="app_icon_logo_hint">इस पृष्ठभूमि पर कुछ लोगो उपलब्ध नहीं हैं</string>
   <string name="app_icon_current">वर्तमान आइकन</string>
   <string name="app_icon_pending">पूर्वावलोकन · लागू नहीं हुआ</string>
