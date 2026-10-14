@@ -221,13 +221,10 @@ private val GLSL_VIDEO_PROLOGUE =
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
     mediump float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
 
-    // FIX 4: sample_origin: pull the tap centre slightly inward from the clamped
-    // edge so that negative-direction taps in the Poisson disk don't immediately
-    // re-clamp back to the same border texel. Without this, ~50 % of taps in a
-    // pillarbox bar fetch the 1-pixel left edge repeatedly, causing streaks.
-    // The inward shift grows with distance from the edge (far bar pixels sample
-    // from a bit deeper into the frame) to match fx_ambient's barGeom pattern.
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.025 + 0.07 * min(edge_dist * INV_RADIUS_SCALE, 1.0));
+    // Anchor the tap centre with a constant inward inset (independent of distance).
+    // Inward inset ensures negative-direction Poisson taps spread into decoded content
+    // without clamping to the border wall, while anchoring prevents reverse/mirror motion.
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.035);
 
     // Interleaved Gradient Noise jitter: avoids rand() sin() overhead and improves GPU cache hits
     mediump float jitter = ign(uv * HOOKED_size) * 6.2831853;

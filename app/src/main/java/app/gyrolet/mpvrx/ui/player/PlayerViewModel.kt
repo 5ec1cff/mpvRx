@@ -2448,9 +2448,10 @@ val isBrightnessSliderShown = MutableStateFlow(false)
           if (kotlin.math.abs(newHeadroom - thermalHeadroom) > 0.08f) {
             thermalHeadroom = newHeadroom
             if (_isAmbientEnabled.value) {
-              // Invalidate the spec cache so the new budget cap is applied on the
+              // Invalidate both spec caches so the new budget cap is applied on the
               // next scheduled ambient update.
               lastCompiledSpec = null
+              lastCompiledFxSpec = null
               scheduleAmbientUpdate()
             }
             Log.d(TAG, "Thermal headroom updated: %.2f".format(newHeadroom))
@@ -2634,7 +2635,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         } else {
           playlistMetadataJob?.cancel()
         }
-        if (_isAmbientEnabled.value && _ambientStyle.value == AmbientStyle.Glow) {
+        if (_isAmbientEnabled.value && _ambientStyle.value != AmbientStyle.YouTube) {
           scheduleAmbientUpdate(100)
         }
       }
@@ -7419,10 +7420,11 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       )
     when (style) {
       AmbientStyle.Glow, AmbientStyle.Cinema, AmbientStyle.Echo, AmbientStyle.Mirror -> {
-        // Any shader-based mode: invalidate scale cache so a fresh shader is compiled
-        // for the new mode. lastCompiledFxSpec is also cleared so switching from
-        // e.g. Cinema -> Echo doesn't skip compilation.
+        // Any shader-based mode: invalidate scale and spec caches so a fresh shader is compiled
+        // for the new mode. Both lastCompiledSpec and lastCompiledFxSpec are cleared so
+        // switching between Glow and Fx modes (or between Fx modes) never hits a stale shader cache.
         lastAmbientScaleX = -1.0
+        lastCompiledSpec = null
         lastCompiledFxSpec = null
         scheduleAmbientUpdate(0)
       }

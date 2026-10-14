@@ -254,31 +254,37 @@ $tapTable
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Cinema projection UV ------------------------------------------------
-    // Divide by a zoom factor slightly > 1 so the full frame is visible
-    // inside the bars; the factor grows with dn so far pixels see a wider view.
-    highp float zoom = 1.10 + 0.28 * dn;
-    highp vec2 c_uv  = (video_uv - 0.5) / zoom + 0.5;
+    // -- Cinema theater atmospheric projection -------------------------------
+    // Anchor the sample origin at the video edge with a constant inward inset.
+    // Inward inset ensures Poisson taps spread into decoded content without
+    // border-wall clamping, while anchoring prevents inverted mirror reflection.
+    highp vec2 edge_origin   = clamp(video_uv, safe_min, safe_max);
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.04);
 
-    // FIX: c_uv is outside [0,1] for all bar pixels because video_uv is already
-    // negative/overflow. Without clamping, all Poisson taps pile up on the same
-    // 1px border strip at varying Y positions, producing a mirror-like artifact.
-    // Clamp to video bounds first, then apply the same inward nudge used by Glow
-    // (mix toward 0.5) so taps don't re-clamp back to the border wall.
-    highp vec2 c_uv_safe    = clamp(c_uv, safe_min, safe_max);
-    highp vec2 sample_c_uv  = mix(c_uv_safe, vec2(0.5), 0.04 + 0.06 * dn);
+    // -- Per-pixel Jorge Jimenez IGN jitter rotation -------------------------
+    // Rotating the Poisson disk per-pixel turns static tap offsets into a continuous
+    // stochastic Monte Carlo blur, eliminating any discrete tap ghosting or reflection.
+    mediump float jitter   = ign(uv * HOOKED_size) * 6.2831853;
+    mediump float jitter_s = sin(jitter);
+    mediump float jitter_c = cos(jitter);
+    mediump float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    mediump float jitter_c_aspect = jitter_c * aspect_x;
+    mediump float jitter_s_aspect = jitter_s * aspect_x;
 
     // -- $tapCount-tap spiral Gaussian blur ------------------------------------------
-    // Blend radius interpolates from baseRadius (sharp, near edge) to
-    // farRadius (blurry, at bar end) as a linear function of dn.
+    // Blend radius grows from baseRadius (crisp theater edge) to farRadius (diffuse).
     mediump float br       = mix(${f(baseRadius)}, ${f(farRadius)}, dn);
     mediump float br_scale = br / ${f(farRadius)};
 
     mediump vec3  acc = vec3(0.0);
     mediump float twt = 0.0;
     for (int i = 0; i < $tapCount; i++) {
-        vec2 tap_off = CINEMA_TAPS[i] * br_scale;
-        mediump vec3  s = HOOKED_tex(clamp(sample_c_uv + tap_off, safe_min, safe_max)).rgb;
+        vec2 tap = CINEMA_TAPS[i] * br_scale;
+        highp vec2 tap_off = vec2(
+            tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
+            tap.x * jitter_s + tap.y * jitter_c
+        );
+        mediump vec3  s = HOOKED_tex(clamp(sample_origin + tap_off, safe_min, safe_max)).rgb;
         mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
@@ -332,6 +338,15 @@ $vignetteLine$opacityLine
     val swBase = 0.02 * spreadScale
     val swFar = 0.10 * spreadScale
 
+    val tapCount = spec.blurSamples.coerceIn(3, 15).let { if (it % 2 == 0) it + 1 else it }
+    val halfCount = tapCount / 2
+    val sigma = (halfCount * 0.75).coerceAtLeast(0.5)
+    val rawWeights = (-halfCount..halfCount).map { i ->
+      kotlin.math.exp(-0.5 * (i.toDouble() / sigma).let { it * it })
+    }
+    val sumWeights = rawWeights.sum()
+    val weights = rawWeights.map { it / sumWeights }
+
     val vibranceVal = 1.15 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
     val intensityVal = 0.85 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
     val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
@@ -346,8 +361,14 @@ $vignetteLine$opacityLine
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
+    val weightsDecl = "const float ECHO_WEIGHTS[$tapCount] = float[$tapCount](${weights.joinToString(", ") { f(it) }});"
+    val offsetsDecl = "const float ECHO_OFFSETS[$tapCount] = float[$tapCount](${(-halfCount..halfCount).joinToString(", ") { f(it.toDouble() / halfCount) }});"
+
     return """
 ${buildHeader("Fx Ambient -- Echo", spec.scaleX, spec.scaleY)}
+
+$weightsDecl
+$offsetsDecl
 
 vec4 hook() {
 ${videoPrologue(reachScale)}
@@ -355,37 +376,35 @@ ${videoPrologue(reachScale)}
     // -- Edge origin (nearest video pixel) -----------------------------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
 
-    // FIX: Apply an inward nudge identical to Glow's sample_origin.
-    // edge_origin sits exactly on the 1px video border wall. Smear taps that
-    // extend in the inward direction immediately re-clamp back to the same
-    // border texel, creating a pile-up that looks like a mirror reflection.
-    // Nudging toward 0.5 by 2-7% ensures all taps spread into real content.
-    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.02 + 0.05 * dn);
+    // Anchor echo_origin at a constant inward inset (independent of dn).
+    // This gives smear taps a clean margin inside real decoded content without
+    // crawling deeper into the frame, completely eliminating inverted mirror reflections.
+    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.035);
 
-    // -- Determine smear axis (parallel to bar, perpendicular to outward) ----
+    // -- Determine smear axes ------------------------------------------------
     // For pillarbox bars (left/right) smear vertically; for letterbox smear horizontally.
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+    highp vec2 perp_dir  = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
 
     // Smear width in video-UV space grows from tight at edge to wide at depth.
     mediump float sw = ${f(swBase)} + ${f(swFar)} * dn;
+    mediump float dw = sw * 0.30;
 
-    // -- 5-tap Gaussian along smear axis (weights sum to 1.0 -- no divider needed)
-    const float W0 = 0.0625;
-    const float W1 = 0.25;
-    const float W2 = 0.375;
+    // High-frequency stochastic jitter along smear & transverse axes to dissolve tap banding
+    mediump float jitter = (ign(uv * HOOKED_size) - 0.5);
+    highp vec2 jitter_off = (smear_dir * (jitter * sw * 0.35)) + (perp_dir * (jitter * dw * 0.25));
 
-    highp vec2 t0 = clamp(echo_origin - smear_dir * (sw * 2.0), safe_min, safe_max);
-    highp vec2 t1 = clamp(echo_origin - smear_dir * sw,          safe_min, safe_max);
-    highp vec2 t2 = echo_origin;
-    highp vec2 t3 = clamp(echo_origin + smear_dir * sw,          safe_min, safe_max);
-    highp vec2 t4 = clamp(echo_origin + smear_dir * (sw * 2.0), safe_min, safe_max);
-
-    mediump vec3 col = HOOKED_tex(t0).rgb * W0
-                     + HOOKED_tex(t1).rgb * W1
-                     + HOOKED_tex(t2).rgb * W2
-                     + HOOKED_tex(t3).rgb * W1
-                     + HOOKED_tex(t4).rgb * W0;
+    // -- $tapCount-tap Gaussian along smear axis with transverse spread ------
+    mediump vec3 col = vec3(0.0);
+    for (int i = 0; i < $tapCount; i++) {
+        float step_factor = ECHO_OFFSETS[i];
+        highp vec2 tap_pos = clamp(
+            echo_origin + smear_dir * (step_factor * sw) + perp_dir * (step_factor * dw) + jitter_off,
+            safe_min, safe_max
+        );
+        col += HOOKED_tex(tap_pos).rgb * ECHO_WEIGHTS[i];
+    }
 
     // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
@@ -433,6 +452,15 @@ $vignetteLine$opacityLine
     val reachScale = 1.15 * spreadScale
     val bwFar = (0.06 * spreadScale).coerceIn(0.01, 0.30)
 
+    val tapCount = spec.blurSamples.coerceIn(3, 9).let { if (it % 2 == 0) it + 1 else it }
+    val halfCount = tapCount / 2
+    val sigma = (halfCount * 0.75).coerceAtLeast(0.5)
+    val rawWeights = (-halfCount..halfCount).map { i ->
+      kotlin.math.exp(-0.5 * (i.toDouble() / sigma).let { it * it })
+    }
+    val sumWeights = rawWeights.sum()
+    val weights = rawWeights.map { it / sumWeights }
+
     val vibranceVal = 0.92 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
     val intensityVal = 0.55 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
     val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
@@ -447,8 +475,14 @@ $vignetteLine$opacityLine
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
+    val weightsDecl = "const float MIRROR_WEIGHTS[$tapCount] = float[$tapCount](${weights.joinToString(", ") { f(it) }});"
+    val offsetsDecl = "const float MIRROR_OFFSETS[$tapCount] = float[$tapCount](${(-halfCount..halfCount).joinToString(", ") { f(it.toDouble() / halfCount) }});"
+
     return """
 ${buildHeader("Fx Ambient -- Mirror", spec.scaleX, spec.scaleY)}
+
+$weightsDecl
+$offsetsDecl
 
 vec4 hook() {
 ${videoPrologue(reachScale)}
@@ -464,11 +498,12 @@ ${videoPrologue(reachScale)}
     highp vec2 blur_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
     mediump float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
 
-    // -- 3-tap blur along blur_dir -------------------------------------------
+    // -- $tapCount-tap blur along blur_dir -------------------------------------------
     mediump vec3 col = vec3(0.0);
-    col += HOOKED_tex(clamp(m_uv - blur_dir * bw, safe_min, safe_max)).rgb * 0.25;
-    col += HOOKED_tex(clamp(m_uv,                  safe_min, safe_max)).rgb * 0.50;
-    col += HOOKED_tex(clamp(m_uv + blur_dir * bw, safe_min, safe_max)).rgb * 0.25;
+    for (int i = 0; i < $tapCount; i++) {
+        float step_factor = MIRROR_OFFSETS[i];
+        col += HOOKED_tex(clamp(m_uv + blur_dir * (step_factor * bw), safe_min, safe_max)).rgb * MIRROR_WEIGHTS[i];
+    }
 
     // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
