@@ -17,6 +17,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -296,7 +297,7 @@ object AudioPreferencesScreen : Screen {
                 valueToText = { AnnotatedString(resources.getString(it.title)) },
                 title = { Text(stringResource(R.string.pref_audio_visualizer_style_title)) },
                 summary = {
-                  Column {
+                  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                       stringResource(audioVisualizerStyle.title),
                       color = MaterialTheme.colorScheme.outline,

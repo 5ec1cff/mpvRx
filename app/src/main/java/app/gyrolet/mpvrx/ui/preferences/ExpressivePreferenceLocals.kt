@@ -35,7 +35,7 @@ internal fun ProvideExpressivePreferenceLocals(
         categoryTextStyle = typography.titleLarge.copy(fontWeight = FontWeight.Bold),
         padding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         horizontalSpacing = horizontalSpacing,
-        verticalSpacing = 6.dp,
+        verticalSpacing = 4.dp,
         iconContainerMinWidth = 52.dp,
         iconColor = colors.primary,
         titleColor = colors.onSurface,

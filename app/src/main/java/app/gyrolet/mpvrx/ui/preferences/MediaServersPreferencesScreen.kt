@@ -138,30 +138,16 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (jellyfinUiState.servers.isEmpty()) {
-                ExpressivePreferenceItem {
-                Preference(
+                ConnectMediaServerRow(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_jellyfin_server_management),
-                  title = { Text(stringResource(R.string.pref_jellyfin_add_server)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_jellyfin_add_server_desc),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  icon = {
-                    Icon(
-                      painter = painterResource(R.drawable.ic_jellyfin),
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(32.dp),
-                    )
-                  },
+                  title = stringResource(R.string.pref_jellyfin_add_server),
+                  summary = stringResource(R.string.pref_jellyfin_add_server_desc),
+                  iconRes = R.drawable.ic_jellyfin,
                   onClick = {
                     serverToReauth = null
                     isAddServerOpen = true
                   },
                 )
-                }
               } else {
                 jellyfinUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -418,27 +404,13 @@ object MediaServersPreferencesScreen : Screen {
                   onClick = { isSeerrConnectionDialogOpen = true },
                 )
               } else {
-                ExpressivePreferenceItem {
-                Preference(
+                ConnectMediaServerRow(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_seerr_server_management),
-                  title = { Text(stringResource(R.string.pref_seerr_add_server)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_seerr_add_server_desc),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  icon = {
-                    Icon(
-                      painter = painterResource(R.drawable.ic_seerr_logo),
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(32.dp),
-                    )
-                  },
+                  title = stringResource(R.string.pref_seerr_add_server),
+                  summary = stringResource(R.string.pref_seerr_add_server_desc),
+                  iconRes = R.drawable.ic_seerr_logo,
                   onClick = { isSeerrConnectionDialogOpen = true },
                 )
-                }
               }
             }
           }
@@ -454,30 +426,16 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (navidromeUiState.servers.isEmpty()) {
-                ExpressivePreferenceItem {
-                Preference(
+                ConnectMediaServerRow(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_navidrome_title),
-                  title = { Text(stringResource(R.string.pref_navidrome_add_server)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_navidrome_add_server_desc),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  icon = {
-                    Icon(
-                      painter = painterResource(R.drawable.ic_navidrome),
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(32.dp),
-                    )
-                  },
+                  title = stringResource(R.string.pref_navidrome_add_server),
+                  summary = stringResource(R.string.pref_navidrome_add_server_desc),
+                  iconRes = R.drawable.ic_navidrome,
                   onClick = {
                     navidromeServerToEdit = null
                     isAddNavidromeServerOpen = true
                   },
                 )
-                }
               } else {
                 navidromeUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -639,30 +597,16 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceCard {
               if (audiobookshelfUiState.servers.isEmpty()) {
-                ExpressivePreferenceItem {
-                Preference(
+                ConnectMediaServerRow(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_audiobookshelf_title),
-                  title = { Text(stringResource(R.string.pref_audiobookshelf_add_server)) },
-                  summary = {
-                    Text(
-                      text = stringResource(R.string.pref_audiobookshelf_add_server_desc),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  icon = {
-                    Icon(
-                      painter = painterResource(R.drawable.ic_audiobookshelf),
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.primary,
-                      modifier = Modifier.size(32.dp),
-                    )
-                  },
+                  title = stringResource(R.string.pref_audiobookshelf_add_server),
+                  summary = stringResource(R.string.pref_audiobookshelf_add_server_desc),
+                  iconRes = R.drawable.ic_audiobookshelf,
                   onClick = {
                     audiobookshelfServerToEdit = null
                     isAddAudiobookshelfServerOpen = true
                   },
                 )
-                }
               } else {
                 audiobookshelfUiState.servers.forEachIndexed { index, server ->
                   if (index > 0) {
@@ -1104,6 +1048,49 @@ private fun SeerrServerAvatar(
   }
 }
 
+/**
+ * Uses the same fixed icon slot for disconnected and connected servers, keeping
+ * title/summary alignment stable for long and translated server descriptions.
+ */
+@Composable
+private fun ConnectMediaServerRow(
+  title: String,
+  summary: String,
+  iconRes: Int,
+  modifier: Modifier = Modifier,
+  onClick: () -> Unit,
+) {
+  ExpressivePreferenceItem {
+    ServerPreferenceItem(
+      title = {
+        Text(
+          text = title,
+          style = MaterialTheme.typography.bodyLarge,
+          fontWeight = FontWeight.SemiBold,
+        )
+      },
+      summary = {
+        Text(
+          text = summary,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      },
+      icon = {
+        Icon(
+          painter = painterResource(iconRes),
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.primary,
+          modifier = Modifier.size(32.dp),
+        )
+      },
+      trailing = {},
+      modifier = modifier,
+      onClick = onClick,
+    )
+  }
+}
+
 @Composable
 private fun ServerPreferenceItem(
   title: @Composable () -> Unit,
@@ -1118,22 +1105,20 @@ private fun ServerPreferenceItem(
       modifier
         .fillMaxWidth()
         .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        .padding(horizontal = 20.dp, vertical = 16.dp),
+        .padding(horizontal = 20.dp, vertical = 14.dp),
     verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     Box(
-      modifier = Modifier.padding(end = 24.dp).width(52.dp),
+      modifier = Modifier.size(44.dp),
       contentAlignment = Alignment.Center,
     ) {
       icon()
     }
 
     Column(
-      modifier =
-        Modifier
-          .weight(1f)
-          .padding(end = 8.dp),
-          verticalArrangement = Arrangement.spacedBy(6.dp),
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
       title()
       summary()

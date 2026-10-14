@@ -18,6 +18,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import androidx.documentfile.provider.DocumentFile
@@ -738,7 +740,7 @@ object AdvancedPreferencesScreen : Screen {
                 modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_clear_playback_history),
                 title = { Text(stringResource(R.string.pref_advanced_clear_playback_history)) },
                 summary = {
-                  Column {
+                  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                       stringResource(R.string.pref_advanced_clear_playback_history_confirm_subtitle),
                       color = MaterialTheme.colorScheme.outline,

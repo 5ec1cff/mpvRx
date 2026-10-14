@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -138,6 +139,7 @@ fun SwitchPreference(
           Modifier
             .weight(1f)
             .padding(end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
       ) {
         ProvideTextStyle(value = titleStyle) {
           title()

@@ -198,7 +198,7 @@ object DownloadsScreen : Screen {
           OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
             label = { Text(stringResource(R.string.downloads_search_hint)) },
             leadingIcon = { Icon(Icons.RoundedFilled.Search, contentDescription = null) },
             trailingIcon = {
@@ -415,12 +415,12 @@ private fun DownloadOverview(
             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
           ) {
             Column(
-              modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+              modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
               verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
               Text(
                 text = counts.getValue(category).toString(),
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
               )
               Text(text = stringResource(category.label), style = MaterialTheme.typography.labelLarge)
@@ -435,7 +435,7 @@ private fun DownloadOverview(
 @Composable
 private fun SectionHeader(title: String, count: Int) {
   Row(
-    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 8.dp)
+    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 14.dp, bottom = 6.dp)
       .semantics { heading() },
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -465,26 +465,29 @@ private fun DownloadLocationCard(
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
   ) {
     Row(
-      modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
       verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       Icon(
         Icons.RoundedFilled.Folder,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.size(22.dp),
+        modifier = Modifier.size(24.dp),
       )
-      Spacer(modifier = Modifier.width(10.dp))
-      Column(modifier = Modifier.weight(1f)) {
+      Column(
+        modifier = Modifier.weight(1f),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+      ) {
         Text(
           text = stringResource(R.string.downloads_location),
-          style = MaterialTheme.typography.titleSmall,
+          style = MaterialTheme.typography.labelLarge,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
           text = if (isCustom) path else stringResource(R.string.downloads_location_default),
           style = MaterialTheme.typography.bodySmall,
-          maxLines = 2,
+          maxLines = 1,
           overflow = TextOverflow.Ellipsis,
         )
       }
@@ -572,36 +575,40 @@ private fun DownloadMediaRow(
     ),
   ) {
     Column(
-      modifier = Modifier.fillMaxWidth().padding(16.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp),
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+      verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
       Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         DownloadThumbnail(posterUrl, mediaPath)
-        Text(
-          text = title,
+        Column(
           modifier = Modifier.weight(1f),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.SemiBold,
-          maxLines = 2,
-          overflow = TextOverflow.Ellipsis,
-        )
+          verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+          Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+          )
+          Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = if (isError) 4 else 2,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
       }
-      Text(
-        text = subtitle,
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = if (isError) 4 else 2,
-        overflow = TextOverflow.Ellipsis,
-      )
       if (indeterminate) {
-        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(8.dp))
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth().height(6.dp))
       } else if (progress != null) {
         LinearProgressIndicator(
           progress = { progress.coerceIn(0f, 1f) },
-          modifier = Modifier.fillMaxWidth().height(8.dp),
+          modifier = Modifier.fillMaxWidth().height(6.dp),
         )
       }
       Row(

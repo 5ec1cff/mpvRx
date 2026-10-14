@@ -320,7 +320,7 @@ object DecoderPreferencesScreen : Screen {
                 },
                 title = { Text(stringResource(R.string.pref_anime4k_title)) },
                 summary = {
-                  Column {
+                  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                       stringResource(R.string.pref_anime4k_summary),
                       color = MaterialTheme.colorScheme.outline,

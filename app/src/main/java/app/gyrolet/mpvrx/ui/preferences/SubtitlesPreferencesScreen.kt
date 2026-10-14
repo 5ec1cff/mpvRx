@@ -504,7 +504,7 @@ object SubtitlesPreferencesScreen : Screen {
                 },
                 title = { Text(stringResource(R.string.pref_subtitles_font_title)) },
                 summary = {
-                  Column {
+                  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                       stringResource(R.string.pref_subtitles_font_summary, fontLabel),
                       color = MaterialTheme.colorScheme.outline,
