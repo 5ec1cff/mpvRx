@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One system splash per launcher icon pair: the icon's background behind its logo. Android 13+ applies the
+         one for the chosen icon through LauncherIconManager; older versions keep Theme.mpvrx.Splash. -->
+    <style name="Theme.mpvrx.Splash.BlackSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.BlackGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.BlackWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.WhiteSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_white</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.WhiteGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_white</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.WhiteBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_white</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.CharcoalSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_charcoal</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.CharcoalGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_charcoal</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.CharcoalWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_charcoal</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.IndigoSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_indigo</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.IndigoWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_indigo</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.VioletSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_violet</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.VioletWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_violet</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LagoonWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lagoon</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LagoonBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lagoon</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.AzureSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_azure</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.AzureGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_azure</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.AzureBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_azure</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LilacSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lilac</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LilacGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lilac</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LilacBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lilac</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.MintSolid">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_solid_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_mint</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.MintGradient">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_purple_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_mint</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.MintBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_mint</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.EmberWhite">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_white_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_ember</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.EmberBlack">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_black_animated</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_ember</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.BlackClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.WhiteClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_white</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.CharcoalClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_charcoal</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.IndigoClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_indigo</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.VioletClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_violet</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.AzureClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_azure</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.LilacClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_lilac</item>
+    </style>
+    <style name="Theme.mpvrx.Splash.MintClassic">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_classic_inset</item>
+        <item name="windowSplashScreenBackground">@color/icon_bg_mint</item>
+    </style>
+</resources>
