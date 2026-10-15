@@ -611,7 +611,10 @@ class FolderListViewModel(
           }
 
           val scopedFolders = if (skipMediaStoreScan) {
-            MediaFileRepository.getScopedHiddenVideoFolders(getApplication(), includeAudioOverride = if (audioOnly) true else null)
+            ScopedHiddenFolderScanner.withoutLocalDuplicates(
+              mediaStoreFolders + indexedFolders,
+              MediaFileRepository.getScopedHiddenVideoFolders(getApplication(), includeAudioOverride = if (audioOnly) true else null),
+            )
           } else {
             emptyList()
           }
@@ -711,6 +714,12 @@ class FolderListViewModel(
           if (_allVideoFolders.value != finalFolders) {
             publishFinalFolders(finalFolders)
           }
+
+          if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
+            _isEnriching.value = false
+            _scanStatus.value = null
+            enrichScopedFolderDurations(finalFolders)
+          }
         } catch (e: kotlinx.coroutines.CancellationException) {
           Log.d(TAG, "Scan cancelled (new scan started)")
           throw e
@@ -726,6 +735,29 @@ class FolderListViewModel(
           }
         }
       }
+  }
+
+  /**
+   * Granted (SAF) folders have no MediaStore durations, so every file must be opened over the
+   * provider. That runs only after the regular list is final and visible, one folder at a time,
+   * and is cancelled together with the scan job by the next refresh.
+   */
+  private suspend fun enrichScopedFolderDurations(folders: List<VideoFolder>) {
+    val pending = folders.filter {
+      ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount > 0 && it.totalDuration == 0L
+    }
+    for (folder in pending) {
+      currentCoroutineContext().ensureActive()
+      val totalDuration =
+        MetadataRetrieval
+          .enrichFolderIfNeeded(getApplication(), folder, browserPreferences, metadataCache)
+          .totalDuration
+      if (totalDuration <= 0L) continue
+      val key = folderKey(folder)
+      _allVideoFolders.update { current ->
+        current.map { if (folderKey(it) == key) it.copy(totalDuration = totalDuration) else it }
+      }
+    }
   }
 
   private fun folderKey(folder: VideoFolder): String =

@@ -5,6 +5,7 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.DocumentsContract
 import android.util.Log
 import app.gyrolet.mpvrx.domain.media.model.Video
@@ -12,6 +13,7 @@ import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
+import app.gyrolet.mpvrx.utils.storage.storagePathKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -38,6 +40,41 @@ object ScopedHiddenFolderScanner {
       .getOrElse { DocumentsContract.getTreeDocumentId(uri) }
     DocumentsContract.buildDocumentUri(uri.authority, id).toString()
   }.getOrDefault(uri.toString())
+
+  private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"
+
+  /**
+   * Filesystem path behind an external-storage document. Only that provider defines document IDs
+   * as `volume:relative/path`; it is used to recognise items MediaStore already lists.
+   */
+  fun localPathOf(uri: Uri): String? {
+    if (uri.authority != EXTERNAL_STORAGE_AUTHORITY) return null
+    val id = runCatching { DocumentsContract.getDocumentId(uri) }
+      .recoverCatching { DocumentsContract.getTreeDocumentId(uri) }
+      .getOrNull() ?: return null
+    val volume = id.substringBefore(':', "")
+    if (volume.isEmpty()) return null
+    val relative = id.substringAfter(':').trim('/')
+    val root =
+      if (volume.equals("primary", ignoreCase = true)) {
+        Environment.getExternalStorageDirectory().absolutePath
+      } else {
+        "/storage/$volume"
+      }
+    return if (relative.isEmpty()) root else "$root/$relative"
+  }
+
+  /** Drops granted folders that are the same directory as a MediaStore/filesystem folder. */
+  fun withoutLocalDuplicates(localFolders: List<VideoFolder>, scopedFolders: List<VideoFolder>): List<VideoFolder> {
+    if (scopedFolders.isEmpty()) return scopedFolders
+    val localKeys = localFolders.mapNotNullTo(hashSetOf()) { folder ->
+      if (isScopedFolder(folder.path)) null else storagePathKey(folder.path)
+    }
+    if (localKeys.isEmpty()) return scopedFolders
+    return scopedFolders.filterNot { folder ->
+      localPathOf(Uri.parse(folder.bucketId))?.let(::storagePathKey) in localKeys
+    }
+  }
 
   // Keep walks bounded even if a document provider exposes cyclic or excessively deep trees.
   private const val MAX_DIRECTORY_DEPTH = 64
@@ -262,8 +299,9 @@ object ScopedHiddenFolderScanner {
         displayName = child.name,
         path = child.uri.toString(),
         uri = child.uri,
+        // Probed later in the background; blank keeps the card from showing a bogus "0s".
         duration = 0L,
-        durationFormatted = VideoScanUtils.formatDuration(0L),
+        durationFormatted = "",
         size = size,
         sizeFormatted = VideoScanUtils.formatFileSize(size),
         dateModified = modified,

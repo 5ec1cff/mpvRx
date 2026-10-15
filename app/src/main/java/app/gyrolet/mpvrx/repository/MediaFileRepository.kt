@@ -164,7 +164,12 @@ object MediaFileRepository : KoinComponent {
             currentScanOptions(includeAudioOverride, scope),
             database.directoryScanDao(),
           )
-        (mediaStoreFolders + indexedFolders + getScopedHiddenVideoFolders(context, includeAudioOverride, scope))
+        val localFolders = mediaStoreFolders + indexedFolders
+        val scopedFolders = ScopedHiddenFolderScanner.withoutLocalDuplicates(
+          localFolders,
+          getScopedHiddenVideoFolders(context, includeAudioOverride, scope),
+        )
+        (localFolders + scopedFolders)
           .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
           .sortedBy { it.name.lowercase(Locale.getDefault()) }
       } catch (cancelled: CancellationException) {
@@ -191,7 +196,11 @@ object MediaFileRepository : KoinComponent {
           options = options,
           forceFileSystemCheck = forceFileSystemCheck,
         )
-      (folders + getScopedHiddenVideoFolders(context, includeAudioOverride, scope))
+      val scopedFolders = ScopedHiddenFolderScanner.withoutLocalDuplicates(
+        folders,
+        getScopedHiddenVideoFolders(context, includeAudioOverride, scope),
+      )
+      (folders + scopedFolders)
         .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
         .also { onProgress?.invoke(it.size) }
@@ -277,7 +286,8 @@ object MediaFileRepository : KoinComponent {
       } else {
         emptyList()
       }
-      (indexedFolders + selectedFolders).sortedBy { it.name.lowercase(Locale.getDefault()) }
+      (indexedFolders + ScopedHiddenFolderScanner.withoutLocalDuplicates(indexedFolders, selectedFolders))
+        .sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
 
   /**
@@ -463,8 +473,10 @@ object MediaFileRepository : KoinComponent {
             includeAudioOverride = includeAudioOverride,
             scope = scope,
           ).forEach { media ->
+            // A granted document and its MediaStore row are the same file; key both by real path.
             val key = if (BuildConfig.SCOPED_STORAGE_ONLY && ScopedHiddenFolderScanner.isScopedFolder(media.path)) {
-              ScopedHiddenFolderScanner.documentKey(media.uri)
+              ScopedHiddenFolderScanner.localPathOf(media.uri)?.let(::mediaPathKey)
+                ?: ScopedHiddenFolderScanner.documentKey(media.uri)
             } else mediaPathKey(media.path) ?: media.path
             val existing = result[key]
             if (existing == null || shouldReplaceMedia(existing, media)) {

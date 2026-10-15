@@ -22,6 +22,7 @@ import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
+import app.gyrolet.mpvrx.utils.media.MediaInfoOps
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.media.VisibleDirectoryWatcher
@@ -29,8 +30,11 @@ import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.media.PlaybackStateOps
 import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
+import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +48,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+
+private const val SCOPED_PROBE_BATCH = 6
 
 @Immutable
 data class VideoWithPlaybackInfo(
@@ -88,6 +94,16 @@ internal fun buildVideoWithPlaybackInfo(
       playbackState?.let { (it.lastPosition.toLong() + it.timeRemaining.toLong()).takeIf { total -> total > 0L } }
     } else null
   val durationSeconds = (video.duration / 1000L).takeIf { it > 0L } ?: recordedDuration ?: 0L
+  // Until the background probe finishes, the duration the player recorded is the best label.
+  val displayVideo =
+    if (video.duration <= 0L && durationSeconds > 0L) {
+      video.copy(
+        duration = durationSeconds * 1000L,
+        durationFormatted = VideoScanUtils.formatDuration(durationSeconds * 1000L),
+      )
+    } else {
+      video
+    }
   val progressValue =
     if (playbackState != null && durationSeconds > 0L) {
       val watchedSeconds = durationSeconds - playbackState.timeRemaining.toLong()
@@ -103,7 +119,7 @@ internal fun buildVideoWithPlaybackInfo(
   val isWithinNewLabelWindow = newLabelDays == 0 || videoAgeMillis <= newLabelWindowMillis
 
   return VideoWithPlaybackInfo(
-    video = video,
+    video = displayVideo,
     timeRemaining = playbackState?.timeRemaining?.toLong(),
     progressPercentage = progressValue?.takeIf { it in 0.01f..0.99f },
     isOldAndUnplayed = !isWatched && (playbackState?.newLabelOverride ?: isWithinNewLabelWindow),
@@ -165,6 +181,7 @@ class VideoListViewModel(
   private var playbackIndexByIdentifier: Map<String, Int> = emptyMap()
 
   private val tag = "VideoListViewModel"
+  private var scopedMetadataJob: Job? = null
   private val liveFolderWatcher = VisibleDirectoryWatcher { MediaLibraryEvents.notifyChanged() }
 
   fun startWatching() {
@@ -231,6 +248,8 @@ class VideoListViewModel(
   }
 
   private fun loadVideos(forceFileSystemCheck: Boolean = false) {
+    // Provider probing must never compete with listing; it restarts once the new list is shown.
+    scopedMetadataJob?.cancel()
     viewModelScope.launch(Dispatchers.IO) {
       try {
         // First attempt to load videos (basic info from MediaStore)
@@ -243,6 +262,10 @@ class VideoListViewModel(
           )
         if (includeAudio) {
           videoList = videoList.filter { it.isAudio }
+        }
+        val scopedFolder = ScopedHiddenFolderScanner.isScopedFolder(bucketId)
+        if (scopedFolder) {
+          videoList = withKnownScopedMetadata(videoList, _videos.value)
         }
 
         // ZIP entries need basic metadata even when optional metadata chips are disabled.
@@ -316,6 +339,7 @@ class VideoListViewModel(
             loadPlaybackInfo(videoList)
           }
           VideoListCache.save(getApplication(), cacheKey, videoList)
+          if (scopedFolder) probeScopedMetadataInBackground(videoList)
         }
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)
@@ -332,6 +356,86 @@ class VideoListViewModel(
    */
   fun setVideosWereDeletedOrMoved() {
     _videosWereDeletedOrMoved.value = true
+  }
+
+  /** Keeps metadata already probed for unchanged SAF documents, so a rescan does not blank durations. */
+  private fun withKnownScopedMetadata(fresh: List<Video>, known: List<Video>): List<Video> {
+    val knownByPath = known.filter { it.duration > 0L }.associateBy { it.path }
+    if (knownByPath.isEmpty()) return fresh
+    return fresh.map { video ->
+      val previous = knownByPath[video.path]
+      if (video.duration <= 0L && previous != null && isSameDocumentVersion(previous, video)) {
+        video.copy(
+          duration = previous.duration,
+          durationFormatted = VideoScanUtils.formatDuration(previous.duration),
+          width = previous.width,
+          height = previous.height,
+          fps = previous.fps,
+          resolution = previous.resolution,
+          hasEmbeddedSubtitles = previous.hasEmbeddedSubtitles,
+          subtitleCodec = previous.subtitleCodec,
+          videoCodec = previous.videoCodec,
+          videoCodecMimeType = previous.videoCodecMimeType,
+        )
+      } else {
+        video
+      }
+    }
+  }
+
+  private fun isSameDocumentVersion(first: Video, second: Video): Boolean =
+    first.size == second.size && first.dateModified == second.dateModified
+
+  /**
+   * SAF providers report no duration, so each document is opened and probed. This runs only after
+   * the list is already visible, one file at a time, publishing in small batches.
+   */
+  private fun probeScopedMetadataInBackground(videos: List<Video>) {
+    scopedMetadataJob?.cancel()
+    if (!browserPreferences.showDurationField.get() && !MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+      return
+    }
+    val pending = videos.filter { it.duration <= 0L && it.uri.scheme == "content" }
+    if (pending.isEmpty()) return
+    scopedMetadataJob =
+      viewModelScope.launch(Dispatchers.IO) {
+        val probed = HashMap<String, Video>()
+        pending.forEachIndexed { index, video ->
+          ensureActive()
+          MediaInfoOps
+            .extractBasicMetadata(getApplication(), video.uri, video.displayName)
+            .getOrNull()
+            ?.takeIf { it.durationMs > 0L }
+            ?.let { metadata ->
+              probed[video.path] =
+                video.copy(
+                  duration = metadata.durationMs,
+                  durationFormatted = VideoScanUtils.formatDuration(metadata.durationMs),
+                  width = metadata.width.takeIf { it > 0 } ?: video.width,
+                  height = metadata.height.takeIf { it > 0 } ?: video.height,
+                  fps = metadata.fps.takeIf { it > 0f } ?: video.fps,
+                  resolution = VideoScanUtils.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
+                  hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
+                  subtitleCodec = metadata.subtitleCodec,
+                  videoCodec = metadata.videoCodec,
+                  videoCodecMimeType = metadata.videoCodecMimeType,
+                )
+            }
+          if (probed.isNotEmpty() && ((index + 1) % SCOPED_PROBE_BATCH == 0 || index == pending.lastIndex)) {
+            val current = _videos.value
+            val updated =
+              current.map { item ->
+                probed[item.path]?.takeIf { isSameDocumentVersion(it, item) } ?: item
+              }
+            probed.clear()
+            if (updated != current) {
+              _videos.value = updated
+              loadPlaybackInfo(updated)
+            }
+          }
+        }
+        VideoListCache.save(getApplication(), cacheKey, _videos.value)
+      }
   }
 
   private suspend fun loadPlaybackInfo(videos: List<Video>) {
