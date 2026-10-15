@@ -42,6 +42,7 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import org.koin.compose.koinInject
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -235,9 +236,13 @@ class DampedDragAnimation(
         }
     }
 
+    private var pressJob: Job? = null
+    private var velocityJob: Job? = null
+
     fun press() {
         velocityTracker.resetTracking()
-        animationScope.launch {
+        pressJob?.cancel()
+        pressJob = animationScope.launch {
             launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(pressedScale, scaleXAnimationSpec) }
             launch { scaleYAnimation.animateTo(pressedScale, scaleYAnimationSpec) }
@@ -245,7 +250,8 @@ class DampedDragAnimation(
     }
 
     fun release() {
-        animationScope.launch {
+        pressJob?.cancel()
+        pressJob = animationScope.launch {
             awaitFrame()
             if (value != targetValue) {
                 val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
@@ -298,11 +304,25 @@ class DampedDragAnimation(
             Offset(value, 0f)
         )
         val targetVelocity = velocityTracker.calculateVelocity().x / (valueRange.endInclusive - valueRange.start)
-        animationScope.launch {
+        velocityJob?.cancel()
+        velocityJob = animationScope.launch {
             velocityAnimation.animateTo(targetVelocity, velocityAnimationSpec)
         }
     }
 }
+
+private const val HIGHLIGHT_SHADER_SRC = """
+    uniform float2 size;
+    layout(color) uniform half4 color;
+    uniform float radius;
+    uniform float2 position;
+
+    half4 main(float2 coord) {
+        float dist = distance(coord, position);
+        float intensity = smoothstep(radius, radius * 0.5, dist);
+        return color * intensity;
+    }
+"""
 
 class InteractiveHighlight(
     val animationScope: CoroutineScope,
@@ -314,33 +334,23 @@ class InteractiveHighlight(
     private val positionAnimation =
         Animatable(Offset.Zero, Offset.VectorConverter, Offset.VisibilityThreshold)
     private var startPosition = Offset.Zero
+    private var dragJob: Job? = null
+    private var pressJob: Job? = null
 
     val pressProgress: Float get() = pressProgressAnimation.value
     val offset: Offset get() = positionAnimation.value - startPosition
 
     private val shader = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        RuntimeShader(
-            """
-            uniform float2 size;
-            layout(color) uniform half4 color;
-            uniform float radius;
-            uniform float2 position;
-
-            half4 main(float2 coord) {
-                float dist = distance(coord, position);
-                float intensity = smoothstep(radius, radius * 0.5, dist);
-                return color * intensity;
-            }
-            """.trimIndent()
-        )
+        RuntimeShader(HIGHLIGHT_SHADER_SRC)
     } else {
         null
     }
+    private val shaderBrush = shader?.let { ShaderBrush(it) }
 
     val modifier: Modifier = Modifier.drawWithContent {
         val progress = pressProgressAnimation.value
         if (progress > 0f) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && shader != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && shader != null && shaderBrush != null) {
                 drawRect(
                     Color.White.copy(0.08f * progress),
                     blendMode = BlendMode.Plus
@@ -357,7 +367,7 @@ class InteractiveHighlight(
                     )
                 }
                 drawRect(
-                    ShaderBrush(shader),
+                    shaderBrush,
                     blendMode = BlendMode.Plus
                 )
             } else {
@@ -374,27 +384,35 @@ class InteractiveHighlight(
         inspectDragGestures(
             onDragStart = { down ->
                 startPosition = down.position
-                animationScope.launch {
+                dragJob?.cancel()
+                pressJob?.cancel()
+                pressJob = animationScope.launch {
                     launch { pressProgressAnimation.animateTo(1f, pressProgressAnimationSpec) }
                     launch { positionAnimation.snapTo(startPosition) }
                 }
             },
             onDragEnd = {
-                animationScope.launch {
+                dragJob?.cancel()
+                pressJob?.cancel()
+                pressJob = animationScope.launch {
                     launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
                     launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
                 }
             },
             onDragCancel = {
-                animationScope.launch {
+                dragJob?.cancel()
+                pressJob?.cancel()
+                pressJob = animationScope.launch {
                     launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
                     launch { positionAnimation.animateTo(startPosition, positionAnimationSpec) }
                 }
             }
         ) { change, _ ->
-            animationScope.launch {
+            dragJob?.cancel()
+            dragJob = animationScope.launch {
                 positionAnimation.snapTo(change.position)
             }
         }
     }
 }
+

@@ -106,7 +106,7 @@ object FxAmbientShaderBuilder {
 //!DESC $desc
 
 #ifdef GL_ES
-precision mediump float;
+precision highp float;
 precision highp int;
 #else
 #define mediump
@@ -125,35 +125,35 @@ precision highp int;
 // -- Common GLSL helpers (identical subset to AmbientShaderBuilder) -----------
 
 // Jorge Jimenez Interleaved Gradient Noise -- cache-coherent, zero trig.
-mediump float ign(highp vec2 p) {
-    mediump vec3 m = vec3(0.06711056, 0.00583715, 52.9829189);
+highp float ign(highp vec2 p) {
+    highp vec3 m = vec3(0.06711056, 0.00583715, 52.9829189);
     return fract(m.z * fract(dot(p, m.xy)));
 }
 
-mediump float luma(mediump vec3 c) {
+highp float luma(highp vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
 // Selective chroma boost: lifts saturation without blowing highlights.
-mediump vec3 vibrance(mediump vec3 c, mediump float k) {
+highp vec3 vibrance(highp vec3 c, highp float k) {
     return max(vec3(luma(c)) + (c - vec3(luma(c))) * k, vec3(0.0));
 }
 
 // Multiplicative color-temperature adjustment.
-mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
-    mediump vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
+highp vec3 apply_warmth(highp vec3 rgb, highp float amount) {
+    highp vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
     return clamp(rgb * gain, 0.0, 1.0);
 }
 
 // Highlight roll-off from fx_common.glsl: c / (1 + k*luma).
 // Dark/mid tones pass almost unchanged; bright bursts are softened.
-mediump vec3 rolloff(mediump vec3 c, mediump float k) {
+highp vec3 rolloff(highp vec3 c, highp float k) {
     return c * (1.0 / (1.0 + k * luma(c)));
 }
 
 // IGN-amplitude-scaled dither to dissolve 8-bit quantisation banding.
-mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
-    mediump float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
+highp vec3 dither_out(highp vec3 c, highp vec2 p) {
+    highp float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
     return c + (ign(p) - 0.5) * (amp / 255.0);
 }
 
@@ -245,7 +245,7 @@ mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
 
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
-    mediump float vig_r = length(uv - 0.5) * 2.0;
+    highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
@@ -260,49 +260,57 @@ vec4 hook() {
 ${videoPrologue(reachScale)}
 
     // -- Cinema theater atmospheric projection -------------------------------
-    // Anchor the sample origin at the video edge with a constant inward inset.
-    // Inward inset ensures Poisson taps spread into decoded content without
-    // border-wall clamping, while anchoring prevents inverted mirror reflection.
+    // Anchor sample origin at the nearest video edge with a fixed 1.5% inward inset.
+    // Fixed inset prevents fetching border-wall artifacts without crawling inward into the
+    // video (which would produce an inverted mirror reflection).
     highp vec2 edge_origin   = clamp(video_uv, safe_min, safe_max);
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.04);
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
+
+    // Determine whether this bar is pillarbox (dx > dy) or letterbox.
+    bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
 
     // -- Per-pixel Jorge Jimenez IGN jitter rotation -------------------------
-    // Rotating the Poisson disk per-pixel turns static tap offsets into a continuous
-    // stochastic Monte Carlo blur, eliminating any discrete tap ghosting or reflection.
-    mediump float jitter   = ign(uv * HOOKED_size) * 6.2831853;
-    mediump float jitter_s = sin(jitter);
-    mediump float jitter_c = cos(jitter);
-    mediump float aspect_x = HOOKED_size.y / HOOKED_size.x;
-    mediump float jitter_c_aspect = jitter_c * aspect_x;
-    mediump float jitter_s_aspect = jitter_s * aspect_x;
+    highp float jitter   = ign(uv * HOOKED_size) * 6.2831853;
+    highp float jitter_s = sin(jitter);
+    highp float jitter_c = cos(jitter);
+    // Aspect correction uses video dimensions so the Poisson disk stays circular in video space.
+    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
+    highp float jitter_c_aspect = jitter_c * aspect_x;
+    highp float jitter_s_aspect = jitter_s * aspect_x;
 
     // -- $tapCount-tap spiral Gaussian blur ------------------------------------------
     // Blend radius grows from baseRadius (crisp theater edge) to farRadius (diffuse).
-    mediump float br       = mix(${f(baseRadius)}, ${f(farRadius)}, dn);
-    mediump float br_scale = br / ${f(farRadius)};
+    highp float br       = mix(${f(baseRadius)}, ${f(farRadius)}, dn);
+    highp float br_scale = br / ${f(farRadius)};
 
-    mediump vec3  acc = vec3(0.0);
-    mediump float twt = 0.0;
+    highp vec3  acc = vec3(0.0);
+    highp float twt = 0.0;
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap = CINEMA_TAPS[i] * br_scale;
-        highp vec2 tap_off = vec2(
+        highp vec2 tap_rot = vec2(
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        mediump vec3  s = HOOKED_tex(clamp(sample_origin + tap_off, safe_min, safe_max)).rgb;
-        mediump float w = 1.0 + luma(s) * 1.5;
+        // Compress perpendicular penetration to stay within the edge margin (≤ 0.02)
+        // while allowing full wide diffusion along the bar.
+        highp vec2 tap_off = in_side_bar
+            ? vec2(tap_rot.x * 0.20, tap_rot.y)
+            : vec2(tap_rot.x, tap_rot.y * 0.20);
+
+        highp vec3  s = HOOKED_tex(clamp(sample_origin + tap_off, safe_min, safe_max)).rgb;
+        highp float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
     }
-    mediump vec3 col = acc / max(twt, 0.001);
+    highp vec3 col = acc / max(twt, 0.001);
 
     // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.55);
 
     // -- Fade: bright at edge, gone at bar end --------------------------------
-    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
-    mediump vec3 ambient_rgb = col * fade;
+    highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
+    highp vec3 ambient_rgb = col * fade;
 $vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
@@ -361,7 +369,7 @@ $vignetteLine$opacityLine
 
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
-    mediump float vig_r = length(uv - 0.5) * 2.0;
+    highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
@@ -378,34 +386,28 @@ $offsetsDecl
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Edge origin (nearest video pixel) -----------------------------------
+    // -- Edge origin (nearest video pixel in video-UV space) -----------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
+    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.015);
 
-    // Anchor echo_origin at a constant inward inset (independent of dn).
-    // This gives smear taps a clean margin inside real decoded content without
-    // crawling deeper into the frame, completely eliminating inverted mirror reflections.
-    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.035);
-
-    // -- Determine smear axes ------------------------------------------------
+    // -- Determine smear axis ------------------------------------------------
     // For pillarbox bars (left/right) smear vertically; for letterbox smear horizontally.
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
-    highp vec2 perp_dir  = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
 
-    // Smear width in video-UV space grows from tight at edge to wide at depth.
-    mediump float sw = ${f(swBase)} + ${f(swFar)} * dn;
-    mediump float dw = sw * 0.30;
+    // Smear width grows from tight at edge to wide at depth.
+    highp float sw = ${f(swBase)} + ${f(swFar)} * dn;
 
-    // High-frequency stochastic jitter along smear & transverse axes to dissolve tap banding
-    mediump float jitter = (ign(uv * HOOKED_size) - 0.5);
-    highp vec2 jitter_off = (smear_dir * (jitter * sw * 0.35)) + (perp_dir * (jitter * dw * 0.25));
+    // High-frequency stochastic jitter along smear axis to dissolve tap banding
+    highp float jitter = (ign(uv * HOOKED_size) - 0.5);
+    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35);
 
-    // -- $tapCount-tap Gaussian along smear axis with transverse spread ------
-    mediump vec3 col = vec3(0.0);
+    // -- $tapCount-tap Gaussian along smear axis -----------------------------
+    highp vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = ECHO_OFFSETS[i];
         highp vec2 tap_pos = clamp(
-            echo_origin + smear_dir * (step_factor * sw) + perp_dir * (step_factor * dw) + jitter_off,
+            echo_origin + smear_dir * (step_factor * sw) + jitter_off,
             safe_min, safe_max
         );
         col += HOOKED_tex(tap_pos).rgb * ECHO_WEIGHTS[i];
@@ -416,8 +418,8 @@ ${videoPrologue(reachScale)}
 $warmthLine    col = rolloff(col, 0.55);
 
     // -- Fade: power law gives a crisp edge followed by a long soft tail -----
-    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
-    mediump vec3 ambient_rgb = col * fade;
+    highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
+    highp vec3 ambient_rgb = col * fade;
 $vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
@@ -475,7 +477,7 @@ $vignetteLine$opacityLine
 
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
-    mediump float vig_r = length(uv - 0.5) * 2.0;
+    highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
@@ -501,10 +503,10 @@ ${videoPrologue(reachScale)}
     // -- Blur axis: fold along the same axis as the bar ----------------------
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 blur_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-    mediump float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
+    highp float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
 
     // -- $tapCount-tap blur along blur_dir -------------------------------------------
-    mediump vec3 col = vec3(0.0);
+    highp vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = MIRROR_OFFSETS[i];
         col += HOOKED_tex(clamp(m_uv + blur_dir * (step_factor * bw), safe_min, safe_max)).rgb * MIRROR_WEIGHTS[i];
@@ -515,13 +517,13 @@ ${videoPrologue(reachScale)}
 $warmthLine    col = rolloff(col, 0.30);
 
     // -- Mirror fade: tight power + Gaussian decay so seam is crisp ----------
-    mediump float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) *
+    highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) *
                          (0.55 + 0.45 * exp(-6.0 * dn));
 
     // Ceiling (top bar) reflects less light than floor -- dim by 30%.
     if (video_uv.y < 0.0) { fade *= 0.7; }
 
-    mediump vec3 ambient_rgb = col * (fade * ${f(intensityVal)});
+    highp vec3 ambient_rgb = col * (fade * ${f(intensityVal)});
 $vignetteLine$opacityLine
     // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);

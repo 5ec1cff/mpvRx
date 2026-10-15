@@ -147,25 +147,25 @@ private fun glowTapWeights(spec: AmbientGlowShaderSpec): DoubleArray {
  */
 private val GLSL_COMMON_HELPERS =
   """
-mediump float ign(highp vec2 p) {
-    mediump vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+highp float ign(highp vec2 p) {
+    highp vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
     return fract(magic.z * fract(dot(p, magic.xy)));
 }
 
-mediump float luma(mediump vec3 rgb) {
+highp float luma(highp vec3 rgb) {
     return dot(rgb, vec3(0.2126, 0.7152, 0.0722));
 }
 
-mediump vec3 adjust_saturation(mediump vec3 rgb, mediump float amount) {
-    mediump float l = luma(rgb);
+highp vec3 adjust_saturation(highp vec3 rgb, highp float amount) {
+    highp float l = luma(rgb);
     return max(vec3(l) + (rgb - vec3(l)) * amount, vec3(0.0));
 }
 
 // FIX 1: Multiplicative color-temperature adjustment.
 // Additive offsets turned pitch-black (0,0,0) murky orange; multiplying by a
 // per-channel gain preserves true black while still shifting white-point tone.
-mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
-    mediump vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
+highp vec3 apply_warmth(highp vec3 rgb, highp float amount) {
+    highp vec3 gain = vec3(1.0 + amount * 0.12, 1.0 + amount * 0.05, 1.0 - amount * 0.15);
     return clamp(rgb * gain, 0.0, 1.0);
 }
 
@@ -174,7 +174,7 @@ mediump vec3 apply_warmth(mediump vec3 rgb, mediump float amount) {
 // GLOW_INTENSITY uncapped, turning bars into a glaring white slab.
 // Compression: c / (1 + k*luma) — dark/mid tones pass almost unchanged,
 // highlights are softened so bars read as light, not overexposure.
-mediump vec3 rolloff(mediump vec3 c, mediump float k) {
+highp vec3 rolloff(highp vec3 c, highp float k) {
     return c * (1.0 / (1.0 + k * luma(c)));
 }
 
@@ -182,8 +182,8 @@ mediump vec3 rolloff(mediump vec3 c, mediump float k) {
 // Dark gradients stair-stepped visibly on OLED/8-bit panels because the
 // smooth edge_fade was truncated into 256 discrete output levels.
 // IGN noise amplitude is scaled by peak channel so pure black gets no noise.
-mediump vec3 dither_out(mediump vec3 c, highp vec2 p) {
-    mediump float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
+highp vec3 dither_out(highp vec3 c, highp vec2 p) {
+    highp float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
     return c + (ign(p) - 0.5) * (amp / 255.0);
 }
   """.trimIndent()
@@ -204,11 +204,11 @@ private val GLSL_VIDEO_PROLOGUE =
 
     bool inside_video = video_uv.x >= 0.0 && video_uv.x <= 1.0 &&
               video_uv.y >= 0.0 && video_uv.y <= 1.0;
-    mediump float video_weight = 0.0;
+    highp float video_weight = 0.0;
     if (inside_video) {
       highp vec2 video_size = HOOKED_size / vec2(SCALE_X, SCALE_Y);
-      mediump float blend_width = EDGE_BLEND * min(video_size.x, video_size.y);
-      mediump float inside_dist = blend_width;
+      highp float blend_width = EDGE_BLEND * min(video_size.x, video_size.y);
+      highp float inside_dist = blend_width;
       if (CENTER_X - 0.5 / SCALE_X > 0.0) {
         inside_dist = min(inside_dist, video_uv.x * video_size.x);
       }
@@ -228,21 +228,21 @@ private val GLSL_VIDEO_PROLOGUE =
     }
 
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
-    mediump float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
+    highp float edge_dist = length(video_uv - clamp(video_uv, 0.0, 1.0));
 
     // Interleaved Gradient Noise jitter: avoids rand() sin() overhead and improves GPU cache hits
-    mediump float jitter = ign(uv * HOOKED_size) * 6.2831853;
-    mediump float jitter_s = sin(jitter);
-    mediump float jitter_c = cos(jitter);
-    mediump float aspect_x = HOOKED_size.y / HOOKED_size.x;
-    mediump float jitter_c_aspect = jitter_c * aspect_x;
-    mediump float jitter_s_aspect = jitter_s * aspect_x;
+    highp float jitter = ign(uv * HOOKED_size) * 6.2831853;
+    highp float jitter_s = sin(jitter);
+    highp float jitter_c = cos(jitter);
+    highp float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    highp float jitter_c_aspect = jitter_c * aspect_x;
+    highp float jitter_s_aspect = jitter_s * aspect_x;
   """.trimIndent().prependIndent("    ")
 
 /** End of hook(): vignette, opacity, and the optional edge and bezel blends. */
 private val GLSL_AMBIENT_EPILOGUE =
   """
-    mediump float vig_r = length(uv - 0.5) * 2.0;
+    highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
 
     // FIX 7 (part a): dither before quantisation to the 8-bit swapchain so the
@@ -250,7 +250,7 @@ private val GLSL_AMBIENT_EPILOGUE =
     // Noise amplitude tracks peak channel so silence on pure black is guaranteed.
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
 
-    mediump vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
+    highp vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
 
     if (inside_video) {
       return mix(ambient_out, HOOKED_tex(clamp(video_uv, safe_min, safe_max)), video_weight);
@@ -265,8 +265,8 @@ private val GLSL_AMBIENT_EPILOGUE =
     // max(dx,dy) produced sharp diamond-shaped seams at pillarbox/letterbox corners;
     // length() gives a smooth circular transition matching real-world bezel curvature.
     highp vec2 outside_dist = max(max(-video_uv, video_uv - vec2(1.0)), vec2(0.0));
-    mediump float dist_to_edge = length(outside_dist);
-    mediump float bezel_alpha = smoothstep(0.0, BEZEL_DEPTH, dist_to_edge);
+    highp float dist_to_edge = length(outside_dist);
+    highp float bezel_alpha = smoothstep(0.0, BEZEL_DEPTH, dist_to_edge);
 
     vec4 edge_pixel = HOOKED_tex(edge_origin);
     return mix(edge_pixel, ambient_out, bezel_alpha);
@@ -285,7 +285,7 @@ object AmbientShaderBuilder {
 //!DESC True Ambient Mode (Glow)
 
 #ifdef GL_ES
-precision mediump float;
+precision highp float;
 precision highp int;
 #else
 #define mediump
@@ -318,7 +318,7 @@ vec4 hook() {
 $GLSL_VIDEO_PROLOGUE
 
     // Normalised reach distance: 0.0 at frame edge, >= 1.0 beyond glow reach.
-    mediump float dn = edge_dist * INV_RADIUS_SCALE;
+    highp float dn = edge_dist * INV_RADIUS_SCALE;
     if (dn >= 1.0) {
         return vec4(dither_out(vec3(0.0), uv * HOOKED_size), 1.0);
     }
@@ -328,10 +328,10 @@ $GLSL_VIDEO_PROLOGUE
 
     // Physical dual-phase emitter curve (from fx_ambient):
     // luminous core relaxing into a smooth tail that cleanly lands on true black at dn = 1.0.
-    mediump float edge_fade = pow(1.0 - dn, FADE_CURVE * 1.4) * (0.6 + 0.4 * exp(-5.0 * dn));
+    highp float edge_fade = pow(1.0 - dn, FADE_CURVE * 1.4) * (0.6 + 0.4 * exp(-5.0 * dn));
 
-    mediump vec3 acc_color = vec3(0.0);
-    mediump float acc_weight = 0.0;
+    highp vec3 acc_color = vec3(0.0);
+    highp float acc_weight = 0.0;
 
     for (int i = 0; i < BLUR_SAMPLES; i++) {
         vec3 tap = GLOW_TAPS[i];
@@ -341,15 +341,15 @@ $GLSL_VIDEO_PROLOGUE
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        mediump vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
+        highp vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
 
-        mediump float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
+        highp float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
 
         acc_color += sample_rgb * weight;
         acc_weight += weight;
     }
 
-    mediump vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
+    highp vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
     ambient_rgb = adjust_saturation(ambient_rgb, SAT_BOOST);
     ambient_rgb = apply_warmth(ambient_rgb, WARMTH);
     // FIX 6: apply highlight roll-off so bright-edge scenes don't produce a
