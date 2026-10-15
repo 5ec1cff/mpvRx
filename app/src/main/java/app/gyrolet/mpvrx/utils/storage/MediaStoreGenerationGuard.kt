@@ -116,13 +116,20 @@ object MediaStoreGenerationGuard {
    * Called whenever something outside a MediaStore query may have changed the library: a
    * user-driven refresh, a media event, or an in-app file mutation.
    */
-  fun invalidate(context: Context) {
+  /**
+   * Forget the shared Folder-list token without discarding a valid, independent Tree snapshot.
+   * Per-mode scan-option changes already produce distinct Tree cache keys.
+   */
+  fun forgetLastScan(context: Context) {
     runCatching { prefs(context).edit().remove(KEY_TOKEN).apply() }
       .onFailure { error ->
         Log.w(TAG, "Could not clear stored MediaStore generation", error)
       }
-    // Snapshots embed their own generation, so they have to be dropped too or a stale tree would
-    // still be restorable through the isSnapshotCurrent path.
+  }
+
+  fun invalidate(context: Context) {
+    forgetLastScan(context)
+    // Explicit hard refreshes and real media mutations must still drop Tree's snapshot.
     TreeViewCache.clear(context)
   }
 
