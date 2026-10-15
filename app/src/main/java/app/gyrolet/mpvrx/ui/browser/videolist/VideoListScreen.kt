@@ -111,6 +111,7 @@ import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.selection.SelectionManager
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
+import app.gyrolet.mpvrx.ui.browser.states.LoadingState
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -980,19 +981,12 @@ internal fun VideoListContent(
 
   when {
     isLoading && videosWithInfo.isEmpty() -> {
-      Box(
-        modifier =
-          modifier
-            .fillMaxSize()
-            .padding(bottom = 80.dp),
-        // Account for bottom navigation bar
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(48.dp),
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
+      LoadingState(
+        icon = Icons.RoundedFilled.VideoLibrary,
+        title = stringResource(R.string.ui_scanning_for_videos),
+        message = "Please wait while we search your device",
+        modifier = modifier.fillMaxSize().padding(bottom = 80.dp),
+      )
     }
 
     videosWithInfo.isEmpty() && !isLoading && videosWereDeletedOrMoved -> {
