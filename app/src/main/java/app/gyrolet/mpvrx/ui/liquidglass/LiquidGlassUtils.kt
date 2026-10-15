@@ -50,6 +50,9 @@ import kotlin.math.abs
 
 val LocalKyantPlayerBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
+/** Prevent HDR playback from refracting the sampled video across player glass surfaces. */
+internal val LocalPlayerHdrOutputEnabled = staticCompositionLocalOf { false }
+
 object LiquidControlColors {
     val accent: Color
         @Composable get() = MaterialTheme.colorScheme.primary
@@ -80,6 +83,7 @@ data class LiquidGlassSettings(
     val highlightStrength: Float,
     val highlightWidth: Float,
     val highlightBlur: Float,
+    val allowRefraction: Boolean = true,
 ) {
     fun surfaceColor(base: Color): Color = base
 
@@ -99,6 +103,7 @@ data class LiquidGlassSettings(
 @Composable
 fun rememberLiquidGlassSettings(): LiquidGlassSettings {
     val preferences = koinInject<AppearancePreferences>()
+    val hdrVideoOutput = LocalPlayerHdrOutputEnabled.current
     val opacity by preferences.liquidGlassOpacity.collectAsState()
     val blur by preferences.liquidGlassBlur.collectAsState()
     val refractionHeight by preferences.liquidGlassRefractionHeight.collectAsState()
@@ -122,6 +127,7 @@ fun rememberLiquidGlassSettings(): LiquidGlassSettings {
         depthEffect, chromaticAberration, vibrancy,
         saturation.bounded(1f), brightness.bounded(0f, -1f..1f), contrast.bounded(1f),
         highlightStyle, highlightStrength.bounded(1f), highlightWidth.bounded(1f), highlightBlur.bounded(1f),
+        allowRefraction = !hdrVideoOutput,
     )
 }
 
@@ -136,7 +142,7 @@ fun BackdropEffectScope.liquidGlassEffects(
     if (vibrant && settings.vibrancy) vibrancy()
     colorControls(settings.brightness, settings.contrast, settings.saturation)
     if (settings.blur > 0f) blur(blurRadius * settings.blur)
-    if (refractionEnabled && settings.refractionHeight > 0f && settings.refractionAmount > 0f) {
+    if (refractionEnabled && settings.allowRefraction && settings.refractionHeight > 0f && settings.refractionAmount > 0f) {
         lens(
             refractionHeight * settings.refractionHeight,
             refractionAmount * settings.refractionAmount,

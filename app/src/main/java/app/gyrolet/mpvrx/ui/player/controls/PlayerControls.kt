@@ -183,6 +183,7 @@ import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsContainer
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerHdrOutputEnabled
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.abs
@@ -653,6 +654,7 @@ fun PlayerControls(
 
   CompositionLocalProvider(
     LocalKyantPlayerBackdrop provides playerKyantBackdrop,
+    LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
     LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
     LocalHidePlayerButtonsBackground provides hideBackground,
   ) {
