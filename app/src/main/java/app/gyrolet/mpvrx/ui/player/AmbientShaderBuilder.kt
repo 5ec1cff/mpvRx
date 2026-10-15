@@ -236,7 +236,7 @@ private val GLSL_VIDEO_PROLOGUE =
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
     // Aspect correction uses video dimensions so the Poisson disk stays circular in video space
-    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ASPECT_SCALE_RATIO;
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
   """.trimIndent().prependIndent("    ")
@@ -307,10 +307,11 @@ precision highp int;
 #define WARMTH           ${glslFloat(spec.warmth.toDouble())}
 #define FADE_CURVE       ${glslFloat(spec.fadeCurve.toDouble())}
 #define OPACITY          ${glslFloat(spec.shared.opacity.toDouble())}
-#define SCALE_X          ${glslFloat(spec.context.scaleX)}
-#define SCALE_Y          ${glslFloat(spec.context.scaleY)}
-#define CENTER_X         ${glslFloat(spec.context.centerX)}
-#define CENTER_Y         ${glslFloat(spec.context.centerY)}
+#define SCALE_X            ${glslFloat(spec.context.scaleX)}
+#define SCALE_Y            ${glslFloat(spec.context.scaleY)}
+#define CENTER_X           ${glslFloat(spec.context.centerX)}
+#define CENTER_Y           ${glslFloat(spec.context.centerY)}
+#define ASPECT_SCALE_RATIO ${glslFloat(spec.context.scaleX / spec.context.scaleY)}
 
 // tap.xy = pre-scaled offset by maxRadius; tap.z = precomputed distance falloff.
 ${buildSpiralTapTable("GLOW_TAPS", spec)}
@@ -334,8 +335,8 @@ $GLSL_VIDEO_PROLOGUE
     // luminous core relaxing into a smooth tail that cleanly lands on true black at dn = 1.0.
     highp float edge_fade = pow(1.0 - dn, FADE_CURVE * 1.4) * (0.6 + 0.4 * exp(-5.0 * dn));
 
-    highp vec3 acc_color = vec3(0.0);
-    highp float acc_weight = 0.0;
+    mediump vec3 acc_color = vec3(0.0);
+    mediump float acc_weight = 0.0;
 
     for (int i = 0; i < BLUR_SAMPLES; i++) {
         vec3 tap = GLOW_TAPS[i];
@@ -345,15 +346,15 @@ $GLSL_VIDEO_PROLOGUE
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        highp vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
+        mediump vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
 
-        highp float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
+        mediump float weight = mediump float(tap.z) * (1.0 + luma(sample_rgb) * 2.0);
 
         acc_color += sample_rgb * weight;
         acc_weight += weight;
     }
 
-    highp vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
+    mediump vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
     ambient_rgb = adjust_saturation(ambient_rgb, SAT_BOOST);
     ambient_rgb = apply_warmth(ambient_rgb, WARMTH);
     // FIX 6: apply highlight roll-off so bright-edge scenes don't produce a

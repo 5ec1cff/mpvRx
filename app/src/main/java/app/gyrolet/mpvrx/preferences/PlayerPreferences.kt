@@ -169,8 +169,8 @@ class PlayerPreferences(
   val ambientYouTubeEdgeBlend = preferenceStore.getFloat("ambient_youtube_edge_blend", 0.005f)
 
   // Cinema Mode
-  val ambientCinemaBlurSamples = preferenceStore.getInt("ambient_cinema_blur_samples", 8)
-  val ambientCinemaSpread = preferenceStore.getFloat("ambient_cinema_spread", 0.10f)
+  val ambientCinemaBlurSamples = preferenceStore.getInt("ambient_cinema_blur_samples", 14)
+  val ambientCinemaSpread = preferenceStore.getFloat("ambient_cinema_spread", 0.18f)
   val ambientCinemaIntensity = preferenceStore.getFloat("ambient_cinema_intensity", 1.0f)
   val ambientCinemaSatBoost = preferenceStore.getFloat("ambient_cinema_sat_boost", 1.0f)
   val ambientCinemaWarmth = preferenceStore.getFloat("ambient_cinema_warmth", 0.0f)
@@ -179,8 +179,8 @@ class PlayerPreferences(
   val ambientCinemaVignette = preferenceStore.getFloat("ambient_cinema_vignette", 0.0f)
 
   // Echo Mode
-  val ambientEchoBlurSamples = preferenceStore.getInt("ambient_echo_blur_samples", 5)
-  val ambientEchoSpread = preferenceStore.getFloat("ambient_echo_spread", 0.10f)
+  val ambientEchoBlurSamples = preferenceStore.getInt("ambient_echo_blur_samples", 9)
+  val ambientEchoSpread = preferenceStore.getFloat("ambient_echo_spread", 0.14f)
   val ambientEchoIntensity = preferenceStore.getFloat("ambient_echo_intensity", 1.0f)
   val ambientEchoSatBoost = preferenceStore.getFloat("ambient_echo_sat_boost", 1.0f)
   val ambientEchoWarmth = preferenceStore.getFloat("ambient_echo_warmth", 0.0f)

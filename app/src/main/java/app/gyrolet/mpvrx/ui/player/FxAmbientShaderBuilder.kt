@@ -47,15 +47,15 @@ object FxAmbientPresets {
   val ambilightBalanced = FxAmbientPreset(14, 0.12f, 1.0f, 1.0f, 0.0f, 0.0f, 2.4f, 1.0f)
   val ambilightHighQuality = FxAmbientPreset(20, 0.15f, 1.1f, 1.05f, 0.0f, 0.0f, 2.4f, 1.0f)
 
-  // Cinema
-  val cinemaFast = FxAmbientPreset(6, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
-  val cinemaBalanced = FxAmbientPreset(8, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
-  val cinemaHighQuality = FxAmbientPreset(16, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.15f, 1.0f)
+  // Cinema (wide-radius diffuse backdrop)
+  val cinemaFast = FxAmbientPreset(8, 0.14f, 0.9f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaBalanced = FxAmbientPreset(14, 0.18f, 1.0f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaHighQuality = FxAmbientPreset(22, 0.22f, 1.1f, 1.05f, 0.0f, 0.0f, 1.15f, 1.0f)
 
-  // Echo
-  val echoFast = FxAmbientPreset(3, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
-  val echoBalanced = FxAmbientPreset(5, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
-  val echoHighQuality = FxAmbientPreset(7, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.8f, 1.0f)
+  // Echo (2D anisotropic wave smear)
+  val echoFast = FxAmbientPreset(5, 0.10f, 0.9f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoBalanced = FxAmbientPreset(9, 0.14f, 1.0f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoHighQuality = FxAmbientPreset(15, 0.18f, 1.1f, 1.05f, 0.0f, 0.0f, 1.8f, 1.0f)
 
   // Mirror
   val mirrorFast = FxAmbientPreset(3, 0.05f, 0.9f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f)
@@ -156,7 +156,7 @@ highp vec3 dither_out(highp vec3 c, highp vec2 p) {
 
 // Cubic B-spline filter using 4 bilinear taps (GPU Gems 2, ch. 20).
 // C2-smooth filter that eliminates stair-stepping, grid creases, and noisy stippling.
-highp vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 min_bound, highp vec2 max_bound) {
+mediump vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 inv_size, highp vec2 min_bound, highp vec2 max_bound) {
     highp vec2 st = sample_uv * size - 0.5;
     highp vec2 i = floor(st);
     highp vec2 f = st - i;
@@ -168,13 +168,15 @@ highp vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 min_bou
     highp vec2 w3 = f3 * (1.0 / 6.0);
     highp vec2 g0 = w0 + w1;
     highp vec2 g1 = w2 + w3;
-    highp vec2 p0 = clamp((i + w1 / g0 - 0.5) / size, min_bound, max_bound);
-    highp vec2 p1 = clamp((i + w3 / g1 + 1.5) / size, min_bound, max_bound);
-    highp vec3 c00 = HOOKED_tex(vec2(p0.x, p0.y)).rgb;
-    highp vec3 c10 = HOOKED_tex(vec2(p1.x, p0.y)).rgb;
-    highp vec3 c01 = HOOKED_tex(vec2(p0.x, p1.y)).rgb;
-    highp vec3 c11 = HOOKED_tex(vec2(p1.x, p1.y)).rgb;
-    return (c00 * g0.x + c10 * g1.x) * g0.y + (c01 * g0.x + c11 * g1.x) * g1.y;
+    highp vec2 p0 = clamp((i + w1 / g0 - 0.5) * inv_size, min_bound, max_bound);
+    highp vec2 p1 = clamp((i + w3 / g1 + 1.5) * inv_size, min_bound, max_bound);
+    mediump vec3 c00 = HOOKED_tex(vec2(p0.x, p0.y)).rgb;
+    mediump vec3 c10 = HOOKED_tex(vec2(p1.x, p0.y)).rgb;
+    mediump vec3 c01 = HOOKED_tex(vec2(p0.x, p1.y)).rgb;
+    mediump vec3 c11 = HOOKED_tex(vec2(p1.x, p1.y)).rgb;
+    mediump vec2 g0_m = mediump vec2(g0);
+    mediump vec2 g1_m = mediump vec2(g1);
+    return (c00 * g0_m.x + c10 * g1_m.x) * g0_m.y + (c01 * g0_m.x + c11 * g1_m.x) * g1_m.y;
 }
 
   """.trimIndent()
@@ -191,6 +193,10 @@ highp vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 min_bou
   private fun videoPrologue(reachScale: Double): String = """
     highp vec2 uv       = HOOKED_pos;
     highp vec2 video_uv = (uv - vec2(CENTER_X, CENTER_Y)) * vec2(SCALE_X, SCALE_Y) + 0.5;
+
+    // Precalculated resolution vectors to eliminate per-tap runtime 2D divisions
+    highp vec2 video_res     = HOOKED_size / vec2(SCALE_X, SCALE_Y);
+    highp vec2 inv_video_res = vec2(SCALE_X, SCALE_Y) / HOOKED_size;
 
     // Half-texel inset to avoid fetching outside decoded frame boundaries.
     highp vec2 half_texel = vec2(0.5) / HOOKED_size;
@@ -284,13 +290,12 @@ ${videoPrologue(reachScale)}
     highp float jitter = ign(uv * HOOKED_size) * 6.2831853;
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
-    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ${f(spec.scaleX / spec.scaleY)};
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
 
-    highp vec2 video_res = HOOKED_size / vec2(SCALE_X, SCALE_Y);
-    highp vec3 acc = vec3(0.0);
-    highp float twt = 0.0;
+    mediump vec3 acc = vec3(0.0);
+    mediump float twt = 0.0;
 
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap = AMBILIGHT_TAPS[i];
@@ -299,12 +304,12 @@ ${videoPrologue(reachScale)}
             tap.x * jitter_s + tap.y * jitter_c
         );
         highp vec2 tap_pos = clamp(sample_origin + tap_rot, safe_min, safe_max);
-        highp vec3 s = bspline_tex(tap_pos, video_res, safe_min, safe_max);
-        highp float w = 1.0 + luma(s) * 1.5;
+        mediump vec3 s = bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max);
+        mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
     }
-    highp vec3 col = acc / max(twt, 0.001);
+    mediump vec3 col = acc / max(twt, 0.001);
 
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.55);
@@ -341,16 +346,16 @@ $vignetteLine$opacityLine
 
   /**
    * Builds the authentic fx_ambient Cinema mode: projects the entire picture enlarged
-   * and dissolved into a soft wash behind the frame with B-spline diffusion.
+   * and dissolved into a wide-radius soft wash behind the frame with B-spline diffusion.
    */
   fun buildCinema(
     @Suppress("UNUSED_PARAMETER") context: Context,
     spec: FxAmbientShaderSpec,
   ): String {
-    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
+    val spreadScale = (spec.spread.toDouble() / 0.18).coerceIn(0.2, 4.0)
     val reachScale = 1.45 * spreadScale
-    val farRadius = (0.12 * spreadScale).coerceIn(0.01, 0.50)
-    val baseRadius = (0.03 * spreadScale).coerceIn(0.005, 0.20)
+    val farRadius = (0.36 * spreadScale).coerceIn(0.12, 0.65)
+    val baseRadius = (0.16 * spreadScale).coerceIn(0.06, 0.40)
     val tapCount = spec.blurSamples.coerceIn(4, 32)
     val tapTable = tapTable("CINEMA_TAPS", tapCount, farRadius)
 
@@ -377,23 +382,21 @@ vec4 hook() {
 ${videoPrologue(reachScale)}
 
     // -- Authentic fx_ambient Cinema whole-picture scaled backdrop ------------
-    // Projects the whole picture enlarged and dissolved behind the frame.
-    highp float cinema_scale = 1.12 + 0.30 * clamp(float(${f(spreadScale)}) * 0.5, 0.1, 2.0);
+    // Projects the whole picture enlarged and dissolved behind the frame with wide-radius B-spline diffusion.
+    highp float cinema_scale = 1.25 + 0.35 * clamp(float(${f(spreadScale)}) * 0.5, 0.1, 2.0);
     highp vec2 cinema_uv = clamp((video_uv - vec2(0.5)) / cinema_scale + vec2(0.5), safe_min, safe_max);
 
     highp float jitter   = ign(uv * HOOKED_size) * 6.2831853;
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
-    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ${f(spec.scaleX / spec.scaleY)};
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
 
-    highp float br = mix(${f(baseRadius)}, ${f(farRadius)}, smoothstep(0.0, 1.0, dn));
-    highp float br_scale = br / ${f(farRadius)};
+    highp float br_scale = mix(${f(baseRadius / farRadius)}, 1.0, smoothstep(0.0, 1.0, dn));
 
-    highp vec2 video_res = HOOKED_size / vec2(SCALE_X, SCALE_Y);
-    highp vec3 acc = vec3(0.0);
-    highp float twt = 0.0;
+    mediump vec3 acc = vec3(0.0);
+    mediump float twt = 0.0;
 
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap = CINEMA_TAPS[i] * br_scale;
@@ -402,12 +405,12 @@ ${videoPrologue(reachScale)}
             tap.x * jitter_s + tap.y * jitter_c
         );
         highp vec2 tap_pos = clamp(cinema_uv + tap_rot, safe_min, safe_max);
-        highp vec3 s = bspline_tex(tap_pos, video_res, safe_min, safe_max);
-        highp float w = 1.0 + luma(s) * 1.5;
+        mediump vec3 s = bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max);
+        mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
     }
-    highp vec3 col = acc / max(twt, 0.001);
+    mediump vec3 col = acc / max(twt, 0.001);
 
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.55);
@@ -429,8 +432,8 @@ $vignetteLine$opacityLine
         style = AmbientStyle.Cinema,
         scaleX = scaleX,
         scaleY = scaleY,
-        blurSamples = 8,
-        spread = 0.10f,
+        blurSamples = 14,
+        spread = 0.18f,
         intensity = 1.0f,
         satBoost = 1.0f,
         vignetteStrength = 0.0f,
@@ -443,17 +446,18 @@ $vignetteLine$opacityLine
   // -- Echo -------------------------------------------------------------------
 
   /**
-   * Builds the Echo ambient shader: an edge-parallel Gaussian smear with aspect normalization
-   * and B-spline sampling.
+   * Builds the Echo ambient shader: 2D anisotropic wave with tangential smear and transverse diffusion.
    */
   fun buildEcho(
     @Suppress("UNUSED_PARAMETER") context: Context,
     spec: FxAmbientShaderSpec,
   ): String {
-    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
-    val reachScale = 1.25 * spreadScale
-    val swBase = 0.02 * spreadScale
-    val swFar = 0.10 * spreadScale
+    val spreadScale = (spec.spread.toDouble() / 0.14).coerceIn(0.2, 4.0)
+    val reachScale = 1.35 * spreadScale
+    val swBase = 0.05 * spreadScale
+    val swFar = 0.22 * spreadScale
+    val cwBase = 0.02 * spreadScale
+    val cwFar = 0.09 * spreadScale
 
     val tapCount = spec.blurSamples.coerceIn(3, 15).let { if (it % 2 == 0) it + 1 else it }
     val halfCount = tapCount / 2
@@ -480,12 +484,21 @@ $vignetteLine$opacityLine
 
     val weightsDecl = "const float ECHO_WEIGHTS[$tapCount] = float[$tapCount](${weights.joinToString(", ") { f(it) }});"
     val offsetsDecl = "const float ECHO_OFFSETS[$tapCount] = float[$tapCount](${(-halfCount..halfCount).joinToString(", ") { f(it.toDouble() / halfCount) }});"
+    val crossFactors = (0 until tapCount).map { i ->
+      when (i % 4) {
+        1 -> 1.0
+        3 -> -1.0
+        else -> 0.0
+      }
+    }
+    val crossDecl = "const float ECHO_CROSS[$tapCount] = float[$tapCount](${crossFactors.joinToString(", ") { f(it) }});"
 
     return """
 ${buildHeader("Fx Ambient -- Echo", spec.scaleX, spec.scaleY, spec.centerX, spec.centerY)}
 
 $weightsDecl
 $offsetsDecl
+$crossDecl
 
 vec4 hook() {
 ${videoPrologue(reachScale)}
@@ -493,25 +506,29 @@ ${videoPrologue(reachScale)}
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
     highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.015);
 
-    // Smear direction along the edge (parallel to the frame boundary)
+    // Tangential direction along the edge boundary
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+    // Transverse direction (radial into the bar/picture)
+    highp vec2 cross_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
 
-    // Normalize smear width by aspect ratio so pixel width is consistent along horizontal and vertical bars
-    highp float aspect_ratio = (HOOKED_size.x / SCALE_X) / (HOOKED_size.y / SCALE_Y);
+    // Aspect normalization for physical screen space
+    highp float aspect_ratio = (HOOKED_size.x / HOOKED_size.y) * ${f(spec.scaleY / spec.scaleX)};
     highp float sw = (${f(swBase)} + ${f(swFar)} * dn) * (in_side_bar ? aspect_ratio : 1.0);
+    highp float cw = (${f(cwBase)} + ${f(cwFar)} * dn);
 
     highp float jitter = (ign(uv * HOOKED_size) - 0.5);
-    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35);
+    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35) + cross_dir * (jitter * cw * 0.35);
 
-    highp vec2 video_res = HOOKED_size / vec2(SCALE_X, SCALE_Y);
-    highp vec3 col = vec3(0.0);
+    mediump vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = ECHO_OFFSETS[i];
+        // 2D anisotropic wave: tangential smear combined with precomputed transverse diffusion phase
+        float cross_factor = ECHO_CROSS[i] * cw;
         highp vec2 tap_pos = clamp(
-            echo_origin + smear_dir * (step_factor * sw) + jitter_off,
+            echo_origin + smear_dir * (step_factor * sw) + cross_dir * cross_factor + jitter_off,
             safe_min, safe_max
         );
-        col += bspline_tex(tap_pos, video_res, safe_min, safe_max) * ECHO_WEIGHTS[i];
+        col += bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max) * ECHO_WEIGHTS[i];
     }
 
     col = vibrance(col, ${f(vibranceVal)});
@@ -533,8 +550,8 @@ $vignetteLine$opacityLine
         style = AmbientStyle.Echo,
         scaleX = scaleX,
         scaleY = scaleY,
-        blurSamples = 5,
-        spread = 0.10f,
+        blurSamples = 9,
+        spread = 0.14f,
         intensity = 1.0f,
         satBoost = 1.0f,
         vignetteStrength = 0.0f,
@@ -600,12 +617,11 @@ ${videoPrologue(reachScale)}
     highp vec2 blur_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
     highp float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
 
-    highp vec2 video_res = HOOKED_size / vec2(SCALE_X, SCALE_Y);
-    highp vec3 col = vec3(0.0);
+    mediump vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = MIRROR_OFFSETS[i];
         highp vec2 tap_pos = clamp(m_uv + blur_dir * (step_factor * bw), safe_min, safe_max);
-        col += bspline_tex(tap_pos, video_res, safe_min, safe_max) * MIRROR_WEIGHTS[i];
+        col += bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max) * MIRROR_WEIGHTS[i];
     }
 
     col = vibrance(col, ${f(vibranceVal)});
