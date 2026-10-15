@@ -422,7 +422,11 @@ object MediaFileRepository : KoinComponent {
             foldersPreferences.scopedHiddenFolderUris.get(),
             minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
             excludeMediaStoreItems = true,
-          )
+          ).filter { video ->
+            // SAF exposes files invisible to MediaStore, including dot-prefixed media.
+            // Apply the same per-view filename policy after reading the selected grant.
+            foldersPreferences.scanDotFolders(scope) || !video.displayName.startsWith(".")
+          }
         } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           emptyList()
         } else {
