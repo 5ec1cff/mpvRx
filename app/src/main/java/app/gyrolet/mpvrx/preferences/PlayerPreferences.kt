@@ -198,6 +198,16 @@ class PlayerPreferences(
   val ambientMirrorOpacity = preferenceStore.getFloat("ambient_mirror_opacity", 1.0f)
   val ambientMirrorVignette = preferenceStore.getFloat("ambient_mirror_vignette", 0.0f)
 
+  // Ambilight Mode (fx_ambient Glow)
+  val ambientAmbilightBlurSamples = preferenceStore.getInt("ambient_ambilight_blur_samples", 12)
+  val ambientAmbilightSpread = preferenceStore.getFloat("ambient_ambilight_spread", 0.12f)
+  val ambientAmbilightIntensity = preferenceStore.getFloat("ambient_ambilight_intensity", 1.0f)
+  val ambientAmbilightSatBoost = preferenceStore.getFloat("ambient_ambilight_sat_boost", 1.0f)
+  val ambientAmbilightWarmth = preferenceStore.getFloat("ambient_ambilight_warmth", 0.0f)
+  val ambientAmbilightFadeCurve = preferenceStore.getFloat("ambient_ambilight_fade_curve", 2.4f)
+  val ambientAmbilightOpacity = preferenceStore.getFloat("ambient_ambilight_opacity", 1.0f)
+  val ambientAmbilightVignette = preferenceStore.getFloat("ambient_ambilight_vignette", 0.0f)
+
   val isAmbientEnabled = preferenceStore.getBoolean("ambient_enabled", false)
   val ambientBatterySaver = preferenceStore.getBoolean("ambient_battery_saver", false)
 

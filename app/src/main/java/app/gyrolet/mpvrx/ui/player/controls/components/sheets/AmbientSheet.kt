@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
@@ -90,6 +91,7 @@ fun AmbientSheet(
     ) {
       when (ambientStyle) {
         AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Ambilight -> matchesFxPreset(FxAmbientPresets.ambilightFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorFast, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
@@ -102,6 +104,7 @@ fun AmbientSheet(
     ) {
       when (ambientStyle) {
         AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Ambilight -> matchesFxPreset(FxAmbientPresets.ambilightBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorBalanced, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
@@ -114,6 +117,7 @@ fun AmbientSheet(
     ) {
       when (ambientStyle) {
         AmbientStyle.Glow -> matchesGlowPreset(AmbientShaderPresets.glowHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
+        AmbientStyle.Ambilight -> matchesFxPreset(FxAmbientPresets.ambilightHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Cinema -> matchesFxPreset(FxAmbientPresets.cinemaHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Echo -> matchesFxPreset(FxAmbientPresets.echoHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
         AmbientStyle.Mirror -> matchesFxPreset(FxAmbientPresets.mirrorHighQuality, blurSamples, maxRadius, glowIntensity, satBoost, vignetteStrength, warmth, fadeCurve, opacity)
@@ -132,20 +136,23 @@ fun AmbientSheet(
           .padding(vertical = 8.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-      SingleChoiceSegmentedButtonRow(
+      Row(
         modifier =
           Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
       ) {
-        AmbientStyle.entries.forEachIndexed { index, style ->
-          SegmentedButton(
-            selected = ambientStyle == style,
-            onClick = { viewModel.setAmbientStyle(style) },
-            shape = SegmentedButtonDefaults.itemShape(index, AmbientStyle.entries.size),
-            colors = themedSegmentedButtonColors(),
-          ) {
-            Text(text = stringResource(style.titleRes))
+        SingleChoiceSegmentedButtonRow {
+          AmbientStyle.entries.forEachIndexed { index, style ->
+            SegmentedButton(
+              selected = ambientStyle == style,
+              onClick = { viewModel.setAmbientStyle(style) },
+              shape = SegmentedButtonDefaults.itemShape(index, AmbientStyle.entries.size),
+              colors = themedSegmentedButtonColors(),
+            ) {
+              Text(text = stringResource(style.titleRes))
+            }
           }
         }
       }
@@ -241,7 +248,14 @@ fun AmbientSheet(
           verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
           val minSamples = if (ambientStyle == AmbientStyle.Mirror || ambientStyle == AmbientStyle.Echo) 3 else 4
-          val maxSamples = if (ambientStyle == AmbientStyle.Glow) 64 else 32
+          val maxSamples = when (ambientStyle) {
+            AmbientStyle.Glow -> 64
+            AmbientStyle.Ambilight -> 32
+            AmbientStyle.Cinema -> 32
+            AmbientStyle.Echo -> 15
+            AmbientStyle.Mirror -> 9
+            AmbientStyle.YouTube -> 32
+          }
           SliderItem(
             label = "Blur Samples",
             valueText = "$blurSamples",

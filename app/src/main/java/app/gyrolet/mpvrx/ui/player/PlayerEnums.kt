@@ -127,6 +127,10 @@ enum class AmbientStyle(
   /** Reflected / folded UV mirror of the video edge, blur grows with depth.
    *  Adapted from fx_ambient mirror() — top bar is dimmer than bottom. */
   Mirror(R.string.ambient_mirror),
+
+  /** Authentic fx_ambient Glow (Ambilight) mode: each edge lights the dark beside it with
+   *  physical dual-phase emitter curves, vibrance, and bicubic B-spline diffusion. */
+  Ambilight(R.string.ambient_ambilight),
 }
 
 enum class MPVProfile(

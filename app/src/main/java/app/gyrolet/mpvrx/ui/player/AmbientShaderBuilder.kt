@@ -94,6 +94,7 @@ private fun spiralRadiusNorm(
 ): Double = sqrt((index.toDouble() + 0.5) / count.toDouble())
 
 private data class TapCacheKey(
+  val name: String,
   val samples: Int,
   val maxRadius: Float,
   val fadeCurve: Float,
@@ -106,7 +107,7 @@ private fun buildSpiralTapTable(
   name: String,
   spec: AmbientGlowShaderSpec,
 ): String {
-  val key = TapCacheKey(spec.blurSamples, spec.maxRadius, spec.fadeCurve)
+  val key = TapCacheKey(name, spec.blurSamples, spec.maxRadius, spec.fadeCurve)
   tapTableCache.get(key)?.let { return it }
 
   val count = spec.blurSamples.coerceAtLeast(1)
@@ -234,7 +235,8 @@ private val GLSL_VIDEO_PROLOGUE =
     highp float jitter = ign(uv * HOOKED_size) * 6.2831853;
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
-    highp float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    // Aspect correction uses video dimensions so the Poisson disk stays circular in video space
+    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
   """.trimIndent().prependIndent("    ")
@@ -244,13 +246,14 @@ private val GLSL_AMBIENT_EPILOGUE =
   """
     highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
+    ambient_rgb *= OPACITY;
 
     // FIX 7 (part a): dither before quantisation to the 8-bit swapchain so the
     // exponential fade into true black never shows stair-step contour lines.
     // Noise amplitude tracks peak channel so silence on pure black is guaranteed.
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
 
-    highp vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
+    highp vec4 ambient_out = vec4(ambient_rgb, 1.0);
 
     if (inside_video) {
       return mix(ambient_out, HOOKED_tex(clamp(video_uv, safe_min, safe_max)), video_weight);
@@ -323,8 +326,9 @@ $GLSL_VIDEO_PROLOGUE
         return vec4(dither_out(vec3(0.0), uv * HOOKED_size), 1.0);
     }
 
-    // Dynamic depth inset (from fx_ambient): pulls deeper from picture further into the glow.
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.03 + 0.10 * dn);
+    // Fixed safe edge margin: avoids border-wall artifacts without crawling deep into the
+    // picture (which produced an unnatural mirrored reflection of interior actors/objects).
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
 
     // Physical dual-phase emitter curve (from fx_ambient):
     // luminous core relaxing into a smooth tail that cleanly lands on true black at dn = 1.0.

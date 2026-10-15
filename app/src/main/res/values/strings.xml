@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
   <string name="pref_liquid_glass_material">Glass material</string>
   <string name="pref_liquid_glass_frost">Frost</string>
   <string name="generic_increase">Increase</string>
@@ -1173,6 +1173,7 @@
   <string name="ambient_cinema">Cinema</string>
   <string name="ambient_echo">Echo</string>
   <string name="ambient_mirror">Mirror</string>
+  <string name="ambient_ambilight">Ambilight</string>
   <string name="ambient_fx_auto_hint">This mode is fully automatic — parameters are fixed for the best visual result and cannot be adjusted.</string>
   <string name="lua_delete_script_title">Delete Script?</string>
   <string name="lua_delete_script_message">Are you sure you want to delete \"%1$s\"? This action cannot be undone.</string>

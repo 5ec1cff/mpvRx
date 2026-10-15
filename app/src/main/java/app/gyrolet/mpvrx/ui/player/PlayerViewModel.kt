@@ -2319,6 +2319,9 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
   init {
     syncAmbientParamsForStyle(_ambientStyle.value)
+    // Clean up any stale ambient shader files left in cacheDir from previous abnormal exits
+    appContext.cacheDir.listFiles { _, name -> name.startsWith("ambient_") && name.endsWith(".glsl") }
+      ?.forEach { runCatching { it.delete() } }
     // A track change while nobody is looking at the player (app backgrounded, screen off)
     // never reaches onVideoLoadCompleted; follow the session directly instead. The short
     // wait lets mpv publish the new file's tags before they are used as the search query.
@@ -7400,6 +7403,16 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         _ambientFadeCurve.value = playerPreferences.ambientCinemaFadeCurve.get()
         _ambientOpacity.value = playerPreferences.ambientCinemaOpacity.get()
       }
+      AmbientStyle.Ambilight -> {
+        _ambientBlurSamples.value = playerPreferences.ambientAmbilightBlurSamples.get()
+        _ambientMaxRadius.value = playerPreferences.ambientAmbilightSpread.get()
+        _ambientGlowIntensity.value = playerPreferences.ambientAmbilightIntensity.get()
+        _ambientSatBoost.value = playerPreferences.ambientAmbilightSatBoost.get()
+        _ambientVignetteStrength.value = playerPreferences.ambientAmbilightVignette.get()
+        _ambientWarmth.value = playerPreferences.ambientAmbilightWarmth.get()
+        _ambientFadeCurve.value = playerPreferences.ambientAmbilightFadeCurve.get()
+        _ambientOpacity.value = playerPreferences.ambientAmbilightOpacity.get()
+      }
       AmbientStyle.Echo -> {
         _ambientBlurSamples.value = playerPreferences.ambientEchoBlurSamples.get()
         _ambientMaxRadius.value = playerPreferences.ambientEchoSpread.get()
@@ -7436,7 +7449,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         appContext.getString(R.string.ambient_style_update, appContext.getString(style.titleRes)),
       )
     when (style) {
-      AmbientStyle.Glow, AmbientStyle.Cinema, AmbientStyle.Echo, AmbientStyle.Mirror -> {
+      AmbientStyle.Glow, AmbientStyle.Ambilight, AmbientStyle.Cinema, AmbientStyle.Echo, AmbientStyle.Mirror -> {
         // Any shader-based mode: invalidate scale and spec caches so a fresh shader is compiled
         // for the new mode. Both lastCompiledSpec and lastCompiledFxSpec are cleared so
         // switching between Glow and Fx modes (or between Fx modes) never hits a stale shader cache.
@@ -7518,7 +7531,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         playerPreferences.ambientYouTubeEdgeBlend.set(clamped)
       }
       // Fx modes have fixed internal blending — edge-blend slider is hidden in the UI.
-      AmbientStyle.Cinema, AmbientStyle.Echo, AmbientStyle.Mirror -> Unit
+      AmbientStyle.Ambilight, AmbientStyle.Cinema, AmbientStyle.Echo, AmbientStyle.Mirror -> Unit
     }
   }
 
@@ -7540,6 +7553,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientBlurSamples.value = blurSamples
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientBlurSamples.set(blurSamples)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightBlurSamples.set(blurSamples)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaBlurSamples.set(blurSamples)
         AmbientStyle.Echo -> playerPreferences.ambientEchoBlurSamples.set(blurSamples)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorBlurSamples.set(blurSamples)
@@ -7551,6 +7565,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientMaxRadius.value = maxRadius
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientMaxRadius.set(maxRadius)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightSpread.set(maxRadius)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaSpread.set(maxRadius)
         AmbientStyle.Echo -> playerPreferences.ambientEchoSpread.set(maxRadius)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorSpread.set(maxRadius)
@@ -7562,6 +7577,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientGlowIntensity.value = glowIntensity
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientGlowIntensity.set(glowIntensity)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightIntensity.set(glowIntensity)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaIntensity.set(glowIntensity)
         AmbientStyle.Echo -> playerPreferences.ambientEchoIntensity.set(glowIntensity)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorIntensity.set(glowIntensity)
@@ -7573,6 +7589,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientSatBoost.value = satBoost
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientSatBoost.set(satBoost)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightSatBoost.set(satBoost)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaSatBoost.set(satBoost)
         AmbientStyle.Echo -> playerPreferences.ambientEchoSatBoost.set(satBoost)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorSatBoost.set(satBoost)
@@ -7584,6 +7601,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientVignetteStrength.value = vignetteStrength
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientVignetteStrength.set(vignetteStrength)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightVignette.set(vignetteStrength)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaVignette.set(vignetteStrength)
         AmbientStyle.Echo -> playerPreferences.ambientEchoVignette.set(vignetteStrength)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorVignette.set(vignetteStrength)
@@ -7595,6 +7613,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientWarmth.value = warmth
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientWarmth.set(warmth)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightWarmth.set(warmth)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaWarmth.set(warmth)
         AmbientStyle.Echo -> playerPreferences.ambientEchoWarmth.set(warmth)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorWarmth.set(warmth)
@@ -7606,6 +7625,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientFadeCurve.value = fadeCurve
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientFadeCurve.set(fadeCurve)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightFadeCurve.set(fadeCurve)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaFadeCurve.set(fadeCurve)
         AmbientStyle.Echo -> playerPreferences.ambientEchoFadeCurve.set(fadeCurve)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorFadeCurve.set(fadeCurve)
@@ -7617,6 +7637,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       _ambientOpacity.value = opacity
       when (style) {
         AmbientStyle.Glow -> playerPreferences.ambientOpacity.set(opacity)
+        AmbientStyle.Ambilight -> playerPreferences.ambientAmbilightOpacity.set(opacity)
         AmbientStyle.Cinema -> playerPreferences.ambientCinemaOpacity.set(opacity)
         AmbientStyle.Echo -> playerPreferences.ambientEchoOpacity.set(opacity)
         AmbientStyle.Mirror -> playerPreferences.ambientMirrorOpacity.set(opacity)
@@ -7659,6 +7680,19 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       }
       AmbientStyle.Cinema -> {
         val preset = FxAmbientPresets.cinemaFast
+        updateAmbientParams(
+          blurSamples = preset.blurSamples,
+          maxRadius = preset.spread,
+          glowIntensity = preset.intensity,
+          satBoost = preset.satBoost,
+          vignetteStrength = preset.vignetteStrength,
+          warmth = preset.warmth,
+          fadeCurve = preset.fadeCurve,
+          opacity = preset.opacity,
+        )
+      }
+      AmbientStyle.Ambilight -> {
+        val preset = FxAmbientPresets.ambilightFast
         updateAmbientParams(
           blurSamples = preset.blurSamples,
           maxRadius = preset.spread,
@@ -7729,6 +7763,19 @@ val isBrightnessSliderShown = MutableStateFlow(false)
           opacity = preset.opacity,
         )
       }
+      AmbientStyle.Ambilight -> {
+        val preset = FxAmbientPresets.ambilightBalanced
+        updateAmbientParams(
+          blurSamples = preset.blurSamples,
+          maxRadius = preset.spread,
+          glowIntensity = preset.intensity,
+          satBoost = preset.satBoost,
+          vignetteStrength = preset.vignetteStrength,
+          warmth = preset.warmth,
+          fadeCurve = preset.fadeCurve,
+          opacity = preset.opacity,
+        )
+      }
       AmbientStyle.Echo -> {
         val preset = FxAmbientPresets.echoBalanced
         updateAmbientParams(
@@ -7777,6 +7824,19 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       }
       AmbientStyle.Cinema -> {
         val preset = FxAmbientPresets.cinemaHighQuality
+        updateAmbientParams(
+          blurSamples = preset.blurSamples,
+          maxRadius = preset.spread,
+          glowIntensity = preset.intensity,
+          satBoost = preset.satBoost,
+          vignetteStrength = preset.vignetteStrength,
+          warmth = preset.warmth,
+          fadeCurve = preset.fadeCurve,
+          opacity = preset.opacity,
+        )
+      }
+      AmbientStyle.Ambilight -> {
+        val preset = FxAmbientPresets.ambilightHighQuality
         updateAmbientParams(
           blurSamples = preset.blurSamples,
           maxRadius = preset.spread,
@@ -7917,6 +7977,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       if (shaderIsCurrent) return
       val shaderCode = when (currentStyle) {
         AmbientStyle.Glow -> AmbientShaderBuilder.build(appContext, checkNotNull(glowSpec))
+        AmbientStyle.Ambilight -> FxAmbientShaderBuilder.buildAmbilight(appContext, checkNotNull(fxSpec))
         AmbientStyle.Cinema -> FxAmbientShaderBuilder.buildCinema(appContext, checkNotNull(fxSpec))
         AmbientStyle.Echo -> FxAmbientShaderBuilder.buildEcho(appContext, checkNotNull(fxSpec))
         AmbientStyle.Mirror -> FxAmbientShaderBuilder.buildMirror(appContext, checkNotNull(fxSpec))
