@@ -165,14 +165,18 @@ class FolderListViewModel(
         ) { _ -> Unit }
           .drop(1)
 
-      merge(MediaLibraryEvents.changes, scanPreferenceChanges).collectLatest {
+      merge(MediaLibraryEvents.changes.map { true }, scanPreferenceChanges.map { false }).collectLatest { mediaChanged ->
         delay(MEDIA_LIBRARY_REFRESH_DEBOUNCE_MS)
         // A media event affects the MediaStore snapshot, not the tree cache or persisted
         // .nomedia fingerprints. Known hidden roots will be checked incrementally below.
         MediaFileRepository.invalidateFolderCache()
         // Whatever prompted this, the library has to be re-read; make sure the cold-boot
         // fast path cannot reuse the cache afterwards.
-        MediaStoreGenerationGuard.invalidate(getApplication())
+        if (mediaChanged) {
+          MediaStoreGenerationGuard.invalidate(getApplication())
+        } else {
+          MediaStoreGenerationGuard.forgetLastScan(getApplication())
+        }
         loadVideoFolders()
       }
     }
