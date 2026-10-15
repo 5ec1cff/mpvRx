@@ -1251,13 +1251,26 @@ class PlayerActivity :
     if (ready && !playerControlsReady) {
       playerControlsReady = true
       lifecycleScope.launch {
+        // HDR shader/color-space changes can invalidate the sample even when the same TextureView
+        // remains attached. React to the mode separately from the surface selection.
+        var previousHdrSignature: Pair<Boolean, HdrScreenMode>? = null
         combine(
           appearancePreferences.liquidGlassEnabled.changes(),
           decoderPreferences.hdrScreenOutput.changes(),
+          decoderPreferences.hdrScreenMode.changes(),
           appearancePreferences.liquidGlassInHdr.changes(),
-        ) { glass, hdr, glassInHdr ->
-          shouldUseTextureRendering(liquidGlass = glass, hdrOutput = hdr, liquidGlassInHdr = glassInHdr)
-        }.distinctUntilChanged().collect { useTexture ->
+        ) { glass, hdr, hdrMode, glassInHdr ->
+          Triple(
+            shouldUseTextureRendering(liquidGlass = glass, hdrOutput = hdr, liquidGlassInHdr = glassInHdr),
+            hdr,
+            hdrMode,
+          )
+        }.distinctUntilChanged().collect { (useTexture, hdr, hdrMode) ->
+          val hdrSignature = hdr to hdrMode
+          if (previousHdrSignature != null && previousHdrSignature != hdrSignature) {
+            player.invalidateTextureFrameReadiness()
+          }
+          previousHdrSignature = hdrSignature
           player.setTextureRendering(useTexture)
         }
       }
