@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -81,7 +83,7 @@ class MediaLibraryViewModel(
       items.filter { isVisible(it.video, hidden, videoBlacklist, audioBlacklist) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-  private val _isLoading = MutableStateFlow(false)
+  private val _isLoading = MutableStateFlow(true)
   val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
   private var playbackIndexByIdentifier: Map<String, Int> = emptyMap()
 
@@ -107,6 +109,10 @@ class MediaLibraryViewModel(
     val restored = loadCachedVideos()
     if (!restored) {
       loadData()
+    } else if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY)) {
+      // MediaStore generations cannot detect changes inside .nomedia or dot folders. Display
+      // the cached list now and verify the hidden sources without blocking the first frame.
+      loadData(force = true)
     }
     viewModelScope.launch(Dispatchers.IO) {
       val hiddenPreferences = combine(
@@ -117,10 +123,13 @@ class MediaLibraryViewModel(
         foldersPreferences.sharedScanDotFolders.changes(),
         foldersPreferences.sharedIgnoredMarkers.changes(),
       ) { _ -> Unit }.drop(1)
-      merge(app.gyrolet.mpvrx.utils.media.MediaLibraryEvents.changes, hiddenPreferences).collectLatest {
-        // A change in Library's hidden-folder policy must not reuse the old path list.
+      merge(
+        app.gyrolet.mpvrx.utils.media.MediaLibraryEvents.changes.map { true },
+        hiddenPreferences.map { false },
+      ).collectLatest { mediaChanged ->
+        // Changing Library's scan policy must not destroy the saved Tree snapshot.
         MediaLibraryCache.clear(getApplication())
-        MediaStoreGenerationGuard.invalidate(getApplication())
+        if (mediaChanged) MediaStoreGenerationGuard.invalidate(getApplication())
         loadData(force = true)
       }
     }
@@ -132,19 +141,30 @@ class MediaLibraryViewModel(
   }
 
   /**
- * Restores the persisted list without scanning, when it is still trustworthy.
- *
- * The cache stores no fps, dimensions or codec, so it is only complete enough to use when no
- * metadata chip is enabled. With a chip on, the list must be rebuilt so the chips have real values,
- * which also means the scan runs regardless — the cache then only avoids an empty first frame.
- */
+   * A mode-specific key prevents a snapshot created with one hidden-folder policy from being
+   * presented under another. Full video metadata is persisted separately from this key.
+   */
+  private fun currentLibraryCacheKey(): String =
+    "library_v2|scoped=${BuildConfig.SCOPED_STORAGE_ONLY}" +
+      "|hidden=${foldersPreferences.libraryHiddenScanEnabled.get()}" +
+      "|nomedia=${foldersPreferences.includeNoMediaFolders.get()}" +
+      "|marked=${foldersPreferences.sharedScanMarkedFolders.get()}" +
+      "|dot=${foldersPreferences.sharedScanDotFolders.get()}" +
+      "|markers=${foldersPreferences.hiddenFolderMarkerNames.get().sorted().joinToString(",")}" +
+      "|ignored=${foldersPreferences.sharedIgnoredMarkers.get().sorted().joinToString(",")}" +
+      "|uris=${foldersPreferences.scopedHiddenFolderUris.get().sorted().joinToString(",")}" +
+      "|audioMin=${browserPreferences.minimumAudioDurationSeconds.get()}"
+
+  /** Show a validated saved list immediately; background work must never blank it out. */
   private fun loadCachedVideos(): Boolean {
-    if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY)) return false
-    if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) return false
-    if (!MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())) return false
-    val cached = MediaLibraryCache.load(getApplication())
-    if (cached.isNullOrEmpty()) return false
+    val cached =
+      MediaLibraryCache.load(
+        getApplication(),
+        scanOptionsKey = currentLibraryCacheKey(),
+        requireMetadata = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences),
+      ) ?: return false
     _videos.value = cached
+    _isLoading.value = false
     viewModelScope.launch(Dispatchers.IO) {
       loadPlaybackInfo(cached)
     }
@@ -170,6 +190,8 @@ class MediaLibraryViewModel(
           // Read before scanning: recording the generation afterwards would bless a MediaStore newer
           // than the data, and the next cold boot would keep a stale list.
           val observedGeneration = MediaStoreGenerationGuard.currentToken(getApplication())
+          val scanCacheKey = currentLibraryCacheKey()
+          val metadataEnriched = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
 
           if (_videos.value.isEmpty()) {
             _isLoading.value = true
@@ -180,7 +202,7 @@ class MediaLibraryViewModel(
               includeAudioOverride = true,
             )
 
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+          if (metadataEnriched) {
             videoList =
               MetadataRetrieval.enrichVideosIfNeeded(
                 context = getApplication(),
@@ -198,6 +220,9 @@ class MediaLibraryViewModel(
           MediaLibraryCache.save(
             getApplication(),
             videoList.filterNot { hiddenVideoPaths.value[it.path] == DeletionState.Confirmed },
+            scanOptionsKey = scanCacheKey,
+            observedGeneration = observedGeneration,
+            metadataEnriched = metadataEnriched,
           )
           MediaStoreGenerationGuard.remember(getApplication(), observedGeneration)
           loadPlaybackInfo(videoList)
