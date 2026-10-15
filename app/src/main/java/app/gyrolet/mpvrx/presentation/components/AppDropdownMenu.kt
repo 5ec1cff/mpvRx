@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import androidx.compose.ui.window.PopupProperties
 
 @Composable
@@ -57,10 +60,18 @@ fun AppDropdownMenuItem(
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
   selected: Boolean = false,
+  index: Int? = null,
+  itemCount: Int? = null,
   leadingIcon: (@Composable () -> Unit)? = null,
   trailingIcon: (@Composable () -> Unit)? = null,
 ) {
-  val rowShape = RoundedCornerShape(14.dp)
+  // A popup has one rounded outer shell. Its inner rows use small shared corners;
+  // when the item positions are known the exposed group corners stay expressive.
+  val rowShape = if (index != null && itemCount != null && itemCount > 0 && index in 0 until itemCount) {
+    rememberConnectedShape(index, itemCount, ConnectedLayout.Vertical, tokens = AppConnectedControlShapeTokens)
+  } else {
+    RoundedCornerShape(6.dp)
+  }
   val rowColor =
     if (selected) MaterialTheme.colorScheme.secondaryContainer
     else MaterialTheme.colorScheme.surfaceContainerHighest

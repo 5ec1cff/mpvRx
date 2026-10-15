@@ -75,11 +75,13 @@ fun ExposedTextDropDownMenu(
       onDismissRequest = { expanded = false },
       modifier = Modifier.heightIn(max = 300.dp),
     ) {
-      options.forEach { option: String ->
+      options.forEachIndexed { index, option ->
         AppDropdownMenuItem(
           text = { Text(text = option) },
           selected = option == selectedValue,
-          modifier = Modifier.semantics { selected = option == selectedValue },
+          index = index,
+          itemCount = options.size,
+          modifier = Modifier.fillMaxWidth().semantics { selected = option == selectedValue },
           onClick = {
             expanded = false
             onValueChangedEvent(option)

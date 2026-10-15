@@ -577,12 +577,12 @@ val apiKeyInfo =
 
                       Surface(
                         onClick = { showModelDialog = true },
-                        shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = if (LocalInsidePreferenceCard.current) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
+                        color = if (LocalInsidePreferenceCard.current) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         modifier =
                           Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                            .then(if (LocalInsidePreferenceCard.current) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 4.dp)),
                       ) {
                         Row(
                           verticalAlignment = Alignment.CenterVertically,
@@ -1278,12 +1278,12 @@ val apiKeyInfo =
         }
         if (!isLoadingStt) refreshModels(openWhenReady = sttModels.isEmpty(), showError = true)
       },
-      shape = MaterialTheme.shapes.medium,
-      color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+      shape = if (LocalInsidePreferenceCard.current) MaterialTheme.shapes.small else MaterialTheme.shapes.medium,
+      color = if (LocalInsidePreferenceCard.current) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
       modifier =
         Modifier
           .fillMaxWidth()
-          .padding(horizontal = 16.dp, vertical = 4.dp),
+          .then(if (LocalInsidePreferenceCard.current) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 4.dp)),
     ) {
       Row(
         verticalAlignment = Alignment.CenterVertically,

@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -40,6 +40,9 @@ import androidx.compose.ui.res.pluralStringResource
 import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.repository.ai.AiModelInfo
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
+import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 
 @Composable
 fun ModelSearchDialog(
@@ -106,12 +109,14 @@ fun ModelSearchDialog(
       } else {
         LazyColumn(
           modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
-          verticalArrangement = Arrangement.spacedBy(2.dp),
+          verticalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
         ) {
-          items(sortedFiltered, key = { it.id }) { model ->
+          itemsIndexed(sortedFiltered, key = { _, model -> model.id }) { index, model ->
             ModelSearchItem(
               model = model,
               isSelected = model.id == selectedModelId,
+              index = index,
+              itemCount = sortedFiltered.size,
               onClick = {
                 onSelect(model.id)
                 onDismiss()
@@ -128,11 +133,13 @@ fun ModelSearchDialog(
 private fun ModelSearchItem(
   model: AiModelInfo,
   isSelected: Boolean,
+  index: Int,
+  itemCount: Int,
   onClick: () -> Unit,
 ) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(10.dp),
+    shape = rememberConnectedShape(index, itemCount, ConnectedLayout.Vertical, tokens = AppConnectedControlShapeTokens),
     color =
       if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer.copy(

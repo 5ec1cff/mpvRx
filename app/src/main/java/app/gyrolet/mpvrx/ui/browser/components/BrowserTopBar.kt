@@ -486,6 +486,7 @@ private fun SelectionTopBar(
   val haptics = rememberAppHaptics()
   val reducedMotion = AppMotion.shouldReduceMotion()
   val selectionDropdownShape = RoundedCornerShape(16.dp)
+  val selectionActionCount = listOfNotNull(onSelectAll, onInvertSelection, onDeselectAll).size
 
   TopAppBar(
     colors =
@@ -565,6 +566,8 @@ private fun SelectionTopBar(
           if (onSelectAll != null) {
             DropdownMenuItem(
               text = { Text(stringResource(R.string.select_all)) },
+              index = 0,
+              itemCount = selectionActionCount,
               onClick = {
                 onSelectAll()
                 if (selectedCount != totalCount) haptics.selection(true)
@@ -575,6 +578,8 @@ private fun SelectionTopBar(
           if (onInvertSelection != null) {
             DropdownMenuItem(
               text = { Text(stringResource(R.string.invert_selection)) },
+              index = if (onSelectAll != null) 1 else 0,
+              itemCount = selectionActionCount,
               onClick = {
                 onInvertSelection()
                 if (totalCount > 0) haptics.confirm()
@@ -585,6 +590,8 @@ private fun SelectionTopBar(
           if (onDeselectAll != null) {
             DropdownMenuItem(
               text = { Text(stringResource(R.string.deselect_all)) },
+              index = (if (onSelectAll != null) 1 else 0) + (if (onInvertSelection != null) 1 else 0),
+              itemCount = selectionActionCount,
               onClick = {
                 onDeselectAll()
                 if (selectedCount > 0) haptics.selection(false)
