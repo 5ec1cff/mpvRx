@@ -488,9 +488,15 @@ class FolderListViewModel(
     if (!staleHiddenRoot && !markersChanged && !needsForegroundCheck) return
 
     lastExternalFolderRecheckAt = now
-    Log.d(TAG, "Folder mode detected external folder/marker change; refreshing independently of Library")
+    Log.d(TAG, "Folder mode checking external folder markers; refreshing independently of Library")
     MediaFileRepository.invalidateFolderCache()
-    MediaStoreGenerationGuard.invalidate(getApplication())
+    if (staleHiddenRoot || markersChanged) {
+      // A confirmed hidden-root change also invalidates Tree's snapshot.
+      MediaStoreGenerationGuard.invalidate(getApplication())
+    } else {
+      // Periodic health checks must not delete an otherwise valid Tree snapshot.
+      MediaStoreGenerationGuard.forgetLastScan(getApplication())
+    }
     // A periodic foreground verification is incremental; only changed hidden markers need
     // the forced filesystem/discovery fallback.
     loadVideoFolders(forceFileSystemCheck = staleHiddenRoot || markersChanged, silent = true)
