@@ -93,6 +93,10 @@ fun SwitchPreference(
   val containerColor by animateColorAsState(
     targetValue = when {
       insideConnectedCard -> androidx.compose.ui.graphics.Color.Transparent
+      // Connected rows in draggable panels need visible fills even when switched off.
+      groupIndex != null && groupSize != null ->
+        if (value) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.90f)
+        else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.90f)
       value -> MaterialTheme.colorScheme.secondaryContainer
       else -> MaterialTheme.colorScheme.surfaceContainerLow
     },

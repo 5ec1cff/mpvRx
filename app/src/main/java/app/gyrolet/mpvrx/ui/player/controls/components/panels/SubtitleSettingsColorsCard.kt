@@ -59,6 +59,7 @@ import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.applySubtitleLayout
 import app.gyrolet.mpvrx.ui.player.controls.CARDS_MAX_WIDTH
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import org.koin.compose.koinInject
@@ -217,50 +218,58 @@ fun SubtitlesColorPicker(
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
 ) {
-  Column(modifier) {
-    TintedSliderItem(
-      stringResource(R.string.player_sheets_sub_color_red),
-      color.red,
-      color.red.toString(),
-      onChange = { onColorChange(color.copyAsArgb(red = it)) },
-      max = 255,
-      tint = Color.Red,
-      enabled = enabled,
-      continuous = true,
-    )
+  Column(modifier, verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+    PanelConnectedTile(index = 0, itemCount = 4) {
+      TintedSliderItem(
+        stringResource(R.string.player_sheets_sub_color_red),
+        color.red,
+        color.red.toString(),
+        onChange = { onColorChange(color.copyAsArgb(red = it)) },
+        max = 255,
+        tint = Color.Red,
+        enabled = enabled,
+        continuous = true,
+      )
+    }
 
-    TintedSliderItem(
-      stringResource(R.string.player_sheets_sub_color_green),
-      color.green,
-      color.green.toString(),
-      onChange = { onColorChange(color.copyAsArgb(green = it)) },
-      max = 255,
-      tint = Color.Green,
-      enabled = enabled,
-      continuous = true,
-    )
+    PanelConnectedTile(index = 1, itemCount = 4) {
+      TintedSliderItem(
+        stringResource(R.string.player_sheets_sub_color_green),
+        color.green,
+        color.green.toString(),
+        onChange = { onColorChange(color.copyAsArgb(green = it)) },
+        max = 255,
+        tint = Color.Green,
+        enabled = enabled,
+        continuous = true,
+      )
+    }
 
-    TintedSliderItem(
-      stringResource(R.string.player_sheets_sub_color_blue),
-      color.blue,
-      color.blue.toString(),
-      onChange = { onColorChange(color.copyAsArgb(blue = it)) },
-      max = 255,
-      tint = Color.Blue,
-      enabled = enabled,
-      continuous = true,
-    )
+    PanelConnectedTile(index = 2, itemCount = 4) {
+      TintedSliderItem(
+        stringResource(R.string.player_sheets_sub_color_blue),
+        color.blue,
+        color.blue.toString(),
+        onChange = { onColorChange(color.copyAsArgb(blue = it)) },
+        max = 255,
+        tint = Color.Blue,
+        enabled = enabled,
+        continuous = true,
+      )
+    }
 
-    TintedSliderItem(
-      stringResource(R.string.player_sheets_sub_color_alpha),
-      color.alpha,
-      color.alpha.toString(),
-      onChange = { onColorChange(color.copyAsArgb(alpha = it)) },
-      max = 255,
-      tint = Color.White,
-      enabled = enabled,
-      continuous = true,
-    )
+    PanelConnectedTile(index = 3, itemCount = 4) {
+      TintedSliderItem(
+        stringResource(R.string.player_sheets_sub_color_alpha),
+        color.alpha,
+        color.alpha.toString(),
+        onChange = { onColorChange(color.copyAsArgb(alpha = it)) },
+        max = 255,
+        tint = Color.White,
+        enabled = enabled,
+        continuous = true,
+      )
+    }
   }
 }
 

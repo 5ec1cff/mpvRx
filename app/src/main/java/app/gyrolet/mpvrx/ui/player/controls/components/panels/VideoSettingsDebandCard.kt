@@ -47,6 +47,7 @@ import app.gyrolet.mpvrx.ui.player.Debanding
 import app.gyrolet.mpvrx.ui.player.controls.CARDS_MAX_WIDTH
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
@@ -78,7 +79,7 @@ fun VideoSettingsDebandCard(
     shape = shape,
   ) {
     ProvidePreferenceLocals {
-      Column {
+      Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
         Row(
           Modifier
             .fillMaxWidth()
@@ -140,20 +141,22 @@ fun VideoSettingsDebandCard(
           }
         }
 
-        DebandSettings.entries.forEach { debandSettings ->
+        DebandSettings.entries.forEachIndexed { index, debandSettings ->
           val value by debandSettings.preference(decoderPreferences).collectAsState()
-          SliderItem(
-            label = stringResource(debandSettings.titleRes),
-            value = value,
-            valueText = value.toString(),
-            onChange = {
-              debandSettings.preference(decoderPreferences).set(it)
-              PlaybackSession.setPropertyInt(debandSettings.mpvProperty, it)
-            },
-            min = debandSettings.start,
-            max = debandSettings.end,
-            enabled = debandSettings.mpvProperty !in configOwnedOptions,
-          )
+          PanelConnectedTile(index = index, itemCount = DebandSettings.entries.size) {
+            SliderItem(
+              label = stringResource(debandSettings.titleRes),
+              value = value,
+              valueText = value.toString(),
+              onChange = {
+                debandSettings.preference(decoderPreferences).set(it)
+                PlaybackSession.setPropertyInt(debandSettings.mpvProperty, it)
+              },
+              min = debandSettings.start,
+              max = debandSettings.end,
+              enabled = debandSettings.mpvProperty !in configOwnedOptions,
+            )
+          }
         }
       }
     }

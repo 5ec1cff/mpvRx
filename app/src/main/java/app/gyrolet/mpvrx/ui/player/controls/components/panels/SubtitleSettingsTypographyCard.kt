@@ -62,6 +62,7 @@ import app.gyrolet.mpvrx.ui.player.controls.CARDS_MAX_WIDTH
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
 import app.gyrolet.mpvrx.ui.player.defaultSubtitleFontDisplayName
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import app.gyrolet.mpvrx.utils.media.SubtitleFontChoice
 import app.gyrolet.mpvrx.utils.media.loadCustomFontEntries
@@ -141,7 +142,7 @@ fun SubtitleSettingsTypographyCard(
     colors = panelCardsColors(),
     shape = shape,
   ) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
       AssOverrideWarningBanner(viewModel = viewModel, preferences = preferences)
 
       val isBold by PlaybackSession.propBoolean["sub-bold"].collectAsState()
@@ -265,18 +266,20 @@ fun SubtitleSettingsTypographyCard(
           enabled = !ownsAny(fontOptions),
         )
       }
-      SliderItem(
-        label = stringResource(R.string.player_sheets_sub_typography_font_size),
-        max = 100,
-        min = 1,
-        value = fontSize ?: preferences.fontSize.get(),
-        valueText = fontSize.toString(),
-        onChange = {
-          preferences.fontSize.set(it)
-          PlaybackSession.setPropertyInt("sub-font-size", it)
-        },
-        enabled = !ownsAny(fontSizeOptions),
-      ) {
+      PanelConnectedTile(index = 0, itemCount = 1) {
+        SliderItem(
+          label = stringResource(R.string.player_sheets_sub_typography_font_size),
+          max = 100,
+          min = 1,
+          value = fontSize ?: preferences.fontSize.get(),
+          valueText = fontSize.toString(),
+          onChange = {
+            preferences.fontSize.set(it)
+            PlaybackSession.setPropertyInt("sub-font-size", it)
+          },
+          enabled = !ownsAny(fontSizeOptions),
+        ) {
+      }
         Icon(Icons.RoundedFilled.FormatSize, null)
       }
       ProvidePreferenceLocals(
@@ -297,36 +300,40 @@ fun SubtitleSettingsTypographyCard(
           icon = { Icon(Icons.RoundedFilled.BorderStyle, null) },
         )
       }
-      SliderItem(
-        stringResource(R.string.player_sheets_sub_typography_border_size),
-        value = borderSize ?: preferences.borderSize.get(),
-        valueText = (borderSize ?: preferences.borderSize.get()).toString(),
-        onChange = {
-          preferences.borderSize.set(it)
-          PlaybackSession.setPropertyInt("sub-border-size", it)
-          PlaybackSession.setPropertyInt("sub-outline-size", it)
-        },
-        max = 20,
-        enabled = !ownsAny(borderSizeOptions),
-        icon = { Icon(Icons.RoundedFilled.BorderColor, null) },
-      )
-      SliderItem(
-        stringResource(R.string.player_sheets_subtitles_shadow_offset),
-        value = localShadowOffset.coerceIn(-20, 20),
-        valueText =
-          localShadowOffset.coerceIn(-20, 20).let {
-            if (it > 0) "+$it" else it.toString()
+      PanelConnectedTile(index = 0, itemCount = 1) {
+        SliderItem(
+          stringResource(R.string.player_sheets_sub_typography_border_size),
+          value = borderSize ?: preferences.borderSize.get(),
+          valueText = (borderSize ?: preferences.borderSize.get()).toString(),
+          onChange = {
+            preferences.borderSize.set(it)
+            PlaybackSession.setPropertyInt("sub-border-size", it)
+            PlaybackSession.setPropertyInt("sub-outline-size", it)
           },
-        onChange = {
-          localShadowOffset = it
-          preferences.shadowOffset.set(it)
-          PlaybackSession.setPropertyInt("sub-shadow-offset", it)
-        },
-        min = -20,
-        max = 20,
-        enabled = !ownsAny(shadowOffsetOptions),
-        icon = { Icon(Icons.RoundedFilled.Shadow, null) },
-      )
+          max = 20,
+          enabled = !ownsAny(borderSizeOptions),
+          icon = { Icon(Icons.RoundedFilled.BorderColor, null) },
+        )
+      }
+      PanelConnectedTile(index = 0, itemCount = 1) {
+        SliderItem(
+          stringResource(R.string.player_sheets_subtitles_shadow_offset),
+          value = localShadowOffset.coerceIn(-20, 20),
+          valueText =
+            localShadowOffset.coerceIn(-20, 20).let {
+              if (it > 0) "+$it" else it.toString()
+            },
+          onChange = {
+            localShadowOffset = it
+            preferences.shadowOffset.set(it)
+            PlaybackSession.setPropertyInt("sub-shadow-offset", it)
+          },
+          min = -20,
+          max = 20,
+          enabled = !ownsAny(shadowOffsetOptions),
+          icon = { Icon(Icons.RoundedFilled.Shadow, null) },
+        )
+      }
     }
   }
 }
