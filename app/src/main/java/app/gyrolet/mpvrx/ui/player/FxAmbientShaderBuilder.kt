@@ -260,19 +260,21 @@ vec4 hook() {
 ${videoPrologue(reachScale)}
 
     // -- Cinema theater atmospheric projection -------------------------------
-    // Anchor the sample origin at the video edge with a constant inward inset.
-    // Inward inset ensures Poisson taps spread into decoded content without
-    // border-wall clamping, while anchoring prevents inverted mirror reflection.
+    // Anchor sample origin at the nearest video edge with a fixed 1.5% inward inset.
+    // Fixed inset prevents fetching border-wall artifacts without crawling inward into the
+    // video (which would produce an inverted mirror reflection).
     highp vec2 edge_origin   = clamp(video_uv, safe_min, safe_max);
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.04);
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
+
+    // Determine whether this bar is pillarbox (dx > dy) or letterbox.
+    bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
 
     // -- Per-pixel Jorge Jimenez IGN jitter rotation -------------------------
-    // Rotating the Poisson disk per-pixel turns static tap offsets into a continuous
-    // stochastic Monte Carlo blur, eliminating any discrete tap ghosting or reflection.
     mediump float jitter   = ign(uv * HOOKED_size) * 6.2831853;
     mediump float jitter_s = sin(jitter);
     mediump float jitter_c = cos(jitter);
-    mediump float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    // Aspect correction uses video dimensions so the Poisson disk stays circular in video space.
+    mediump float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
     mediump float jitter_c_aspect = jitter_c * aspect_x;
     mediump float jitter_s_aspect = jitter_s * aspect_x;
 
@@ -285,10 +287,16 @@ ${videoPrologue(reachScale)}
     mediump float twt = 0.0;
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap = CINEMA_TAPS[i] * br_scale;
-        highp vec2 tap_off = vec2(
+        highp vec2 tap_rot = vec2(
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
+        // Compress perpendicular penetration to stay within the edge margin (≤ 0.02)
+        // while allowing full wide diffusion along the bar.
+        highp vec2 tap_off = in_side_bar
+            ? vec2(tap_rot.x * 0.20, tap_rot.y)
+            : vec2(tap_rot.x, tap_rot.y * 0.20);
+
         mediump vec3  s = HOOKED_tex(clamp(sample_origin + tap_off, safe_min, safe_max)).rgb;
         mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
@@ -378,34 +386,28 @@ $offsetsDecl
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Edge origin (nearest video pixel) -----------------------------------
+    // -- Edge origin (nearest video pixel in video-UV space) -----------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
+    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.015);
 
-    // Anchor echo_origin at a constant inward inset (independent of dn).
-    // This gives smear taps a clean margin inside real decoded content without
-    // crawling deeper into the frame, completely eliminating inverted mirror reflections.
-    highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.035);
-
-    // -- Determine smear axes ------------------------------------------------
+    // -- Determine smear axis ------------------------------------------------
     // For pillarbox bars (left/right) smear vertically; for letterbox smear horizontally.
     bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
-    highp vec2 perp_dir  = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
 
-    // Smear width in video-UV space grows from tight at edge to wide at depth.
+    // Smear width grows from tight at edge to wide at depth.
     mediump float sw = ${f(swBase)} + ${f(swFar)} * dn;
-    mediump float dw = sw * 0.30;
 
-    // High-frequency stochastic jitter along smear & transverse axes to dissolve tap banding
+    // High-frequency stochastic jitter along smear axis to dissolve tap banding
     mediump float jitter = (ign(uv * HOOKED_size) - 0.5);
-    highp vec2 jitter_off = (smear_dir * (jitter * sw * 0.35)) + (perp_dir * (jitter * dw * 0.25));
+    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35);
 
-    // -- $tapCount-tap Gaussian along smear axis with transverse spread ------
+    // -- $tapCount-tap Gaussian along smear axis -----------------------------
     mediump vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = ECHO_OFFSETS[i];
         highp vec2 tap_pos = clamp(
-            echo_origin + smear_dir * (step_factor * sw) + perp_dir * (step_factor * dw) + jitter_off,
+            echo_origin + smear_dir * (step_factor * sw) + jitter_off,
             safe_min, safe_max
         );
         col += HOOKED_tex(tap_pos).rgb * ECHO_WEIGHTS[i];
