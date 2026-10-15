@@ -84,7 +84,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -99,7 +98,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
@@ -220,6 +218,7 @@ fun PlayerControls(
   val realtimeSubsEnabled by aiPreferences.realtimeSubsEnabled.collectAsState()
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
   val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val liquidGlassInHdr by appearancePreferences.liquidGlassInHdr.collectAsState()
   val forceDarkButtonBackground by appearancePreferences.forceDarkPlayerButtonsBackground.collectAsState()
   val portraitPlaybackControlsPosition by
     appearancePreferences.portraitPlaybackControlsPosition.collectAsState()
@@ -645,12 +644,21 @@ fun PlayerControls(
   )
 
   val glassSource = rememberVideoGlassSource(videoSurface)
-  // Map the real TextureView GPU layer into the controls' window coordinates. All consumers
-  // share the same live layer; no snapshots, sampling cadence, or per-frame recomposition.
-  val currentGlassSource by rememberUpdatedState(glassSource)
-  val recordVideo: ContentDrawScope.() -> Unit = remember { { with(currentGlassSource) { drawVideo() } } }
-  val videoBackdrop = rememberLayerBackdrop(onDraw = recordVideo)
-  val playerKyantBackdrop = if (enableLiquidGlass && glassSource.scene != null) videoBackdrop else null
+  val videoSurfaceReady = videoSurface?.surfaceReady?.collectAsState()?.value == true
+  // Recreate the recorder with the actual source scene. The old persistent recorder could
+  // keep painting a released TextureView's pixels after an HDR/native-surface handoff.
+  val videoBackdrop = key(glassSource) {
+    rememberLayerBackdrop(onDraw = { with(glassSource) { drawVideo() } })
+  }
+  // Native HDR output is a separate SurfaceView: Kyaant cannot sample it from Compose.
+  // Hide the live sampler during mode changes and use the non-sampling frosted treatment.
+  val playerKyantBackdrop = videoBackdrop.takeIf {
+    enableLiquidGlass &&
+      (!isHdrOutputEnabled || liquidGlassInHdr) &&
+      videoSurface?.isTextureSurface == true &&
+      videoSurfaceReady &&
+      glassSource.scene != null
+  }
 
   CompositionLocalProvider(
     LocalKyantPlayerBackdrop provides playerKyantBackdrop,
@@ -672,7 +680,9 @@ fun PlayerControls(
       animationState = videoOpenAnimState,
     )
     if (enableLiquidGlass) {
-      VideoGlassBackdropSource(glassSource, videoBackdrop)
+      if (playerKyantBackdrop != null) {
+        VideoGlassBackdropSource(glassSource, videoBackdrop)
+      }
       Box(
         modifier =
           Modifier

@@ -139,8 +139,13 @@ fun BackdropEffectScope.liquidGlassEffects(
     vibrant: Boolean = false,
     refractionEnabled: Boolean = true,
 ) {
-    if (vibrant && settings.vibrancy) vibrancy()
-    colorControls(settings.brightness, settings.contrast, settings.saturation)
+    // HDR playback in TextureView is already composited through the app window's color space.
+    // Running vibrancy/color controls a second time can exaggerate clipped highlights and
+    // produce muddy, stretched-looking glass. Keep a soft blur and the surface tint instead.
+    if (settings.allowRefraction) {
+        if (vibrant && settings.vibrancy) vibrancy()
+        colorControls(settings.brightness, settings.contrast, settings.saturation)
+    }
     if (settings.blur > 0f) blur(blurRadius * settings.blur)
     if (refractionEnabled && settings.allowRefraction && settings.refractionHeight > 0f && settings.refractionAmount > 0f) {
         lens(

@@ -66,9 +66,13 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
   /** Only changes for an appearance/HDR preference, never when controls appear or disappear. */
   internal fun setTextureRendering(enabled: Boolean) {
     if (textureRendering == enabled) return
+    val wasConfigured = textureRendering != null
     textureRendering = enabled
     val epoch = ++rendererEpoch
-    if (renderSurface != null) onRenderSurfaceDestroyed()
+    // A TextureView may clear its Surface before the preference collector switches renderers.
+    // Explicitly detach the old native VO on every real mode change, even when renderSurface
+    // is already null, so the replacement SurfaceView can bind without inheriting a stale wid.
+    if (wasConfigured) onRenderSurfaceDestroyed()
     if (ownsSurface) renderSurface?.release()
     renderSurface = null
     ownsSurface = false

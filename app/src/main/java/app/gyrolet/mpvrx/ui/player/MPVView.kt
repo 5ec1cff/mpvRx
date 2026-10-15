@@ -42,6 +42,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -80,6 +82,8 @@ class MPVView(
   private var surfaceRecovery: Runnable? = null
   private var pausedFrameRedraw: Runnable? = null
   private val surfaceReadiness = MutableStateFlow(false)
+  /** Prevent glass from sampling a new renderer before the native video output is ready. */
+  internal val surfaceReady: StateFlow<Boolean> = surfaceReadiness.asStateFlow()
   var isSurfaceReady: Boolean
     get() = surfaceReadiness.value
     private set(value) {

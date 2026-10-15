@@ -23,7 +23,6 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.unit.IntSize
 import app.gyrolet.mpvrx.ui.player.MPVView
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -32,13 +31,15 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 @Stable
 internal class VideoGlassSource(val scene: LayerBackdrop?) {
   var boundsInWindow by mutableStateOf(Rect.Zero)
-  var contentSize by mutableStateOf(IntSize.Zero)
   var originInWindow by mutableStateOf(Offset.Zero)
 
   fun DrawScope.drawVideo() {
     drawRect(Color.Black)
     val layer = scene?.graphicsLayer ?: return
-    val content = contentSize
+    // Use the *recorded* GPU layer size, not the Android parent view's layout size. In HDR
+    // TextureView mode the recording can be resized/recreated independently (and the video
+    // can be zoomed), so the old ratio stretched colors over unrelated controls.
+    val content = layer.size
     val bounds = boundsInWindow
     if (content.width <= 0 || content.height <= 0 || bounds.width <= 0f || bounds.height <= 0f) return
     withTransform({
@@ -61,7 +62,6 @@ internal fun rememberVideoGlassSource(videoView: MPVView?): VideoGlassSource {
     val location = IntArray(2)
     fun updateBounds() {
       videoView.getLocationInWindow(location)
-      source.contentSize = IntSize(videoView.width, videoView.height)
       source.boundsInWindow = if (videoView.isShown) {
         Rect(
           location[0].toFloat(), location[1].toFloat(),
