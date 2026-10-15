@@ -114,6 +114,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.VideoCompressorOverlay
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.browser.sheets.PlayLinkSheet
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
+import app.gyrolet.mpvrx.ui.browser.states.LoadingState
 import app.gyrolet.mpvrx.ui.browser.states.PermissionDeniedState
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -1368,19 +1369,12 @@ private fun FileSystemBrowserContent(
 
   when {
     isLoading -> {
-      Box(
-        modifier =
-          modifier
-            .fillMaxSize()
-            .padding(bottom = 80.dp),
-        // Account for bottom navigation bar
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(48.dp),
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
+      LoadingState(
+        icon = Icons.RoundedFilled.Folder,
+        title = stringResource(R.string.ui_scanning_for_videos),
+        message = "Please wait while we search your device",
+        modifier = modifier.fillMaxSize().padding(bottom = 80.dp),
+      )
     }
 
     error != null -> {
