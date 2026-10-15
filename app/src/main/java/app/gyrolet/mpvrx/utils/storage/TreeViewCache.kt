@@ -49,14 +49,20 @@ internal object TreeViewCache {
   ): String? =
     runCatching {
       val file = fileFor(context, cacheKey)
-      if (!file.isFile) return null
-      file.readText().takeIf { it.isNotBlank() }
+      if (file.isFile) return file.readText().takeIf { it.isNotBlank() }
+      // Migrate older snapshots from the OS-evictable cache directory.
+      val legacy = context.cacheDir.resolve(DIR).resolve(file.name)
+      if (!legacy.isFile) return null
+      legacy.readText().takeIf { it.isNotBlank() }?.also { payload ->
+        runCatching { file.writeText(payload) }
+      }
     }.onFailure { error ->
       Log.w(TAG, "Could not read tree cache", error)
     }.getOrNull()
 
   fun clear(context: Context) {
     runCatching {
+      context.noBackupFilesDir.resolve(DIR).takeIf { it.isDirectory }?.listFiles()?.forEach { it.delete() }
       context.cacheDir.resolve(DIR).takeIf { it.isDirectory }?.listFiles()?.forEach { it.delete() }
     }.onFailure { error ->
       Log.w(TAG, "Could not clear tree cache", error)
@@ -67,7 +73,8 @@ internal object TreeViewCache {
     context: Context,
     cacheKey: String,
   ): File {
-    val dir = context.cacheDir.resolve(DIR)
+    // Durable across restarts and OS cache eviction, but excluded from device backups.
+    val dir = context.noBackupFilesDir.resolve(DIR)
     if (!dir.isDirectory) dir.mkdirs()
     // cacheKey embeds user-facing preference values, so hash it rather than using it as a filename.
     return dir.resolve("${cacheKey.hashCode().toUInt().toString(16)}.tree")
