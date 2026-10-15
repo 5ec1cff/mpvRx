@@ -66,6 +66,15 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
   internal val isTextureSurface: Boolean
     get() = textureRendering == true
 
+  /**
+   * HDR color-space/shader changes can replace the pixels behind an existing TextureView
+   * without replacing its Android Surface. Hide the old glass sample until that view posts
+   * another frame; changing the renderer itself resets this flag in setTextureRendering().
+   */
+  internal fun invalidateTextureFrameReadiness() {
+    if (textureRendering == true) textureFrameReady.value = false
+  }
+
   protected abstract fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int)
   protected abstract fun onRenderSurfaceSizeChanged(width: Int, height: Int)
   protected abstract fun onRenderSurfaceDestroyed()
