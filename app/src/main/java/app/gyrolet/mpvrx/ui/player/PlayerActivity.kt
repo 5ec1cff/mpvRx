@@ -8633,7 +8633,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
               grantedTreeUris = foldersPreferences.scopedHiddenFolderUris.get(),
             ).filter { video ->
               if (isAudioTarget) {
-                video.isAudio && video.duration >= minimumAudioDurationMs
+                video.isAudio && (video.duration <= 0L || video.duration >= minimumAudioDurationMs)
               } else {
                 !video.isAudio || browserPreferences.includeAudioBrowser.get()
               }

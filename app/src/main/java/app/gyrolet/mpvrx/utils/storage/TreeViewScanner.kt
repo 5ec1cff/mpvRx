@@ -14,10 +14,14 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Tree View Scanner - Optimized for tree/browser view.
@@ -32,6 +36,10 @@ object TreeViewScanner {
   private var cacheTimestamp: Long = 0
   private var cacheOptionsKey: String? = null
   private const val CACHE_TTL_MS = 10_000L
+
+  // Revalidates a stale snapshot off the UI path; each exact key is refreshed by one job at a time.
+  private val treeRefreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+  private val refreshingKeys = ConcurrentHashMap.newKeySet<String>()
 
   fun clearCache() {
     cachedTreeViewData = null
@@ -188,9 +196,8 @@ object TreeViewScanner {
         }
       }
 
-      // The cache above is process-local, so a cold boot always fell through to a full MediaStore
-      // plus filesystem walk. When MediaStore has not changed since this same tree was last built,
-      // the persisted copy is still exact, so restore that instead of walking the volume again.
+      // The process-local cache is empty after a cold boot. The persisted snapshot is still exact while
+      // MediaStore matches the generation it was built from, so restore it instead of walking again.
       if (!forceFileSystemCheck) {
         restoreTreeViewData(context, cacheKey)?.let { restored ->
           cachedTreeViewData = restored
@@ -198,38 +205,91 @@ object TreeViewScanner {
           cacheOptionsKey = cacheKey
           return@withContext restored
         }
+        // Played titles and overrides change the exact key without changing the scan. Show the last
+        // tree built with these scan options now and rebuild the exact one in the background, so
+        // reopening stays instant and the NEW badges catch up shortly after.
+        restoreTreeViewData(context, baseCacheKey(options, showNewLabels, thresholdDays))?.let { stale ->
+          cachedTreeViewData = stale
+          cacheTimestamp = now
+          cacheOptionsKey = cacheKey
+          if (refreshingKeys.add(cacheKey)) {
+            treeRefreshScope.launch {
+              try {
+                buildAndPersist(
+                  context = context,
+                  options = options,
+                  forceFileSystemCheck = false,
+                  cacheKey = cacheKey,
+                  playedMediaTitles = playedMediaTitles,
+                  showNewLabels = showNewLabels,
+                  thresholdDays = thresholdDays,
+                  newLabelOverrides = newLabelOverrides,
+                )
+              } catch (error: Exception) {
+                Log.w(TAG, "Could not refresh tree snapshot", error)
+              } finally {
+                refreshingKeys.remove(cacheKey)
+              }
+            }
+          }
+          return@withContext stale
+        }
       }
 
-      // Read before building: recording the generation afterwards would bless a MediaStore newer
-      // than the data, and the next cold boot would keep a stale tree.
-      val observedGeneration =
-        if (forceFileSystemCheck) null else MediaStoreGenerationGuard.currentToken(context)
-
-      val data =
-        buildTreeViewData(
-          context = context,
-          options = options,
-          forceFileSystemCheck = forceFileSystemCheck,
-          playedMediaTitles = playedMediaTitles,
-          showNewLabels = showNewLabels,
-          thresholdDays = thresholdDays,
-          newLabelOverrides = newLabelOverrides,
-        )
-
-      cachedTreeViewData = data
-      cacheTimestamp = now
-      cacheOptionsKey = cacheKey
-      // The snapshot is only trustworthy while MediaStore still matches, so the generation that
-      // describes it travels inside the payload. Both are dropped together when the library changes.
-      val payload = MediaStoreGenerationGuard.withGeneration(encodeTreeViewData(data), observedGeneration)
-      if (payload != null) {
-        TreeViewCache.save(context, cacheKey, payload)
-      } else {
-        // No generation to prove it fresh, so there is nothing worth keeping.
-        TreeViewCache.clear(context)
-      }
-      data
+      buildAndPersist(
+        context = context,
+        options = options,
+        forceFileSystemCheck = forceFileSystemCheck,
+        cacheKey = cacheKey,
+        playedMediaTitles = playedMediaTitles,
+        showNewLabels = showNewLabels,
+        thresholdDays = thresholdDays,
+        newLabelOverrides = newLabelOverrides,
+      )
     }
+
+  /** Builds a tree from the current library and persists it under both the exact and the base key. */
+  private suspend fun buildAndPersist(
+    context: Context,
+    options: MediaScanOptions,
+    forceFileSystemCheck: Boolean,
+    cacheKey: String,
+    playedMediaTitles: Set<String>,
+    showNewLabels: Boolean,
+    thresholdDays: Int,
+    newLabelOverrides: Map<String, Boolean>,
+  ): Map<String, FolderNode> {
+    // Read before building: recording the generation afterwards would bless a MediaStore newer
+    // than the data, and the next cold boot would keep a stale tree.
+    val observedGeneration =
+      if (forceFileSystemCheck) null else MediaStoreGenerationGuard.currentToken(context)
+
+    val data =
+      buildTreeViewData(
+        context = context,
+        options = options,
+        forceFileSystemCheck = forceFileSystemCheck,
+        playedMediaTitles = playedMediaTitles,
+        showNewLabels = showNewLabels,
+        thresholdDays = thresholdDays,
+        newLabelOverrides = newLabelOverrides,
+      )
+
+    cachedTreeViewData = data
+    cacheTimestamp = System.currentTimeMillis()
+    cacheOptionsKey = cacheKey
+    // The snapshot is only trustworthy while MediaStore still matches, so the generation that
+    // describes it travels inside the payload. Both are dropped together when the library changes.
+    val payload = MediaStoreGenerationGuard.withGeneration(encodeTreeViewData(data), observedGeneration)
+    if (payload != null) {
+      TreeViewCache.save(context, cacheKey, payload)
+      TreeViewCache.save(context, baseCacheKey(options, showNewLabels, thresholdDays), payload)
+    } else {
+      // No generation to prove it fresh, so there is nothing worth keeping.
+      TreeViewCache.clear(context)
+    }
+    return data
+  }
 
   /**
    * Restores a previously persisted tree, but only while MediaStore still matches the generation the
@@ -335,6 +395,12 @@ object TreeViewScanner {
       .replace(RECORD_SEPARATOR, " ")
       .replace('\n', ' ')
       .replace('\r', ' ')
+
+  private fun baseCacheKey(
+    options: MediaScanOptions,
+    showNewLabels: Boolean,
+    thresholdDays: Int,
+  ): String = "${options.cacheKey}|new=$showNewLabels|days=$thresholdDays|base"
 
   private fun buildCacheKey(
     options: MediaScanOptions,

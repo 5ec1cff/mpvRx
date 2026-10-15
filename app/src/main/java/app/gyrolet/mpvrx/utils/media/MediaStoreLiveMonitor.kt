@@ -48,11 +48,15 @@ class MediaStoreLiveMonitor(
       Log.w(TAG, "Could not register media observers", error)
       stop()
     }
+    val previous = lastGeneration
     scope.launch(Dispatchers.IO) {
-      val current = MediaStoreGenerationGuard.currentToken(context)
+      // Compare against the playable library only: a raw generation also moves for every photo,
+      // screenshot or download, which used to force a full rescan on each foreground return.
+      val changed = previous != null && !MediaStoreGenerationGuard.isTokenCurrent(context, previous)
+      val current = if (previous == null || changed) MediaStoreGenerationGuard.currentToken(context) else previous
       handler.post {
         if (!registered) return@post
-        if (lastGeneration != null && current != null && current != lastGeneration) schedule()
+        if (changed) schedule()
         if (current != null) lastGeneration = current
       }
     }

@@ -106,13 +106,15 @@ class MediaLibraryViewModel(
   init {
     // Try the persisted list first so an unchanged library needs no scan at all. Without this, every
     // cold boot queried MediaStore once per folder before the screen had anything to show.
-    val restored = loadCachedVideos()
-    if (!restored) {
-      loadData()
-    } else if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY)) {
-      // MediaStore generations cannot detect changes inside .nomedia or dot folders. Display
-      // the cached list now and verify the hidden sources without blocking the first frame.
-      loadData(force = true)
+    viewModelScope.launch(Dispatchers.IO) {
+      val restored = loadCachedVideos()
+      if (!restored) {
+        loadData()
+      } else if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY)) {
+        // MediaStore generations cannot detect changes inside .nomedia or dot folders. Display
+        // the cached list now and verify the hidden sources without blocking the first frame.
+        loadData(force = true)
+      }
     }
     viewModelScope.launch(Dispatchers.IO) {
       val hiddenPreferences = combine(
@@ -174,17 +176,17 @@ class MediaLibraryViewModel(
   private fun loadData(force: Boolean = false) {
     // Guards a re-entry that has nothing new to learn: a media event fired while the list on screen
     // still matches the current MediaStore, or refresh() was asked to invalidate and rebuild. force
-    // comes from refresh() and always re-reads.
-    if (!force &&
-      !foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY) &&
-      _videos.value.isNotEmpty() &&
-      MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
-    ) {
-      Log.d(tag, "MediaStore unchanged, keeping current media library")
-      return
-    }
-
+    // comes from refresh() and always re-reads. The MediaStore check queries providers, so it runs
+    // off the main thread.
     viewModelScope.launch(Dispatchers.IO) {
+      if (!force &&
+        !foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY) &&
+        _videos.value.isNotEmpty() &&
+        MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
+      ) {
+        Log.d(tag, "MediaStore unchanged, keeping current media library")
+        return@launch
+      }
       scanMutex.withLock {
         try {
           // Read before scanning: recording the generation afterwards would bless a MediaStore newer

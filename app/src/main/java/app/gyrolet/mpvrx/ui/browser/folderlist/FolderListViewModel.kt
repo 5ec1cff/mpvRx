@@ -133,20 +133,18 @@ class FolderListViewModel(
     // Load cached folders instantly for immediate display
     val hasCachedData = loadCachedFolders()
 
-    if (!hasCachedData) {
-      loadVideoFolders(silent = false)
-    } else if (MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())) {
+    // Token checks query MediaStore, so they run off the main thread.
+    viewModelScope.launch(Dispatchers.IO) {
+      if (!hasCachedData) {
+        loadVideoFolders(silent = false)
+        return@launch
+      }
       // MediaStore has not changed since this cache was written, so re-querying it could only
       // rebuild an identical list. Hidden .nomedia folders are still walked: MediaStore cannot see
       // those files, so its generation says nothing about them.
-      Log.d(TAG, "MediaStore unchanged, reusing cached folder list")
-      viewModelScope.launch(Dispatchers.IO) {
-        loadVideoFolders(silent = true, skipMediaStoreScan = true)
-      }
-    } else {
-      viewModelScope.launch(Dispatchers.IO) {
-        loadVideoFolders(silent = true)
-      }
+      val unchanged = MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
+      if (unchanged) Log.d(TAG, "MediaStore unchanged, reusing cached folder list")
+      loadVideoFolders(silent = true, skipMediaStoreScan = unchanged)
     }
 
     // Refresh on media events and every preference that changes scan/index semantics. Settings UI
@@ -443,7 +441,7 @@ class FolderListViewModel(
     if (_allVideoFolders.value.isEmpty()) _isLoading.value = true
     MediaFileRepository.invalidateFolderCache()
     MediaStoreGenerationGuard.invalidate(getApplication())
-    loadVideoFolders()
+    viewModelScope.launch(Dispatchers.IO) { loadVideoFolders() }
   }
 
   /**
@@ -499,7 +497,9 @@ class FolderListViewModel(
     }
     // A periodic foreground verification is incremental; only changed hidden markers need
     // the forced filesystem/discovery fallback.
-    loadVideoFolders(forceFileSystemCheck = staleHiddenRoot || markersChanged, silent = true)
+    viewModelScope.launch(Dispatchers.IO) {
+      loadVideoFolders(forceFileSystemCheck = staleHiddenRoot || markersChanged, silent = true)
+    }
   }
 
   suspend fun renameFolder(

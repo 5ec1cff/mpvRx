@@ -10,13 +10,12 @@ import android.provider.MediaStore
 import android.util.Log
 
 /**
- * Cheap "has MediaStore changed at all?" signal, so cold boots can skip a rescan.
+ * Cheap "has the video or audio library changed?" signal, so cold boots can skip a rescan.
  *
- * All three browser modes rescan on every launch even when nothing changed, because the caches in
- * [FolderViewScanner] and [TreeViewScanner] are process-local and die with the app, and
- * `getAllVideos` issues one MediaStore query per folder. [MediaStore.getGeneration] answers the
- * same question with one monotonic integer per volume: it only advances when MediaProvider actually
- * mutates a row, so an unchanged value proves the previous scan is still accurate.
+ * [MediaStore.getGeneration] advances for every MediaProvider write, including photos, screenshots
+ * and downloads, so comparing it verbatim would rescan after almost any phone use. The token pairs
+ * each volume's generation with its playable row count instead; [isTokenCurrent] accepts a newer
+ * generation only when no video or audio row was modified since and the count is unchanged.
  *
  * Scope — this only speaks for MediaStore-indexed media. Files inside `.nomedia` trees are
  * deliberately absent from MediaStore, so this guard must never be used to skip
@@ -31,8 +30,11 @@ object MediaStoreGenerationGuard {
   /** Marker separating the recorded generation from caller payload in a combined blob. */
   internal const val PAYLOAD_PREFIX = "gen:"
 
+  // v2 records per-volume playable row counts so unrelated (image/file) writes are ignored.
+  private const val TOKEN_VERSION = "v2"
+
   /**
-   * Current generation across every external volume, or null when it cannot be determined.
+   * Generation and playable row count for every external volume, or null when it cannot be determined.
    *
    * Null means "unknown" and callers must then scan. It is returned below API 30, where
    * [MediaStore.getGeneration] does not exist, so those devices keep today's behaviour rather than
@@ -44,15 +46,68 @@ object MediaStoreGenerationGuard {
       val volumes = MediaStore.getExternalVolumeNames(context)
       // No external volume is a legitimate state (an emulator image with no mounted media), not a
       // failure, so this still yields a stable token.
-      val perVolume = volumes.sorted().map { volume -> "$volume=${MediaStore.getGeneration(context, volume)}" }
+      val perVolume = volumes.sorted().map { volume ->
+        "$volume=${MediaStore.getGeneration(context, volume)}:${playableCount(context, volume)}"
+      }
       // getVersion changes when MediaProvider is upgraded or its schema resets, which can renumber
       // generations; folding it in makes that a guaranteed mismatch instead of a false match.
       val providerVersion = runCatching { MediaStore.getVersion(context) }.getOrDefault("")
-      "v1|$providerVersion|${perVolume.joinToString(",")}"
+      "$TOKEN_VERSION|$providerVersion|${perVolume.joinToString(",")}"
     }.onFailure { error ->
       Log.w(TAG, "Could not read MediaStore generation", error)
     }.getOrNull()
   }
+
+  /**
+   * True when [recorded] still describes the video/audio library.
+   *
+   * A volume generation advances for *any* MediaProvider write — every photo, screenshot or
+   * download — so comparing it verbatim invalidated every snapshot within hours of normal phone
+   * use and forced a full rescan on the next launch. Only rows the browser can show matter: no
+   * video/audio row modified after the recorded generation, and the same number of such rows
+   * (deletions do not leave a modified row behind), means the previous scan is still exact.
+   */
+  fun isTokenCurrent(context: Context, recorded: String): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+    return runCatching {
+      val parts = recorded.split('|', limit = 3)
+      if (parts.size != 3 || parts[0] != TOKEN_VERSION) return false
+      val providerVersion = runCatching { MediaStore.getVersion(context) }.getOrDefault("")
+      if (parts[1] != providerVersion) return false
+      val recordedVolumes =
+        parts[2].split(',').filter { it.isNotEmpty() }.associate { entry ->
+          val volume = entry.substringBefore('=')
+          val gen = entry.substringAfter('=').substringBefore(':').toLong()
+          val count = entry.substringAfter(':').toInt()
+          volume to (gen to count)
+        }
+      val volumes = MediaStore.getExternalVolumeNames(context)
+      if (volumes != recordedVolumes.keys) return false
+      volumes.all { volume ->
+        val (generation, count) = recordedVolumes.getValue(volume)
+        if (MediaStore.getGeneration(context, volume) == generation) return@all true
+        playableCount(context, volume) == count && modifiedPlayableCount(context, volume, generation) == 0
+      }
+    }.onFailure { error ->
+      Log.w(TAG, "Could not compare MediaStore generation", error)
+    }.getOrDefault(false)
+  }
+
+  private fun playableCount(context: Context, volume: String): Int =
+    countRows(context, MediaStore.Video.Media.getContentUri(volume), null, null) +
+      countRows(context, MediaStore.Audio.Media.getContentUri(volume), null, null)
+
+  private fun modifiedPlayableCount(context: Context, volume: String, sinceGeneration: Long): Int {
+    val selection = "${MediaStore.MediaColumns.GENERATION_MODIFIED} > ?"
+    val args = arrayOf(sinceGeneration.toString())
+    return countRows(context, MediaStore.Video.Media.getContentUri(volume), selection, args) +
+      countRows(context, MediaStore.Audio.Media.getContentUri(volume), selection, args)
+  }
+
+  private fun countRows(context: Context, uri: android.net.Uri, selection: String?, args: Array<String>?): Int =
+    context.contentResolver
+      .query(uri, arrayOf(MediaStore.MediaColumns._ID), selection, args, null)
+      ?.use { it.count } ?: 0
 
   /**
    * Records the MediaStore state that a just-completed scan observed. A null token is ignored so the
@@ -73,8 +128,7 @@ object MediaStoreGenerationGuard {
    */
   fun isUnchangedSinceLastScan(context: Context): Boolean {
     val previous = lastRemembered(context) ?: return false
-    val current = currentToken(context) ?: return false
-    return previous == current
+    return isTokenCurrent(context, previous)
   }
 
   /**
@@ -94,8 +148,7 @@ object MediaStoreGenerationGuard {
     if (!payload.startsWith(PAYLOAD_PREFIX)) return false
     val embedded = payload.removePrefix(PAYLOAD_PREFIX).substringBefore('\n')
     if (embedded.isBlank()) return false
-    val current = currentToken(context) ?: return false
-    return embedded == current
+    return isTokenCurrent(context, embedded)
   }
 
   /**
@@ -111,12 +164,6 @@ object MediaStoreGenerationGuard {
   }
 
   /**
-   * Drops the recorded token so the next scan always recomputes.
-   *
-   * Called whenever something outside a MediaStore query may have changed the library: a
-   * user-driven refresh, a media event, or an in-app file mutation.
-   */
-  /**
    * Forget the shared Folder-list token without discarding a valid, independent Tree snapshot.
    * Per-mode scan-option changes already produce distinct Tree cache keys.
    */
@@ -127,6 +174,10 @@ object MediaStoreGenerationGuard {
       }
   }
 
+  /**
+   * Called when the library may have changed in ways a MediaStore query cannot see: a user-driven
+   * refresh, a media event, or an in-app file mutation. Also drops the Tree snapshot.
+   */
   fun invalidate(context: Context) {
     forgetLastScan(context)
     // Explicit hard refreshes and real media mutations must still drop Tree's snapshot.

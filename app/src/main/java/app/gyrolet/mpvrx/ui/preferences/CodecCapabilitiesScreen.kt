@@ -1096,19 +1096,6 @@ private fun KeyCodecStatusCard(status: KeyCodecStatus, index: Int, itemCount: In
   }
 }
 
-@Composable
-private fun borderStrokeForHw(isHw: Boolean) = if (isHw) {
-  androidx.compose.foundation.BorderStroke(
-    1.dp,
-    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-  )
-} else {
-  androidx.compose.foundation.BorderStroke(
-    1.dp,
-    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-  )
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CodecDetailCard(codec: CodecCapabilitiesInfo, index: Int, itemCount: Int) {

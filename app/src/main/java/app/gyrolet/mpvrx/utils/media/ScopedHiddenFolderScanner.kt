@@ -5,18 +5,13 @@ package app.gyrolet.mpvrx.utils.media
 
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
-import android.os.storage.StorageManager
 import android.provider.DocumentsContract
 import android.util.Log
-import androidx.documentfile.provider.DocumentFile
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
-import app.gyrolet.mpvrx.utils.storage.MediaScanOptions
-import app.gyrolet.mpvrx.utils.storage.StorageVolumeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
-import kotlinx.coroutines.CancellationException
+import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -26,12 +21,10 @@ import java.util.ArrayDeque
 import java.util.Locale
 
 /**
- * Play Store-safe explicit folder grants. Never opens a SAF item through a raw file path:
- * every playable item retains its content:// URI. A single user-picked tree grant also covers
- * its nested directories. Each directory with playable media appears as its own folder, using a
- * document URI under the original grant; no raw paths or broad storage permissions are needed.
- * Metadata is read through the same grants, not filesystem paths or MediaStore permissions.
- * The player also uses this scan to rebuild sibling queues for history and other single-item launches.
+ * Play Store folder grants (SAF tree URIs). Each granted tree is listed like a plain file browser:
+ * one provider query per directory returns names, types, sizes and dates, so no file is opened or
+ * probed for metadata and MediaStore is not consulted. Items keep their content:// document URIs,
+ * which is also how the player rebuilds sibling queues.
  */
 object ScopedHiddenFolderScanner {
   private const val TAG = "ScopedHiddenFolderScanner"
@@ -46,75 +39,26 @@ object ScopedHiddenFolderScanner {
     DocumentsContract.buildDocumentUri(uri.authority, id).toString()
   }.getOrDefault(uri.toString())
 
-  /**
-   * ExternalStorageProvider defines volume:path document IDs. This location is used ONLY to
-   * compare against the normal browser's MediaStore results; playback always keeps its SAF URI.
-   * Other providers have opaque IDs and must never be guessed from display names.
-   */
-  private fun mediaStoreLocation(context: Context, uri: Uri): String? = runCatching {
-    if (uri.authority != "com.android.externalstorage.documents") return null
-    val id = DocumentsContract.getDocumentId(uri)
-    val separator = id.indexOf(':')
-    if (separator < 1) return null
-    val volumeId = id.substring(0, separator)
-    val relativePath = id.substring(separator + 1)
-    if (relativePath.startsWith('/') || relativePath.split('/').any { it == ".." || it == "." }) return null
-    val root = when {
-      volumeId.equals("primary", ignoreCase = true) -> Environment.getExternalStorageDirectory().absolutePath
-      volumeId == "home" -> File(Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOCUMENTS).path
-      else -> {
-        val manager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
-        val volume = manager.storageVolumes.firstOrNull { it.uuid.equals(volumeId, ignoreCase = true) } ?: return null
-        StorageVolumeUtils.getVolumePath(volume) ?: return null
-      }
-    }
-    "$root/$relativePath"
-  }.getOrNull()
-
-  private suspend fun visibleMediaStorePaths(
-    context: Context,
-    children: Array<DocumentFile>,
-    includeAudio: Boolean,
-    minimumAudioDurationSeconds: Int,
-    audioOnly: Boolean,
-  ): Set<String> {
-    if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return emptySet()
-    val parents = children.mapNotNull { mediaStoreLocation(context, it.uri)?.let { path -> File(path).parent } }.toSet()
-    val visible = mutableSetOf<String>()
-    for (parent in parents) {
-      currentCoroutineContext().ensureActive()
-      // Use the same scanner/filters as the normal browser. A grant or a matching name is not
-      // evidence of a duplicate: only rows actually readable through MediaStore are excluded.
-      // Denied video permission leaves videos visible through SAF; audio is handled separately.
-      VideoScanUtils.getVideosInFolder(
-        context, parent,
-        MediaScanOptions(includeAudio = includeAudio, minimumAudioDurationSeconds = minimumAudioDurationSeconds),
-      ).filter { !audioOnly || it.isAudio }.forEach { visible += it.path }
-    }
-    return visible
-  }
-
   // Keep walks bounded even if a document provider exposes cyclic or excessively deep trees.
   private const val MAX_DIRECTORY_DEPTH = 64
 
   private data class DirectoryVisit(
-    val document: DocumentFile,
+    val uri: Uri,
     val bucketId: String,
+    val name: String,
     val displayName: String,
     val depth: Int,
-    val parentBucketId: String? = null,
-  )
-
-  private data class IndexedDirectory(
-    val document: DocumentFile,
-    val grantedTreeUri: String,
-    val displayName: String,
     val parentBucketId: String?,
   )
 
-  // A folder list scan already visited every child. Reuse those DocumentFile handles for the
-  // library's per-folder counts and video pages instead of traversing the tree once per folder.
-  // listFiles() still queries current contents; the cache only holds directory locations.
+  private data class IndexedDirectory(
+    val visit: DirectoryVisit,
+    val grantedTreeUri: String,
+  )
+
+  private enum class WalkStep { Descend, SkipSubtree, Stop }
+
+  // Filled by getFolders so a folder can be opened without walking its grant again.
   @Volatile private var indexedDirectories: Map<String, IndexedDirectory> = emptyMap()
 
   fun isIndexedDescendant(bucketId: String, ancestorBucketId: String): Boolean {
@@ -122,7 +66,7 @@ object ScopedHiddenFolderScanner {
     val visited = hashSetOf<String>()
     while (visited.add(current)) {
       if (current == ancestorBucketId) return true
-      current = indexedDirectories[current]?.parentBucketId ?: return false
+      current = indexedDirectories[current]?.visit?.parentBucketId ?: return false
     }
     return false
   }
@@ -152,71 +96,37 @@ object ScopedHiddenFolderScanner {
     context: Context,
     grantedTreeUris: Set<String>,
     includeAudio: Boolean,
-    minimumAudioDurationSeconds: Int = 0,
     audioOnly: Boolean = false,
     includeMarkedFolders: Boolean = true,
     includeDotFolders: Boolean = true,
     markerNames: Set<String> = setOf(".nomedia"),
     ignoredMarkerNames: Set<String> = emptySet(),
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
-    // SAF permissions are explicit: inspect only the documents inside user-granted trees.
-    // Normalize marker names exactly like the filesystem scanner.
-    val normalizedMarkers = markerNames.mapNotNull { app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName(it) }.toSet()
-    val ignoredMarkers = ignoredMarkerNames.mapNotNull {
-      app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName(it)
-    }.toSet()
+    val normalizedMarkers = markerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
+    val ignoredMarkers = ignoredMarkerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
     val excludedMarkers = if (includeMarkedFolders) normalizedMarkers.intersect(ignoredMarkers) else normalizedMarkers
     val folders = mutableListOf<VideoFolder>()
     val discovered = mutableMapOf<String, IndexedDirectory>()
     for (treeUri in grantedTreeUris.sorted()) {
-      currentCoroutineContext().ensureActive()
-      val root = openPersistedTreeDocument(context, treeUri) ?: continue
-      val rootName = root.name ?: Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':') ?: "Selected folder"
-      val pending = ArrayDeque<DirectoryVisit>()
-      val visited = hashSetOf<String>()
-      pending.addLast(DirectoryVisit(root, treeUri, rootName, 0))
-
-      while (pending.isNotEmpty()) {
-        currentCoroutineContext().ensureActive()
-        val folder = pending.removeFirst()
-        if (!visited.add(documentKey(folder.document.uri))) continue
-        val children = listTreeFilesSafely(folder.document)
-        if (!includeDotFolders && folder.document.name?.startsWith(".") == true) continue
-        if (children.any { it.isFile && it.name in excludedMarkers }) continue
-        discovered[folder.bucketId] =
-          IndexedDirectory(folder.document, treeUri, folder.displayName, folder.parentBucketId)
-        val videos = readVideosFromFiles(
-          context, children, folder.bucketId, folder.displayName, includeAudio,
-          minimumAudioDurationSeconds, audioOnly, excludeMediaStoreItems = true,
-        ).filter { includeDotFolders || !it.displayName.startsWith(".") }
-        if (videos.isNotEmpty()) {
+      walkGrant(context, treeUri, skipDotDirectories = !includeDotFolders) { visit, children ->
+        if (children.any { it.isFile && it.name in excludedMarkers }) {
+          return@walkGrant WalkStep.SkipSubtree
+        }
+        discovered[visit.bucketId] = IndexedDirectory(visit, treeUri)
+        val items = mediaItems(visit.bucketId, visit.displayName, children, includeAudio, audioOnly)
+          .filter { includeDotFolders || !it.displayName.startsWith(".") }
+        if (items.isNotEmpty() || !audioOnly) {
           folders += VideoFolder(
-            bucketId = folder.bucketId,
-            name = folder.displayName,
-            path = folder.bucketId,
-            videoCount = videos.size,
-            totalSize = videos.sumOf { it.size },
-            totalDuration = videos.sumOf { it.duration },
-            lastModified = videos.maxOfOrNull { it.dateModified } ?: 0L,
+            bucketId = visit.bucketId,
+            name = visit.displayName,
+            path = visit.bucketId,
+            videoCount = items.size,
+            totalSize = items.sumOf { it.size },
+            totalDuration = 0L,
+            lastModified = items.maxOfOrNull { it.dateModified } ?: 0L,
           )
         }
-
-        if (folder.depth < MAX_DIRECTORY_DEPTH) {
-          for (child in children) {
-            currentCoroutineContext().ensureActive()
-            if (!child.isDirectory) continue
-            val childName = child.name ?: continue
-            pending.addLast(
-              DirectoryVisit(
-                child,
-                child.uri.toString(),
-                "${folder.displayName} / $childName",
-                folder.depth + 1,
-                folder.bucketId,
-              ),
-            )
-          }
-        }
+        WalkStep.Descend
       }
     }
     // Retain every grant alias in the index so removing one grant or using a saved folder link
@@ -226,7 +136,7 @@ object ScopedHiddenFolderScanner {
   }
 
   /**
-   * Recursively collect playable files for the explicit SAF folder-swipe action. Unlike a
+   * Collects every playable item beneath a folder for the explicit folder-swipe action. Unlike a
    * filesystem File.walkTopDown, traversal is rooted inside the persisted user-selected tree.
    */
   suspend fun getVideosRecursively(
@@ -235,73 +145,86 @@ object ScopedHiddenFolderScanner {
     grantedTreeUris: Set<String>,
     includeAudio: Boolean,
     audioOnly: Boolean = false,
-    minimumAudioDurationSeconds: Int = 0,
   ): List<Video> = withContext(Dispatchers.IO) {
-    val start = findGrantedDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
-    val queue = ArrayDeque<DirectoryVisit>()
-    val visited = hashSetOf<String>()
+    val start = resolveDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
     val videos = mutableListOf<Video>()
-    queue.addLast(start)
-    while (queue.isNotEmpty()) {
-      currentCoroutineContext().ensureActive()
-      val folder = queue.removeFirst()
-      if (!visited.add(documentKey(folder.document.uri))) continue
-      val children = listTreeFilesSafely(folder.document)
-      videos += readVideosFromFiles(
-        context, children, folder.bucketId, folder.displayName, includeAudio,
-        minimumAudioDurationSeconds, audioOnly, excludeMediaStoreItems = true,
-      )
-      if (folder.depth < MAX_DIRECTORY_DEPTH) {
-        for (child in children) {
-          currentCoroutineContext().ensureActive()
-          if (!child.isDirectory) continue
-          val name = child.name ?: continue
-          queue.addLast(
-            DirectoryVisit(
-              child, child.uri.toString(), "${folder.displayName} / $name", folder.depth + 1,
-            ),
-          )
-        }
-      }
+    walkFrom(context, start, skipDotDirectories = false) { visit, children ->
+      videos += mediaItems(visit.bucketId, visit.displayName, children, includeAudio, audioOnly)
+      WalkStep.Descend
     }
     videos.distinctBy { documentKey(it.uri) }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
   }
 
-  /** Only return a real directory visited beneath a persisted SAF grant. */
-  private suspend fun findGrantedDirectory(
+  /** The folder behind [bucketId] inside a persisted grant, reusing the last folder-list walk when still valid. */
+  private suspend fun resolveDirectory(
     context: Context,
     bucketId: String,
     grantedTreeUris: Set<String>,
-    requireWrite: Boolean = false,
   ): DirectoryVisit? {
     if (!isGrantedFolder(bucketId, grantedTreeUris)) return null
+    val cached = indexedDirectories[bucketId]
+    if (cached != null && cached.grantedTreeUri in grantedTreeUris &&
+      openPersistedTreeDocument(context, cached.grantedTreeUri) != null
+    ) {
+      return cached.visit
+    }
+    var found: DirectoryVisit? = null
     for (treeUri in grantedTreeUris.sorted()) {
-      currentCoroutineContext().ensureActive()
       if (!isGrantedFolder(bucketId, setOf(treeUri))) continue
-      val root = openPersistedTreeDocument(context, treeUri, requireWrite) ?: continue
-      val queue = ArrayDeque<DirectoryVisit>()
-      val seen = hashSetOf<String>()
-      queue.addLast(DirectoryVisit(root, treeUri, root.name ?: "Selected folder", 0))
-      while (queue.isNotEmpty()) {
-        currentCoroutineContext().ensureActive()
-        val current = queue.removeFirst()
-        if (!seen.add(documentKey(current.document.uri))) continue
-        if (current.bucketId == bucketId) {
-          return current.takeIf { it.document.isDirectory && (!requireWrite || it.document.canWrite()) }
-        }
-        if (current.depth >= MAX_DIRECTORY_DEPTH) continue
-        for (child in listTreeFilesSafely(current.document)) {
-          currentCoroutineContext().ensureActive()
-          if (!child.isDirectory) continue
-          queue.addLast(
-            DirectoryVisit(
-              child, child.uri.toString(), child.name ?: "Selected folder", current.depth + 1,
-            ),
-          )
-        }
+      walkGrant(context, treeUri, skipDotDirectories = false) { visit, _ ->
+        if (visit.bucketId != bucketId) return@walkGrant WalkStep.Descend
+        found = visit
+        WalkStep.Stop
+      }
+      if (found != null) break
+    }
+    return found
+  }
+
+  private suspend fun walkGrant(
+    context: Context,
+    treeUri: String,
+    skipDotDirectories: Boolean,
+    visit: suspend (DirectoryVisit, List<ChildEntry>) -> WalkStep,
+  ) {
+    val root = openPersistedTreeDocument(context, treeUri) ?: return
+    val rootName = root.name ?: Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':') ?: "Selected folder"
+    walkFrom(context, DirectoryVisit(root.uri, treeUri, rootName, rootName, 0, null), skipDotDirectories, visit)
+  }
+
+  /** Breadth-first walk from [start]: one provider query per directory, and [visit] can prune or stop. */
+  private suspend fun walkFrom(
+    context: Context,
+    start: DirectoryVisit,
+    skipDotDirectories: Boolean,
+    visit: suspend (DirectoryVisit, List<ChildEntry>) -> WalkStep,
+  ) {
+    val queue = ArrayDeque<DirectoryVisit>()
+    val visited = hashSetOf<String>()
+    queue.addLast(start)
+    while (queue.isNotEmpty()) {
+      currentCoroutineContext().ensureActive()
+      val directory = queue.removeFirst()
+      if (skipDotDirectories && directory.name.startsWith(".")) continue
+      if (!visited.add(documentKey(directory.uri))) continue
+      val children = listChildren(context, directory.uri)
+      val step = visit(directory, children)
+      if (step == WalkStep.Stop) return
+      if (step == WalkStep.SkipSubtree || directory.depth >= MAX_DIRECTORY_DEPTH) continue
+      for (child in children) {
+        if (!child.isDirectory) continue
+        queue.addLast(
+          DirectoryVisit(
+            uri = child.uri,
+            bucketId = child.uri.toString(),
+            name = child.name,
+            displayName = "${directory.displayName} / ${child.name}",
+            depth = directory.depth + 1,
+            parentBucketId = directory.bucketId,
+          ),
+        )
       }
     }
-    return null
   }
 
   suspend fun getVideos(
@@ -309,144 +232,97 @@ object ScopedHiddenFolderScanner {
     bucketId: String,
     includeAudio: Boolean,
     grantedTreeUris: Set<String>,
-    minimumAudioDurationSeconds: Int = 0,
-    excludeMediaStoreItems: Boolean = false,
   ): List<Video> = withContext(Dispatchers.IO) {
-    if (!isGrantedFolder(bucketId, grantedTreeUris)) return@withContext emptyList()
-
-    val cached = indexedDirectories[bucketId]
-    if (cached != null && cached.grantedTreeUri in grantedTreeUris &&
-      openPersistedTreeDocument(context, cached.grantedTreeUri) != null
-    ) {
-      return@withContext readVideosFromFiles(
-        context, listTreeFilesSafely(cached.document), bucketId, cached.displayName, includeAudio,
-        minimumAudioDurationSeconds, excludeMediaStoreItems = excludeMediaStoreItems,
-      )
-    }
-
-    // Resolve the requested directory from the actual persisted grant rather than treating its
-    // URI as a separate tree permission. Only directories discovered beneath the grant are used.
-    for (treeUri in grantedTreeUris.sorted()) {
-      if (!isGrantedFolder(bucketId, setOf(treeUri))) continue
-      val root = openPersistedTreeDocument(context, treeUri) ?: continue
-      val rootName = root.name ?: "Selected folder"
-      val pending = ArrayDeque<DirectoryVisit>()
-      val visited = hashSetOf<String>()
-      pending.addLast(DirectoryVisit(root, treeUri, rootName, 0))
-
-      while (pending.isNotEmpty()) {
-        currentCoroutineContext().ensureActive()
-        val folder = pending.removeFirst()
-        if (!visited.add(documentKey(folder.document.uri))) continue
-        val children = listTreeFilesSafely(folder.document)
-        if (folder.bucketId == bucketId) {
-          return@withContext readVideosFromFiles(
-            context, children, folder.bucketId, folder.displayName, includeAudio,
-            minimumAudioDurationSeconds, excludeMediaStoreItems = excludeMediaStoreItems,
-          )
-        }
-        if (folder.depth < MAX_DIRECTORY_DEPTH) {
-          for (child in children) {
-            currentCoroutineContext().ensureActive()
-            if (child.isDirectory) {
-              val childName = child.name ?: continue
-              pending.addLast(
-                DirectoryVisit(
-                  child,
-                  child.uri.toString(),
-                  "${folder.displayName} / $childName",
-                  folder.depth + 1,
-                ),
-              )
-            }
-          }
-        }
-      }
-    }
-    emptyList()
+    val directory = resolveDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
+    mediaItems(bucketId, directory.displayName, listChildren(context, directory.uri), includeAudio, audioOnly = false)
   }
 
-  private suspend fun readVideosFromFiles(
-    context: Context,
-    children: Array<DocumentFile>,
+  /** Playable items of one listing. Names and MIME types decide the kind; nothing is opened or probed. */
+  private fun mediaItems(
     bucketId: String,
     folderName: String,
+    children: List<ChildEntry>,
     includeAudio: Boolean,
-    minimumAudioDurationSeconds: Int = 0,
-    audioOnly: Boolean = false,
-    excludeMediaStoreItems: Boolean = false,
-  ): List<Video> {
-    val indexedPaths = if (excludeMediaStoreItems) {
-      visibleMediaStorePaths(context, children, includeAudio, minimumAudioDurationSeconds, audioOnly)
-    } else emptySet()
-    val seenDocuments = hashSetOf<String>()
-    return children.mapNotNull { document ->
-      currentCoroutineContext().ensureActive()
-      run {
-        val name = document.name ?: return@run null
-        try {
-          if (!document.isFile) return@run null
-          val fakeFile = File(name)
-          val mimeType = document.type.orEmpty()
-          val isAudio = mimeType.startsWith("audio/") ||
-            (!mimeType.startsWith("video/") && FileTypeUtils.isAudioFile(fakeFile))
-          val isVideo = mimeType.startsWith("video/") || (!isAudio && FileTypeUtils.isVideoFile(fakeFile))
-          if (audioOnly && !isAudio) return@run null
-          if (!(isVideo || (includeAudio && isAudio))) return@run null
-          val documentUri = document.uri
-          if (!seenDocuments.add(documentKey(documentUri))) return@run null
-          if (indexedPaths.isNotEmpty() &&
-            mediaStoreLocation(context, documentUri)?.let { it in indexedPaths } == true
-          ) return@run null
-          val uriString = documentUri.toString()
-          val length = document.length().coerceAtLeast(0L)
-          val modified = (document.lastModified() / 1_000L).coerceAtLeast(0L)
-          val metadata =
-            MediaInfoOps.extractBasicMetadata(context, documentUri, name)
-              .onFailure { error ->
-                if (error is CancellationException) throw error
-                Log.w(TAG, "Cannot read metadata in a selected folder: $name", error)
-              }.getOrNull()
-          val duration = metadata?.durationMs ?: 0L
-          val size = length.takeIf { it > 0L } ?: metadata?.sizeBytes ?: 0L
-          if (isAudio && duration < minimumAudioDurationSeconds.coerceAtLeast(0).toLong() * 1_000L) return@run null
-          if (metadata != null && duration <= 0L) {
-            Log.w(TAG, "No duration available for an item in a selected folder: $name")
-          }
-          Video(
-            id = uriString.hashCode().toLong(),
-            title = name.substringBeforeLast('.', name),
-            displayName = name,
-            path = uriString,
-            uri = documentUri,
-            duration = duration,
-            durationFormatted = VideoScanUtils.formatDuration(duration),
-            size = size,
-            sizeFormatted = VideoScanUtils.formatFileSize(size),
-            dateModified = modified,
-            dateAdded = modified,
-            mimeType = mimeType.takeIf { it.startsWith("audio/") || it.startsWith("video/") }
-              ?: if (isAudio) "audio/*" else "video/*",
-            bucketId = bucketId,
-            bucketDisplayName = folderName,
-            width = metadata?.width ?: 0,
-            height = metadata?.height ?: 0,
-            fps = metadata?.fps ?: 0f,
-            resolution =
-              metadata?.let { VideoScanUtils.formatResolutionWithFps(it.width, it.height, it.fps) }.orEmpty(),
-            hasEmbeddedSubtitles = metadata?.hasEmbeddedSubtitles ?: false,
-            subtitleCodec = metadata?.subtitleCodec.orEmpty(),
-            videoCodec = metadata?.videoCodec.orEmpty(),
-            videoCodecMimeType = metadata?.videoCodecMimeType.orEmpty(),
-            isAudio = isAudio,
-          )
-        } catch (error: CancellationException) {
-          throw error
-        } catch (error: Exception) {
-          Log.w(TAG, "Cannot read an item in a selected folder: $name", error)
-          null
-        }
-      }
+    audioOnly: Boolean,
+  ): List<Video> =
+    children.mapNotNull { child ->
+      if (!child.isFile) return@mapNotNull null
+      val mimeType = child.mimeType
+      val file = File(child.name)
+      val isAudio = mimeType.startsWith("audio/") ||
+        (!mimeType.startsWith("video/") && FileTypeUtils.isAudioFile(file))
+      val isVideo = mimeType.startsWith("video/") || (!isAudio && FileTypeUtils.isVideoFile(file))
+      if (audioOnly && !isAudio) return@mapNotNull null
+      if (!(isVideo || (includeAudio && isAudio))) return@mapNotNull null
+      val size = child.size.coerceAtLeast(0L)
+      val modified = (child.lastModified / 1_000L).coerceAtLeast(0L)
+      Video(
+        id = child.uri.toString().hashCode().toLong(),
+        title = child.name.substringBeforeLast('.', child.name),
+        displayName = child.name,
+        path = child.uri.toString(),
+        uri = child.uri,
+        duration = 0L,
+        durationFormatted = VideoScanUtils.formatDuration(0L),
+        size = size,
+        sizeFormatted = VideoScanUtils.formatFileSize(size),
+        dateModified = modified,
+        dateAdded = modified,
+        mimeType = mimeType.takeIf { it.startsWith("audio/") || it.startsWith("video/") }
+          ?: if (isAudio) "audio/*" else "video/*",
+        bucketId = bucketId,
+        bucketDisplayName = folderName,
+        width = 0,
+        height = 0,
+        fps = 0f,
+        resolution = "",
+        isAudio = isAudio,
+      )
     }.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+
+  private data class ChildEntry(
+    val uri: Uri,
+    val name: String,
+    val mimeType: String,
+    val size: Long,
+    val lastModified: Long,
+  ) {
+    val isDirectory: Boolean get() = mimeType == DocumentsContract.Document.MIME_TYPE_DIR
+    val isFile: Boolean get() = !isDirectory && mimeType.isNotEmpty()
   }
+
+  private val childColumns = arrayOf(
+    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+    DocumentsContract.Document.COLUMN_MIME_TYPE,
+    DocumentsContract.Document.COLUMN_SIZE,
+    DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+  )
+
+  // One cursor per directory returns every column a row needs. DocumentFile would cost a separate
+  // provider call for the name, type and size of each child.
+  private fun listChildren(context: Context, directoryUri: Uri): List<ChildEntry> =
+    runCatching {
+      val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+        directoryUri,
+        DocumentsContract.getDocumentId(directoryUri),
+      )
+      context.contentResolver.query(childrenUri, childColumns, null, null, null)?.use { cursor ->
+        val entries = ArrayList<ChildEntry>(cursor.count)
+        while (cursor.moveToNext()) {
+          val id = cursor.getString(0) ?: continue
+          val name = cursor.getString(1) ?: continue
+          entries += ChildEntry(
+            uri = DocumentsContract.buildDocumentUriUsingTree(directoryUri, id),
+            name = name,
+            mimeType = cursor.getString(2).orEmpty(),
+            size = if (cursor.isNull(3)) 0L else cursor.getLong(3),
+            lastModified = if (cursor.isNull(4)) 0L else cursor.getLong(4),
+          )
+        }
+        entries
+      }.orEmpty()
+    }.onFailure { error ->
+      Log.w(TAG, "Cannot list a selected folder", error)
+    }.getOrDefault(emptyList())
 }

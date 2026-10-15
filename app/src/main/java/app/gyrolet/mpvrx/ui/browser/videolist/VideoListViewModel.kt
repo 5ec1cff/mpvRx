@@ -180,8 +180,20 @@ class VideoListViewModel(
     super.onCleared()
   }
 
+  private val cacheKey = "$bucketId|audio=$includeAudio"
+
   init {
-    loadVideos()
+    // Show the last known contents instantly; loadVideos() revalidates in the background.
+    viewModelScope.launch(Dispatchers.IO) {
+      val cached = VideoListCache.load(getApplication(), cacheKey)
+      if (!cached.isNullOrEmpty() && _videos.value.isEmpty()) {
+        previousVideoCount = cached.size
+        _videos.value = cached
+        loadPlaybackInfo(cached)
+        _isLoading.value = false
+      }
+      loadVideos()
+    }
 
     // Listen for global media library changes and refresh this list when they occur
     viewModelScope.launch(Dispatchers.IO) {
@@ -297,9 +309,13 @@ class VideoListViewModel(
 
           _videos.value = retryVideoList
           loadPlaybackInfo(retryVideoList)
+          VideoListCache.save(getApplication(), cacheKey, retryVideoList)
         } else {
-          _videos.value = videoList
-          loadPlaybackInfo(videoList)
+          if (_videos.value != videoList) {
+            _videos.value = videoList
+            loadPlaybackInfo(videoList)
+          }
+          VideoListCache.save(getApplication(), cacheKey, videoList)
         }
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)

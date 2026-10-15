@@ -133,7 +133,6 @@ object MediaFileRepository : KoinComponent {
         context,
         foldersPreferences.scopedHiddenFolderUris.get(),
         includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
-        minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
         includeMarkedFolders = foldersPreferences.scanMarkedFolders(scope),
         includeDotFolders = foldersPreferences.scanDotFolders(scope),
         markerNames = foldersPreferences.hiddenFolderMarkerNames.get(),
@@ -176,7 +175,7 @@ object MediaFileRepository : KoinComponent {
       }
     }
 
-  /** Fast MediaStore-only phase. Hidden folders arrive through the incremental flow below. */
+  /** Fast phase: MediaStore folders plus any granted Play Store folders. Other hidden folders arrive through the incremental flow below. */
   suspend fun getAllVideoFoldersFast(
     context: Context,
     onProgress: ((Int) -> Unit)? = null,
@@ -273,7 +272,6 @@ object MediaFileRepository : KoinComponent {
           context,
           foldersPreferences.scopedHiddenFolderUris.get(),
           includeAudio = true,
-          minimumAudioDurationSeconds = minimumAudioDurationSeconds,
           audioOnly = true,
         )
       } else {
@@ -422,8 +420,6 @@ object MediaFileRepository : KoinComponent {
             bucketId,
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
             foldersPreferences.scopedHiddenFolderUris.get(),
-            minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
-            excludeMediaStoreItems = true,
           ).filter { video ->
             // SAF exposes files invisible to MediaStore, including dot-prefixed media.
             // Apply the same per-view filename policy after reading the selected grant.

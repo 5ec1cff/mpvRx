@@ -36,14 +36,14 @@ internal object MediaLibraryCache {
   // ASCII unit/record separators, escaped rather than embedded as literal control characters
   // so the source stays readable. Both are pathological in a filename.
   private const val FIELD_SEPARATOR = "\u001F"
-  private const val RECORD_SEPARATOR = "\u001E"
+  internal const val RECORD_SEPARATOR = "\u001E"
   private const val FIELD_COUNT = 23
 
   /**
    * Fields written per video, in order. Mirrors the [Video] constructor; anything not listed here is
    * reconstructed on read.
    */
-  private fun encode(video: Video): String =
+  internal fun encode(video: Video): String =
     listOf(
       video.id.toString(),
       video.title,
@@ -105,8 +105,7 @@ internal object MediaLibraryCache {
       if (prefs.getString(KEY_SCAN_OPTIONS, null) != scanOptionsKey) return null
       if (requireMetadata && !prefs.getBoolean(KEY_METADATA, false)) return null
       val snapshotGeneration = prefs.getString(KEY_GENERATION, null) ?: return null
-      val currentGeneration = MediaStoreGenerationGuard.currentToken(context) ?: return null
-      if (snapshotGeneration != currentGeneration) return null
+      if (!MediaStoreGenerationGuard.isTokenCurrent(context, snapshotGeneration)) return null
       val raw = prefs.getString(KEY_VIDEOS, null) ?: return null
       if (raw.isBlank()) return null
       val records = raw.split(RECORD_SEPARATOR)
@@ -130,7 +129,7 @@ internal object MediaLibraryCache {
     }
   }
 
-  private fun decode(record: String): Video? {
+  internal fun decode(record: String): Video? {
     val parts = record.split(FIELD_SEPARATOR)
     if (parts.size != FIELD_COUNT) return null
     val id = parts[0].toLongOrNull() ?: return null

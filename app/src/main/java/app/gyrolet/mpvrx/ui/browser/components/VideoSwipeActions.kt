@@ -292,7 +292,6 @@ internal fun rememberVideoSwipeActions(
                     grantedTreeUris = foldersPreferences.scopedHiddenFolderUris.get(),
                     includeAudio = audioOnly || preferences.includeAudioBrowser.get(),
                     audioOnly = audioOnly,
-                    minimumAudioDurationSeconds = preferences.minimumAudioDurationSeconds.get(),
                   )
               }
               if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
