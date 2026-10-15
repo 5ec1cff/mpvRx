@@ -154,7 +154,18 @@ object ScopedHiddenFolderScanner {
     includeAudio: Boolean,
     minimumAudioDurationSeconds: Int = 0,
     audioOnly: Boolean = false,
+    includeMarkedFolders: Boolean = true,
+    includeDotFolders: Boolean = true,
+    markerNames: Set<String> = setOf(".nomedia"),
+    ignoredMarkerNames: Set<String> = emptySet(),
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
+    // SAF permissions are explicit: inspect only the documents inside user-granted trees.
+    // Normalize marker names exactly like the filesystem scanner.
+    val normalizedMarkers = markerNames.mapNotNull { app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName(it) }.toSet()
+    val ignoredMarkers = ignoredMarkerNames.mapNotNull {
+      app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName(it)
+    }.toSet()
+    val excludedMarkers = if (includeMarkedFolders) normalizedMarkers.intersect(ignoredMarkers) else normalizedMarkers
     val folders = mutableListOf<VideoFolder>()
     val discovered = mutableMapOf<String, IndexedDirectory>()
     for (treeUri in grantedTreeUris.sorted()) {
@@ -169,13 +180,15 @@ object ScopedHiddenFolderScanner {
         currentCoroutineContext().ensureActive()
         val folder = pending.removeFirst()
         if (!visited.add(documentKey(folder.document.uri))) continue
+        val children = listTreeFilesSafely(folder.document)
+        if (!includeDotFolders && folder.document.name?.startsWith(".") == true) continue
+        if (children.any { it.isFile && it.name in excludedMarkers }) continue
         discovered[folder.bucketId] =
           IndexedDirectory(folder.document, treeUri, folder.displayName, folder.parentBucketId)
-        val children = listTreeFilesSafely(folder.document)
         val videos = readVideosFromFiles(
           context, children, folder.bucketId, folder.displayName, includeAudio,
           minimumAudioDurationSeconds, audioOnly, excludeMediaStoreItems = true,
-        )
+        ).filter { includeDotFolders || !it.displayName.startsWith(".") }
         if (videos.isNotEmpty()) {
           folders += VideoFolder(
             bucketId = folder.bucketId,

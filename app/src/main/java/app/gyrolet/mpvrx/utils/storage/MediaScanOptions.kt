@@ -15,12 +15,22 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class MediaScanOptions(
   val includeNoMediaFolders: Boolean = false,
+  val includeDotFolders: Boolean = includeNoMediaFolders,
   val hiddenFolderMarkerNames: Set<String> = setOf(".nomedia"),
+  val ignoredHiddenMarkerNames: Set<String> = emptySet(),
   val includeAudio: Boolean = false,
   val minimumAudioDurationSeconds: Int = 0,
 ) {
   val normalizedHiddenFolderMarkerNames: Set<String> =
     hiddenFolderMarkerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
+
+  val activeHiddenMarkerNames: Set<String> =
+    if (includeNoMediaFolders) normalizedHiddenFolderMarkerNames -
+      ignoredHiddenMarkerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
+    else emptySet()
+
+  val scanHiddenFolders: Boolean
+    get() = activeHiddenMarkerNames.isNotEmpty() || includeDotFolders
 
   val excludeNoMediaFolders: Boolean
     get() = !includeNoMediaFolders
@@ -28,14 +38,16 @@ data class MediaScanOptions(
   val cacheKey: String
     get() {
       val markers = normalizedHiddenFolderMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
-      return "hiddenScanV3=$includeNoMediaFolders|markers=$markers|" +
+      val active = activeHiddenMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
+      return "hiddenScanV5=$includeNoMediaFolders|dot=$includeDotFolders|markers=$markers|active=$active|" +
         "includeAudio=$includeAudio|minAudio=$minimumAudioDurationSeconds"
     }
 
   val rootDiscoveryCacheKey: String
     get() {
       val markers = normalizedHiddenFolderMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
-      return "hiddenRootDiscoveryV1|markers=$markers"
+      val active = activeHiddenMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
+      return "hiddenRootDiscoveryV3|marked=$includeNoMediaFolders|dot=$includeDotFolders|markers=$markers|active=$active"
     }
 
   fun includesAudioDuration(durationMs: Long): Boolean =
@@ -46,16 +58,16 @@ class NoMediaPathFilter(
   private val options: MediaScanOptions,
 ) {
   private val exclusionCache = ConcurrentHashMap<String, Boolean>()
+  private val excludedMarkerNames = options.normalizedHiddenFolderMarkerNames - options.activeHiddenMarkerNames
 
   fun shouldExcludeDirectory(directory: File?): Boolean {
-    if (!options.excludeNoMediaFolders || directory == null) {
-      return false
-    }
+    if (directory == null) return false
 
     return hasHiddenMarkerInPath(directory)
   }
 
-  fun shouldExcludeFile(file: File): Boolean = shouldExcludeDirectory(file.parentFile)
+  fun shouldExcludeFile(file: File): Boolean =
+    (file.name.startsWith(".") && !options.includeDotFolders) || shouldExcludeDirectory(file.parentFile)
 
   private fun hasHiddenMarkerInPath(directory: File): Boolean {
     val path = runCatching { directory.absolutePath }.getOrElse { return false }
@@ -63,9 +75,10 @@ class NoMediaPathFilter(
 
     val result =
       runCatching {
-        directory.name.startsWith(".") ||
-          options.normalizedHiddenFolderMarkerNames.any { File(directory, it).isFile } ||
-          File(directory, app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.AUDIOBOOK_MARKER).isFile ||
+        (directory.name.startsWith(".") && !options.includeDotFolders) ||
+          excludedMarkerNames.any { File(directory, it).isFile } ||
+          (!options.scanHiddenFolders &&
+            File(directory, app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.AUDIOBOOK_MARKER).isFile) ||
           directory.parentFile?.let(::hasHiddenMarkerInPath) == true
       }.getOrElse { error ->
         Log.w(TAG, "Failed checking hidden-folder ancestry for $path", error)
