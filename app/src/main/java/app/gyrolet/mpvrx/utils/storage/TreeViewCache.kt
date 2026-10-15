@@ -16,8 +16,8 @@ import java.io.File
  * [MediaStoreGenerationGuard] separately proves a restored snapshot still matches the device, so
  * this only handles storage: it cannot decide on its own that data is fresh.
  *
- * Lives in `cacheDir` because it is a pure derivative of the device's media — the OS may evict it
- * at any time, and rebuilding is always safe.
+ * Lives in `noBackupFilesDir` so the last valid hierarchy survives app restarts and OS cache
+ * eviction without being included in Android backups. Snapshots are always generation-validated.
  */
 internal object TreeViewCache {
   private const val TAG = "TreeViewCache"
@@ -38,6 +38,11 @@ internal object TreeViewCache {
         temp.delete()
         throw IllegalStateException("Could not commit tree cache")
       }
+      // Badge/scan settings can create many distinct keys over time. Bound on-disk snapshots.
+      file.parentFile?.listFiles { child -> child.extension == "tree" }
+        ?.sortedByDescending { it.lastModified() }
+        ?.drop(8)
+        ?.forEach { it.delete() }
     }.onFailure { error ->
       Log.w(TAG, "Could not persist tree cache", error)
     }
