@@ -1515,7 +1515,6 @@ private fun GridContent(
           isGridMode = true,
           uiConfig = folderCardUiConfig,
           allowThumbnailGeneration = false,
-          deferThumbnailLoading = gridState.isScrollInProgress,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
@@ -1620,7 +1619,6 @@ private fun ListContent(
           isGridMode = false,
           uiConfig = folderCardUiConfig,
           allowThumbnailGeneration = false,
-          deferThumbnailLoading = listState.isScrollInProgress,
           onSwipeAction = onFolderSwipe.takeUnless { archiveFolder },
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =

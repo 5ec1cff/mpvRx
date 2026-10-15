@@ -123,7 +123,17 @@ object FolderViewScanner {
       if (options.includeAudio) {
         scanAudioMediaStoreImmediateChildren(context, allFolders, noMediaPathFilter, options)
       }
-      scanFileSystemRoots(context, allFolders, options, noMediaPathFilter, forceFileSystemCheck)
+      // MediaStore already covers indexed primary/removable media. Recursively walking every
+      // filesystem root on each normal refresh defeats the cache and can block for minutes.
+      // Keep the filesystem fallback for an empty/unindexed library and explicit forced checks;
+      // hidden .nomedia folders are discovered through their separate incremental index.
+      if (forceFileSystemCheck || allFolders.isEmpty()) {
+        scanFileSystemRoots(context, allFolders, options, noMediaPathFilter, forceFileSystemCheck)
+      } else {
+        // Keep unindexed USB/SD videos discoverable without rescanning the entire
+        // primary storage whenever the normal MediaStore-backed library is refreshed.
+        scanUnindexedExternalVolumes(context, allFolders, options, noMediaPathFilter)
+      }
 
       // Convert to VideoFolder list
       val result =
@@ -928,6 +938,38 @@ object FolderViewScanner {
       throw cancellation
     } catch (e: Exception) {
       Log.e(TAG, "Filesystem folder scan error", e)
+    }
+  }
+
+  /**
+   * USB/SD volumes may not be registered with MediaStore on every Android device.
+   * Only fall back to a filesystem walk for removable volumes with no indexed media.
+   */
+  private suspend fun scanUnindexedExternalVolumes(
+    context: Context,
+    folders: MutableMap<String, FolderData>,
+    options: MediaScanOptions,
+    noMediaPathFilter: NoMediaPathFilter,
+  ) {
+    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) return
+    val visitedDirectories = mutableSetOf<String>()
+    for (volume in StorageVolumeUtils.getExternalStorageVolumes(context)) {
+      currentCoroutineContext().ensureActive()
+      val path = StorageVolumeUtils.getVolumePath(volume) ?: continue
+      val normalizedPath = normalizeStoragePath(path) ?: continue
+      if (folders.values.any { it.path == normalizedPath || it.path.startsWith("$normalizedPath/") }) {
+        continue
+      }
+      val root = File(path)
+      if (!root.isDirectory || !root.canRead()) continue
+      scanDirectoryRecursive(
+        root,
+        folders,
+        maxDepth = 20,
+        options = options,
+        noMediaPathFilter = noMediaPathFilter,
+        visitedDirectories = visitedDirectories,
+      )
     }
   }
 
