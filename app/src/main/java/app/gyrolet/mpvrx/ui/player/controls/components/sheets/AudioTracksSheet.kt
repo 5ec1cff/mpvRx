@@ -187,7 +187,7 @@ fun AudioTracksSheet(
             PlayerSheetSectionHeader(stringResource(R.string.pref_audio_effects))
             Row(
               modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).heightIn(min = 56.dp)
-                .background(animatedPlayerSheetSelectionColor(volumeNormalization), MaterialTheme.shapes.medium)
+                .animatedPlayerSheetBackground(volumeNormalization, MaterialTheme.shapes.medium)
                 .toggleable(value = volumeNormalization, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.volumeNormalization::set)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
@@ -200,7 +200,7 @@ fun AudioTracksSheet(
             }
             Row(
               modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).heightIn(min = 56.dp)
-                .background(animatedPlayerSheetSelectionColor(drcEnabled), MaterialTheme.shapes.medium)
+                .animatedPlayerSheetBackground(drcEnabled, MaterialTheme.shapes.medium)
                 .toggleable(value = drcEnabled, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.drcEnabled::set)
                 .padding(horizontal = 20.dp, vertical = 8.dp),

@@ -30,10 +30,12 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -67,18 +69,43 @@ internal fun playerSheetSelectionColor(
 
 /** Every player option gets its own animated Material 3 state surface. */
 @Composable
-internal fun animatedPlayerSheetSelectionColor(
+internal fun animatedPlayerSheetSelectionColorState(
   selected: Boolean,
   frosted: Boolean = LocalPlayerGlassSurfaceActive.current,
   label: String = "playerOptionSelection",
-): Color {
+): State<Color> {
   val reduceMotion = AppMotion.playerReducedMotion()
-  val value by animateColorAsState(
+  return animateColorAsState(
     targetValue = playerSheetSelectionColor(selected, frosted),
     animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
     label = label,
   )
-  return value
+}
+
+@Composable
+internal fun animatedPlayerSheetSelectionColor(
+  selected: Boolean,
+  frosted: Boolean = LocalPlayerGlassSurfaceActive.current,
+  label: String = "playerOptionSelection",
+): Color = animatedPlayerSheetSelectionColorState(selected, frosted, label).value
+
+/**
+ * Draws the animated selection background directly in the draw phase,
+ * avoiding recomposition of children during selection color animations.
+ */
+@Composable
+internal fun Modifier.animatedPlayerSheetBackground(
+  selected: Boolean,
+  shape: Shape = MaterialTheme.shapes.medium,
+  frosted: Boolean = LocalPlayerGlassSurfaceActive.current,
+  label: String = "playerOptionSelection",
+): Modifier {
+  val colorState = animatedPlayerSheetSelectionColorState(selected, frosted, label)
+  return this
+    .clip(shape)
+    .drawBehind {
+      drawRect(colorState.value)
+    }
 }
 
 data class TrackBadge(
@@ -142,7 +169,7 @@ fun AddTrackRow(
         .fillMaxWidth()
         .tvFocusHighlight(shape, focusedScale = 1.01f)
         .clip(shape)
-        .background(animatedPlayerSheetSelectionColor(false))
+        .background(playerSheetSelectionColor(false))
         .clickable(role = Role.Button, onClick = onClick)
         .heightIn(min = 56.dp)
         .padding(horizontal = 20.dp, vertical = 8.dp),
