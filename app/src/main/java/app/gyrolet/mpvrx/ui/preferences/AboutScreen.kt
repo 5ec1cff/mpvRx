@@ -761,26 +761,43 @@ private fun collectSystemStats(context: Context): List<Pair<String, String>> {
  */
 private fun collectNativeLibraryVersions(): List<Pair<String, String>> {
   val versions = Utils.VERSIONS
-  val result = linkedMapOf(
-    "mpv" to versions.mpv,
-    "FFmpeg" to versions.ffmpeg,
-    "libplacebo" to versions.libPlacebo,
-  )
+  val result = linkedMapOf<String, String>()
+  // Newer mpvlib builds publish the complete dependency map (mpv, FFmpeg modules,
+  // libass, dav1d, Lua, libplacebo, and other native components). Read it if present
+  // without assuming every app flavor bundles the same mpvlib revision.
   runCatching {
+    val exported = versions.javaClass.methods.firstOrNull {
+      it.name == "getDependencies" && it.parameterCount == 0
+    }?.invoke(versions) as? Map<*, *>
+    exported?.forEach { (name, version) ->
+      val label = name?.toString()?.takeIf(String::isNotBlank) ?: return@forEach
+      val value = version?.toString()?.takeIf(String::isNotBlank) ?: return@forEach
+      result[label] = value
+    }
+    // Support older mpvlib builds that expose individual version getters only.
     versions.javaClass.methods
       .filter { it.parameterCount == 0 && it.name.startsWith("get") &&
-        it.name != "getClass" && it.returnType == String::class.java }
+        it.name != "getClass" && it.name != "getDependencies" && it.returnType == String::class.java }
       .forEach { method ->
         val value = runCatching { method.invoke(versions) as? String }.getOrNull()
-          ?.takeIf { it.isNotBlank() } ?: return@forEach
+          ?.takeIf(String::isNotBlank) ?: return@forEach
         val name = method.name.removePrefix("get")
-          .replace(Regex("([a-z])([A-Z])"), "$" + "1 $" + "2")
+          .replace(Regex("([a-z])([A-Z])"), "$1 $2")
         if (result.keys.none { it.replace(" ", "").equals(name.replace(" ", ""), ignoreCase = true) }) {
           result[name] = value
         }
       }
   }
-  return result.filterValues { it.isNotBlank() }.toList()
+  listOf(
+    "mpv" to versions.mpv,
+    "FFmpeg" to versions.ffmpeg,
+    "libplacebo" to versions.libPlacebo,
+  ).forEach { (name, version) ->
+    if (version.isNotBlank() && result.keys.none { it.equals(name, ignoreCase = true) }) {
+      result[name] = version
+    }
+  }
+  return result.toList()
 }
 
 internal data class OpenSourceLibrary(
