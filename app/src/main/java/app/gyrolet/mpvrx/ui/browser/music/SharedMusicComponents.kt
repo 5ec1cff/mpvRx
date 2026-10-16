@@ -73,6 +73,7 @@ import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.browser.cards.mediaCardClickable
+import app.gyrolet.mpvrx.ui.browser.cards.mediaGridTileHeight
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
@@ -288,6 +289,7 @@ fun SharedMusicGridCard(
   Card(
     modifier = modifier
       .then(if (cardWidth != null) Modifier.width(cardWidth) else Modifier.fillMaxWidth())
+      .mediaGridTileHeight(1f, 86.dp)
       .tvFocusHighlight(cardShape, focusedScale = 1.03f)
       .clip(cardShape)
       .semantics { selected = isSelected }
