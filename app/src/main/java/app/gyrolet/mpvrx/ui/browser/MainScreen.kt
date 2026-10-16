@@ -223,18 +223,15 @@ object MainScreen : Screen {
     val isDualPaneFolderSelected = NavigationBarState.isDualPaneFolderSelected
     val isMiniPlayerVisible = NavigationBarState.isMiniPlayerVisible
 
+    val bottomNavigationOrder by appearancePreferences.bottomNavigationOrder.collectAsState()
     val visibleTabs =
-      remember(
-        showMusicTab,
-        showProfileTab,
-        showNetworkTab,
-        showJellyfinTab,
-      ) {
+      remember(showMusicTab, showProfileTab, showNetworkTab, showJellyfinTab, bottomNavigationOrder) {
         mainNavigationTabs(
           showMusic = showMusicTab,
           showProfile = showProfileTab,
           showNetwork = showNetworkTab,
           showJellyfin = showJellyfinTab,
+          order = bottomNavigationOrder,
         )
       }
     val navigationTabs = visibleTabs.takeIf { it.size > 1 }.orEmpty()
@@ -1110,14 +1107,21 @@ internal fun mainNavigationTabs(
   showProfile: Boolean,
   showNetwork: Boolean,
   showJellyfin: Boolean,
-): List<MainScreen.MainTab> =
-  buildList {
+  order: List<String> = emptyList(),
+): List<MainScreen.MainTab> {
+  val available = buildList {
     add(MainScreen.MainTab.HOME)
     if (showMusic) add(MainScreen.MainTab.MUSIC)
     if (showNetwork) add(MainScreen.MainTab.NETWORK)
     if (showJellyfin) add(MainScreen.MainTab.JELLYFIN)
     if (showProfile) add(MainScreen.MainTab.PROFILE)
   }
+  val byName = available.associateBy { it.name }
+  return listOf(MainScreen.MainTab.HOME) +
+    (order.mapNotNull(byName::get) + available)
+      .distinct()
+      .filterNot { it == MainScreen.MainTab.HOME }
+}
 
 val LocalNavigationBarHeight = compositionLocalOf { 0.dp }
 

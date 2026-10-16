@@ -180,6 +180,10 @@ object HiddenFolderDiscovery {
           displayPath = displayPath(first.volumeId, parent),
           initialUri = documentUri(first.volumeId, parent),
           childPaths = folders.map { it.relativePath.substring(parent.length).trimStart('/') }.sorted(),
+          markerName = folders.mapNotNull { it.markerName }.let { markers ->
+            markers.firstOrNull { it.equals(".nomedia", ignoreCase = true) } ?: markers.firstOrNull()
+          },
+          isDotFolder = folders.any { it.relativePath.substringAfterLast('/').startsWith('.') },
         ))
       } else {
         folders.map { folder ->
@@ -193,7 +197,16 @@ object HiddenFolderDiscovery {
         }
       }
     }
-    return (revoked + grouped).sortedBy { it.displayPath.lowercase(Locale.ROOT) }
+    return (revoked + grouped).sortedWith(
+      compareBy<HiddenFolderSuggestion> {
+        when {
+          it.markerName.equals(".nomedia", ignoreCase = true) -> 0
+          it.markerName != null -> 1
+          it.isDotFolder -> 2
+          else -> 3
+        }
+      }.thenBy { it.displayPath.lowercase(Locale.ROOT) },
+    )
   }
 
   private fun documentUri(volumeId: String, relative: String): Uri =

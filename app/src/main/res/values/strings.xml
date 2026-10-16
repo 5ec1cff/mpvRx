@@ -88,7 +88,7 @@
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Keep player control button backgrounds dark in light, dark, and automatic themes</string>
   <string name="pref_appearance_category_file_browser">File Browser</string>
   <string name="pref_appearance_category_thumbnails">Thumbnails</string>
-  <string name="pref_appearance_category_navigation">Navigation</string>
+  <string name="pref_appearance_category_navigation">Bottom Navigation Tabs</string>
   <string name="pref_appearance_show_unplayed_old_video_label_title">Show label for new unplayed videos</string>
   <string name="pref_appearance_show_unplayed_old_video_label_summary">Display a \"New\" label on videos added within specified days that have never been played</string>
   <string name="pref_appearance_unplayed_old_video_days_title">Days threshold for new video label</string>
@@ -2546,7 +2546,7 @@
     <!-- Scoped-storage hidden folder access for the Play Store distribution -->
     <string name="pref_playstore_hidden_title">Selected hidden folders</string>
     <string name="pref_playstore_hidden_summary">Choose a folder to include its media and subfolders.</string>
-    <string name="pref_playstore_hidden_selected">Folders you have allowed</string>
+    <string name="pref_playstore_hidden_selected">Folder allowed</string>
     <string name="pref_playstore_hidden_add">Choose hidden folder</string>
     <string name="pref_playstore_hidden_remove">Remove folder access</string>
     <string name="pref_playstore_hidden_grant_failed">Cannot access that folder. Choose a supported folder and grant read access.</string>
@@ -2619,7 +2619,7 @@
   <string name="libraries_count">Libraries · %1$d</string>
   <string name="libraries_search_hint">Search libraries or licenses</string>
   <string name="libraries_open_project">Open project website</string>
-  <string name="pref_playstore_hidden_not_allowed">Folders you have not allowed</string>
+  <string name="pref_playstore_hidden_not_allowed">Folder not allowed</string>
   <string name="pref_playstore_hidden_allow">Allow</string>
   <string name="pref_playstore_hidden_more">%1$d more</string>
   <string name="pref_playstore_hidden_none">No other hidden folders found.</string>
@@ -2628,4 +2628,8 @@
   <string name="pref_playstore_hidden_dot">Dot-folder</string>
   <string name="pref_playstore_hidden_marker">Has a %1$s file</string>
   <string name="pref_playstore_hidden_access_required">Folder access needed</string>
+  <string name="pref_nav_home_title">Home / Files</string>
+  <string name="pref_nav_home_summary">Browse local folders and files (always available)</string>
+  <string name="pref_nav_actions_section">Navigation actions</string>
+  <string name="pref_about_playback_libraries">Playback libraries</string>
 </resources>

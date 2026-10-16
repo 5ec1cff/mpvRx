@@ -104,6 +104,17 @@ class AppearancePreferences(
   val profileImagePath = preferenceStore.getString("profile_image_path", "")
   val showNetworkTab = preferenceStore.getBoolean("show_network_tab", false)
   val showJellyfinTab = preferenceStore.getBoolean("show_jellyfin_tab", false)
+  /** Persistent visual order of bottom navigation tabs. Home remains the root destination. */
+  val bottomNavigationOrder = preferenceStore.getObject(
+    key = "bottom_navigation_tab_order",
+    defaultValue = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE"),
+    serializer = { order -> order.joinToString(",") },
+    deserializer = { stored ->
+      val defaults = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE")
+      val parsed = stored.split(",").map(String::trim).filter { it in defaults }.distinct()
+      parsed + defaults.filterNot { it in parsed }
+    },
+  )
   val showQuickPlayFab = preferenceStore.getBoolean("show_quick_play_fab", true)
   val quickPlayFabDirect = preferenceStore.getBoolean("quick_play_fab_direct", false)
 

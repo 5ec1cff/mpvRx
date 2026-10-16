@@ -811,109 +811,91 @@ object AppearancePreferencesScreen : Screen {
           }
 
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
-              title = stringResource(id = R.string.pref_appearance_category_navigation),
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_appearance_category_navigation),
+            )
+          }
+
+          item {
+            val showMusicTab by preferences.showMusicTab.collectAsState()
+            val showProfileTab by preferences.showProfileTab.collectAsState()
+            val showNetworkTab by preferences.showNetworkTab.collectAsState()
+            val showJellyfinTab by preferences.showJellyfinTab.collectAsState()
+            val savedOrder by preferences.bottomNavigationOrder.collectAsState()
+            val names = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE")
+            val ordered = (savedOrder.filter { it in names } + names).distinct()
+            val tabItems = ordered.map { id ->
+              when (id) {
+                "HOME" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_home_title), stringResource(R.string.pref_nav_home_summary), true, required = true)
+                "MUSIC" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_music_title), stringResource(R.string.pref_nav_music_summary), showMusicTab)
+                "NETWORK" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_network_title), stringResource(R.string.pref_nav_network_summary), showNetworkTab)
+                "JELLYFIN" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_jellyfin_title), stringResource(R.string.pref_nav_jellyfin_summary), showJellyfinTab)
+                else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab)
+              }
+            }
+            PreferenceCard {
+              ReorderableTabPreferences(
+                tabs = tabItems,
+                onEnabledChange = { id, enabled ->
+                  when (id) {
+                    "MUSIC" -> preferences.showMusicTab.set(enabled)
+                    "NETWORK" -> preferences.showNetworkTab.set(enabled)
+                    "JELLYFIN" -> preferences.showJellyfinTab.set(enabled)
+                    "PROFILE" -> preferences.showProfileTab.set(enabled)
+                  }
+                },
+                onMove = { id, destination ->
+                  if (id != "HOME") {
+                    val current = ordered.toMutableList()
+                    current.remove(id)
+                    current.add(destination.coerceIn(1, current.size), id)
+                    preferences.bottomNavigationOrder.set(current)
+                  }
+                },
+              )
+            }
+          }
+
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_nav_actions_section),
             )
           }
 
           item {
             ExpressivePreferenceGroup {
-              val showMusicTab by preferences.showMusicTab.collectAsState()
-              val showProfileTab by preferences.showProfileTab.collectAsState()
-              val showNetworkTab by preferences.showNetworkTab.collectAsState()
-              val showJellyfinTab by preferences.showJellyfinTab.collectAsState()
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_nav_music_title),
-                value = showMusicTab,
-                onValueChange = preferences.showMusicTab::set,
-                title = { Text(text = stringResource(id = R.string.pref_nav_music_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_nav_music_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                groupIndex = 0,
-                groupSize = 6,
-              )
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_nav_profile_title),
-                value = showProfileTab,
-                onValueChange = preferences.showProfileTab::set,
-                title = { Text(text = stringResource(id = R.string.pref_nav_profile_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_nav_profile_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                groupIndex = 1,
-                groupSize = 6,
-              )
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_nav_network_title),
-                value = showNetworkTab,
-                onValueChange = preferences.showNetworkTab::set,
-                title = { Text(text = stringResource(id = R.string.pref_nav_network_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_nav_network_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                groupIndex = 2,
-                groupSize = 6,
-              )
-
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_nav_jellyfin_title),
-                value = showJellyfinTab,
-                onValueChange = preferences.showJellyfinTab::set,
-                title = { Text(text = stringResource(id = R.string.pref_nav_jellyfin_title)) },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_nav_jellyfin_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                groupIndex = 3,
-                groupSize = 6,
-              )
-
               val showQuickPlayFab by preferences.showQuickPlayFab.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_quick_play_fab_title),
                 value = showQuickPlayFab,
                 onValueChange = preferences.showQuickPlayFab::set,
-                title = { Text(text = stringResource(id = R.string.pref_quick_play_fab_title)) },
+                title = { Text(text = stringResource(R.string.pref_quick_play_fab_title)) },
                 summary = {
                   Text(
-                    text = stringResource(id = R.string.pref_quick_play_fab_summary),
+                    text = stringResource(R.string.pref_quick_play_fab_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
-                groupIndex = 4,
-                groupSize = 6,
+                groupIndex = 0,
+                groupSize = 2,
               )
-
               val quickPlayFabDirect by preferences.quickPlayFabDirect.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_quick_play_fab_direct_title),
                 value = quickPlayFabDirect,
                 onValueChange = preferences.quickPlayFabDirect::set,
                 enabled = showQuickPlayFab,
-                title = { Text(text = stringResource(id = R.string.pref_quick_play_fab_direct_title)) },
+                title = { Text(text = stringResource(R.string.pref_quick_play_fab_direct_title)) },
                 summary = {
                   Text(
-                    text = stringResource(id = R.string.pref_quick_play_fab_direct_summary),
+                    text = stringResource(R.string.pref_quick_play_fab_direct_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
-                groupIndex = 5,
-                groupSize = 6,
+                groupIndex = 1,
+                groupSize = 2,
               )
             }
           }

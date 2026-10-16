@@ -293,7 +293,7 @@ fun PreferenceSectionHeader(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Surface(
-      modifier = Modifier.width(7.dp).height(34.dp),
+      modifier = Modifier.width(5.dp).height(25.dp),
       color = MaterialTheme.colorScheme.primary,
       shape = RoundedCornerShape(
         topStart = if (position == PreferenceSectionPosition.First || position == PreferenceSectionPosition.Single) 7.dp else 2.dp,
@@ -303,10 +303,10 @@ fun PreferenceSectionHeader(
       ),
       content = {},
     )
-    Spacer(modifier = Modifier.width(12.dp))
+    Spacer(modifier = Modifier.width(10.dp))
     Text(
       text = title,
-      style = MaterialTheme.typography.titleLarge,
+      style = MaterialTheme.typography.titleMedium,
       fontWeight = FontWeight.Bold,
       color = MaterialTheme.colorScheme.onSurface,
     )

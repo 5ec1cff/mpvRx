@@ -96,7 +96,6 @@ object AudioPreferencesScreen : Screen {
         contract = ActivityResultContracts.RequestPermission(),
       ) { _ -> }
 
-    var showMusicTabsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
       topBar = {
@@ -216,35 +215,6 @@ object AudioPreferencesScreen : Screen {
               }
 
               PreferenceDivider()
-              val enabledMusicTabs by preferences.enabledMusicTabs.collectAsState()
-              val musicTabOrder by preferences.musicTabOrder.collectAsState()
-              val musicTabsSummary = remember(enabledMusicTabs, musicTabOrder, resources) {
-                val tabMap = MusicTab.entries.associateBy { it.name }
-                val orderedTabs = (musicTabOrder.mapNotNull { tabMap[it] } + (MusicTab.entries - musicTabOrder.mapNotNull { tabMap[it] }.toSet())).distinct()
-                val names = orderedTabs.filter { it.name in enabledMusicTabs }.map { resources.getString(it.titleRes) }
-                if (names.isEmpty()) resources.getString(R.string.ui_songs) else names.joinToString(", ")
-              }
-
-              Column(
-                modifier =
-                  Modifier
-                    .settingsSearchTarget(R.string.pref_music_tabs_title)
-                    .fillMaxWidth()
-                    .clickable { showMusicTabsDialog = true }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-              ) {
-                Text(
-                  text = stringResource(R.string.pref_music_tabs_title),
-                  style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                  text = musicTabsSummary,
-                  color = MaterialTheme.colorScheme.outline,
-                  style = MaterialTheme.typography.bodyMedium,
-                )
-              }
-
-              PreferenceDivider()
               val mediaServerPreferences = koinInject<MediaServerPreferences>()
               val musicSourceProvider by mediaServerPreferences.musicSourceProvider.collectAsState()
               ExpressivePreferenceItem {
@@ -278,6 +248,41 @@ object AudioPreferencesScreen : Screen {
                 },
               )
               }
+            }
+          }
+
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_music_tabs_title),
+            )
+          }
+          item {
+            val enabledMusicTabs by preferences.enabledMusicTabs.collectAsState()
+            val musicTabOrder by preferences.musicTabOrder.collectAsState()
+            val tabMap = MusicTab.entries.associateBy { it.name }
+            val orderedTabs = (musicTabOrder.mapNotNull(tabMap::get) + MusicTab.entries).distinct()
+            PreferenceCard {
+              ReorderableTabPreferences(
+                tabs = orderedTabs.map { tab ->
+                  ReorderableTabItem(
+                    id = tab.name,
+                    title = stringResource(tab.titleRes),
+                    summary = "",
+                    enabled = tab.name in enabledMusicTabs,
+                  )
+                },
+                onEnabledChange = { id, enabled ->
+                  val next = if (enabled) enabledMusicTabs + id else enabledMusicTabs - id
+                  if (next.isNotEmpty()) preferences.enabledMusicTabs.set(next)
+                },
+                onMove = { id, destination ->
+                  val next = orderedTabs.map { it.name }.toMutableList()
+                  next.remove(id)
+                  next.add(destination.coerceIn(0, next.size), id)
+                  preferences.musicTabOrder.set(next)
+                },
+              )
             }
           }
 
@@ -706,111 +711,5 @@ object AudioPreferencesScreen : Screen {
       }
     }
 
-    if (showMusicTabsDialog) {
-      val enabledMusicTabs by preferences.enabledMusicTabs.collectAsState()
-      val musicTabOrder by preferences.musicTabOrder.collectAsState()
-      val tabMap = remember { MusicTab.entries.associateBy { it.name } }
-      val currentOrderedTabs = remember(musicTabOrder) {
-        (musicTabOrder.mapNotNull { tabMap[it] } + (MusicTab.entries - musicTabOrder.mapNotNull { tabMap[it] }.toSet())).distinct()
-      }
-
-      AlertDialog(
-        onDismissRequest = { showMusicTabsDialog = false },
-        title = { Text(stringResource(R.string.pref_music_tabs_title)) },
-        text = {
-          Column {
-            Text(
-              text = "Toggle tabs or use arrows to rearrange order:",
-              style = MaterialTheme.typography.bodyMedium,
-              color = MaterialTheme.colorScheme.outline,
-              modifier = Modifier.padding(bottom = 8.dp),
-            )
-            currentOrderedTabs.forEachIndexed { index, tab ->
-              val isChecked = tab.name in enabledMusicTabs
-              Row(
-                modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Checkbox(
-                  checked = isChecked,
-                  onCheckedChange = { checked ->
-                    val current = enabledMusicTabs.toMutableSet()
-                    if (!checked) {
-                      if (current.size > 1) {
-                        current.remove(tab.name)
-                        preferences.enabledMusicTabs.set(current)
-                      }
-                    } else {
-                      current.add(tab.name)
-                      preferences.enabledMusicTabs.set(current)
-                    }
-                  },
-                )
-                Text(
-                  text = stringResource(tab.titleRes),
-                  style = MaterialTheme.typography.bodyLarge,
-                  modifier = Modifier
-                    .weight(1f)
-                    .clickable {
-                      val current = enabledMusicTabs.toMutableSet()
-                      if (isChecked) {
-                        if (current.size > 1) {
-                          current.remove(tab.name)
-                          preferences.enabledMusicTabs.set(current)
-                        }
-                      } else {
-                        current.add(tab.name)
-                        preferences.enabledMusicTabs.set(current)
-                      }
-                    }
-                    .padding(vertical = 8.dp),
-                )
-                IconButton(
-                  onClick = {
-                    if (index > 0) {
-                      val updatedList = currentOrderedTabs.map { it.name }.toMutableList()
-                      val item = updatedList.removeAt(index)
-                      updatedList.add(index - 1, item)
-                      preferences.musicTabOrder.set(updatedList)
-                    }
-                  },
-                  enabled = index > 0,
-                ) {
-                  Icon(
-                    imageVector = Icons.RoundedFilled.ExpandLess,
-                    contentDescription = "Move Up",
-                    tint = if (index > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
-                  )
-                }
-                IconButton(
-                  onClick = {
-                    if (index < currentOrderedTabs.size - 1) {
-                      val updatedList = currentOrderedTabs.map { it.name }.toMutableList()
-                      val item = updatedList.removeAt(index)
-                      updatedList.add(index + 1, item)
-                      preferences.musicTabOrder.set(updatedList)
-                    }
-                  },
-                  enabled = index < currentOrderedTabs.size - 1,
-                ) {
-                  Icon(
-                    imageVector = Icons.RoundedFilled.ExpandMore,
-                    contentDescription = "Move Down",
-                    tint = if (index < currentOrderedTabs.size - 1) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
-                  )
-                }
-              }
-            }
-          }
-        },
-        confirmButton = {
-          TextButton(onClick = { showMusicTabsDialog = false }) {
-            Text(stringResource(R.string.generic_ok))
-          }
-        },
-      )
-    }
   }
 }

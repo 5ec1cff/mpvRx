@@ -41,7 +41,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -82,6 +82,7 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
+import `is`.xyz.mpv.Utils
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.Serializable
@@ -319,12 +320,16 @@ object AboutScreen : Screen {
 
               Spacer(modifier = Modifier.height(12.dp))
 
-              OutlinedButton(
+              Button(
                 onClick = {
                   context.startActivity(Intent(Intent.ACTION_VIEW, privacyPolicyUrl.toUri()))
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                  containerColor = cs.surfaceContainerHighest,
+                  contentColor = cs.onSurface,
+                ),
               ) {
                 Icon(Icons.RoundedFilled.Security, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -335,51 +340,62 @@ object AboutScreen : Screen {
                 )
               }
 
-              Spacer(modifier = Modifier.height(20.dp))
 
-              Column(
-                modifier =
-                  Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable {
-                      SafeClipboard.copyPlainText(context, "mpvrx_device_info", collectDeviceInfo())
-                    },
-              ) {
-                Row(
-                  verticalAlignment = Alignment.CenterVertically,
-                  modifier = Modifier.padding(bottom = 8.dp),
-                ) {
-                  Icon(
-                    imageVector = Icons.RoundedFilled.Info,
-                    contentDescription =
-                      androidx.compose.ui.res.stringResource(
-                        app.gyrolet.mpvrx.R.string.ui_device_info,
-                      ),
-                    modifier = Modifier.size(20.dp),
-                    tint = cs.onPrimaryContainer,
-                  )
-                  Spacer(modifier = Modifier.width(8.dp))
-                  Text(
-                    text =
-                      androidx.compose.ui.res
-                        .stringResource(app.gyrolet.mpvrx.R.string.ui_device_info),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = cs.onPrimaryContainer,
-                  )
-                }
-                Text(
-                  text = collectDeviceInfo(),
-                  style = MaterialTheme.typography.bodySmall,
-                  color = cs.onPrimaryContainer.copy(alpha = 0.85f),
-                )
-              }
             }
           }
         }
 
         Spacer(Modifier.height(8.dp))
+
+        PreferenceSectionHeader(
+          position = PreferenceSectionPosition.Middle,
+          title = stringResource(R.string.ui_device_info),
+          topPadding = 20.dp,
+        )
+        val nativeVersions = remember { collectNativeLibraryVersions() }
+        PreferenceCard {
+          Column(Modifier.padding(16.dp)) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              verticalAlignment = Alignment.CenterVertically,
+              horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+              Icon(Icons.RoundedFilled.Info, contentDescription = null, modifier = Modifier.size(24.dp))
+              Column(Modifier.weight(1f)) {
+                Text("${Build.MANUFACTURER} ${Build.MODEL}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Android ${Build.VERSION.RELEASE} • API ${Build.VERSION.SDK_INT}", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+              }
+              IconButton(onClick = {
+                SafeClipboard.copyPlainText(
+                  context, "mpvrx_device_info",
+                  collectDeviceInfo() + "\n" + nativeVersions.joinToString("\n") { (name, version) -> "$" + "{name}: $" + "{version}" },
+                )
+              }) {
+                Icon(Icons.RoundedFilled.ContentCopy, contentDescription = "Copy device and playback library information")
+              }
+            }
+            androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 12.dp))
+            listOf(
+              "App version" to "v$" + "{versionName} ($" + "{BuildConfig.GIT_SHA})",
+              "Brand" to Build.BRAND,
+              "Manufacturer" to Build.MANUFACTURER,
+              "Model" to Build.MODEL,
+              "Device" to Build.DEVICE,
+              "Android" to Build.VERSION.RELEASE,
+              "API level" to Build.VERSION.SDK_INT.toString(),
+              "CPU architecture" to Build.SUPPORTED_ABIS.joinToString(", "),
+            ).forEach { (label, value) -> SystemStatRow(label, value) }
+            androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 12.dp))
+            Text(
+              stringResource(R.string.pref_about_playback_libraries),
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.SemiBold,
+              color = cs.primary,
+              modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
+            )
+            nativeVersions.forEach { (label, value) -> SystemStatRow(label, value) }
+          }
+        }
 
         // Support / Donation Section
         if (!BuildConfig.IS_PLAY_STORE_BUILD) PreferenceSectionHeader(position = PreferenceSectionPosition.First, title = stringResource(R.string.pref_section_support))
@@ -737,6 +753,34 @@ private fun collectSystemStats(context: Context): List<Pair<String, String>> {
     "Board" to Build.BOARD,
     "Kernel" to System.getProperty("os.version", "Unknown"),
   )
+}
+
+/**
+ * mpvlib's version object is authoritative. Enumerate additional exported String getters
+ * at runtime because the native library builds may expose different components.
+ */
+private fun collectNativeLibraryVersions(): List<Pair<String, String>> {
+  val versions = Utils.VERSIONS
+  val result = linkedMapOf(
+    "mpv" to versions.mpv,
+    "FFmpeg" to versions.ffmpeg,
+    "libplacebo" to versions.libPlacebo,
+  )
+  runCatching {
+    versions.javaClass.methods
+      .filter { it.parameterCount == 0 && it.name.startsWith("get") &&
+        it.name != "getClass" && it.returnType == String::class.java }
+      .forEach { method ->
+        val value = runCatching { method.invoke(versions) as? String }.getOrNull()
+          ?.takeIf { it.isNotBlank() } ?: return@forEach
+        val name = method.name.removePrefix("get")
+          .replace(Regex("([a-z])([A-Z])"), "$" + "1 $" + "2")
+        if (result.keys.none { it.replace(" ", "").equals(name.replace(" ", ""), ignoreCase = true) }) {
+          result[name] = value
+        }
+      }
+  }
+  return result.filterValues { it.isNotBlank() }.toList()
 }
 
 internal data class OpenSourceLibrary(
