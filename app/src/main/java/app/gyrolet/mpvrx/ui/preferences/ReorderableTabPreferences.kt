@@ -54,9 +54,10 @@ internal fun ReorderableTabPreferences(
   onMove: (String, Int) -> Unit,
 ) {
   val rowSizePx = with(LocalDensity.current) { 78.dp.toPx() }
-  Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
     tabs.forEachIndexed { index, tab ->
       var offset by remember(tab.id) { mutableFloatStateOf(0f) }
+      ExpressivePreferenceTile(index = index, itemCount = tabs.size) {
       Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 78.dp).padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -105,7 +106,7 @@ internal fun ReorderableTabPreferences(
           onCheckedChange = if (tab.required) null else { checked -> onEnabledChange(tab.id, checked) },
         )
       }
-      if (index < tabs.lastIndex) PreferenceDivider()
+      }
     }
   }
 }

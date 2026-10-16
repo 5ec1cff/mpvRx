@@ -262,7 +262,7 @@ object AudioPreferencesScreen : Screen {
             val musicTabOrder by preferences.musicTabOrder.collectAsState()
             val tabMap = MusicTab.entries.associateBy { it.name }
             val orderedTabs = (musicTabOrder.mapNotNull(tabMap::get) + MusicTab.entries).distinct()
-            PreferenceCard {
+            ExpressivePreferenceGroup {
               ReorderableTabPreferences(
                 tabs = orderedTabs.map { tab ->
                   ReorderableTabItem(

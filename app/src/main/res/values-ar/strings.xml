@@ -2571,7 +2571,7 @@
   <string name="network_smb_username_hint">استخدم اسم المستخدم أو DOMAIN\\username لحساب ضمن نطاق.</string>
   <string name="pref_playstore_hidden_title">المجلدات المخفية المختارة</string>
   <string name="pref_playstore_hidden_summary">اختر مجلدًا لتضمين وسائطه ومجلداته الفرعية.</string>
-  <string name="pref_playstore_hidden_selected">المجلدات التي سمحت بالوصول إليها</string>
+  <string name="pref_playstore_hidden_selected">المجلدات المسموح بها</string>
   <string name="pref_playstore_hidden_add">اختر مجلدًا مخفيًا</string>
   <string name="pref_playstore_hidden_remove">إلغاء الوصول إلى المجلد</string>
   <string name="pref_playstore_hidden_grant_failed">لا يمكن الوصول إلى هذا المجلد. اختر مجلدًا مدعومًا وامنح إذن القراءة.</string>
@@ -2603,7 +2603,7 @@
   <string name="pref_hidden_scan_per_mode_title">فحص المجلدات المخفية</string>
   <string name="pref_hidden_scan_enable_in">تفعيل في</string>
   <string name="pref_hidden_scan_dot">مجلدات تبدأ بنقطة</string>
-  <string name="pref_playstore_hidden_not_allowed">المجلدات التي لم تسمح بها</string>
+  <string name="pref_playstore_hidden_not_allowed">المجلدات غير المسموح بها</string>
   <string name="pref_playstore_hidden_allow">السماح</string>
   <string name="pref_playstore_hidden_more">%1$d أخرى</string>
   <string name="pref_playstore_hidden_none">لم يتم العثور على مجلدات مخفية أخرى.</string>

@@ -2516,7 +2516,7 @@
   <string name="network_smb_username_hint">使用您的用户名；域账户请使用 DOMAIN\\username。</string>
   <string name="pref_playstore_hidden_title">已选择的隐藏文件夹</string>
   <string name="pref_playstore_hidden_summary">选择一个文件夹，以包含其中的媒体和子文件夹。</string>
-  <string name="pref_playstore_hidden_selected">您已授权的文件夹</string>
+  <string name="pref_playstore_hidden_selected">已允许的文件夹</string>
   <string name="pref_playstore_hidden_add">选择隐藏文件夹</string>
   <string name="pref_playstore_hidden_remove">撤销文件夹访问权限</string>
   <string name="pref_playstore_hidden_grant_failed">无法访问该文件夹。请选择受支持的文件夹，并授予读取权限。</string>
@@ -2548,7 +2548,7 @@
   <string name="pref_hidden_scan_per_mode_title">隐藏文件夹</string>
   <string name="pref_hidden_scan_enable_in">在以下视图中启用</string>
   <string name="pref_hidden_scan_dot">点前缀文件夹</string>
-  <string name="pref_playstore_hidden_not_allowed">尚未允许访问的文件夹</string>
+  <string name="pref_playstore_hidden_not_allowed">未允许的文件夹</string>
   <string name="pref_playstore_hidden_allow">允许</string>
   <string name="pref_playstore_hidden_more">还有 %1$d 个</string>
   <string name="pref_playstore_hidden_none">未找到其他隐藏文件夹。</string>

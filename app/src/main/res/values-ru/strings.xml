@@ -2551,7 +2551,7 @@
   <string name="network_smb_username_hint">Используйте имя пользователя или DOMAIN\\username для доменной учётной записи.</string>
   <string name="pref_playstore_hidden_title">Выбранные скрытые папки</string>
   <string name="pref_playstore_hidden_summary">Выберите папку, чтобы включить её медиа и подпапки.</string>
-  <string name="pref_playstore_hidden_selected">Папки с разрешённым доступом</string>
+  <string name="pref_playstore_hidden_selected">Разрешённые папки</string>
   <string name="pref_playstore_hidden_add">Выбрать скрытую папку</string>
   <string name="pref_playstore_hidden_remove">Отозвать доступ к папке</string>
   <string name="pref_playstore_hidden_grant_failed">Нет доступа к этой папке. Выберите поддерживаемую папку и разрешите чтение.</string>
@@ -2583,7 +2583,7 @@
   <string name="pref_hidden_scan_per_mode_title">Скрытые папки</string>
   <string name="pref_hidden_scan_enable_in">Включить в</string>
   <string name="pref_hidden_scan_dot">Папки с точкой</string>
-  <string name="pref_playstore_hidden_not_allowed">Папки без разрешения на доступ</string>
+  <string name="pref_playstore_hidden_not_allowed">Не разрешённые папки</string>
   <string name="pref_playstore_hidden_allow">Разрешить</string>
   <string name="pref_playstore_hidden_more">Ещё %1$d</string>
   <string name="pref_playstore_hidden_none">Других скрытых папок не найдено.</string>

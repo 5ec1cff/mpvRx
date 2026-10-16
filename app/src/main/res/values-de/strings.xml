@@ -2529,7 +2529,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="network_smb_username_hint">Verwende deinen Benutzernamen oder DOMAIN\\username für ein Domänenkonto.</string>
   <string name="pref_playstore_hidden_title">Ausgewählte versteckte Ordner</string>
   <string name="pref_playstore_hidden_summary">Wähle einen Ordner aus, um seine Medien und Unterordner einzubeziehen.</string>
-  <string name="pref_playstore_hidden_selected">Ordner mit erteiltem Zugriff</string>
+  <string name="pref_playstore_hidden_selected">Erlaubte Ordner</string>
   <string name="pref_playstore_hidden_add">Versteckten Ordner auswählen</string>
   <string name="pref_playstore_hidden_remove">Ordnerzugriff entfernen</string>
   <string name="pref_playstore_hidden_grant_failed">Kein Zugriff auf diesen Ordner. Wähle einen unterstützten Ordner aus und erlaube Lesezugriff.</string>
@@ -2561,7 +2561,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_hidden_scan_per_mode_title">Versteckte Ordner</string>
   <string name="pref_hidden_scan_enable_in">Aktivieren in</string>
   <string name="pref_hidden_scan_dot">Punktordner</string>
-  <string name="pref_playstore_hidden_not_allowed">Noch nicht freigegebene Ordner</string>
+  <string name="pref_playstore_hidden_not_allowed">Nicht erlaubte Ordner</string>
   <string name="pref_playstore_hidden_allow">Erlauben</string>
   <string name="pref_playstore_hidden_more">%1$d weitere</string>
   <string name="pref_playstore_hidden_none">Keine weiteren versteckten Ordner gefunden.</string>

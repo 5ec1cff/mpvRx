@@ -2493,7 +2493,7 @@
   <string name="network_smb_username_hint">Використовуйте ім’я користувача або DOMAIN\\username для доменного облікового запису.</string>
   <string name="pref_playstore_hidden_title">Вибрані приховані папки</string>
   <string name="pref_playstore_hidden_summary">Виберіть папку, щоб включити її медіа та підпапки.</string>
-  <string name="pref_playstore_hidden_selected">Папки з дозволеним доступом</string>
+  <string name="pref_playstore_hidden_selected">Дозволені теки</string>
   <string name="pref_playstore_hidden_add">Вибрати приховану папку</string>
   <string name="pref_playstore_hidden_remove">Скасувати доступ до папки</string>
   <string name="pref_playstore_hidden_grant_failed">Немає доступу до цієї папки. Виберіть підтримувану папку й дозвольте читання.</string>
@@ -2525,7 +2525,7 @@
   <string name="pref_hidden_scan_per_mode_title">Приховані папки</string>
   <string name="pref_hidden_scan_enable_in">Увімкнути в</string>
   <string name="pref_hidden_scan_dot">Папки з крапкою</string>
-  <string name="pref_playstore_hidden_not_allowed">Папки без дозволу на доступ</string>
+  <string name="pref_playstore_hidden_not_allowed">Недозволені теки</string>
   <string name="pref_playstore_hidden_allow">Дозволити</string>
   <string name="pref_playstore_hidden_more">Ще %1$d</string>
   <string name="pref_playstore_hidden_none">Інших прихованих папок не знайдено.</string>

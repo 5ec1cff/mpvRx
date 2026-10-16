@@ -2529,7 +2529,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="network_smb_username_hint">Usa tu nombre de usuario o DOMAIN\\username para una cuenta de dominio.</string>
   <string name="pref_playstore_hidden_title">Carpetas ocultas seleccionadas</string>
   <string name="pref_playstore_hidden_summary">Elige una carpeta para incluir su contenido multimedia y sus subcarpetas.</string>
-  <string name="pref_playstore_hidden_selected">Carpetas a las que has dado acceso</string>
+  <string name="pref_playstore_hidden_selected">Carpetas permitidas</string>
   <string name="pref_playstore_hidden_add">Elegir carpeta oculta</string>
   <string name="pref_playstore_hidden_remove">Revocar acceso a la carpeta</string>
   <string name="pref_playstore_hidden_grant_failed">No se puede acceder a esa carpeta. Elige una carpeta compatible y concede permiso de lectura.</string>
@@ -2561,7 +2561,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_hidden_scan_per_mode_title">Carpetas ocultas</string>
   <string name="pref_hidden_scan_enable_in">Activar en</string>
   <string name="pref_hidden_scan_dot">Carpetas con punto</string>
-  <string name="pref_playstore_hidden_not_allowed">Carpetas sin autorización</string>
+  <string name="pref_playstore_hidden_not_allowed">Carpetas no permitidas</string>
   <string name="pref_playstore_hidden_allow">Permitir</string>
   <string name="pref_playstore_hidden_more">%1$d más</string>
   <string name="pref_playstore_hidden_none">No se encontraron más carpetas ocultas.</string>

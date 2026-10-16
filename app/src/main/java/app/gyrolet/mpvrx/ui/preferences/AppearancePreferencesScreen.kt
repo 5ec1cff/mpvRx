@@ -834,7 +834,7 @@ object AppearancePreferencesScreen : Screen {
                 else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab)
               }
             }
-            PreferenceCard {
+            ExpressivePreferenceGroup {
               ReorderableTabPreferences(
                 tabs = tabItems,
                 onEnabledChange = { id, enabled ->

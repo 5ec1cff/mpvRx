@@ -2529,7 +2529,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="network_smb_username_hint">Utilisez votre nom d’utilisateur ou DOMAIN\\username pour un compte de domaine.</string>
   <string name="pref_playstore_hidden_title">Dossiers masqués sélectionnés</string>
   <string name="pref_playstore_hidden_summary">Choisissez un dossier pour inclure ses médias et ses sous-dossiers.</string>
-  <string name="pref_playstore_hidden_selected">Dossiers auxquels vous avez autorisé l’accès</string>
+  <string name="pref_playstore_hidden_selected">Dossiers autorisés</string>
   <string name="pref_playstore_hidden_add">Choisir un dossier masqué</string>
   <string name="pref_playstore_hidden_remove">Retirer l’accès au dossier</string>
   <string name="pref_playstore_hidden_grant_failed">Impossible d’accéder à ce dossier. Choisissez un dossier pris en charge et autorisez la lecture.</string>

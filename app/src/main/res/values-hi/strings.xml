@@ -2433,7 +2433,7 @@
   <string name="network_smb_username_hint">अपना उपयोगकर्ता नाम दर्ज करें या डोमेन खाते के लिए DOMAIN\\username इस्तेमाल करें।</string>
   <string name="pref_playstore_hidden_title">चुने हुए छिपे फ़ोल्डर</string>
   <string name="pref_playstore_hidden_summary">मीडिया और उपफ़ोल्डर शामिल करने के लिए फ़ोल्डर चुनें।</string>
-  <string name="pref_playstore_hidden_selected">जिन फ़ोल्डर की अनुमति दी है</string>
+  <string name="pref_playstore_hidden_selected">अनुमत फ़ोल्डर</string>
   <string name="pref_playstore_hidden_add">छिपा हुआ फ़ोल्डर चुनें</string>
   <string name="pref_playstore_hidden_remove">फ़ोल्डर का एक्सेस हटाएँ</string>
   <string name="pref_playstore_hidden_grant_failed">इस फ़ोल्डर तक नहीं पहुँच सकते। समर्थित फ़ोल्डर चुनें और पढ़ने की अनुमति दें।</string>
@@ -2465,7 +2465,7 @@
   <string name="pref_hidden_scan_per_mode_title">छिपे फ़ोल्डर</string>
   <string name="pref_hidden_scan_enable_in">इनमें सक्षम करें</string>
   <string name="pref_hidden_scan_dot">डॉट फ़ोल्डर</string>
-  <string name="pref_playstore_hidden_not_allowed">जिन फ़ोल्डरों की अनुमति नहीं दी है</string>
+  <string name="pref_playstore_hidden_not_allowed">अनुमति नहीं वाले फ़ोल्डर</string>
   <string name="pref_playstore_hidden_allow">अनुमति दें</string>
   <string name="pref_playstore_hidden_more">%1$d और</string>
   <string name="pref_playstore_hidden_none">कोई और छिपा फ़ोल्डर नहीं मिला।</string>
