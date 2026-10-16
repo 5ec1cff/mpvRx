@@ -2548,4 +2548,13 @@
   <string name="pref_hidden_scan_per_mode_title">隐藏文件夹</string>
   <string name="pref_hidden_scan_enable_in">在以下视图中启用</string>
   <string name="pref_hidden_scan_dot">点前缀文件夹</string>
+  <string name="pref_playstore_hidden_not_allowed">尚未允许访问的文件夹</string>
+  <string name="pref_playstore_hidden_allow">允许</string>
+  <string name="pref_playstore_hidden_more">还有 %1$d 个</string>
+  <string name="pref_playstore_hidden_none">未找到其他隐藏文件夹。</string>
+  <string name="pref_playstore_hidden_discovery_hint">如果此处没有显示，请选择其他文件夹。</string>
+  <string name="pref_playstore_hidden_refresh">刷新隐藏文件夹</string>
+  <string name="pref_playstore_hidden_dot">名称以点开头的文件夹</string>
+  <string name="pref_playstore_hidden_marker">包含 %1$s 文件</string>
+  <string name="pref_playstore_hidden_access_required">需要文件夹访问权限</string>
 </resources>

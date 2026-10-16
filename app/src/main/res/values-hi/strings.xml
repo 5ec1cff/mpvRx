@@ -2465,4 +2465,13 @@
   <string name="pref_hidden_scan_per_mode_title">छिपे फ़ोल्डर</string>
   <string name="pref_hidden_scan_enable_in">इनमें सक्षम करें</string>
   <string name="pref_hidden_scan_dot">डॉट फ़ोल्डर</string>
+  <string name="pref_playstore_hidden_not_allowed">जिन फ़ोल्डरों की अनुमति नहीं दी है</string>
+  <string name="pref_playstore_hidden_allow">अनुमति दें</string>
+  <string name="pref_playstore_hidden_more">%1$d और</string>
+  <string name="pref_playstore_hidden_none">कोई और छिपा फ़ोल्डर नहीं मिला।</string>
+  <string name="pref_playstore_hidden_discovery_hint">फ़ोल्डर यहाँ नहीं है तो दूसरा फ़ोल्डर चुनें।</string>
+  <string name="pref_playstore_hidden_refresh">छिपे फ़ोल्डर रीफ़्रेश करें</string>
+  <string name="pref_playstore_hidden_dot">डॉट से शुरू होने वाला फ़ोल्डर</string>
+  <string name="pref_playstore_hidden_marker">%1$s फ़ाइल मौजूद है</string>
+  <string name="pref_playstore_hidden_access_required">फ़ोल्डर ऐक्सेस की अनुमति चाहिए</string>
 </resources>

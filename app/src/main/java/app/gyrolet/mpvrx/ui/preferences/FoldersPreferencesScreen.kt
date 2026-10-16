@@ -16,6 +16,7 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
@@ -42,6 +43,8 @@ import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +63,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,7 +76,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
@@ -98,13 +105,18 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
+import app.gyrolet.mpvrx.utils.media.HiddenFolderCandidate
+import app.gyrolet.mpvrx.utils.media.HiddenFolderDiscovery
+import app.gyrolet.mpvrx.utils.media.HiddenFolderSuggestion
 import app.gyrolet.mpvrx.utils.media.openPersistedTreeDocument
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 
@@ -138,26 +150,78 @@ object FoldersPreferencesScreen : Screen {
     var isLoading by remember { mutableStateOf(false) }
     var selectionState by remember { mutableStateOf(SelectionState<String>()) }
     var showClearAllDialog by remember { mutableStateOf(false) }
+    var discoveredHiddenFolders by remember { mutableStateOf<List<HiddenFolderCandidate>>(emptyList()) }
+    var discoveringHiddenFolders by remember { mutableStateOf(true) }
+    var discoveryRefresh by remember { mutableStateOf(0) }
+    var grantsRefresh by remember { mutableStateOf(0) }
+    var heldTreeUris by remember { mutableStateOf<Set<String>?>(null) }
+    if (BuildConfig.SCOPED_STORAGE_ONLY) {
+      LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { grantsRefresh++ }
+      LaunchedEffect(grantsRefresh, scopedHiddenFolderUris) {
+        heldTreeUris = withContext(Dispatchers.IO) {
+          context.contentResolver.persistedUriPermissions.filter { it.isReadPermission }
+            .mapTo(hashSetOf()) { it.uri.toString() }
+        }
+      }
+      LaunchedEffect(hiddenFolderMarkerNames, discoveryRefresh) {
+        discoveringHiddenFolders = true
+        try {
+          HiddenFolderDiscovery.discover(
+            context.applicationContext,
+            hiddenFolderMarkerNames,
+            force = discoveryRefresh > 0,
+          ).collect { discoveredHiddenFolders = it }
+        } finally {
+          discoveringHiddenFolders = false
+        }
+      }
+    }
+    val liveTreeUris = scopedHiddenFolderUris.intersect(heldTreeUris.orEmpty())
+    val lockedFolders = remember(discoveredHiddenFolders, scopedHiddenFolderUris, heldTreeUris) {
+      if (heldTreeUris == null) emptyList() else HiddenFolderDiscovery.suggestions(
+        candidates = discoveredHiddenFolders,
+        grantedTreeUris = liveTreeUris,
+        revokedTreeUris = scopedHiddenFolderUris - liveTreeUris,
+      )
+    }
     val scopedTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
       val uri = result.data?.data
       if (result.resultCode == android.app.Activity.RESULT_OK && uri != null) {
-        val granted = runCatching {
-          context.contentResolver.takePersistableUriPermission(
-            uri,
-            (result.data?.flags ?: 0) and
-              (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION),
-          )
-          openPersistedTreeDocument(context, uri.toString()) != null
-        }.getOrDefault(false)
-        if (granted) {
-          preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris + uri.toString())
-          preferences.includeNoMediaFolders.set(true)
-          app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
-          MediaLibraryEvents.notifyChanged()
-        } else {
-          android.widget.Toast.makeText(context, R.string.pref_playstore_hidden_grant_failed, android.widget.Toast.LENGTH_LONG).show()
+        coroutineScope.launch {
+          val granted = withContext(Dispatchers.IO) {
+            runCatching {
+              val flags = (result.data?.flags ?: 0) and
+                (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+              context.contentResolver.takePersistableUriPermission(uri, flags)
+              openPersistedTreeDocument(context, uri.toString()) != null
+            }.getOrDefault(false)
+          }
+          if (granted) {
+            // Save the folder Android actually returned, even if the user chose another location.
+            preferences.scopedHiddenFolderUris.set(
+              preferences.scopedHiddenFolderUris.get() + uri.toString(),
+            )
+            heldTreeUris = heldTreeUris.orEmpty() + uri.toString()
+            preferences.includeNoMediaFolders.set(true)
+            onScanPreferenceChanged()
+          } else {
+            android.widget.Toast.makeText(
+              context,
+              R.string.pref_playstore_hidden_grant_failed,
+              android.widget.Toast.LENGTH_LONG,
+            ).show()
+          }
         }
       }
+    }
+    fun chooseHiddenFolder(initialUri: Uri? = null) {
+      scopedTreePicker.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+        addFlags(
+          Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
+        )
+        initialUri?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
+      })
     }
     val settingsHighlight =
       rememberSettingsSearchHighlight(FoldersPreferencesScreen, MaterialTheme.colorScheme.primary)
@@ -236,17 +300,23 @@ object FoldersPreferencesScreen : Screen {
             // SAF scanning remains restricted to folders explicitly selected by the user.
             PlayStoreHiddenFolderCard(
               enabled = includeNoMediaFolders,
+              shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
               onEnabledChange = { enabled ->
                 preferences.includeNoMediaFolders.set(enabled)
                 onScanPreferenceChanged()
               },
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(AppConnectedShapeTokens.spacing))
           }
 
           // One unified compact group; these settings apply to Library, Tree AND Folders.
           HiddenScanSettingsCard(
             enabled = includeNoMediaFolders,
+            shape = rememberConnectedShape(
+              if (BuildConfig.SCOPED_STORAGE_ONLY) 1 else 0,
+              if (BuildConfig.SCOPED_STORAGE_ONLY) 2 else 1,
+              ConnectedLayout.Vertical,
+            ),
             showMasterToggle = !BuildConfig.SCOPED_STORAGE_ONLY,
             onEnabledChange = { preferences.includeNoMediaFolders.set(it); onScanPreferenceChanged() },
             libraryModeEnabled = libraryModeEnabled,
@@ -283,23 +353,34 @@ object FoldersPreferencesScreen : Screen {
               topPadding = 24.dp,
             )
             PlayStoreGrantedFoldersSection(
-              grantedTreeUris = scopedHiddenFolderUris,
-              onAddFolder = {
-                scopedTreePicker.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
-                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
-                ))
-              },
+              grantedTreeUris = liveTreeUris,
+              onAddFolder = { chooseHiddenFolder() },
               onRemoveFolder = { treeUri ->
-                preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris - treeUri)
-                runCatching {
-                  context.contentResolver.releasePersistableUriPermission(
-                    Uri.parse(treeUri),
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                  )
+                preferences.scopedHiddenFolderUris.set(preferences.scopedHiddenFolderUris.get() - treeUri)
+                coroutineScope.launch {
+                  withContext(Dispatchers.IO) {
+                    val uri = Uri.parse(treeUri)
+                    context.contentResolver.persistedUriPermissions.firstOrNull { it.uri == uri }?.let { grant ->
+                      val flags = (if (grant.isReadPermission) Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+                        (if (grant.isWritePermission) Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0)
+                      runCatching { context.contentResolver.releasePersistableUriPermission(uri, flags) }
+                    }
+                  }
+                  grantsRefresh++
                 }
                 onScanPreferenceChanged()
               },
+            )
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_playstore_hidden_not_allowed),
+              topPadding = 24.dp,
+            )
+            PlayStoreLockedFoldersSection(
+              folders = lockedFolders,
+              loading = discoveringHiddenFolders || heldTreeUris == null,
+              onAllow = { chooseHiddenFolder(it.initialUri) },
+              onRefresh = { discoveryRefresh++ },
             )
           }
 
@@ -455,12 +536,13 @@ object FoldersPreferencesScreen : Screen {
 @Composable
 private fun PlayStoreHiddenFolderCard(
   enabled: Boolean,
+  shape: Shape,
   onEnabledChange: (Boolean) -> Unit,
 ) {
   Card(
     modifier = Modifier.fillMaxWidth(),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    shape = MaterialTheme.shapes.large,
+    shape = shape,
   ) {
     Column(
       modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -515,6 +597,133 @@ private fun PlayStoreGrantedFoldersSection(
 }
 
 @Composable
+private fun PlayStoreLockedFoldersSection(
+  folders: List<HiddenFolderSuggestion>,
+  loading: Boolean,
+  onAllow: (HiddenFolderSuggestion) -> Unit,
+  onRefresh: () -> Unit,
+) {
+  var expanded by rememberSaveable { mutableStateOf(false) }
+  val visible = if (expanded) folders else folders.take(4)
+  val hasExpansion = folders.size > 4
+  val rowCount = visible.size + (if (hasExpansion) 1 else 0) + 1
+  Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+    visible.forEachIndexed { index, folder ->
+      key(folder.key) {
+        PlayStoreLockedFolderRow(
+          folder = folder,
+          shape = rememberConnectedShape(index, rowCount, ConnectedLayout.Vertical),
+          onAllow = { onAllow(folder) },
+        )
+      }
+    }
+    if (hasExpansion) {
+      Card(
+        onClick = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth(),
+        shape = rememberConnectedShape(visible.size, rowCount, ConnectedLayout.Vertical),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+      ) {
+        Text(
+          text = if (expanded) stringResource(R.string.generic_collapse)
+            else stringResource(R.string.pref_playstore_hidden_more, folders.size - visible.size),
+          modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+          style = MaterialTheme.typography.labelLarge,
+          color = MaterialTheme.colorScheme.primary,
+        )
+      }
+    }
+    Card(
+      modifier = Modifier.fillMaxWidth(),
+      shape = rememberConnectedShape(rowCount - 1, rowCount, ConnectedLayout.Vertical),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+      ) {
+        Text(
+          text = stringResource(
+            if (loading) R.string.pref_folders_loading
+            else if (folders.isEmpty()) R.string.pref_playstore_hidden_none
+            else R.string.pref_playstore_hidden_discovery_hint,
+          ),
+          modifier = Modifier.weight(1f),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (loading) {
+          Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+          }
+        } else {
+          IconButton(onClick = onRefresh) {
+            Icon(
+              Icons.RoundedFilled.Refresh,
+              contentDescription = stringResource(R.string.pref_playstore_hidden_refresh),
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun PlayStoreLockedFolderRow(
+  folder: HiddenFolderSuggestion,
+  shape: Shape,
+  onAllow: () -> Unit,
+) {
+  val reason = when {
+    folder.childPaths.isNotEmpty() -> folder.childPaths.joinToString(", ")
+    folder.isDotFolder -> stringResource(R.string.pref_playstore_hidden_dot)
+    folder.markerName != null -> stringResource(R.string.pref_playstore_hidden_marker, folder.markerName)
+    else -> stringResource(R.string.pref_playstore_hidden_access_required)
+  }
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    shape = shape,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Icon(
+        Icons.RoundedFilled.Lock,
+        contentDescription = null,
+        modifier = Modifier.size(22.dp),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+      Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+          text = folder.displayPath,
+          style = MaterialTheme.typography.bodyLarge,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+          text = reason,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+      FilledTonalButton(
+        onClick = onAllow,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+      ) {
+        Text(stringResource(R.string.pref_playstore_hidden_allow))
+      }
+    }
+  }
+}
+
+@Composable
 private fun PlayStoreGrantedFolderRow(
   treeUri: String,
   shape: Shape,
@@ -533,12 +742,13 @@ private fun PlayStoreGrantedFolderRow(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      Icon(Icons.RoundedFilled.Folder, contentDescription = null)
+      Icon(Icons.RoundedFilled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
       Text(
         text = displayPath,
         style = MaterialTheme.typography.bodyLarge,
         modifier = Modifier.weight(1f),
         maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
       )
       IconButton(onClick = onRemove) {
         Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.pref_playstore_hidden_remove))
@@ -659,6 +869,7 @@ private fun CompactHiddenScanOption(
 @Composable
 private fun HiddenScanSettingsCard(
   enabled: Boolean,
+  shape: Shape,
   showMasterToggle: Boolean,
   onEnabledChange: (Boolean) -> Unit,
   libraryModeEnabled: Boolean,
@@ -692,7 +903,7 @@ private fun HiddenScanSettingsCard(
 
   Card(
     modifier = modifier.fillMaxWidth(),
-    shape = MaterialTheme.shapes.extraLarge,
+    shape = shape,
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
   ) {
     Column(

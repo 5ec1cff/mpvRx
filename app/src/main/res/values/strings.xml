@@ -2619,4 +2619,13 @@
   <string name="libraries_count">Libraries · %1$d</string>
   <string name="libraries_search_hint">Search libraries or licenses</string>
   <string name="libraries_open_project">Open project website</string>
+  <string name="pref_playstore_hidden_not_allowed">Folders you have not allowed</string>
+  <string name="pref_playstore_hidden_allow">Allow</string>
+  <string name="pref_playstore_hidden_more">%1$d more</string>
+  <string name="pref_playstore_hidden_none">No other hidden folders found.</string>
+  <string name="pref_playstore_hidden_discovery_hint">Choose another folder if it is missing here.</string>
+  <string name="pref_playstore_hidden_refresh">Refresh hidden folders</string>
+  <string name="pref_playstore_hidden_dot">Dot-folder</string>
+  <string name="pref_playstore_hidden_marker">Has a %1$s file</string>
+  <string name="pref_playstore_hidden_access_required">Folder access needed</string>
 </resources>

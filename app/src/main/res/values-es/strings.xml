@@ -2561,4 +2561,13 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_hidden_scan_per_mode_title">Carpetas ocultas</string>
   <string name="pref_hidden_scan_enable_in">Activar en</string>
   <string name="pref_hidden_scan_dot">Carpetas con punto</string>
+  <string name="pref_playstore_hidden_not_allowed">Carpetas sin autorización</string>
+  <string name="pref_playstore_hidden_allow">Permitir</string>
+  <string name="pref_playstore_hidden_more">%1$d más</string>
+  <string name="pref_playstore_hidden_none">No se encontraron más carpetas ocultas.</string>
+  <string name="pref_playstore_hidden_discovery_hint">Elige otra carpeta si no aparece aquí.</string>
+  <string name="pref_playstore_hidden_refresh">Actualizar carpetas ocultas</string>
+  <string name="pref_playstore_hidden_dot">Carpeta con nombre iniciado en punto</string>
+  <string name="pref_playstore_hidden_marker">Contiene un archivo %1$s</string>
+  <string name="pref_playstore_hidden_access_required">Se necesita acceso a la carpeta</string>
 </resources>

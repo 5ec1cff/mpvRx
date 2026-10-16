@@ -2603,4 +2603,13 @@
   <string name="pref_hidden_scan_per_mode_title">فحص المجلدات المخفية</string>
   <string name="pref_hidden_scan_enable_in">تفعيل في</string>
   <string name="pref_hidden_scan_dot">مجلدات تبدأ بنقطة</string>
+  <string name="pref_playstore_hidden_not_allowed">المجلدات التي لم تسمح بها</string>
+  <string name="pref_playstore_hidden_allow">السماح</string>
+  <string name="pref_playstore_hidden_more">%1$d أخرى</string>
+  <string name="pref_playstore_hidden_none">لم يتم العثور على مجلدات مخفية أخرى.</string>
+  <string name="pref_playstore_hidden_discovery_hint">اختر مجلدًا آخر إذا لم يظهر هنا.</string>
+  <string name="pref_playstore_hidden_refresh">تحديث المجلدات المخفية</string>
+  <string name="pref_playstore_hidden_dot">مجلد يبدأ بنقطة</string>
+  <string name="pref_playstore_hidden_marker">يحتوي على ملف %1$s</string>
+  <string name="pref_playstore_hidden_access_required">يلزم السماح بالوصول إلى المجلد</string>
 </resources>

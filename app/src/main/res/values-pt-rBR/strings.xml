@@ -2561,4 +2561,13 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_hidden_scan_per_mode_title">Pastas ocultas</string>
   <string name="pref_hidden_scan_enable_in">Ativar em</string>
   <string name="pref_hidden_scan_dot">Pastas com ponto</string>
+  <string name="pref_playstore_hidden_not_allowed">Pastas não autorizadas</string>
+  <string name="pref_playstore_hidden_allow">Permitir</string>
+  <string name="pref_playstore_hidden_more">Mais %1$d</string>
+  <string name="pref_playstore_hidden_none">Nenhuma outra pasta oculta encontrada.</string>
+  <string name="pref_playstore_hidden_discovery_hint">Escolha outra pasta se ela não aparecer aqui.</string>
+  <string name="pref_playstore_hidden_refresh">Atualizar pastas ocultas</string>
+  <string name="pref_playstore_hidden_dot">Pasta com nome iniciado por ponto</string>
+  <string name="pref_playstore_hidden_marker">Contém um arquivo %1$s</string>
+  <string name="pref_playstore_hidden_access_required">É necessário permitir o acesso à pasta</string>
 </resources>

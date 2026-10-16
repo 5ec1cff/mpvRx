@@ -2583,4 +2583,13 @@
   <string name="pref_hidden_scan_per_mode_title">Скрытые папки</string>
   <string name="pref_hidden_scan_enable_in">Включить в</string>
   <string name="pref_hidden_scan_dot">Папки с точкой</string>
+  <string name="pref_playstore_hidden_not_allowed">Папки без разрешения на доступ</string>
+  <string name="pref_playstore_hidden_allow">Разрешить</string>
+  <string name="pref_playstore_hidden_more">Ещё %1$d</string>
+  <string name="pref_playstore_hidden_none">Других скрытых папок не найдено.</string>
+  <string name="pref_playstore_hidden_discovery_hint">Выберите другую папку, если её здесь нет.</string>
+  <string name="pref_playstore_hidden_refresh">Обновить скрытые папки</string>
+  <string name="pref_playstore_hidden_dot">Имя папки начинается с точки</string>
+  <string name="pref_playstore_hidden_marker">Содержит файл %1$s</string>
+  <string name="pref_playstore_hidden_access_required">Требуется доступ к папке</string>
 </resources>

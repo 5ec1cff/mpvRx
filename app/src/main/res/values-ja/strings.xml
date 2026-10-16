@@ -2550,4 +2550,13 @@
   <string name="pref_hidden_scan_per_mode_title">隠しフォルダ</string>
   <string name="pref_hidden_scan_enable_in">有効にする画面</string>
   <string name="pref_hidden_scan_dot">ドットフォルダ</string>
+  <string name="pref_playstore_hidden_not_allowed">アクセスを許可していないフォルダー</string>
+  <string name="pref_playstore_hidden_allow">許可</string>
+  <string name="pref_playstore_hidden_more">他 %1$d 件</string>
+  <string name="pref_playstore_hidden_none">他の隠しフォルダーは見つかりませんでした。</string>
+  <string name="pref_playstore_hidden_discovery_hint">ここにない場合は別のフォルダーを選択してください。</string>
+  <string name="pref_playstore_hidden_refresh">隠しフォルダーを更新</string>
+  <string name="pref_playstore_hidden_dot">ドットで始まるフォルダー</string>
+  <string name="pref_playstore_hidden_marker">%1$s ファイルあり</string>
+  <string name="pref_playstore_hidden_access_required">フォルダーへのアクセス許可が必要です</string>
 </resources>

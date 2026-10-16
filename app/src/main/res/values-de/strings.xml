@@ -2561,4 +2561,13 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_hidden_scan_per_mode_title">Versteckte Ordner</string>
   <string name="pref_hidden_scan_enable_in">Aktivieren in</string>
   <string name="pref_hidden_scan_dot">Punktordner</string>
+  <string name="pref_playstore_hidden_not_allowed">Noch nicht freigegebene Ordner</string>
+  <string name="pref_playstore_hidden_allow">Erlauben</string>
+  <string name="pref_playstore_hidden_more">%1$d weitere</string>
+  <string name="pref_playstore_hidden_none">Keine weiteren versteckten Ordner gefunden.</string>
+  <string name="pref_playstore_hidden_discovery_hint">Wähle einen anderen Ordner, falls er hier fehlt.</string>
+  <string name="pref_playstore_hidden_refresh">Versteckte Ordner aktualisieren</string>
+  <string name="pref_playstore_hidden_dot">Ordner mit Punktpräfix</string>
+  <string name="pref_playstore_hidden_marker">Enthält eine %1$s-Datei</string>
+  <string name="pref_playstore_hidden_access_required">Ordnerzugriff erforderlich</string>
 </resources>
