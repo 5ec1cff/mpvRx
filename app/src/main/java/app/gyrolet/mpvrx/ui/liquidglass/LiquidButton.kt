@@ -71,7 +71,7 @@ fun LiquidButton(
   content: @Composable RowScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
-  val reducedMotion = AppMotion.playerReducedMotion()
+  val reducedMotion = AppMotion.shouldReduceMotion()
   val animatePress = enabled && !reducedMotion
   val interactionSource = remember { MutableInteractionSource() }
   val animationScope = rememberCoroutineScope()

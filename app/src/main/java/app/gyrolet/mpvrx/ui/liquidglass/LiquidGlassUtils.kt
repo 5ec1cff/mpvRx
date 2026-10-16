@@ -48,6 +48,7 @@ import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 
 val LocalKyantPlayerBackdrop = staticCompositionLocalOf<Backdrop?> { null }
@@ -268,6 +269,15 @@ class DampedDragAnimation(
     fun release() {
         pressJob?.cancel()
         pressJob = animationScope.launch {
+            awaitFrame()
+            if (value != targetValue) {
+                val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
+                withTimeoutOrNull(600L) {
+                    snapshotFlow { valueAnimation.value }
+                        .filter { abs(it - valueAnimation.targetValue) < threshold }
+                        .first()
+                }
+            }
             launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }
             launch { scaleYAnimation.animateTo(initialScale, scaleYAnimationSpec) }

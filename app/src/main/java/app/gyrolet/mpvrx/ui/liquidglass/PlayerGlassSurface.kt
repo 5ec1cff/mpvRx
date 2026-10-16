@@ -34,7 +34,7 @@ internal fun Modifier.playerGlassSurface(
 ): Modifier {
   if (!enabled) return this
   val settings = rememberLiquidGlassSettings()
-  val reducedMotion = AppMotion.playerReducedMotion()
+  val reducedMotion = AppMotion.shouldReduceMotion()
   val tint = remember(containerColor) {
     // Preserve the player's original 80% frosted backing. Rows inside it provide lighter
     // 35% / 65% resting / selected surfaces, rather than opaque cards hiding the video.

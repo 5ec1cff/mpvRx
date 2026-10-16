@@ -75,7 +75,7 @@ fun LiquidSlider(
 ) {
   val trackBackdrop = rememberLayerBackdrop()
   val settings = rememberLiquidGlassSettings()
-  val reduceMotion = AppMotion.playerReducedMotion()
+  val reduceMotion = AppMotion.shouldReduceMotion()
   val currentValue = rememberUpdatedState(value)
   val currentOnValueChange = rememberUpdatedState(onValueChange)
   val currentOnFinished = rememberUpdatedState(onValueChangeFinished)

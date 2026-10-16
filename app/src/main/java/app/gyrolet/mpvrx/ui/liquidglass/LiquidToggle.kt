@@ -65,7 +65,7 @@ fun LiquidToggle(
     )
     val currentSelected = rememberUpdatedState(selected)
     val currentOnSelect = rememberUpdatedState(onSelect)
-    val reduceMotion = AppMotion.playerReducedMotion()
+    val reduceMotion = AppMotion.shouldReduceMotion()
 
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr

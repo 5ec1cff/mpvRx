@@ -92,7 +92,7 @@ fun AdaptiveControlsButton(
         contentDescription = title ?: text,
         tint = LocalContentColor.current,
         modifier = Modifier.size(PlayerLiquidTokens.IconSize),
-        reduceMotion = AppMotion.playerReducedMotion(),
+        reduceMotion = AppMotion.shouldReduceMotion(),
       )
     }
     if (text != null) {
