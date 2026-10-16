@@ -38,7 +38,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -237,25 +236,8 @@ object FoldersPreferencesScreen : Screen {
             // SAF scanning remains restricted to folders explicitly selected by the user.
             PlayStoreHiddenFolderCard(
               enabled = includeNoMediaFolders,
-              grantedTreeUris = scopedHiddenFolderUris,
               onEnabledChange = { enabled ->
                 preferences.includeNoMediaFolders.set(enabled)
-                onScanPreferenceChanged()
-              },
-              onAddFolder = {
-                scopedTreePicker.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
-                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
-                ))
-              },
-              onRemoveFolder = { treeUri ->
-                preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris - treeUri)
-                runCatching {
-                  context.contentResolver.releasePersistableUriPermission(
-                    Uri.parse(treeUri),
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                  )
-                }
                 onScanPreferenceChanged()
               },
             )
@@ -292,6 +274,34 @@ object FoldersPreferencesScreen : Screen {
             },
             modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
           )
+
+          if (BuildConfig.SCOPED_STORAGE_ONLY) {
+            // Connected section under the scan settings: each folder the user granted is one row.
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_playstore_hidden_selected),
+              topPadding = 24.dp,
+            )
+            PlayStoreGrantedFoldersSection(
+              grantedTreeUris = scopedHiddenFolderUris,
+              onAddFolder = {
+                scopedTreePicker.launch(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
+                  Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION,
+                ))
+              },
+              onRemoveFolder = { treeUri ->
+                preferences.scopedHiddenFolderUris.set(scopedHiddenFolderUris - treeUri)
+                runCatching {
+                  context.contentResolver.releasePersistableUriPermission(
+                    Uri.parse(treeUri),
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                  )
+                }
+                onScanPreferenceChanged()
+              },
+            )
+          }
 
           // ── Hidden Folders ────────────────────────────────────────────
           PreferenceSectionHeader(
@@ -445,10 +455,7 @@ object FoldersPreferencesScreen : Screen {
 @Composable
 private fun PlayStoreHiddenFolderCard(
   enabled: Boolean,
-  grantedTreeUris: Set<String>,
   onEnabledChange: (Boolean) -> Unit,
-  onAddFolder: () -> Unit,
-  onRemoveFolder: (String) -> Unit,
 ) {
   Card(
     modifier = Modifier.fillMaxWidth(),
@@ -474,64 +481,89 @@ private fun PlayStoreHiddenFolderCard(
         IconSwitch(checked = enabled, onCheckedChange = onEnabledChange)
       }
 
-      if (grantedTreeUris.isNotEmpty()) {
-        Text(
-          text = stringResource(R.string.pref_playstore_hidden_selected),
-          style = MaterialTheme.typography.labelLarge,
-        )
-        LazyRow(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-          items(grantedTreeUris.sorted(), key = { it }) { treeUri ->
-            val displayPath = remember(treeUri) {
-              Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':')?.takeIf(String::isNotBlank)
-                ?: treeUri
-            }
-            InputChip(
-              selected = false,
-              onClick = { onRemoveFolder(treeUri) },
-              label = { Text(displayPath, maxLines = 1) },
-              leadingIcon = {
-                Icon(Icons.RoundedFilled.Folder, contentDescription = null, modifier = Modifier.size(InputChipDefaults.IconSize))
-              },
-              trailingIcon = {
-                Icon(
-                  Icons.RoundedFilled.Close,
-                  contentDescription = stringResource(R.string.pref_playstore_hidden_remove),
-                  modifier = Modifier.size(InputChipDefaults.IconSize),
-                )
-              },
-              shape = CircleShape,
-              colors = InputChipDefaults.inputChipColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                labelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                leadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                trailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-              ),
-              border = null,
-            )
-          }
-        }
-      }
-      Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onAddFolder),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-      ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(14.dp),
-          horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Icon(Icons.RoundedFilled.Add, contentDescription = null)
-          Text(stringResource(R.string.pref_playstore_hidden_add), style = MaterialTheme.typography.titleSmall)
-        }
-      }
       Text(
         text = stringResource(R.string.pref_playstore_hidden_limitations),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
+    }
+  }
+}
+
+/** Connected rows for the folders the user has granted; the row after them adds another folder. */
+@Composable
+private fun PlayStoreGrantedFoldersSection(
+  grantedTreeUris: Set<String>,
+  onAddFolder: () -> Unit,
+  onRemoveFolder: (String) -> Unit,
+) {
+  val granted = remember(grantedTreeUris) { grantedTreeUris.sorted() }
+  val rowCount = granted.size + 1
+  Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+    granted.forEachIndexed { index, treeUri ->
+      PlayStoreGrantedFolderRow(
+        treeUri = treeUri,
+        shape = rememberConnectedShape(index, rowCount, ConnectedLayout.Vertical),
+        onRemove = { onRemoveFolder(treeUri) },
+      )
+    }
+    PlayStoreAddFolderRow(
+      shape = rememberConnectedShape(granted.size, rowCount, ConnectedLayout.Vertical),
+      onAddFolder = onAddFolder,
+    )
+  }
+}
+
+@Composable
+private fun PlayStoreGrantedFolderRow(
+  treeUri: String,
+  shape: Shape,
+  onRemove: () -> Unit,
+) {
+  val displayPath = remember(treeUri) {
+    Uri.parse(treeUri).lastPathSegment?.substringAfterLast(':')?.takeIf(String::isNotBlank) ?: treeUri
+  }
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    shape = shape,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+      Icon(Icons.RoundedFilled.Folder, contentDescription = null)
+      Text(
+        text = displayPath,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.weight(1f),
+        maxLines = 1,
+      )
+      IconButton(onClick = onRemove) {
+        Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.pref_playstore_hidden_remove))
+      }
+    }
+  }
+}
+
+@Composable
+private fun PlayStoreAddFolderRow(
+  shape: Shape,
+  onAddFolder: () -> Unit,
+) {
+  Card(
+    modifier = Modifier.fillMaxWidth().clickable(onClick = onAddFolder),
+    shape = shape,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(14.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Icon(Icons.RoundedFilled.Add, contentDescription = null)
+      Text(stringResource(R.string.pref_playstore_hidden_add), style = MaterialTheme.typography.titleSmall)
     }
   }
 }
