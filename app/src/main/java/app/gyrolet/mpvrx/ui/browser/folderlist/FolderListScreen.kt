@@ -120,6 +120,8 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.DeleteConfirmationDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FileOperationProgressDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderPickerDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderSortDialog
+import app.gyrolet.mpvrx.ui.browser.dialogs.BrowserSortDialogScope
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberBrowserSortDialogOpen
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
 import app.gyrolet.mpvrx.ui.browser.filesystem.FileSystemBrowserRootScreen
 import app.gyrolet.mpvrx.ui.browser.medialibrary.MediaLibraryContent
@@ -173,10 +175,12 @@ object FolderListScreen : Screen {
     val browserPreferences = koinInject<BrowserPreferences>()
     val folderViewMode by browserPreferences.folderViewMode.collectAsState()
 
-    when (folderViewMode) {
-      FolderViewMode.FileManager -> FileSystemBrowserRootScreen.Content()
-      FolderViewMode.AlbumView -> MediaStoreFolderListContent()
-      FolderViewMode.MediaLibrary -> MediaLibraryContent()
+    BrowserSortDialogScope {
+      when (folderViewMode) {
+        FolderViewMode.FileManager -> FileSystemBrowserRootScreen.Content()
+        FolderViewMode.AlbumView -> MediaStoreFolderListContent()
+        FolderViewMode.MediaLibrary -> MediaLibraryContent()
+      }
     }
   }
 
@@ -245,7 +249,7 @@ object FolderListScreen : Screen {
     val navigationBarHeight = LocalNavigationBarHeight.current
     val navBarState = app.gyrolet.mpvrx.ui.browser.NavigationBarState
     val isRefreshing = remember { mutableStateOf(false) }
-    val sortDialogOpen = rememberSaveable { mutableStateOf(false) }
+    val sortDialogOpen = rememberBrowserSortDialogOpen(useHomeState = !embedded && !audioOnly)
     var pendingDeleteFolders by remember { mutableStateOf<List<VideoFolder>>(emptyList()) }
     val showLinkDialog = remember { mutableStateOf(false) }
     val folderPickerOpen = rememberSaveable { mutableStateOf(false) }

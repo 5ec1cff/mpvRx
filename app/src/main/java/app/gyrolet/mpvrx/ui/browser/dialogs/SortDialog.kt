@@ -105,25 +105,29 @@ fun SortDialog(
 ) {
   if (!isOpen) return
 
-  val haptics = rememberAppHaptics()
-  var isFieldsExpanded by rememberSaveable { mutableStateOf(false) }
+  // The same movable content is reused by Home's Folder, Tree and Library call sites.
+  // Moving only the open flag would recreate the modal and replay its opening animation.
+  val sharedDialog = LocalBrowserSortDialogState.current
+  val sheetContent: @Composable () -> Unit = {
+    val haptics = rememberAppHaptics()
+    var isFieldsExpanded by rememberSaveable { mutableStateOf(false) }
 
-  val (ascLabel, descLabel) = getLabelForType(sortType, sortOrderAsc)
+    val (ascLabel, descLabel) = getLabelForType(sortType, sortOrderAsc)
 
-  AppPickerSheet(
-    onDismissRequest = onDismiss,
-    title = title,
-    actions = {
-      TextButton(onClick = onDismiss) {
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.ui_done),
-        )
-      }
-    },
-    modifier = modifier,
-  ) {
+    AppPickerSheet(
+      onDismissRequest = onDismiss,
+      title = title,
+      actions = {
+        TextButton(onClick = onDismiss) {
+          Text(
+            text =
+              androidx.compose.ui.res
+                .stringResource(app.gyrolet.mpvrx.R.string.ui_done),
+          )
+        }
+      },
+      modifier = modifier,
+    ) {
       Column {
         HorizontalDivider()
         Column(
@@ -356,6 +360,12 @@ fun SortDialog(
         }
       }
     }
+  }
+  if (sharedDialog != null && sharedDialog.isOpen.value) {
+    sharedDialog.content(sheetContent)
+  } else {
+    sheetContent()
+  }
 }
 
 @Composable

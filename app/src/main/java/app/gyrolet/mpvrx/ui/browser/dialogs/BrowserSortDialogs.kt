@@ -772,7 +772,9 @@ fun VideoSortDialog(
   } else maxOf(if (isTablet || isLandscape) 8 else 4, dynamicVideoColumns + 3).coerceIn(4, 16)
 
   val folderGridColumnSelector =
-    if (activeLayoutMode == MediaLayoutMode.GRID && manualGridColumnsEnabled && maxFolderColumns > 1) {
+    if (isFolderView && activeLayoutMode == MediaLayoutMode.GRID &&
+      manualGridColumnsEnabled && maxFolderColumns > 1
+    ) {
       GridColumnSelector(
         label = "Folder (${if (isLandscape) "Landscape" else "Portrait"})",
         currentValue = folderGridColumns.coerceIn(1, maxFolderColumns),
