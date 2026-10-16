@@ -368,7 +368,7 @@ object AboutScreen : Screen {
               IconButton(onClick = {
                 SafeClipboard.copyPlainText(
                   context, "mpvrx_device_info",
-                  collectDeviceInfo() + "\n" + nativeVersions.joinToString("\n") { (name, version) -> "$" + "{name}: $" + "{version}" },
+                  collectDeviceInfo() + "\n" + nativeVersions.joinToString("\n") { (name, version) -> "${name}: ${version}" },
                 )
               }) {
                 Icon(Icons.RoundedFilled.ContentCopy, contentDescription = "Copy device and playback library information")
@@ -376,7 +376,7 @@ object AboutScreen : Screen {
             }
             androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 12.dp))
             listOf(
-              "App version" to "v$" + "{versionName} ($" + "{BuildConfig.GIT_SHA})",
+              "App version" to "v${versionName} (${BuildConfig.GIT_SHA})",
               "Brand" to Build.BRAND,
               "Manufacturer" to Build.MANUFACTURER,
               "Model" to Build.MODEL,
