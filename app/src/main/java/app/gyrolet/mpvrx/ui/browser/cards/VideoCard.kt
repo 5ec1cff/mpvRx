@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -287,6 +288,10 @@ fun VideoCard(
   var retainedThumbnail by remember(video.path, video.dateModified, video.size) { mutableStateOf<Bitmap?>(null) }
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
+  val gridFooterHeight = with(LocalDensity.current) {
+    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 +
+      MaterialTheme.typography.labelSmall.lineHeight.toDp() * 3 + 64.dp
+  }
 
   VideoSwipeSurface(
     identity = video.path,
@@ -303,9 +308,9 @@ fun VideoCard(
     onAction = onSwipeAction?.let { action -> { swipe -> action(video, isWatched, swipe) } },
     modifier =
       modifier
-        .then(
-          if (isGridMode) Modifier.fillMaxWidth() else Modifier.fillMaxWidth(),
-        ).tvFocusHighlight(cardShape, focusedScale = 1.03f)
+        .fillMaxWidth()
+        .then(if (isGridMode) Modifier.mediaGridTileHeight(if (video.isAudio) 1f else 16f / 10f, gridFooterHeight) else Modifier)
+        .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
@@ -316,7 +321,7 @@ fun VideoCard(
     shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = if (isGridMode) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
       Box(
         modifier =
           Modifier

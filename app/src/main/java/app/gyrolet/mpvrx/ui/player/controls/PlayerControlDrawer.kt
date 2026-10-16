@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -99,7 +100,7 @@ internal fun PlayerControlDrawer(
   Box(Modifier.fillMaxSize()) {
     AnimatedVisibility(
       visible = controlsVisible && buttons.isNotEmpty() && !panelVisible,
-      modifier = Modifier.align(Alignment.CenterEnd),
+      modifier = Modifier.align(AbsoluteAlignment.CenterRight),
       enter =
         if (reducedMotion) {
           fadeIn(animationSpec = tween(90))
@@ -244,7 +245,7 @@ private fun PlayerControlEdgeHandle(
           indication = null,
           onClick = onOpen,
         ),
-    contentAlignment = Alignment.CenterEnd,
+    contentAlignment = AbsoluteAlignment.CenterRight,
   ) {
     Icon(
       imageVector = Icons.RoundedFilled.ChevronLeft,

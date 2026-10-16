@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -48,6 +50,22 @@ internal fun Modifier.mediaCardClickable(
 internal val MediaSelectionGridGap = 4.dp
 // Keep the list and grid breathing room identical; gaps never depend on selection.
 internal val MediaSelectionListGap = MediaSelectionGridGap
+
+/**
+ * A uniform grid cell height is essential for connected selections. LazyVerticalGrid
+ * measures its children separately, so a mere heightIn(min) leaves shorter cells
+ * incomplete when metadata wraps. Set an exact proportional height based on the
+ * available cell width and reserve enough space for the text/chips.
+ *
+ * This modifier is grid-only; list rows retain natural heights.
+ */
+internal fun Modifier.mediaGridTileHeight(aspect: Float, footer: Dp): Modifier = layout { measurable, constraints ->
+  val artworkWidth = (constraints.maxWidth - 8.dp.roundToPx()).coerceAtLeast(0)
+  val target = (artworkWidth / aspect).toInt() + footer.roundToPx()
+  val height = target.coerceIn(constraints.minHeight, constraints.maxHeight)
+  val placeable = measurable.measure(constraints.copy(minHeight = height, maxHeight = height))
+  layout(placeable.width, height) { placeable.placeRelative(0, 0) }
+}
 
 /**
  * Neighbors are from the visible, filtered/sorted media order. Logical start and end work for

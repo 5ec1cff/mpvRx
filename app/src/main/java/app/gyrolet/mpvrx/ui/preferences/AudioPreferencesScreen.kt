@@ -591,15 +591,17 @@ object AudioPreferencesScreen : Screen {
               )
               }
 
-              PreferenceDivider()
-              Text(
-                text = stringResource(R.string.pref_lyrics_sources_category),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-              )
+            }
+          }
 
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_lyrics_sources_category),
+            )
+          }
+          item {
+            PreferenceCard {
               val autoFetchLyricsOnline by preferences.lyricsAutoFetchOnline.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_auto_fetch_online),
@@ -614,17 +616,19 @@ object AudioPreferencesScreen : Screen {
                 },
               )
 
-              if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
-              PreferenceDivider()
-              Text(
-                text = stringResource(R.string.pref_lyrics_translation_category),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-              )
+            }
+          }
 
-              val lyricsAutoTranslate by preferences.lyricsAutoTranslate.collectAsState()
+          if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+            item {
+              PreferenceSectionHeader(
+                position = PreferenceSectionPosition.Middle,
+                title = stringResource(R.string.pref_lyrics_translation_category),
+              )
+            }
+            item {
+              PreferenceCard {
+                val lyricsAutoTranslate by preferences.lyricsAutoTranslate.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_lyrics_auto_translate),
                 value = lyricsAutoTranslate,

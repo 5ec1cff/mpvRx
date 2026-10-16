@@ -261,8 +261,9 @@ object HallOfFameScreen : Screen {
               onRetry = { refreshRequest++ },
               activityUrl = "$githubRepoUrl/commits",
               groupedContent = { entries -> HallOfFameActiveBento(entries) },
-            ) { contributor, shape ->
+            ) { contributor, shape, tileModifier ->
               HallOfFamePersonCard(
+                modifier = tileModifier,
                 shape = shape,
                 name = contributor.displayName,
                 details = pluralStringResource(
@@ -290,8 +291,9 @@ object HallOfFameScreen : Screen {
                   HallOfFameExpressiveReporters(topReporters)
                 }
               },
-            ) { member, shape ->
+            ) { member, shape, tileModifier ->
               HallOfFamePersonCard(
+                modifier = tileModifier,
                 shape = shape,
                 name = member.login,
                 details = communityDetails(member),
@@ -313,8 +315,9 @@ object HallOfFameScreen : Screen {
               activityUrl = "$githubRepoUrl/graphs/contributors",
               expanded = showAll,
               onToggleExpanded = { showAll = !showAll },
-            ) { contributor, shape ->
+            ) { contributor, shape, tileModifier ->
               HallOfFamePersonCard(
+                modifier = tileModifier,
                 shape = shape,
                 name = contributor.displayName,
                 details = pluralStringResource(
@@ -376,7 +379,7 @@ private fun <T> LazyGridScope.creditsSection(
   expressiveHeader: Boolean = true,
   expanded: Boolean = true,
   onToggleExpanded: (() -> Unit)? = null,
-  content: @Composable (T, Shape) -> Unit,
+  content: @Composable (T, Shape, Modifier) -> Unit,
 ): Int {
   var added = 0
   item(key = "$sectionKey:header", span = { GridItemSpan(maxLineSpan) }) {
@@ -447,19 +450,32 @@ private fun <T> LazyGridScope.creditsSection(
       }
       added++
     } else {
-      itemsIndexed(
-        visible,
-        key = { _, entry -> "$sectionKey:${itemKey(entry)}" },
-        contentType = { _, _ -> "person" },
-      ) { index, entry ->
-        val corners = connectedCornerRadii(index, visible.size, ConnectedLayout.Grid, columns)
-        val shape = if (index < columns) corners.copy(
-          topStart = AppConnectedShapeTokens.innerCorner,
-          topEnd = AppConnectedShapeTokens.innerCorner,
-        ).asShape() else corners.asShape()
-        content(entry, shape)
+      // A LazyVerticalGrid cell only measures its own content: its shorter neighbors
+      // otherwise leave backgroundless holes. Make one full-span grid item per row,
+      // letting IntrinsicSize.Min equalize every card's actual measured height.
+      val rowCount = (visible.size + columns - 1) / columns
+      items(
+        count = rowCount,
+        key = { row -> "$sectionKey:row:$row" },
+        span = { GridItemSpan(maxLineSpan) },
+        contentType = { "person-row" },
+      ) { row ->
+        Row(
+          modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+        ) {
+          visible.drop(row * columns).take(columns).forEachIndexed { column, entry ->
+            val index = row * columns + column
+            val corners = connectedCornerRadii(index, visible.size, ConnectedLayout.Grid, columns)
+            val shape = if (index < columns) corners.copy(
+              topStart = AppConnectedShapeTokens.innerCorner,
+              topEnd = AppConnectedShapeTokens.innerCorner,
+            ).asShape() else corners.asShape()
+            content(entry, shape, Modifier.weight(1f).fillMaxHeight())
+          }
+        }
       }
-      added += visible.size
+      added += rowCount
     }
   }
   return added
