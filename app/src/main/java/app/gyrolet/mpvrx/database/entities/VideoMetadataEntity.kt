@@ -19,7 +19,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "video_metadata_cache")
 data class VideoMetadataEntity(
   @PrimaryKey
-  val path: String, // Unique identifier - absolute file path
+  val path: String, // Absolute file path or a canonical content-metadata key
   val size: Long, // File size in bytes
   val dateModified: Long, // Last modified timestamp (for cache invalidation)
   val duration: Long, // Duration in milliseconds

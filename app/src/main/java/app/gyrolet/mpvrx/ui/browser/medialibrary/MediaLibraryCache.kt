@@ -151,7 +151,7 @@ internal object MediaLibraryCache {
       path = parts[3],
       uri = Uri.parse(parts[4]),
       duration = duration,
-      durationFormatted = VideoScanUtils.formatDuration(duration),
+      durationFormatted = if (duration > 0L) VideoScanUtils.formatDuration(duration) else "",
       size = size,
       sizeFormatted = MediaUtils.formatFileSize(size),
       dateModified = dateModified,

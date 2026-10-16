@@ -147,7 +147,7 @@ class MediaLibraryViewModel(
    * presented under another. Full video metadata is persisted separately from this key.
    */
   private fun currentLibraryCacheKey(): String =
-    "library_v2|scoped=${BuildConfig.SCOPED_STORAGE_ONLY}" +
+    "library_v3|scoped=${BuildConfig.SCOPED_STORAGE_ONLY}" +
       "|hidden=${foldersPreferences.libraryHiddenScanEnabled.get()}" +
       "|nomedia=${foldersPreferences.includeNoMediaFolders.get()}" +
       "|marked=${foldersPreferences.sharedScanMarkedFolders.get()}" +
@@ -203,6 +203,13 @@ class MediaLibraryViewModel(
               context = getApplication(),
               includeAudioOverride = true,
             )
+
+          // Reuse durations learned in any browser mode before showing the fresh listing.
+          // Only genuinely missing metadata may open documents, after the list is visible.
+          videoList = MetadataRetrieval.restoreCachedContentMetadata(videoList, metadataCache)
+          _videos.value = videoList
+          loadPlaybackInfo(videoList)
+          _isLoading.value = false
 
           if (metadataEnriched) {
             videoList =

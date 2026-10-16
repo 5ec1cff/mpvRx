@@ -38,7 +38,8 @@ object MetadataRetrieval {
    * Checks if video-specific metadata is needed
    */
   fun isVideoMetadataNeeded(browserPreferences: BrowserPreferences): Boolean =
-    browserPreferences.showResolutionChip.get() ||
+    browserPreferences.showDurationField.get() ||
+      browserPreferences.showResolutionChip.get() ||
       browserPreferences.showFramerateInResolution.get() ||
       browserPreferences.showSubtitleIndicator.get() ||
       browserPreferences.showCodecSupportIndicator.get()
@@ -48,6 +49,44 @@ object MetadataRetrieval {
    */
   fun isFolderMetadataNeeded(browserPreferences: BrowserPreferences): Boolean =
     browserPreferences.showTotalDurationChip.get()
+
+  fun needsVideoMetadata(video: Video, preferences: BrowserPreferences): Boolean {
+    if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return false
+    return (preferences.showDurationField.get() && video.duration <= 0L) ||
+      (!video.isAudio && (
+        (preferences.showResolutionChip.get() && (video.width == 0 || video.height == 0)) ||
+          (preferences.showFramerateInResolution.get() && video.fps == 0f) ||
+          (preferences.showSubtitleIndicator.get() && video.subtitleCodec.isEmpty()) ||
+          (preferences.showCodecSupportIndicator.get() && video.videoCodec.isBlank())
+        ))
+  }
+
+  internal fun withMetadata(video: Video, metadata: MediaInfoOps.VideoMetadata): Video {
+    val duration = metadata.durationMs.takeIf { it > 0L } ?: video.duration
+    val width = metadata.width.takeIf { it > 0 } ?: video.width
+    val height = metadata.height.takeIf { it > 0 } ?: video.height
+    val fps = metadata.fps.takeIf { it > 0f } ?: video.fps
+    return video.copy(
+      duration = duration,
+      durationFormatted = if (duration > 0L) formatDuration(duration) else "",
+      width = width,
+      height = height,
+      fps = fps,
+      resolution = VideoScanUtils.formatResolutionWithFps(width, height, fps),
+      hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
+      subtitleCodec = metadata.subtitleCodec,
+      videoCodec = metadata.videoCodec.ifBlank { video.videoCodec },
+      videoCodecMimeType = metadata.videoCodecMimeType.ifBlank { video.videoCodecMimeType },
+    )
+  }
+
+  suspend fun restoreCachedContentMetadata(
+    videos: List<Video>,
+    metadataCache: VideoMetadataCacheRepository,
+  ): List<Video> {
+    val cached = metadataCache.getCachedContentMetadata(videos)
+    return videos.map { video -> cached[video.path]?.let { withMetadata(video, it) } ?: video }
+  }
 
   /**
    * Enriches a list of videos with metadata only if needed
@@ -68,23 +107,7 @@ object MetadataRetrieval {
       // Filter videos that need metadata extraction
       // MediaStore provides width, height, duration but NOT FPS or subtitle info
       // So we need to extract metadata if FPS or subtitle info is missing
-      val videosNeedingMetadata =
-        videos.filter { video ->
-          if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return@filter false
-          val needsVideoCodec = browserPreferences.showCodecSupportIndicator.get() && !video.isAudio
-          val needsResolution =
-            browserPreferences.showResolutionChip.get() && !video.isAudio &&
-              (video.width == 0 || video.height == 0)
-          val needsFramerate =
-            browserPreferences.showFramerateInResolution.get() && !video.isAudio && video.fps == 0f
-          val needsSubtitleInfo =
-            browserPreferences.showSubtitleIndicator.get() && !video.isAudio && video.subtitleCodec.isEmpty()
-
-          needsResolution ||
-            needsFramerate ||
-            needsSubtitleInfo ||
-            (needsVideoCodec && video.videoCodec.isBlank())
-        }
+      val videosNeedingMetadata = videos.filter { needsVideoMetadata(it, browserPreferences) }
 
       if (videosNeedingMetadata.isEmpty()) {
         return@withContext videos
@@ -94,7 +117,6 @@ object MetadataRetrieval {
 
       val metadataMap =
         extractMetadataByVideoPath(
-          context = context,
           videos = videosNeedingMetadata,
           metadataCache = metadataCache,
           includeVideoCodec = browserPreferences.showCodecSupportIndicator.get(),
@@ -102,53 +124,29 @@ object MetadataRetrieval {
 
       // Update videos with metadata
       videos.map { video ->
-        val extracted = metadataMap[video.path]
-        val metadata = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && extracted != null) {
-          extracted.copy(
-            durationMs = extracted.durationMs.takeIf { it > 0 } ?: video.duration,
-            width = extracted.width.takeIf { it > 0 } ?: video.width,
-            height = extracted.height.takeIf { it > 0 } ?: video.height,
-            fps = extracted.fps.takeIf { it > 0 } ?: video.fps,
-          )
-        } else extracted
-        if (metadata != null) {
-          video.copy(
-            duration = metadata.durationMs,
-            durationFormatted = formatDuration(metadata.durationMs),
-            width = metadata.width,
-            height = metadata.height,
-            fps = metadata.fps,
-            resolution = VideoScanUtils.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
-            hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-            subtitleCodec = metadata.subtitleCodec,
-            videoCodec = metadata.videoCodec,
-            videoCodecMimeType = metadata.videoCodecMimeType,
-          )
-        } else {
-          video
-        }
+        metadataMap[video.path]?.let { withMetadata(video, it) } ?: video
       }
     }
 
   private suspend fun extractMetadataByVideoPath(
-    context: Context,
     videos: List<Video>,
     metadataCache: VideoMetadataCacheRepository,
     includeVideoCodec: Boolean,
   ): Map<String, MediaInfoOps.VideoMetadata> {
     val metadataByVideoPath = mutableMapOf<String, MediaInfoOps.VideoMetadata>()
-    if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
-      for (video in videos.filter { it.uri.scheme == "content" }) {
-        kotlinx.coroutines.currentCoroutineContext().ensureActive()
-        MediaInfoOps.extractBasicMetadata(context, video.uri, video.displayName).getOrNull()?.let {
-          metadataByVideoPath[video.path] = it
-        }
+    for (video in videos.filter { it.uri.scheme == "content" }) {
+      kotlinx.coroutines.currentCoroutineContext().ensureActive()
+      metadataCache.getOrExtractContentMetadata(
+        video,
+        includeVideoCodec && !video.isAudio && video.videoCodec.isBlank(),
+      )?.let {
+        metadataByVideoPath[video.path] = it
       }
     }
     val localFiles =
       videos.mapNotNull { video ->
         if (ZipArchiveMedia.isPlaybackUri(video.uri.toString()) ||
-          (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content")
+          video.uri.scheme == "content"
         ) return@mapNotNull null
         File(video.path).takeIf(File::isFile)?.let { file -> video to file }
       }
@@ -178,6 +176,7 @@ object MetadataRetrieval {
     folder: VideoFolder,
     browserPreferences: BrowserPreferences,
     metadataCache: VideoMetadataCacheRepository,
+    audioOnly: Boolean = false,
   ): VideoFolder =
     withContext(Dispatchers.IO) {
       // If folder duration chip is disabled, return folder as-is
@@ -186,7 +185,7 @@ object MetadataRetrieval {
       }
 
       // If folder already has duration, return as-is
-      if (folder.totalDuration > 0) {
+      if (folder.totalDuration > 0 && !ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId)) {
         return@withContext folder
       }
 
@@ -197,12 +196,19 @@ object MetadataRetrieval {
         }
 
         if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
-          val videos = app.gyrolet.mpvrx.repository.MediaFileRepository.getVideosInFolder(context, folder.bucketId)
+          val videos = restoreCachedContentMetadata(
+            app.gyrolet.mpvrx.repository.MediaFileRepository.getVideosInFolder(
+              context,
+              folder.bucketId,
+              includeAudioOverride = if (audioOnly) true else null,
+            ).filter { !audioOnly || it.isAudio },
+            metadataCache,
+          )
           var totalDuration = 0L
           for (video in videos) {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
-            totalDuration += video.duration.takeIf { it > 0 } ?: MediaInfoOps
-              .extractBasicMetadata(context, video.uri, video.displayName).getOrNull()?.durationMs ?: 0L
+            totalDuration += video.duration.takeIf { it > 0 }
+              ?: metadataCache.getOrExtractContentMetadata(video)?.durationMs ?: 0L
           }
           return@withContext folder.copy(totalDuration = totalDuration)
         }

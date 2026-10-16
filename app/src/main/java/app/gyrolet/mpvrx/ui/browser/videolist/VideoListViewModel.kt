@@ -22,7 +22,6 @@ import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
-import app.gyrolet.mpvrx.utils.media.MediaInfoOps
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.media.VisibleDirectoryWatcher
@@ -266,6 +265,7 @@ class VideoListViewModel(
         val scopedFolder = ScopedHiddenFolderScanner.isScopedFolder(bucketId)
         if (scopedFolder) {
           videoList = withKnownScopedMetadata(videoList, _videos.value)
+          videoList = MetadataRetrieval.restoreCachedContentMetadata(videoList, metadataCache)
         }
 
         // ZIP entries need basic metadata even when optional metadata chips are disabled.
@@ -392,34 +392,23 @@ class VideoListViewModel(
    */
   private fun probeScopedMetadataInBackground(videos: List<Video>) {
     scopedMetadataJob?.cancel()
-    if (!browserPreferences.showDurationField.get() && !MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+    if (!MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
       return
     }
-    val pending = videos.filter { it.duration <= 0L && it.uri.scheme == "content" }
+    val pending = videos.filter { it.uri.scheme == "content" && MetadataRetrieval.needsVideoMetadata(it, browserPreferences) }
     if (pending.isEmpty()) return
     scopedMetadataJob =
       viewModelScope.launch(Dispatchers.IO) {
         val probed = HashMap<String, Video>()
         pending.forEachIndexed { index, video ->
           ensureActive()
-          MediaInfoOps
-            .extractBasicMetadata(getApplication(), video.uri, video.displayName)
-            .getOrNull()
-            ?.takeIf { it.durationMs > 0L }
+          metadataCache
+            .getOrExtractContentMetadata(
+              video,
+              browserPreferences.showCodecSupportIndicator.get() && !video.isAudio && video.videoCodec.isBlank(),
+            )
             ?.let { metadata ->
-              probed[video.path] =
-                video.copy(
-                  duration = metadata.durationMs,
-                  durationFormatted = VideoScanUtils.formatDuration(metadata.durationMs),
-                  width = metadata.width.takeIf { it > 0 } ?: video.width,
-                  height = metadata.height.takeIf { it > 0 } ?: video.height,
-                  fps = metadata.fps.takeIf { it > 0f } ?: video.fps,
-                  resolution = VideoScanUtils.formatResolutionWithFps(metadata.width, metadata.height, metadata.fps),
-                  hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
-                  subtitleCodec = metadata.subtitleCodec,
-                  videoCodec = metadata.videoCodec,
-                  videoCodecMimeType = metadata.videoCodecMimeType,
-                )
+              probed[video.path] = MetadataRetrieval.withMetadata(video, metadata)
             }
           if (probed.isNotEmpty() && ((index + 1) % SCOPED_PROBE_BATCH == 0 || index == pending.lastIndex)) {
             val current = _videos.value

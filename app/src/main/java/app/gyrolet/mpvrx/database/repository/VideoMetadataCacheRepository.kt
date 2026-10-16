@@ -14,11 +14,15 @@ import android.net.Uri
 import android.util.Log
 import app.gyrolet.mpvrx.database.dao.VideoMetadataDao
 import app.gyrolet.mpvrx.database.entities.VideoMetadataEntity
+import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.utils.media.MediaInfoOps
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.pow
@@ -38,6 +42,84 @@ class VideoMetadataCacheRepository(
     private const val MAINTENANCE_PREFS = "video_metadata_cache"
     private const val LAST_MAINTENANCE_MS = "last_maintenance_ms"
     private const val MAINTENANCE_INTERVAL_MS = 7L * 24L * 60L * 60L * 1000L
+    private const val CONTENT_KEY_PREFIX = "content-metadata:"
+  }
+
+  // Folder totals, Library and individual folders can request the same document concurrently.
+  private val contentLocks = Array(64) { Mutex() }
+
+  private fun contentKey(path: String, uri: Uri): String =
+    CONTENT_KEY_PREFIX + (ScopedHiddenFolderScanner.localPathOf(uri)
+      ?: path.takeIf { it.startsWith("/") }
+      ?: ScopedHiddenFolderScanner.documentKey(uri))
+
+  private fun VideoMetadataEntity.toMetadata() = MediaInfoOps.VideoMetadata(
+    sizeBytes = size,
+    durationMs = duration,
+    width = width,
+    height = height,
+    fps = fps,
+    hasEmbeddedSubtitles = hasEmbeddedSubtitles,
+    subtitleCodec = subtitleCodec,
+  )
+
+  /** Read known durations without opening any document or consulting the filesystem. */
+  suspend fun getCachedContentMetadata(videos: List<Video>): Map<String, MediaInfoOps.VideoMetadata> =
+    withContext(Dispatchers.IO) {
+      val sources = videos.filter { it.uri.scheme == "content" }
+      val keys = sources.associateWith { contentKey(it.path, it.uri) }
+      val cached = keys.values.distinct().chunked(900)
+        .flatMap { dao.getMetadataBatch(it) }.associateBy { it.path }
+      buildMap {
+        for ((video, key) in keys) {
+          val entry = cached[key] ?: continue
+          if (entry.size == video.size && entry.dateModified == video.dateModified && entry.duration > 0L) {
+            put(video.path, entry.toMetadata())
+          }
+        }
+      }
+    }
+
+  /**
+   * SAF and MediaStore content URIs use the provider's size/date, never File(content://...).
+   * The same external-storage document shares a key across grants and browser modes.
+   */
+  suspend fun getOrExtractContentMetadata(
+    video: Video,
+    includeVideoCodec: Boolean = false,
+  ): MediaInfoOps.VideoMetadata? = withContext(Dispatchers.IO) {
+    val key = contentKey(video.path, video.uri)
+    val versionKey = "$key|${video.size}|${video.dateModified}"
+    contentLocks[(key.hashCode() and Int.MAX_VALUE) % contentLocks.size].withLock {
+      val cached = dao.getMetadata(key, video.dateModified, video.size)
+      if (cached != null && cached.duration > 0L) {
+        val metadata = cached.toMetadata()
+        if (!includeVideoCodec) return@withLock metadata
+        val codec = MediaInfoOps.extractVideoCodec(context, video.uri, video.displayName, versionKey)
+        return@withLock metadata.copy(videoCodec = codec.label, videoCodecMimeType = codec.mimeType)
+      }
+
+      val metadata = MediaInfoOps.extractBasicMetadata(context, video.uri, video.displayName, versionKey)
+        .getOrNull() ?: return@withLock null
+      // A failed/incomplete probe must not become a permanently cached zero duration.
+      if (metadata.durationMs > 0L) {
+        dao.insertMetadata(
+          VideoMetadataEntity(
+            path = key,
+            size = video.size,
+            dateModified = video.dateModified,
+            duration = metadata.durationMs,
+            width = metadata.width,
+            height = metadata.height,
+            fps = metadata.fps,
+            hasEmbeddedSubtitles = metadata.hasEmbeddedSubtitles,
+            subtitleCodec = metadata.subtitleCodec,
+            lastScanned = System.currentTimeMillis(),
+          ),
+        )
+      }
+      metadata
+    }
   }
 
   private fun shouldRefreshCachedMetadata(
@@ -275,7 +357,9 @@ class VideoMetadataCacheRepository(
 
       val stalePaths =
         cachedPaths.filterNot { path ->
-          File(path).exists()
+          // Provider-backed entries cannot be checked with File.exists(). Their version is
+          // validated on use; deleted/orphaned documents expire through clearOldCache().
+          path.startsWith(CONTENT_KEY_PREFIX) || File(path).exists()
         }
 
       if (stalePaths.isNotEmpty()) {
@@ -294,7 +378,7 @@ class VideoMetadataCacheRepository(
    */
   suspend fun invalidateVideo(path: String) {
     withContext(Dispatchers.IO) {
-      dao.deleteByPath(path)
+      dao.deleteByPaths(listOf(path, contentKey(path, Uri.parse(path))))
       Log.d(TAG, "Invalidated cache for: $path")
     }
   }
@@ -305,7 +389,9 @@ class VideoMetadataCacheRepository(
   suspend fun invalidateVideos(paths: List<String>) {
     withContext(Dispatchers.IO) {
       if (paths.isEmpty()) return@withContext
-      dao.deleteByPaths(paths)
+      paths.flatMap { listOf(it, contentKey(it, Uri.parse(it))) }.distinct().chunked(900).forEach {
+        dao.deleteByPaths(it)
+      }
       Log.d(TAG, "Invalidated cache for ${paths.size} videos")
     }
   }

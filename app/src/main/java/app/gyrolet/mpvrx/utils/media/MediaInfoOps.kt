@@ -337,9 +337,10 @@ object MediaInfoOps {
     context: Context,
     uri: Uri,
     fileName: String,
+    cacheKeyOverride: String? = null,
   ): Result<VideoMetadata> =
     withContext(Dispatchers.IO) {
-      val cacheKey = basicMetadataCacheKey(uri, fileName)
+      val cacheKey = cacheKeyOverride ?: basicMetadataCacheKey(uri, fileName)
       synchronized(basicMetadataCache) {
         basicMetadataCache.get(cacheKey)
       }?.let { cached -> return@withContext Result.success(cached) }
@@ -448,12 +449,9 @@ object MediaInfoOps {
         }
 
       result.getOrNull()?.let { metadata ->
-        // Do not make a transient open/parse failure sticky. Successful metadata with at least one
-        // useful field is safe to reuse for the remainder of this process.
-        if (
-          metadata.sizeBytes > 0L || metadata.durationMs > 0L || metadata.width > 0 ||
-          metadata.height > 0 || metadata.fps > 0f || metadata.hasEmbeddedSubtitles
-        ) {
+        // Do not make an incomplete duration sticky, even if the provider returned a file size.
+        // Versioned callers can reuse successful durations without serving an older document.
+        if (metadata.durationMs > 0L) {
           synchronized(basicMetadataCache) {
             basicMetadataCache.put(cacheKey, metadata)
           }
@@ -474,9 +472,10 @@ object MediaInfoOps {
     context: Context,
     uri: Uri,
     fileName: String,
+    cacheKeyOverride: String? = null,
   ): VideoCodecDescriptor =
     withContext(Dispatchers.IO) {
-      val cacheKey = basicMetadataCacheKey(uri, fileName)
+      val cacheKey = cacheKeyOverride ?: basicMetadataCacheKey(uri, fileName)
       synchronized(videoCodecCache) {
         videoCodecCache.get(cacheKey)
       }?.let { return@withContext it }

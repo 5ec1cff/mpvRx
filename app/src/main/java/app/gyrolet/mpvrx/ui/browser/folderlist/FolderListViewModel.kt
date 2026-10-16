@@ -250,7 +250,9 @@ class FolderListViewModel(
     if (cachedJson != null) {
       try {
         // Parse JSON and restore folders
-        val folders = parseFoldersFromJson(cachedJson)
+        val folders = parseFoldersFromJson(cachedJson).filterNot {
+          ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount == 0
+        }
         if (folders.isNotEmpty()) {
           Log.d(TAG, "Loaded ${folders.size} folders from cache instantly")
           hasCachedData = true
@@ -549,6 +551,9 @@ class FolderListViewModel(
             }
             _isLoading.value = false
             _hasCompletedInitialLoad.value = true
+            if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
+              enrichScopedFolderDurations(folders)
+            }
           } catch (error: kotlinx.coroutines.CancellationException) {
             throw error
           } catch (e: Exception) {
@@ -666,6 +671,7 @@ class FolderListViewModel(
               val cachedIsComplete = cached != null && (cached.videoCount == 0 || cached.totalDuration > 0)
               if (cached != null &&
                 cached.videoCount == folder.videoCount &&
+                cached.totalSize == folder.totalSize &&
                 cached.lastModified == folder.lastModified &&
                 cachedIsComplete
               ) {
@@ -738,21 +744,20 @@ class FolderListViewModel(
   }
 
   /**
-   * Granted (SAF) folders have no MediaStore durations, so every file must be opened over the
-   * provider. That runs only after the regular list is final and visible, one folder at a time,
-   * and is cancelled together with the scan job by the next refresh.
+   * Recompute SAF totals from the current membership using the shared per-document cache.
+   * A positive total can still be partial, so it must not prevent missing durations being filled.
+   * Only uncached/changed documents are opened, after the regular list is visible.
    */
   private suspend fun enrichScopedFolderDurations(folders: List<VideoFolder>) {
     val pending = folders.filter {
-      ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount > 0 && it.totalDuration == 0L
+      ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount > 0
     }
     for (folder in pending) {
       currentCoroutineContext().ensureActive()
       val totalDuration =
         MetadataRetrieval
-          .enrichFolderIfNeeded(getApplication(), folder, browserPreferences, metadataCache)
+          .enrichFolderIfNeeded(getApplication(), folder, browserPreferences, metadataCache, audioOnly = audioOnly)
           .totalDuration
-      if (totalDuration <= 0L) continue
       val key = folderKey(folder)
       _allVideoFolders.update { current ->
         current.map { if (folderKey(it) == key) it.copy(totalDuration = totalDuration) else it }
