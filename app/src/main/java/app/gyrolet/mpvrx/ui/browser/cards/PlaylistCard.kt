@@ -441,6 +441,7 @@ private fun YouTubePlaylistGridCard(
     modifier =
       modifier
         .fillMaxWidth()
+        .mediaGridTileHeight(16f / 9f, 130.dp)
         .clip(cardShape)
         .background(selectionColor)
         .semantics { selected = isSelected }
