@@ -1518,7 +1518,7 @@ private fun GridContent(
           customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = true,
           uiConfig = folderCardUiConfig,
-          allowThumbnailGeneration = false,
+          allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
