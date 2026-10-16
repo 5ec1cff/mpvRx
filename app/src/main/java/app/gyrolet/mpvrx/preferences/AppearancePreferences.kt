@@ -35,6 +35,8 @@ import androidx.compose.ui.semantics.semantics
 import app.gyrolet.mpvrx.preferences.preference.PreferenceStore
 import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.getEnum
+import app.gyrolet.mpvrx.ui.background.BackgroundType
+import app.gyrolet.mpvrx.ui.background.RandomInterval
 import app.gyrolet.mpvrx.ui.theme.AppTheme
 import app.gyrolet.mpvrx.ui.theme.CustomThemeDefinition
 import app.gyrolet.mpvrx.ui.theme.DarkMode
@@ -106,6 +108,15 @@ class AppearancePreferences(
   val showJellyfinTab = preferenceStore.getBoolean("show_jellyfin_tab", false)
   val showQuickPlayFab = preferenceStore.getBoolean("show_quick_play_fab", true)
   val quickPlayFabDirect = preferenceStore.getBoolean("quick_play_fab_direct", false)
+
+  // Background animation (see ui/background)
+  val backgroundType = preferenceStore.getEnum("background_type", BackgroundType.NONE)
+  val backgroundParallax = preferenceStore.getBoolean("background_parallax", true)
+  val backgroundOverWallpaper = preferenceStore.getBoolean("background_over_wallpaper", true)
+  val seasonalThemes = preferenceStore.getBoolean("seasonal_themes", true)
+  val randomBackgroundInterval = preferenceStore.getEnum("random_background_interval", RandomInterval.EACH_LAUNCH)
+  val lastRandomBackground = preferenceStore.getString("last_random_background", "")
+  val lastRandomBackgroundDay = preferenceStore.getLong("last_random_background_day", 0L)
 
   fun resetLiquidGlassOptions() {
     listOf<Preference<*>>(

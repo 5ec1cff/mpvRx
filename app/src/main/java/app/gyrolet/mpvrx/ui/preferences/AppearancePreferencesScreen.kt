@@ -54,6 +54,7 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.background.BackgroundPickerDialog
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.ControlsAnimationStyle
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
@@ -106,6 +107,8 @@ object AppearancePreferencesScreen : Screen {
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
     var isAppFontSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var isBackgroundPickerOpen by rememberSaveable { mutableStateOf(false) }
+    val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
     val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
     val thumbnailFramePosition by browserPreferences.thumbnailFramePosition.collectAsState()
@@ -344,6 +347,24 @@ object AppearancePreferencesScreen : Screen {
                      onClick = { backstack.navigateTo(AppIconPreferencesScreen) },
                    )
                    }
+
+                  PreferenceDivider()
+
+                  ExpressivePreferenceItem {
+                    Preference(
+                      title = { Text(stringResource(R.string.bg_pref_title)) },
+                      summary = {
+                        Text(
+                          stringResource(backgroundType.labelRes),
+                          color = MaterialTheme.colorScheme.outline,
+                        )
+                      },
+                      onClick = { isBackgroundPickerOpen = true },
+                    )
+                  }
+                  if (isBackgroundPickerOpen) {
+                    BackgroundPickerDialog(onDismiss = { isBackgroundPickerOpen = false })
+                  }
 
                   PreferenceDivider()
 

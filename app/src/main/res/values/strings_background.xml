@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">Background animation</string>
+  <string name="bg_picker_title">Background animation</string>
+  <string name="bg_picker_description">The animation that plays behind the app\'s screens</string>
+  <string name="bg_close">Close</string>
+
+  <string name="bg_circles">Circles</string>
+  <string name="bg_rings">Rings</string>
+  <string name="bg_space">Space</string>
+  <string name="bg_shapes">Shapes</string>
+  <string name="bg_snow">Snow</string>
+  <string name="bg_grid">Grid</string>
+  <string name="bg_particles">Particles</string>
+  <string name="bg_lava">Lava lamp</string>
+  <string name="bg_aurora">Aurora</string>
+  <string name="bg_fireflies">Fireflies</string>
+  <string name="bg_rain">Rain</string>
+  <string name="bg_waves">Waves</string>
+  <string name="bg_bokeh">Bokeh</string>
+  <string name="bg_sakura">Sakura</string>
+  <string name="bg_constellation">Constellation</string>
+  <string name="bg_bubbles">Bubbles</string>
+  <string name="bg_none">None</string>
+  <string name="bg_random">Random</string>
+
+  <string name="bg_halloween">Halloween</string>
+  <string name="bg_fireworks">Fireworks</string>
+  <string name="bg_winter">Winter lights</string>
+  <string name="bg_diwali">Diwali</string>
+  <string name="bg_holi">Holi</string>
+
+  <string name="bg_interval_launch">On launch</string>
+  <string name="bg_interval_daily">Daily</string>
+  <string name="bg_interval_3_days">Every 3 days</string>
+
+  <string name="bg_parallax_title">Parallax effect</string>
+  <string name="bg_parallax_summary">Smooth background shifting when tilting the device</string>
+  <string name="bg_over_wallpaper_title">Show over wallpaper</string>
+  <string name="bg_over_wallpaper_summary">Play the animation on top of your custom wallpaper</string>
+  <string name="bg_seasonal_title">Seasonal themes</string>
+  <string name="bg_seasonal_summary">Festive backgrounds and greetings during holidays</string>
+  <string name="bg_seasonal_notice">%1$s is playing for the current festival. Turn off Seasonal themes to see your own pick.</string>
+
+  <string name="bg_greeting_diwali">Happy Diwali ✨</string>
+  <string name="bg_greeting_holi">Happy Holi 🎨</string>
+  <string name="bg_greeting_halloween">Happy Halloween 🎃</string>
+  <string name="bg_greeting_new_year">Happy New Year 🎆</string>
+  <string name="bg_greeting_winter">Happy Holidays ❄️</string>
+</resources>
