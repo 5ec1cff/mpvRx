@@ -2546,7 +2546,7 @@
     <!-- Scoped-storage hidden folder access for the Play Store distribution -->
     <string name="pref_playstore_hidden_title">Selected hidden folders</string>
     <string name="pref_playstore_hidden_summary">Choose a folder to include its media and subfolders.</string>
-    <string name="pref_playstore_hidden_selected">Folder allowed</string>
+    <string name="pref_playstore_hidden_selected">Folders you have allowed</string>
     <string name="pref_playstore_hidden_add">Choose hidden folder</string>
     <string name="pref_playstore_hidden_remove">Remove folder access</string>
     <string name="pref_playstore_hidden_grant_failed">Cannot access that folder. Choose a supported folder and grant read access.</string>
@@ -2619,7 +2619,7 @@
   <string name="libraries_count">Libraries · %1$d</string>
   <string name="libraries_search_hint">Search libraries or licenses</string>
   <string name="libraries_open_project">Open project website</string>
-  <string name="pref_playstore_hidden_not_allowed">Folder not allowed</string>
+  <string name="pref_playstore_hidden_not_allowed">Detected folders</string>
   <string name="pref_playstore_hidden_allow">Allow</string>
   <string name="pref_playstore_hidden_more">%1$d more</string>
   <string name="pref_playstore_hidden_none">No other hidden folders found.</string>
