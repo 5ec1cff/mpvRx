@@ -675,10 +675,8 @@ private fun DrawScope.drawPlayerSheet(
   val fraction = expansion.coerceIn(0f, 1f)
   val full = endpoints.full
   val mini = endpoints.mini
-  val bounds = lerp(mini.bounds, full.bounds, fraction).translate(-origin)
-  val overshoot = ((fraction - expansion) * endpoints.travel)
-    .coerceIn(-mini.bounds.height * 0.2f, mini.bounds.height * 0.2f)
-  val sheetBounds = Rect(bounds.left, bounds.top + overshoot, bounds.right, bounds.bottom)
+  // The sheet rests on its anchors: nothing is offset past full screen or below the mini player.
+  val sheetBounds = lerp(mini.bounds, full.bounds, fraction).translate(-origin)
   if (sheetBounds.isEmpty) return
   val radius = mini.cornerRadius + (full.cornerRadius - mini.cornerRadius) * fraction
   val clip = Path().apply { addRoundRect(RoundRect(sheetBounds, CornerRadius(radius))) }
@@ -910,9 +908,9 @@ private fun Modifier.swipePlayerSheet(
           }
         }
         tracker.addPosition(change.uptimeMillis, change.position)
+        // The sheet stops on its anchors, so dragging past full screen or the mini player does nothing.
         activeDrag?.let {
-          val limit = it.endpoints.mini.bounds.height * 0.2f / it.endpoints.travel
-          it.expansion = (it.expansion - amount / it.endpoints.travel).coerceIn(-limit, 1f + limit)
+          it.expansion = (it.expansion - amount / it.endpoints.travel).coerceIn(0f, 1f)
         }
       },
     )
