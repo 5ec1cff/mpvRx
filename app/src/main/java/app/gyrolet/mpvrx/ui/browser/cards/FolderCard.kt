@@ -189,7 +189,7 @@ fun FolderCard(
   var folderPreviewFrames by remember(folder.bucketId) { mutableStateOf<List<android.graphics.Bitmap?>>(emptyList()) }
   // The available tile width, rather than device class alone, determines whether
   // four video previews remain readable at the current grid column count.
-  val showPreviewCollage = with(LocalDensity.current) { thumbnailSize.width >= 176.dp.roundToPx() }
+  val showPreviewCollage = with(LocalDensity.current) { thumbnailSize.width >= 148.dp.roundToPx() }
 
   LaunchedEffect(
     folder.bucketId,
