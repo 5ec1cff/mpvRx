@@ -374,15 +374,22 @@ object FolderViewScanner {
       } else {
         var count = 0
         var size = 0L
+        var duration = 0L
         var modified = 0L
+        // Durations are read only when a minimum audio length has to be checked. Otherwise they are
+        // filled in afterwards, in the background, the same way Play Store folders get them.
+        val readDurations = options.minimumAudioDurationSeconds > 0
         for (file in files) {
           if (file.name.startsWith(".") && !options.includeDotFolders) continue
           // The type comes from the name, so only media that is counted costs a stat.
           val isAudio = options.includeAudio && FileTypeUtils.isAudioFile(file)
           if (!isAudio && !FileTypeUtils.isVideoFile(file)) continue
           if (!file.isFile) continue
+          val mediaDuration = if (isAudio && readDurations) FileTypeUtils.getDurationMs(file) else 0L
+          if (isAudio && readDurations && !options.includesAudioDuration(mediaDuration)) continue
           count++
           size += file.length()
+          duration += mediaDuration
           modified = maxOf(modified, file.lastModified() / 1000)
         }
         DirectoryScanEntity(
@@ -393,8 +400,7 @@ object FolderViewScanner {
           isNoMediaRoot = isNoMediaRoot,
           videoCount = count,
           totalSize = size,
-          // Durations are not probed for hidden folders, matching the SAF listing.
-          totalDuration = 0L,
+          totalDuration = duration,
           lastModified = modified,
           hasSubfolders = subdirectories.isNotEmpty(),
           lastScanned = System.currentTimeMillis(),
@@ -636,8 +642,9 @@ object FolderViewScanner {
         })
   }
 
-  // Entry names and the directory's own mtime change when a child is added, removed or renamed, so no
-  // per-entry stat is needed. An in-place edit is picked up on the next such change.
+  // Names and the directory's own mtime change when a child is added, removed or renamed. Media files
+  // also contribute size and mtime, so an in-place edit to a video or track is still noticed. Other
+  // entries are not statted, which keeps large folders of photos and documents cheap to check.
   private fun directoryFingerprint(
     directory: File,
     files: List<File>,
@@ -647,6 +654,10 @@ object FolderViewScanner {
     files.forEach { file ->
       var entryHash = 17L
       entryHash = 31 * entryHash + file.name.hashCode()
+      if (FileTypeUtils.isVideoFile(file) || FileTypeUtils.isAudioFile(file)) {
+        entryHash = 31 * entryHash + file.length()
+        entryHash = 31 * entryHash + file.lastModified()
+      }
       val mixed = mixFingerprint(entryHash)
       xor = xor xor mixed
       sum += mixed

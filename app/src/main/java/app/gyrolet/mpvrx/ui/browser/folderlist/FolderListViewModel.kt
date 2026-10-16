@@ -552,7 +552,7 @@ class FolderListViewModel(
             _isLoading.value = false
             _hasCompletedInitialLoad.value = true
             if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
-              enrichScopedFolderDurations(folders)
+              enrichDeferredFolderDurations(folders, emptySet())
             }
           } catch (error: kotlinx.coroutines.CancellationException) {
             throw error
@@ -629,6 +629,7 @@ class FolderListViewModel(
           }
           Log.d(TAG, "Scanned ${mediaStoreFolders.size} MediaStore and ${indexedFolders.size} indexed folders")
 
+          var hiddenFolderKeys: Set<String> = indexedKeys
           if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.FOLDERS)) {
             if (!hasExistingData && !silent) {
               _scanStatus.value =
@@ -652,7 +653,9 @@ class FolderListViewModel(
               }
 
             // Replace the old indexed snapshot after the scan, removing deleted/stale folders.
-            visibleFolders = mergeFolders(mediaStoreFolders, MediaFileRepository.getIndexedNoMediaFolders(), scopedFolders)
+            val indexedAfterScan = MediaFileRepository.getIndexedNoMediaFolders()
+            hiddenFolderKeys = indexedAfterScan.mapTo(hashSetOf(), ::folderKey)
+            visibleFolders = mergeFolders(mediaStoreFolders, indexedAfterScan, scopedFolders)
             ensureActive()
             if (!hasExistingData) {
               _allVideoFolders.value = visibleFolders
@@ -702,7 +705,7 @@ class FolderListViewModel(
             val enrichedFolders =
               MetadataRetrieval.enrichFoldersIfNeeded(
                 context = getApplication(),
-                folders = foldersForEnrichment.filterNot { ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) },
+                folders = foldersForEnrichment.filterNot { isDeferredDurationFolder(it, hiddenFolderKeys) },
                 browserPreferences = browserPreferences,
                 metadataCache = metadataCache,
                 onProgress = { processed, total ->
@@ -724,7 +727,7 @@ class FolderListViewModel(
           if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
             _isEnriching.value = false
             _scanStatus.value = null
-            enrichScopedFolderDurations(finalFolders)
+            enrichDeferredFolderDurations(finalFolders, hiddenFolderKeys)
           }
         } catch (e: kotlinx.coroutines.CancellationException) {
           Log.d(TAG, "Scan cancelled (new scan started)")
@@ -744,13 +747,14 @@ class FolderListViewModel(
   }
 
   /**
-   * Recompute SAF totals from the current membership using the shared per-document cache.
-   * A positive total can still be partial, so it must not prevent missing durations being filled.
-   * Only uncached/changed documents are opened, after the regular list is visible.
+   * Play Store and hidden folders are listed at once, so their totals are filled in here, one folder
+   * at a time, after the list is visible. Play Store totals reuse the shared per-document cache, and
+   * hidden folders reuse the metadata cache. A positive total can still be partial, so it must not
+   * prevent missing durations being filled.
    */
-  private suspend fun enrichScopedFolderDurations(folders: List<VideoFolder>) {
+  private suspend fun enrichDeferredFolderDurations(folders: List<VideoFolder>, hiddenKeys: Set<String>) {
     val pending = folders.filter {
-      ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount > 0
+      isDeferredDurationFolder(it, hiddenKeys) && it.videoCount > 0
     }
     for (folder in pending) {
       currentCoroutineContext().ensureActive()
@@ -764,6 +768,10 @@ class FolderListViewModel(
       }
     }
   }
+
+  /** Folders listed without a blocking metadata pass: Play Store grants and indexed hidden folders. */
+  private fun isDeferredDurationFolder(folder: VideoFolder, hiddenKeys: Set<String>): Boolean =
+    ScopedHiddenFolderScanner.isScopedFolder(folder.bucketId) || folderKey(folder) in hiddenKeys
 
   private fun folderKey(folder: VideoFolder): String =
     if (ScopedHiddenFolderScanner.isScopedFolder(folder.path)) {

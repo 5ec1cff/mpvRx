@@ -36,6 +36,7 @@ import app.gyrolet.mpvrx.utils.storage.TreeViewScanner
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import app.gyrolet.mpvrx.utils.storage.mediaPathKey
+import app.gyrolet.mpvrx.utils.storage.storagePathKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -208,6 +209,13 @@ object MediaFileRepository : KoinComponent {
 
   suspend fun getIndexedNoMediaFolders(): List<VideoFolder> =
     FolderViewScanner.getIndexedNoMediaFolders(currentScanOptions(), database.directoryScanDao())
+
+  /** True when [path] is a hidden folder the scan indexed in a standard build. Play Store folders are separate. */
+  suspend fun isIndexedHiddenFolder(path: String): Boolean {
+    if (ScopedHiddenFolderScanner.isScopedFolder(path)) return false
+    val key = storagePathKey(path) ?: return false
+    return getIndexedNoMediaFolders().any { storagePathKey(it.path) == key }
+  }
 
   /** The hidden roots currently tracked by Folder mode, independent of the Library tab. */
   suspend fun getIndexedNoMediaRootPaths(): List<String> =

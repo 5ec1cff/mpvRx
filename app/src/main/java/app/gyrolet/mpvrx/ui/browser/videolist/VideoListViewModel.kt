@@ -263,14 +263,18 @@ class VideoListViewModel(
           videoList = videoList.filter { it.isAudio }
         }
         val scopedFolder = ScopedHiddenFolderScanner.isScopedFolder(bucketId)
-        if (scopedFolder) {
+        // Play Store and indexed hidden folders are shown as listed, then probed once the list is visible.
+        val deferredMetadata = scopedFolder || MediaFileRepository.isIndexedHiddenFolder(bucketId)
+        if (deferredMetadata) {
           videoList = withKnownScopedMetadata(videoList, _videos.value)
+        }
+        if (scopedFolder) {
           videoList = MetadataRetrieval.restoreCachedContentMetadata(videoList, metadataCache)
         }
 
         // ZIP entries need basic metadata even when optional metadata chips are disabled.
         val archiveFolder = ZipArchiveMedia.isBrowserPath(bucketId)
-        if (!ScopedHiddenFolderScanner.isScopedFolder(bucketId) &&
+        if (!deferredMetadata &&
           (archiveFolder || MetadataRetrieval.isVideoMetadataNeeded(browserPreferences))) {
           Log.d(tag, "Enriching ${videoList.size} videos with metadata")
           videoList =
@@ -312,7 +316,7 @@ class VideoListViewModel(
           }
 
           // Enrich retry list if needed
-          if (MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
+          if (!deferredMetadata && MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
             retryVideoList =
               MetadataRetrieval.enrichVideosIfNeeded(
                 context = getApplication(),
@@ -333,13 +337,14 @@ class VideoListViewModel(
           _videos.value = retryVideoList
           loadPlaybackInfo(retryVideoList)
           VideoListCache.save(getApplication(), cacheKey, retryVideoList)
+          if (deferredMetadata) probeDeferredMetadataInBackground(retryVideoList)
         } else {
           if (_videos.value != videoList) {
             _videos.value = videoList
             loadPlaybackInfo(videoList)
           }
           VideoListCache.save(getApplication(), cacheKey, videoList)
-          if (scopedFolder) probeScopedMetadataInBackground(videoList)
+          if (deferredMetadata) probeDeferredMetadataInBackground(videoList)
         }
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)
@@ -387,29 +392,31 @@ class VideoListViewModel(
     first.size == second.size && first.dateModified == second.dateModified
 
   /**
-   * SAF providers report no duration, so each document is opened and probed. This runs only after
-   * the list is already visible, one file at a time, publishing in small batches.
+   * Play Store documents and standard hidden files carry no metadata in the listing, so each file is
+   * probed here. This runs only after the list is already visible, one file at a time, publishing in
+   * small batches.
    */
-  private fun probeScopedMetadataInBackground(videos: List<Video>) {
+  private fun probeDeferredMetadataInBackground(videos: List<Video>) {
     scopedMetadataJob?.cancel()
     if (!MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)) {
       return
     }
-    val pending = videos.filter { it.uri.scheme == "content" && MetadataRetrieval.needsVideoMetadata(it, browserPreferences) }
+    val pending = videos.filter { MetadataRetrieval.needsVideoMetadata(it, browserPreferences) }
     if (pending.isEmpty()) return
     scopedMetadataJob =
       viewModelScope.launch(Dispatchers.IO) {
         val probed = HashMap<String, Video>()
         pending.forEachIndexed { index, video ->
           ensureActive()
-          metadataCache
-            .getOrExtractContentMetadata(
-              video,
-              browserPreferences.showCodecSupportIndicator.get() && !video.isAudio && video.videoCodec.isBlank(),
-            )
-            ?.let { metadata ->
-              probed[video.path] = MetadataRetrieval.withMetadata(video, metadata)
+          val includeCodec =
+            browserPreferences.showCodecSupportIndicator.get() && !video.isAudio && video.videoCodec.isBlank()
+          val metadata =
+            if (video.uri.scheme == "content") {
+              metadataCache.getOrExtractContentMetadata(video, includeCodec)
+            } else {
+              metadataCache.getOrExtractMetadata(File(video.path), video.uri, video.displayName, includeCodec)
             }
+          metadata?.let { probed[video.path] = MetadataRetrieval.withMetadata(video, it) }
           if (probed.isNotEmpty() && ((index + 1) % SCOPED_PROBE_BATCH == 0 || index == pending.lastIndex)) {
             val current = _videos.value
             val updated =
