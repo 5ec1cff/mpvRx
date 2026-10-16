@@ -648,7 +648,7 @@ object FolderListScreen : Screen {
               modifier =
                 Modifier
                   .fillMaxWidth()
-                  .padding(horizontal = 16.dp),
+                  .padding(horizontal = 16.dp, vertical = 8.dp),
               inputFieldModifier = Modifier.focusRequester(focusRequester),
               placeholder = {
                 Text(

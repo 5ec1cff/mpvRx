@@ -218,8 +218,11 @@ val LocalAppFontFamily = staticCompositionLocalOf { GoogleSansRounded }
 fun fontFamilyForText(text: String): FontFamily =
   if (text.requiresSystemFontFallback()) FontFamily.SansSerif else LocalAppFontFamily.current
 
-fun expressiveDisplayFontForText(text: String): FontFamily =
-  if (text.requiresSystemFontFallback()) FontFamily.SansSerif else GoogleSansExpressiveDisplay
+@Composable
+fun expressiveDisplayFontForText(text: String): FontFamily {
+  val fontFamily = fontFamilyForText(text)
+  return if (fontFamily == GoogleSansRounded) GoogleSansExpressiveDisplay else fontFamily
+}
 
 fun localeRequiresSystemFont(locale: Locale): Boolean =
   locale.getDisplayName(locale).requiresSystemFontFallback()

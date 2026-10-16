@@ -115,16 +115,17 @@ fun ExpandableCard(
         modifier = Modifier.padding(start = MaterialTheme.spacing.small).size(24.dp).rotate(rotationState),
       )
     }
-    Box(
-      Modifier
-        .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring)
-        .padding(
-          start = MaterialTheme.spacing.medium,
-          end = MaterialTheme.spacing.medium,
-          bottom = MaterialTheme.spacing.medium,
-        ),
-    ) {
-      if (isExpanded) content()
+    if (isExpanded) {
+      Box(
+        Modifier
+          .padding(
+            start = MaterialTheme.spacing.medium,
+            end = MaterialTheme.spacing.medium,
+            bottom = MaterialTheme.spacing.medium,
+          ),
+      ) {
+        content()
+      }
     }
   }
 }

@@ -259,6 +259,7 @@ object FoldersPreferencesScreen : Screen {
                 onScanPreferenceChanged()
               },
             )
+            Spacer(modifier = Modifier.height(12.dp))
           }
 
           // One unified compact group; these settings apply to Library, Tree AND Folders.
@@ -292,10 +293,12 @@ object FoldersPreferencesScreen : Screen {
             modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
           )
 
-          Spacer(modifier = Modifier.height(16.dp))
-
           // ── Hidden Folders ────────────────────────────────────────────
-          PreferenceSectionHeader(position = PreferenceSectionPosition.Last, title = stringResource(R.string.pref_hidden_folders_section))
+          PreferenceSectionHeader(
+            position = PreferenceSectionPosition.Last,
+            title = stringResource(R.string.pref_hidden_folders_section),
+            topPadding = 24.dp,
+          )
 
           Text(
             text = stringResource(R.string.pref_folders_summary),

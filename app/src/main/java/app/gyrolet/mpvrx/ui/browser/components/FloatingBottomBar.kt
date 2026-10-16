@@ -282,8 +282,14 @@ fun BrowserBottomBar(
             .windowInsetsPadding(WindowInsets.systemBars)
             .align(Alignment.BottomCenter)
             .padding(
-              horizontal = layoutParams.surfacePaddingHorizontal,
-              vertical = layoutParams.surfacePaddingVertical,
+              start = layoutParams.surfacePaddingHorizontal,
+              top = layoutParams.surfacePaddingVertical,
+              end = layoutParams.surfacePaddingHorizontal,
+              bottom = when {
+                isTablet -> 16.dp
+                isLandscape -> 6.dp
+                else -> 12.dp
+              },
             ),
       ) {
         LiquidGlassEditingBarSurface(

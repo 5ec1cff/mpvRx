@@ -371,7 +371,7 @@ data class VideoListScreen(
             query = internalSearchQuery,
             onQueryChange = { internalSearchQuery = it },
             onSearch = { },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             inputFieldModifier = Modifier.focusRequester(focusRequester),
             placeholder = { Text(stringResource(R.string.ui_search_videos)) },
             leadingIcon = {

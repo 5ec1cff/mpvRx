@@ -74,6 +74,7 @@ import app.gyrolet.mpvrx.domain.framecapture.FolderWriteResult
 import app.gyrolet.mpvrx.domain.framecapture.FrameCapture
 import app.gyrolet.mpvrx.domain.framecapture.FrameCaptureRepository
 import app.gyrolet.mpvrx.domain.framecapture.SnapshotImageLoader
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.framecapture.SnapshotFolderRow
@@ -81,6 +82,8 @@ import app.gyrolet.mpvrx.ui.framecapture.dialogs.SnapshotFolderNameDialog
 import app.gyrolet.mpvrx.ui.framecapture.dialogs.SnapshotMoveTargetDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurface
 import app.gyrolet.mpvrx.ui.player.screenshot.FrameCaptureUnavailableException
 import app.gyrolet.mpvrx.ui.player.screenshot.ScreenshotSaver
 import app.gyrolet.mpvrx.ui.player.screenshot.ScreenshotSettings
@@ -458,6 +461,18 @@ private fun FrameReviewOverlay(
 ) {
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val glassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val backdrop = LocalKyantPlayerBackdrop.current
+  val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+  val headerGlassModifier =
+    Modifier.playerGlassSurface(
+      backdrop = backdrop,
+      shape = CircleShape,
+      containerColor = containerColor,
+      enabled = glassEnabled,
+    )
+  val headerColor = if (glassEnabled) Color.Transparent else containerColor.copy(alpha = 0.72f)
   val density = LocalDensity.current
   val haptic = rememberAppHaptics()
   val pixelsPerFrame = with(density) { FrameSwipeDistancePerFrame.toPx() }
@@ -562,8 +577,9 @@ private fun FrameReviewOverlay(
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Surface(
+        modifier = headerGlassModifier,
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
+        color = headerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
       ) {
         Text(
@@ -575,9 +591,9 @@ private fun FrameReviewOverlay(
       Spacer(Modifier.weight(1f))
       Surface(
         onClick = onDismissRequest,
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier.size(48.dp).then(headerGlassModifier),
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.72f),
+        color = headerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
       ) {
         Box(contentAlignment = Alignment.Center) {
@@ -613,9 +629,17 @@ private fun FrameReviewOverlay(
         verticalArrangement = Arrangement.spacedBy(4.dp),
       ) {
         Surface(
-          modifier = Modifier.fillMaxWidth(),
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .playerGlassSurface(
+                backdrop = backdrop,
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = containerColor,
+                enabled = glassEnabled,
+              ),
           shape = MaterialTheme.shapes.extraLarge,
-          color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.68f),
+          color = if (glassEnabled) Color.Transparent else containerColor.copy(alpha = 0.68f),
           contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
           if (isLandscape) {

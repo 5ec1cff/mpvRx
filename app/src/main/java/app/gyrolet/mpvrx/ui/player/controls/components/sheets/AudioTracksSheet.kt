@@ -102,6 +102,7 @@ fun AudioTracksSheet(
           AddTrackRow(
             title = stringResource(R.string.player_sheets_add_ext_audio),
             onClick = onAddAudioTrack,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             actions = {
               if (onOpenEqualizerSheet != null) {
                 PlayerSheetAction(
@@ -185,7 +186,7 @@ fun AudioTracksSheet(
 
             PlayerSheetSectionHeader(stringResource(R.string.pref_audio_effects))
             Row(
-              modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).heightIn(min = 56.dp)
                 .background(animatedPlayerSheetSelectionColor(volumeNormalization), MaterialTheme.shapes.medium)
                 .toggleable(value = volumeNormalization, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.volumeNormalization::set)
@@ -198,7 +199,7 @@ fun AudioTracksSheet(
               IconSwitch(checked = volumeNormalization, onCheckedChange = null, enabled = audioEffectsEnabled)
             }
             Row(
-              modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+              modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).heightIn(min = 56.dp)
                 .background(animatedPlayerSheetSelectionColor(drcEnabled), MaterialTheme.shapes.medium)
                 .toggleable(value = drcEnabled, enabled = audioEffectsEnabled, role = Role.Switch,
                   onValueChange = audioPreferences.drcEnabled::set)
