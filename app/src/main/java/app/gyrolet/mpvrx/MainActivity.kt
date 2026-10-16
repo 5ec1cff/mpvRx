@@ -101,6 +101,7 @@ import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.utils.device.appUiScaleOverrideConfiguration
 import app.gyrolet.mpvrx.utils.media.fileExtension
+import app.gyrolet.mpvrx.utils.permission.PermissionRecovery
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.ui.update.UpdateSheet
@@ -134,6 +135,10 @@ open class MainActivity : AppCompatActivity() {
     ) { result ->
       PermissionUtils.handleMediaAccessResult(result.resultCode)
     }
+
+  // Re-asks for revoked runtime grants; the outcome is read back on the next resume.
+  private val runtimePermissionLauncher =
+    registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Match REX Player's splash handoff: use only Android's system SplashScreen and hand
@@ -322,6 +327,7 @@ open class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
+    PermissionRecovery.requestRevoked(this, runtimePermissionLauncher)
     runCatching { app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.reconcile(this) }
       .onFailure { Log.w("LauncherIcon", "Unable to reconcile launcher aliases", it) }
     app.gyrolet.mpvrx.ui.preferences.LauncherIconManager.refreshTaskIcon(this)

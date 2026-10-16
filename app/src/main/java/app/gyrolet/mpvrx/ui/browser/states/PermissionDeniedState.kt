@@ -15,10 +15,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
 import app.gyrolet.mpvrx.ui.utils.NavigationBackHandler as BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -92,7 +90,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -114,6 +111,7 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.expressiveDisplayFontForText
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
+import app.gyrolet.mpvrx.utils.permission.PermissionRecovery
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -121,48 +119,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
-private fun checkFilePermission(context: Context): Boolean {
-  val scopedStorageOnly = BuildConfig.SCOPED_STORAGE_ONLY
-  return if (!scopedStorageOnly && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-    Environment.isExternalStorageManager()
-  } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
-    true
-  } else {
-    ContextCompat.checkSelfPermission(
-      context,
-      PermissionUtils.getStoragePermission(),
-    ) == PackageManager.PERMISSION_GRANTED
-  }
-}
+private fun checkFilePermission(context: Context): Boolean = PermissionRecovery.isStorageGranted(context)
 
-private fun checkNotificationPermission(context: Context): Boolean {
-  return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-    ContextCompat.checkSelfPermission(
-      context,
-      android.Manifest.permission.POST_NOTIFICATIONS,
-    ) == PackageManager.PERMISSION_GRANTED
-  } else {
-    true
-  }
-}
+private fun checkNotificationPermission(context: Context): Boolean =
+  PermissionRecovery.isNotificationGranted(context)
 
-private fun checkAudioPermission(context: Context): Boolean {
-  return ContextCompat.checkSelfPermission(
-    context,
-    android.Manifest.permission.RECORD_AUDIO,
-  ) == PackageManager.PERMISSION_GRANTED
-}
+private fun checkAudioPermission(context: Context): Boolean = PermissionRecovery.isAudioGranted(context)
 
-private fun openStoragePermissionSettings(context: Context): Boolean {
-  val packageUri = Uri.parse("package:${context.packageName}")
-  val intents =
-    listOf(
-      Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply { data = packageUri },
-      Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
-      Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = packageUri },
-    )
-  return intents.any { intent -> runCatching { context.startActivity(intent) }.isSuccess }
-}
+private fun openStoragePermissionSettings(context: Context): Boolean =
+  PermissionRecovery.openAllFilesAccessSettings(context)
 
 private enum class OnboardingStep { STORAGE, CONFIGURATION, NOTIFICATIONS, AUDIO, FINISH }
 

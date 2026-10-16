@@ -50,6 +50,9 @@ data class MediaScanOptions(
       return "hiddenRootDiscoveryV3|marked=$includeNoMediaFolders|dot=$includeDotFolders|markers=$markers|active=$active"
     }
 
+  // One filter per options instance, so a single scan reuses its ancestor-marker cache.
+  val pathFilter: NoMediaPathFilter by lazy { NoMediaPathFilter(this) }
+
   fun includesAudioDuration(durationMs: Long): Boolean =
     minimumAudioDurationSeconds == 0 || durationMs >= minimumAudioDurationSeconds * 1000L
 }
