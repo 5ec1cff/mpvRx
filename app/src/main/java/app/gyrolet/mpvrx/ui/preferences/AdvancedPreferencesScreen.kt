@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.widget.Toast
 import androidx.activity.compose.LocalActivity
@@ -65,6 +66,7 @@ import app.gyrolet.mpvrx.presentation.crash.CrashActivity
 import app.gyrolet.mpvrx.presentation.crash.DebugLogReader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.NotificationStyle
 import app.gyrolet.mpvrx.ui.player.MpvConfigCache
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.preferences.components.RestartRequiredDialog
@@ -368,6 +370,40 @@ object AdvancedPreferencesScreen : Screen {
                   )
                 },
               )
+              }
+            }
+          }
+
+          // Notification style also lives under Player; both edit the same preference.
+          item {
+            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_playback))
+          }
+
+          item {
+            val notificationStyle by preferences.notificationStyle.collectAsState()
+            val supportedNotificationStyles =
+              remember {
+                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
+              }
+            val selectedNotificationStyle =
+              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
+                ?: NotificationStyle.Media
+            PreferenceCard {
+              ExpressivePreferenceItem {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
+                  value = selectedNotificationStyle,
+                  onValueChange = preferences.notificationStyle::set,
+                  values = supportedNotificationStyles,
+                  valueToText = { AnnotatedString(it.displayName) },
+                  title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
+                  summary = {
+                    Text(
+                      text = selectedNotificationStyle.displayName,
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
               }
             }
           }
