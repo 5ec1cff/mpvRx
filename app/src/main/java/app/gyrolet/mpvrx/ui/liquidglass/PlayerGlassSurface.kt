@@ -63,6 +63,15 @@ internal fun Modifier.playerGlassSurface(
       } else Modifier,
     )
   }
+  val rememberedHighlight = remember(settings, reducedMotion) {
+    settings.highlight(Highlight.Ambient.copy(alpha = if (reducedMotion) 0.15f else 0.30f))
+  }
+  val rememberedShadow = remember {
+    Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f))
+  }
+  val rememberedInnerShadow = remember {
+    InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.12f))
+  }
   return drawBackdrop(
     backdrop = backdrop,
     shape = { shape },
@@ -76,9 +85,9 @@ internal fun Modifier.playerGlassSurface(
         refractionEnabled = !reducedMotion,
       )
     },
-    highlight = { settings.highlight(Highlight.Ambient.copy(alpha = if (reducedMotion) 0.15f else 0.30f)) },
-    shadow = { Shadow(radius = 16.dp, color = Color.Black.copy(alpha = 0.25f)) },
-    innerShadow = { InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.12f)) },
+    highlight = { rememberedHighlight },
+    shadow = { rememberedShadow },
+    innerShadow = { rememberedInnerShadow },
     onDrawSurface = { drawRect(tint) },
   )
 }
