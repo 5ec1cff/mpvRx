@@ -12,7 +12,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Specification parameters for an FX ambient shader pass (Cinema, Echo, Mirror).
+ * Specification parameters for an FX ambient shader pass (Ambilight, Cinema, Echo, Mirror).
  */
 data class FxAmbientShaderSpec(
   val style: AmbientStyle,
@@ -42,15 +42,20 @@ data class FxAmbientPreset(
 )
 
 object FxAmbientPresets {
-  // Cinema
-  val cinemaFast = FxAmbientPreset(6, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
-  val cinemaBalanced = FxAmbientPreset(8, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
-  val cinemaHighQuality = FxAmbientPreset(16, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.15f, 1.0f)
+  // Ambilight (authentic fx_ambient Glow)
+  val ambilightFast = FxAmbientPreset(8, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 2.4f, 1.0f)
+  val ambilightBalanced = FxAmbientPreset(14, 0.12f, 1.0f, 1.0f, 0.0f, 0.0f, 2.4f, 1.0f)
+  val ambilightHighQuality = FxAmbientPreset(20, 0.15f, 1.1f, 1.05f, 0.0f, 0.0f, 2.4f, 1.0f)
 
-  // Echo
-  val echoFast = FxAmbientPreset(3, 0.08f, 0.9f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
-  val echoBalanced = FxAmbientPreset(5, 0.10f, 1.0f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
-  val echoHighQuality = FxAmbientPreset(7, 0.12f, 1.1f, 1.05f, 0.0f, 0.0f, 1.8f, 1.0f)
+  // Cinema (wide-radius diffuse backdrop)
+  val cinemaFast = FxAmbientPreset(8, 0.14f, 0.9f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaBalanced = FxAmbientPreset(14, 0.18f, 1.0f, 1.0f, 0.0f, 0.0f, 1.15f, 1.0f)
+  val cinemaHighQuality = FxAmbientPreset(22, 0.22f, 1.1f, 1.05f, 0.0f, 0.0f, 1.15f, 1.0f)
+
+  // Echo (2D anisotropic wave smear)
+  val echoFast = FxAmbientPreset(5, 0.10f, 0.9f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoBalanced = FxAmbientPreset(9, 0.14f, 1.0f, 1.0f, 0.0f, 0.0f, 1.8f, 1.0f)
+  val echoHighQuality = FxAmbientPreset(15, 0.18f, 1.1f, 1.05f, 0.0f, 0.0f, 1.8f, 1.0f)
 
   // Mirror
   val mirrorFast = FxAmbientPreset(3, 0.05f, 0.9f, 1.0f, 0.0f, 0.0f, 2.0f, 1.0f)
@@ -79,13 +84,8 @@ fun matchesFxPreset(
     abs(opacity - preset.opacity) <= 0.01f
 
 /**
- * Builds mpv OUTPUT hook GLSL shaders for the three fx-ambient modes:
- * Cinema, Echo, and Mirror with adjustable user parameters.
- *
- * Defaults yield the exact hand-tuned baseline look:
- * - Cinema: 8-tap Poisson disk, 0.10 spread, 1.35 reach, 1.15 fade curve, 1.08 vibrance, 0.72 intensity.
- * - Echo: 5-tap Gaussian smear, 0.10 spread, 1.20 reach, 1.8 fade curve, 1.15 vibrance, 0.85 intensity.
- * - Mirror: 3-tap reflective blur, 0.06 spread, 1.15 reach, 2.0 fade curve, 0.92 vibrance, 0.55 intensity.
+ * Builds mpv OUTPUT hook GLSL shaders for fx-ambient modes:
+ * Ambilight, Cinema, Echo, and Mirror with bicubic B-spline filtering and adjustable parameters.
  */
 object FxAmbientShaderBuilder {
 
@@ -98,7 +98,7 @@ object FxAmbientShaderBuilder {
   }
 
   /**
-   * Builds the standard mpv hook header and GLSL helper functions.
+   * Builds the standard mpv hook header, GLSL helpers, and the bicubic B-spline sampler.
    */
   private fun buildHeader(desc: String, scaleX: Double, scaleY: Double, centerX: Double, centerY: Double): String = """
 //!HOOK OUTPUT
@@ -115,14 +115,12 @@ precision highp int;
 #endif
 
 // Bar geometry baked from Kotlin so the GPU never recomputes it.
-// SCALE_X > 1 -> pillarboxed (left/right bars).
-// SCALE_Y > 1 -> letterboxed (top/bottom bars).
 #define SCALE_X ${f(scaleX)}
 #define SCALE_Y ${f(scaleY)}
 #define CENTER_X ${f(centerX)}
 #define CENTER_Y ${f(centerY)}
 
-// -- Common GLSL helpers (identical subset to AmbientShaderBuilder) -----------
+// -- Common GLSL helpers from fx_common.glsl ----------------------------------
 
 // Jorge Jimenez Interleaved Gradient Noise -- cache-coherent, zero trig.
 highp float ign(highp vec2 p) {
@@ -146,15 +144,39 @@ highp vec3 apply_warmth(highp vec3 rgb, highp float amount) {
 }
 
 // Highlight roll-off from fx_common.glsl: c / (1 + k*luma).
-// Dark/mid tones pass almost unchanged; bright bursts are softened.
 highp vec3 rolloff(highp vec3 c, highp float k) {
     return c * (1.0 / (1.0 + k * luma(c)));
 }
 
-// IGN-amplitude-scaled dither to dissolve 8-bit quantisation banding.
+// Screen-space dither to dissolve 8-bit quantisation banding.
 highp vec3 dither_out(highp vec3 c, highp vec2 p) {
     highp float amp = clamp(max(c.r, max(c.g, c.b)) * 255.0, 0.0, 1.0);
     return c + (ign(p) - 0.5) * (amp / 255.0);
+}
+
+// Cubic B-spline filter using 4 bilinear taps (GPU Gems 2, ch. 20).
+// C2-smooth filter that eliminates stair-stepping, grid creases, and noisy stippling.
+mediump vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 inv_size, highp vec2 min_bound, highp vec2 max_bound) {
+    highp vec2 st = sample_uv * size - 0.5;
+    highp vec2 i = floor(st);
+    highp vec2 f = st - i;
+    highp vec2 f2 = f * f;
+    highp vec2 f3 = f2 * f;
+    highp vec2 w0 = (-f3 + 3.0 * f2 - 3.0 * f + 1.0) * (1.0 / 6.0);
+    highp vec2 w1 = (3.0 * f3 - 6.0 * f2 + 4.0) * (1.0 / 6.0);
+    highp vec2 w2 = (-3.0 * f3 + 3.0 * f2 + 3.0 * f + 1.0) * (1.0 / 6.0);
+    highp vec2 w3 = f3 * (1.0 / 6.0);
+    highp vec2 g0 = w0 + w1;
+    highp vec2 g1 = w2 + w3;
+    highp vec2 p0 = clamp((i + w1 / g0 - 0.5) * inv_size, min_bound, max_bound);
+    highp vec2 p1 = clamp((i + w3 / g1 + 1.5) * inv_size, min_bound, max_bound);
+    mediump vec3 c00 = HOOKED_tex(vec2(p0.x, p0.y)).rgb;
+    mediump vec3 c10 = HOOKED_tex(vec2(p1.x, p0.y)).rgb;
+    mediump vec3 c01 = HOOKED_tex(vec2(p0.x, p1.y)).rgb;
+    mediump vec3 c11 = HOOKED_tex(vec2(p1.x, p1.y)).rgb;
+    mediump vec2 g0_m = mediump vec2(g0);
+    mediump vec2 g1_m = mediump vec2(g1);
+    return (c00 * g0_m.x + c10 * g1_m.x) * g0_m.y + (c01 * g0_m.x + c11 * g1_m.x) * g1_m.y;
 }
 
   """.trimIndent()
@@ -166,13 +188,15 @@ highp vec3 dither_out(highp vec3 c, highp vec2 p) {
    *   - Remaps screen UV to video UV.
    *   - Computes safe clamping bounds (half-texel inset).
    *   - Early-returns the original pixel when inside the video.
-   *   - Computes per-bar geometry: bx, by, dx, dy, d, thick, dn.
-   *     dn = normalised depth into the bar (0 = at edge, >= 1 = beyond reach).
-   * @param reachScale multiplied against bar thickness for the reach cutoff.
+   *   - Computes per-bar geometry: bx, by, dx, dy, d, thick, dn, in_side_bar.
    */
   private fun videoPrologue(reachScale: Double): String = """
     highp vec2 uv       = HOOKED_pos;
     highp vec2 video_uv = (uv - vec2(CENTER_X, CENTER_Y)) * vec2(SCALE_X, SCALE_Y) + 0.5;
+
+    // Precalculated resolution vectors to eliminate per-tap runtime 2D divisions
+    highp vec2 video_res     = HOOKED_size / vec2(SCALE_X, SCALE_Y);
+    highp vec2 inv_video_res = vec2(SCALE_X, SCALE_Y) / HOOKED_size;
 
     // Half-texel inset to avoid fetching outside decoded frame boundaries.
     highp vec2 half_texel = vec2(0.5) / HOOKED_size;
@@ -188,7 +212,6 @@ highp vec3 dither_out(highp vec3 c, highp vec2 p) {
 
     // -- Bar geometry --------------------------------------------------------
     // Thickness of the bar being shaded, including asymmetric bars introduced by pan.
-    // At the default center this reduces to the original (SCALE - 1) / 2.
     highp float bx = max((video_uv.x < 0.0 ? CENTER_X : 1.0 - CENTER_X) * SCALE_X - 0.5, 0.001);
     highp float by = max((video_uv.y < 0.0 ? CENTER_Y : 1.0 - CENTER_Y) * SCALE_Y - 0.5, 0.001);
 
@@ -199,45 +222,145 @@ highp vec3 dither_out(highp vec3 c, highp vec2 p) {
     // Euclidean distance into the bar region.
     highp float d = length(vec2(dx, dy));
 
-    // Which axis dominates: pillarbox (dx > dy) uses bx, letterbox uses by.
-    highp float thick = dx > dy ? bx : by;
+    // Which axis dominates: pillarbox (dx >= dy) uses bx, letterbox uses by.
+    highp float thick = dx >= dy ? bx : by;
 
     // Normalised depth: 0 at the video edge, 1 at the nominal reach boundary.
     highp float dn = clamp(d / (thick * ${f(reachScale)}), 0.0, 1.0);
     if (dn >= 1.0) { return vec4(0.0, 0.0, 0.0, 1.0); }
+
+    bool in_side_bar = dx >= dy;
   """.trimIndent().prependIndent("    ")
 
-  // -- Cinema -----------------------------------------------------------------
-
   /**
-   * Spiral tap offsets for the Cinema mode manual Gaussian blur.
+   * Spiral tap offsets for Poisson disk sampling.
    */
-  private fun cinemaTapTable(count: Int, maxR: Double): String {
+  private fun tapTable(name: String, count: Int, maxR: Double): String {
     val goldenAngle = 2.399963229728653
     val taps = (0 until count).joinToString(",\n") { i ->
       val r = sqrt((i.toDouble() + 0.5) / count) * maxR
       val theta = (i.toDouble() + 0.5) * goldenAngle
       "    vec2(${f(cos(theta) * r)}, ${f(sin(theta) * r)})"
     }
-    return "const vec2 CINEMA_TAPS[$count] = vec2[$count](\n$taps\n);"
+    return "const vec2 $name[$count] = vec2[$count](\n$taps\n);"
   }
 
+  // -- Ambilight (fx_ambient Glow) --------------------------------------------
+
   /**
-   * Builds the Cinema ambient shader with adjustable user parameters.
+   * Builds the authentic fx_ambient Ambilight mode: each edge lights the dark beside it
+   * with physical dual-phase emitter curve, B-spline diffusion, vibrance, and highlight roll-off.
+   */
+  fun buildAmbilight(
+    @Suppress("UNUSED_PARAMETER") context: Context,
+    spec: FxAmbientShaderSpec,
+  ): String {
+    val spreadScale = (spec.spread.toDouble() / 0.12).coerceIn(0.2, 4.0)
+    val reachScale = 1.25 * spreadScale
+    val tapCount = spec.blurSamples.coerceIn(4, 32)
+    val maxRadius = (0.12 * spreadScale).coerceIn(0.02, 0.50)
+    val tapsDecl = tapTable("AMBILIGHT_TAPS", tapCount, maxRadius)
+
+    val vibranceVal = 1.18 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
+    val intensityVal = 1.0 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
+    val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 5.0)
+    val warmthVal = spec.warmth.toDouble().coerceIn(-1.0, 1.0)
+    val vignetteVal = spec.vignetteStrength.toDouble().coerceIn(0.0, 1.0)
+    val opacityVal = spec.opacity.toDouble().coerceIn(0.0, 1.0)
+
+    val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
+    val vignetteLine = if (vignetteVal > 0.0001) """
+    highp float vig_r = length(uv - 0.5) * 2.0;
+    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+""" else ""
+    val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
+
+    return """
+${buildHeader("Fx Ambient -- Ambilight", spec.scaleX, spec.scaleY, spec.centerX, spec.centerY)}
+
+$tapsDecl
+
+vec4 hook() {
+${videoPrologue(reachScale)}
+
+    // Fixed edge anchor: samples edge light without crawling deep into the frame
+    highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
+
+    highp float jitter = ign(uv * HOOKED_size) * 6.2831853;
+    highp float jitter_s = sin(jitter);
+    highp float jitter_c = cos(jitter);
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ${f(spec.scaleX / spec.scaleY)};
+    highp float jitter_c_aspect = jitter_c * aspect_x;
+    highp float jitter_s_aspect = jitter_s * aspect_x;
+
+    mediump vec3 acc = vec3(0.0);
+    mediump float twt = 0.0;
+
+    for (int i = 0; i < $tapCount; i++) {
+        vec2 tap = AMBILIGHT_TAPS[i];
+        highp vec2 tap_rot = vec2(
+            tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
+            tap.x * jitter_s + tap.y * jitter_c
+        );
+        highp vec2 tap_pos = clamp(sample_origin + tap_rot, safe_min, safe_max);
+        mediump vec3 s = bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max);
+        mediump float w = 1.0 + luma(s) * 1.5;
+        acc += s * w;
+        twt += w;
+    }
+    mediump vec3 col = acc / max(twt, 0.001);
+
+    col = vibrance(col, ${f(vibranceVal)});
+$warmthLine    col = rolloff(col, 0.55);
+
+    // fx_ambient dual-phase emitter curve: luminous core relaxing into a smooth tail
+    highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * (0.6 + 0.4 * exp(-5.0 * dn)) * ${f(intensityVal)};
+    highp vec3 ambient_rgb = col * fade;
+$vignetteLine$opacityLine
+    ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
+    return vec4(ambient_rgb, 1.0);
+}
+    """.trimIndent()
+  }
+
+  fun buildAmbilight(context: Context, scaleX: Double, scaleY: Double): String =
+    buildAmbilight(
+      context,
+      FxAmbientShaderSpec(
+        style = AmbientStyle.Ambilight,
+        scaleX = scaleX,
+        scaleY = scaleY,
+        blurSamples = 14,
+        spread = 0.12f,
+        intensity = 1.0f,
+        satBoost = 1.0f,
+        vignetteStrength = 0.0f,
+        warmth = 0.0f,
+        fadeCurve = 2.4f,
+        opacity = 1.0f,
+      ),
+    )
+
+  // -- Cinema -----------------------------------------------------------------
+
+  /**
+   * Builds the authentic fx_ambient Cinema mode: projects the entire picture enlarged
+   * and dissolved into a wide-radius soft wash behind the frame with B-spline diffusion.
    */
   fun buildCinema(
     @Suppress("UNUSED_PARAMETER") context: Context,
     spec: FxAmbientShaderSpec,
   ): String {
-    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
-    val reachScale = 1.35 * spreadScale
-    val farRadius = (0.10 * spreadScale).coerceIn(0.01, 0.50)
-    val baseRadius = (0.025 * spreadScale).coerceIn(0.005, 0.15)
+    val spreadScale = (spec.spread.toDouble() / 0.18).coerceIn(0.2, 4.0)
+    val reachScale = 1.45 * spreadScale
+    val farRadius = (0.36 * spreadScale).coerceIn(0.12, 0.65)
+    val baseRadius = (0.16 * spreadScale).coerceIn(0.06, 0.40)
     val tapCount = spec.blurSamples.coerceIn(4, 32)
-    val tapTable = cinemaTapTable(tapCount, farRadius)
+    val tapTable = tapTable("CINEMA_TAPS", tapCount, farRadius)
 
     val vibranceVal = 1.08 * spec.satBoost.toDouble().coerceIn(0.0, 3.0)
-    val intensityVal = 0.72 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
+    val intensityVal = 0.88 * spec.intensity.toDouble().coerceIn(0.1, 4.0)
     val fadeCurveVal = spec.fadeCurve.toDouble().coerceIn(0.2, 4.0)
     val warmthVal = spec.warmth.toDouble().coerceIn(-1.0, 1.0)
     val vignetteVal = spec.vignetteStrength.toDouble().coerceIn(0.0, 1.0)
@@ -253,66 +376,49 @@ highp vec3 dither_out(highp vec3 c, highp vec2 p) {
     return """
 ${buildHeader("Fx Ambient -- Cinema", spec.scaleX, spec.scaleY, spec.centerX, spec.centerY)}
 
-// Pre-computed Spiral Poisson tap offsets ($tapCount taps, max reach = ${f(farRadius)} UV units).
 $tapTable
 
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Cinema theater atmospheric projection -------------------------------
-    // Anchor sample origin at the nearest video edge with a fixed 1.5% inward inset.
-    // Fixed inset prevents fetching border-wall artifacts without crawling inward into the
-    // video (which would produce an inverted mirror reflection).
-    highp vec2 edge_origin   = clamp(video_uv, safe_min, safe_max);
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
+    // -- Authentic fx_ambient Cinema whole-picture scaled backdrop ------------
+    // Projects the whole picture enlarged and dissolved behind the frame with wide-radius B-spline diffusion.
+    highp float cinema_scale = 1.25 + 0.35 * clamp(float(${f(spreadScale)}) * 0.5, 0.1, 2.0);
+    highp vec2 cinema_uv = clamp((video_uv - vec2(0.5)) / cinema_scale + vec2(0.5), safe_min, safe_max);
 
-    // Determine whether this bar is pillarbox (dx > dy) or letterbox.
-    bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
-
-    // -- Per-pixel Jorge Jimenez IGN jitter rotation -------------------------
     highp float jitter   = ign(uv * HOOKED_size) * 6.2831853;
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
-    // Aspect correction uses video dimensions so the Poisson disk stays circular in video space.
-    highp float aspect_x = (HOOKED_size.y / SCALE_Y) / (HOOKED_size.x / SCALE_X);
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ${f(spec.scaleX / spec.scaleY)};
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
 
-    // -- $tapCount-tap spiral Gaussian blur ------------------------------------------
-    // Blend radius grows from baseRadius (crisp theater edge) to farRadius (diffuse).
-    highp float br       = mix(${f(baseRadius)}, ${f(farRadius)}, dn);
-    highp float br_scale = br / ${f(farRadius)};
+    highp float br_scale = mix(${f(baseRadius / farRadius)}, 1.0, smoothstep(0.0, 1.0, dn));
 
-    highp vec3  acc = vec3(0.0);
-    highp float twt = 0.0;
+    mediump vec3 acc = vec3(0.0);
+    mediump float twt = 0.0;
+
     for (int i = 0; i < $tapCount; i++) {
         vec2 tap = CINEMA_TAPS[i] * br_scale;
         highp vec2 tap_rot = vec2(
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        // Compress perpendicular penetration to stay within the edge margin (≤ 0.02)
-        // while allowing full wide diffusion along the bar.
-        highp vec2 tap_off = in_side_bar
-            ? vec2(tap_rot.x * 0.20, tap_rot.y)
-            : vec2(tap_rot.x, tap_rot.y * 0.20);
-
-        highp vec3  s = HOOKED_tex(clamp(sample_origin + tap_off, safe_min, safe_max)).rgb;
-        highp float w = 1.0 + luma(s) * 1.5;
+        highp vec2 tap_pos = clamp(cinema_uv + tap_rot, safe_min, safe_max);
+        mediump vec3 s = bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max);
+        mediump float w = 1.0 + luma(s) * 1.5;
         acc += s * w;
         twt += w;
     }
-    highp vec3 col = acc / max(twt, 0.001);
+    mediump vec3 col = acc / max(twt, 0.001);
 
-    // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.55);
 
-    // -- Fade: bright at edge, gone at bar end --------------------------------
-    highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
+    // fx_ambient Cinema fade: smoothstep falloff into the bar depth
+    highp float fade = pow(max(1.0 - smoothstep(0.0, 1.0, dn), 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
     highp vec3 ambient_rgb = col * fade;
 $vignetteLine$opacityLine
-    // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
 }
@@ -326,8 +432,8 @@ $vignetteLine$opacityLine
         style = AmbientStyle.Cinema,
         scaleX = scaleX,
         scaleY = scaleY,
-        blurSamples = 8,
-        spread = 0.10f,
+        blurSamples = 14,
+        spread = 0.18f,
         intensity = 1.0f,
         satBoost = 1.0f,
         vignetteStrength = 0.0f,
@@ -340,16 +446,18 @@ $vignetteLine$opacityLine
   // -- Echo -------------------------------------------------------------------
 
   /**
-   * Builds the Echo ambient shader with adjustable user parameters.
+   * Builds the Echo ambient shader: 2D anisotropic wave with tangential smear and transverse diffusion.
    */
   fun buildEcho(
     @Suppress("UNUSED_PARAMETER") context: Context,
     spec: FxAmbientShaderSpec,
   ): String {
-    val spreadScale = (spec.spread.toDouble() / 0.10).coerceIn(0.2, 4.0)
-    val reachScale = 1.20 * spreadScale
-    val swBase = 0.02 * spreadScale
-    val swFar = 0.10 * spreadScale
+    val spreadScale = (spec.spread.toDouble() / 0.14).coerceIn(0.2, 4.0)
+    val reachScale = 1.35 * spreadScale
+    val swBase = 0.05 * spreadScale
+    val swFar = 0.22 * spreadScale
+    val cwBase = 0.02 * spreadScale
+    val cwFar = 0.09 * spreadScale
 
     val tapCount = spec.blurSamples.coerceIn(3, 15).let { if (it % 2 == 0) it + 1 else it }
     val halfCount = tapCount / 2
@@ -376,52 +484,59 @@ $vignetteLine$opacityLine
 
     val weightsDecl = "const float ECHO_WEIGHTS[$tapCount] = float[$tapCount](${weights.joinToString(", ") { f(it) }});"
     val offsetsDecl = "const float ECHO_OFFSETS[$tapCount] = float[$tapCount](${(-halfCount..halfCount).joinToString(", ") { f(it.toDouble() / halfCount) }});"
+    val crossFactors = (0 until tapCount).map { i ->
+      when (i % 4) {
+        1 -> 1.0
+        3 -> -1.0
+        else -> 0.0
+      }
+    }
+    val crossDecl = "const float ECHO_CROSS[$tapCount] = float[$tapCount](${crossFactors.joinToString(", ") { f(it) }});"
 
     return """
 ${buildHeader("Fx Ambient -- Echo", spec.scaleX, spec.scaleY, spec.centerX, spec.centerY)}
 
 $weightsDecl
 $offsetsDecl
+$crossDecl
 
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Edge origin (nearest video pixel in video-UV space) -----------------
     highp vec2 edge_origin = clamp(video_uv, safe_min, safe_max);
     highp vec2 echo_origin = mix(edge_origin, vec2(0.5), 0.015);
 
-    // -- Determine smear axis ------------------------------------------------
-    // For pillarbox bars (left/right) smear vertically; for letterbox smear horizontally.
-    bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
+    // Tangential direction along the edge boundary
     highp vec2 smear_dir = in_side_bar ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+    // Transverse direction (radial into the bar/picture)
+    highp vec2 cross_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
 
-    // Smear width grows from tight at edge to wide at depth.
-    highp float sw = ${f(swBase)} + ${f(swFar)} * dn;
+    // Aspect normalization for physical screen space
+    highp float aspect_ratio = (HOOKED_size.x / HOOKED_size.y) * ${f(spec.scaleY / spec.scaleX)};
+    highp float sw = (${f(swBase)} + ${f(swFar)} * dn) * (in_side_bar ? aspect_ratio : 1.0);
+    highp float cw = (${f(cwBase)} + ${f(cwFar)} * dn);
 
-    // High-frequency stochastic jitter along smear axis to dissolve tap banding
     highp float jitter = (ign(uv * HOOKED_size) - 0.5);
-    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35);
+    highp vec2 jitter_off = smear_dir * (jitter * sw * 0.35) + cross_dir * (jitter * cw * 0.35);
 
-    // -- $tapCount-tap Gaussian along smear axis -----------------------------
-    highp vec3 col = vec3(0.0);
+    mediump vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = ECHO_OFFSETS[i];
+        // 2D anisotropic wave: tangential smear combined with precomputed transverse diffusion phase
+        float cross_factor = ECHO_CROSS[i] * cw;
         highp vec2 tap_pos = clamp(
-            echo_origin + smear_dir * (step_factor * sw) + jitter_off,
+            echo_origin + smear_dir * (step_factor * sw) + cross_dir * cross_factor + jitter_off,
             safe_min, safe_max
         );
-        col += HOOKED_tex(tap_pos).rgb * ECHO_WEIGHTS[i];
+        col += bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max) * ECHO_WEIGHTS[i];
     }
 
-    // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.55);
 
-    // -- Fade: power law gives a crisp edge followed by a long soft tail -----
     highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) * ${f(intensityVal)};
     highp vec3 ambient_rgb = col * fade;
 $vignetteLine$opacityLine
-    // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
 }
@@ -435,8 +550,8 @@ $vignetteLine$opacityLine
         style = AmbientStyle.Echo,
         scaleX = scaleX,
         scaleY = scaleY,
-        blurSamples = 5,
-        spread = 0.10f,
+        blurSamples = 9,
+        spread = 0.14f,
         intensity = 1.0f,
         satBoost = 1.0f,
         vignetteStrength = 0.0f,
@@ -449,7 +564,7 @@ $vignetteLine$opacityLine
   // -- Mirror -----------------------------------------------------------------
 
   /**
-   * Builds the Mirror ambient shader with adjustable user parameters.
+   * Builds the Mirror ambient shader: folded UV reflection with B-spline blur.
    */
   fun buildMirror(
     @Suppress("UNUSED_PARAMETER") context: Context,
@@ -494,29 +609,24 @@ $offsetsDecl
 vec4 hook() {
 ${videoPrologue(reachScale)}
 
-    // -- Fold video_uv across [0,1] boundaries (mirror wrap) -----------------
     highp vec2 m_uv = video_uv;
     m_uv = mix(m_uv, -m_uv,             step(m_uv, vec2(0.0)));
     m_uv = mix(m_uv, vec2(2.0) - m_uv, step(vec2(1.0), m_uv));
     m_uv = clamp(m_uv, safe_min, safe_max);
 
-    // -- Blur axis: fold along the same axis as the bar ----------------------
-    bool in_side_bar = (SCALE_X > SCALE_Y) && (dx > dy);
     highp vec2 blur_dir = in_side_bar ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
     highp float bw = mix(0.0, ${f(bwFar)}, pow(dn, 0.7));
 
-    // -- $tapCount-tap blur along blur_dir -------------------------------------------
-    highp vec3 col = vec3(0.0);
+    mediump vec3 col = vec3(0.0);
     for (int i = 0; i < $tapCount; i++) {
         float step_factor = MIRROR_OFFSETS[i];
-        col += HOOKED_tex(clamp(m_uv + blur_dir * (step_factor * bw), safe_min, safe_max)).rgb * MIRROR_WEIGHTS[i];
+        highp vec2 tap_pos = clamp(m_uv + blur_dir * (step_factor * bw), safe_min, safe_max);
+        col += bspline_tex(tap_pos, video_res, inv_video_res, safe_min, safe_max) * MIRROR_WEIGHTS[i];
     }
 
-    // -- Colour grade --------------------------------------------------------
     col = vibrance(col, ${f(vibranceVal)});
 $warmthLine    col = rolloff(col, 0.30);
 
-    // -- Mirror fade: tight power + Gaussian decay so seam is crisp ----------
     highp float fade = pow(max(1.0 - dn, 0.0), ${f(fadeCurveVal)}) *
                          (0.55 + 0.45 * exp(-6.0 * dn));
 
@@ -525,7 +635,6 @@ $warmthLine    col = rolloff(col, 0.30);
 
     highp vec3 ambient_rgb = col * (fade * ${f(intensityVal)});
 $vignetteLine$opacityLine
-    // -- Dither --------------------------------------------------------------
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
     return vec4(ambient_rgb, 1.0);
 }

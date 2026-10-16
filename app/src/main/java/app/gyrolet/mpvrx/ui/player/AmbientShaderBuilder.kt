@@ -94,6 +94,7 @@ private fun spiralRadiusNorm(
 ): Double = sqrt((index.toDouble() + 0.5) / count.toDouble())
 
 private data class TapCacheKey(
+  val name: String,
   val samples: Int,
   val maxRadius: Float,
   val fadeCurve: Float,
@@ -106,7 +107,7 @@ private fun buildSpiralTapTable(
   name: String,
   spec: AmbientGlowShaderSpec,
 ): String {
-  val key = TapCacheKey(spec.blurSamples, spec.maxRadius, spec.fadeCurve)
+  val key = TapCacheKey(name, spec.blurSamples, spec.maxRadius, spec.fadeCurve)
   tapTableCache.get(key)?.let { return it }
 
   val count = spec.blurSamples.coerceAtLeast(1)
@@ -234,7 +235,8 @@ private val GLSL_VIDEO_PROLOGUE =
     highp float jitter = ign(uv * HOOKED_size) * 6.2831853;
     highp float jitter_s = sin(jitter);
     highp float jitter_c = cos(jitter);
-    highp float aspect_x = HOOKED_size.y / HOOKED_size.x;
+    // Aspect correction uses video dimensions so the Poisson disk stays circular in video space
+    highp float aspect_x = (HOOKED_size.y / HOOKED_size.x) * ASPECT_SCALE_RATIO;
     highp float jitter_c_aspect = jitter_c * aspect_x;
     highp float jitter_s_aspect = jitter_s * aspect_x;
   """.trimIndent().prependIndent("    ")
@@ -244,13 +246,14 @@ private val GLSL_AMBIENT_EPILOGUE =
   """
     highp float vig_r = length(uv - 0.5) * 2.0;
     ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
+    ambient_rgb *= OPACITY;
 
     // FIX 7 (part a): dither before quantisation to the 8-bit swapchain so the
     // exponential fade into true black never shows stair-step contour lines.
     // Noise amplitude tracks peak channel so silence on pure black is guaranteed.
     ambient_rgb = dither_out(ambient_rgb, uv * HOOKED_size);
 
-    highp vec4 ambient_out = vec4(ambient_rgb * OPACITY, 1.0);
+    highp vec4 ambient_out = vec4(ambient_rgb, 1.0);
 
     if (inside_video) {
       return mix(ambient_out, HOOKED_tex(clamp(video_uv, safe_min, safe_max)), video_weight);
@@ -304,10 +307,11 @@ precision highp int;
 #define WARMTH           ${glslFloat(spec.warmth.toDouble())}
 #define FADE_CURVE       ${glslFloat(spec.fadeCurve.toDouble())}
 #define OPACITY          ${glslFloat(spec.shared.opacity.toDouble())}
-#define SCALE_X          ${glslFloat(spec.context.scaleX)}
-#define SCALE_Y          ${glslFloat(spec.context.scaleY)}
-#define CENTER_X         ${glslFloat(spec.context.centerX)}
-#define CENTER_Y         ${glslFloat(spec.context.centerY)}
+#define SCALE_X            ${glslFloat(spec.context.scaleX)}
+#define SCALE_Y            ${glslFloat(spec.context.scaleY)}
+#define CENTER_X           ${glslFloat(spec.context.centerX)}
+#define CENTER_Y           ${glslFloat(spec.context.centerY)}
+#define ASPECT_SCALE_RATIO ${glslFloat(spec.context.scaleX / spec.context.scaleY)}
 
 // tap.xy = pre-scaled offset by maxRadius; tap.z = precomputed distance falloff.
 ${buildSpiralTapTable("GLOW_TAPS", spec)}
@@ -323,15 +327,16 @@ $GLSL_VIDEO_PROLOGUE
         return vec4(dither_out(vec3(0.0), uv * HOOKED_size), 1.0);
     }
 
-    // Dynamic depth inset (from fx_ambient): pulls deeper from picture further into the glow.
-    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.03 + 0.10 * dn);
+    // Fixed safe edge margin: avoids border-wall artifacts without crawling deep into the
+    // picture (which produced an unnatural mirrored reflection of interior actors/objects).
+    highp vec2 sample_origin = mix(edge_origin, vec2(0.5), 0.015);
 
     // Physical dual-phase emitter curve (from fx_ambient):
     // luminous core relaxing into a smooth tail that cleanly lands on true black at dn = 1.0.
     highp float edge_fade = pow(1.0 - dn, FADE_CURVE * 1.4) * (0.6 + 0.4 * exp(-5.0 * dn));
 
-    highp vec3 acc_color = vec3(0.0);
-    highp float acc_weight = 0.0;
+    mediump vec3 acc_color = vec3(0.0);
+    mediump float acc_weight = 0.0;
 
     for (int i = 0; i < BLUR_SAMPLES; i++) {
         vec3 tap = GLOW_TAPS[i];
@@ -341,15 +346,15 @@ $GLSL_VIDEO_PROLOGUE
             tap.x * jitter_c_aspect - tap.y * jitter_s_aspect,
             tap.x * jitter_s + tap.y * jitter_c
         );
-        highp vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
+        mediump vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
 
-        highp float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
+        mediump float weight = mediump float(tap.z) * (1.0 + luma(sample_rgb) * 2.0);
 
         acc_color += sample_rgb * weight;
         acc_weight += weight;
     }
 
-    highp vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
+    mediump vec3 ambient_rgb = (acc_color / max(acc_weight, 1e-5)) * GLOW_INTENSITY;
     ambient_rgb = adjust_saturation(ambient_rgb, SAT_BOOST);
     ambient_rgb = apply_warmth(ambient_rgb, WARMTH);
     // FIX 6: apply highlight roll-off so bright-edge scenes don't produce a
