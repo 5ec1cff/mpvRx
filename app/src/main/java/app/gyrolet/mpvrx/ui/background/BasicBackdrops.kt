@@ -29,14 +29,14 @@ internal fun DrawScope.drawCircles(t: Float, tilt: Offset, p: BackdropPalette) {
   val h = size.height
   val base = min(w, h)
   val travel = 22.dp.toPx()
-  for (i in 0 until 10) {
+  for (i in 0 until backdropCount(10, minimum = 6, maximum = 14)) {
     val depth = 0.35f + 0.65f * hash01(i, 1)
-    val r = base * (0.09f + 0.20f * depth)
+    val r = base * (0.075f + 0.14f * depth)
     val ax = w * (0.08f + 0.84f * hash01(i, 2))
     val ay = h * (0.06f + 0.88f * hash01(i, 3))
     val dir = if (i % 2 == 0) 1f else -1f
     val ang = hash01(i, 5) * TAU + t * dir * (0.05f + 0.07f * hash01(i, 4)) * TAU * 0.25f
-    val orbit = base * (0.04f + 0.09f * hash01(i, 6))
+    val orbit = base * (0.045f + 0.08f * hash01(i, 6))
     val c =
       Offset(
         ax + cos(ang) * orbit + tilt.x * travel * depth,
@@ -73,7 +73,7 @@ internal fun DrawScope.drawRings(t: Float, tilt: Offset, p: BackdropPalette) {
       val ph = fract(t / 11f + k / 5f + hash01(s, 12))
       val fade = (1f - ph)
       val radius = reach * (1f - fade * fade)
-      val alpha = fade * fade * 0.38f * smoothstep(0f, 0.08f, ph)
+      val alpha = fade * fade * 0.46f * smoothstep(0f, 0.08f, ph)
       drawCircle(
         color = color.copy(alpha = alpha),
         radius = radius,
@@ -108,7 +108,7 @@ private val SoftShapePaths: List<Path> by lazy {
 /** Soft four-, five- and six-lobed shapes rise, breathe and rotate at different depths. */
 internal fun DrawScope.drawShapes(t: Float, tilt: Offset, p: BackdropPalette) {
   val base = size.minDimension
-  for (i in 0 until 12) {
+  for (i in 0 until backdropCount(12, minimum = 7, maximum = 18)) {
     val depth = 0.3f + 0.7f * hash01(i, 1)
     val radius = base * (0.035f + 0.055f * depth) * (0.94f + 0.06f * sin(t * 0.4f + i))
     val life = fract(hash01(i, 2) + t * (0.008f + 0.012f * depth))
@@ -135,7 +135,8 @@ internal fun DrawScope.drawShapes(t: Float, tilt: Offset, p: BackdropPalette) {
 internal fun DrawScope.drawGrid(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
-  val gap = maxOf(28.dp.toPx(), min(w, h) / 24f)
+  // Limit the number of expensive wave evaluations on large tablets.
+  val gap = maxOf(32.dp.toPx(), w / 24f, h / 38f)
   val cols = (w / gap).toInt() + 2
   val rows = (h / gap).toInt() + 2
   val ox = tilt.x * 10.dp.toPx() - gap * 0.5f
@@ -169,7 +170,7 @@ internal fun DrawScope.drawLava(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
   val base = min(w, h)
-  for (i in 0 until 7) {
+  for (i in 0 until backdropCount(7, minimum = 5, maximum = 10)) {
     val depth = 0.5f + 0.5f * hash01(i, 1)
     val cx = w * (0.18f + 0.64f * hash01(i, 2) + 0.10f * sin(t * (0.10f + 0.08f * hash01(i, 3)) + i)) + tilt.x * 18.dp.toPx() * depth
     val cy = h * (0.5f + 0.42f * sin(t * (0.045f + 0.035f * hash01(i, 4)) + hash01(i, 5) * TAU)) + tilt.y * 18.dp.toPx() * depth
@@ -201,9 +202,9 @@ internal fun DrawScope.drawBokeh(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
   val base = min(w, h)
-  for (i in 0 until 16) {
+  for (i in 0 until backdropCount(16, minimum = 9, maximum = 22)) {
     val depth = hash01(i, 1)
-    val r = base * (0.05f + 0.12f * depth) * (0.94f + 0.06f * sin(t * 0.6f + i))
+    val r = base * (0.045f + 0.10f * depth) * (0.94f + 0.06f * sin(t * 0.6f + i))
     val f = fract(hash01(i, 2) + t * (0.004f + 0.006f * depth))
     val x = w * (f * 1.3f - 0.15f) + tilt.x * 30.dp.toPx() * (0.3f + depth)
     val y = h * (0.08f + 0.84f * hash01(i, 3)) + sin(t * (0.18f + 0.1f * hash01(i, 4)) + i) * 22.dp.toPx() + tilt.y * 30.dp.toPx() * (0.3f + depth)
@@ -216,9 +217,9 @@ internal fun DrawScope.drawBokeh(t: Float, tilt: Offset, p: BackdropPalette) {
         Brush.radialGradient(
           colorStops =
             arrayOf(
-              0f to color.copy(alpha = 0.02f * edge),
-              0.72f to color.copy(alpha = 0.07f * edge),
-              1f to color.copy(alpha = (0.14f + 0.10f * depth) * edge * breath),
+              0f to color.copy(alpha = 0.035f * edge),
+              0.66f to color.copy(alpha = 0.075f * edge),
+              1f to color.copy(alpha = (0.15f + 0.09f * depth) * edge * breath),
             ),
           center = c,
           radius = r,
