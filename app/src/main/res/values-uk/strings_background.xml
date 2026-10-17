@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">Щасливого Гелловіну 🎃</string>
   <string name="bg_greeting_new_year">З Новим роком 🎆</string>
   <string name="bg_greeting_winter">З нагоди свят ❄️</string>
+  <string name="bg_preview">Попередній перегляд · %1$s</string>
+  <string name="bg_geometric">Фігури та сяйво</string>
+  <string name="bg_nature">Природа</string>
+  <string name="bg_sky">Небо та зорі</string>
+  <string name="bg_interval_title">Зміна тла</string>
+  <string name="bg_behavior">Поведінка</string>
 </resources>

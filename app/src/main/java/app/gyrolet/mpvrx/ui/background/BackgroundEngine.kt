@@ -12,20 +12,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -69,9 +69,9 @@ internal fun rememberBackdropPalette(): BackdropPalette {
 private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f * blue
 
 /**
- * Seconds since this backdrop appeared. Advances only while the host is resumed, at most once per
- * [MIN_STEP_MS], so a background that drifts slowly does not repaint the screen at every vsync of
- * a 120 Hz panel.
+ * Seconds since this backdrop appeared. Read only from drawing, and advance with the display's
+ * frame clock so 60/90/120 Hz panels all have evenly paced motion. Hidden or paused surfaces do
+ * not request frames. Reset the frame anchor on resume, keeping the artwork's current position.
  */
 @Composable
 internal fun rememberBackdropClock(running: Boolean = true): State<Float> {
@@ -85,7 +85,7 @@ internal fun rememberBackdropClock(running: Boolean = true): State<Float> {
         androidx.compose.runtime.withFrameNanos { now ->
           if (last < 0L) {
             last = now
-          } else if ((now - last) >= MIN_STEP_MS * 1_000_000L) {
+          } else {
             // Clamp the step so a stall (dialog, doze) does not teleport particles
             val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
             clock.floatValue += dt
@@ -98,8 +98,6 @@ internal fun rememberBackdropClock(running: Boolean = true): State<Float> {
   return clock
 }
 
-private const val MIN_STEP_MS = 14L
-
 /**
  * Device tilt as a value in -1..1 on both axes (x: right-down positive, y: top-toward-you
  * positive), eased so a shaky hand does not make the artwork shiver. Stays at zero when
@@ -110,10 +108,9 @@ internal fun rememberTilt(enabled: Boolean): State<Offset> {
   val context = LocalContext.current
   val lifecycle = LocalLifecycleOwner.current
   val tilt = remember { mutableStateOf(Offset.Zero) }
-  val live by rememberUpdatedState(enabled)
-
+  val windowManager = remember(context) { context.getSystemService(Context.WINDOW_SERVICE) as? android.view.WindowManager }
   DisposableEffect(enabled, lifecycle, context) {
-    if (!live) {
+    if (!enabled) {
       tilt.value = Offset.Zero
       return@DisposableEffect onDispose { }
     }
@@ -128,13 +125,22 @@ internal fun rememberTilt(enabled: Boolean): State<Offset> {
       object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
           // 9.81 m/s^2 along an axis means the device is fully on its side; ~5 is a hearty tilt
-          val tx = (-event.values[0] / TILT_FULL_SCALE).coerceIn(-1f, 1f)
-          val ty = ((event.values[1] - REST_PITCH) / TILT_FULL_SCALE).coerceIn(-1f, 1f)
+          // Sensors use the device's natural orientation, whereas the canvas uses display axes.
+          val rotation = windowManager?.defaultDisplay?.rotation
+            ?: android.view.Surface.ROTATION_0
+          val (gx, gy) = when (rotation) {
+            android.view.Surface.ROTATION_90 -> -event.values[1] to event.values[0]
+            android.view.Surface.ROTATION_180 -> -event.values[0] to -event.values[1]
+            android.view.Surface.ROTATION_270 -> event.values[1] to -event.values[0]
+            else -> event.values[0] to event.values[1]
+          }
+          val tx = (-gx / TILT_FULL_SCALE).coerceIn(-1f, 1f)
+          val ty = ((gy - REST_PITCH) / TILT_FULL_SCALE).coerceIn(-1f, 1f)
           ex += (tx - ex) * EASE
           ey += (ty - ey) * EASE
-          // Ignore changes below ~2% of the range: they would only cost repaints
+          // Keep tiny sensor noise out of the draw loop.
           val cur = tilt.value
-          if (abs(ex - cur.x) > 0.02f || abs(ey - cur.y) > 0.02f) tilt.value = Offset(ex, ey)
+          if (abs(ex - cur.x) > 0.005f || abs(ey - cur.y) > 0.005f) tilt.value = Offset(ex, ey)
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -169,16 +175,63 @@ private const val EASE = 0.12f
  */
 @Composable
 internal fun BackdropCanvas(
+  type: BackgroundType,
   parallax: Boolean,
   modifier: Modifier = Modifier,
   running: Boolean = true,
-  onDraw: DrawScope.(t: Float, tilt: Offset, palette: BackdropPalette) -> Unit,
 ) {
-  val clock = rememberBackdropClock(running)
-  val tilt = rememberTilt(parallax)
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val clock = rememberBackdropClock(running && !reduceMotion)
+  val targetTilt = rememberTilt(parallax && running && !reduceMotion)
   val palette = rememberBackdropPalette()
+  val drawing = remember { BackdropDrawingState() }
   Canvas(modifier = modifier.fillMaxSize()) {
-    onDraw(clock.value, tilt.value, palette)
+    if (size.minDimension > 0f) {
+      drawBackdrop(type, clock.value, targetTilt.value, palette, drawing)
+    }
+  }
+}
+
+/** Scratch geometry belongs to one canvas, never to a global renderer or a frame. */
+internal class BackdropDrawingState {
+  val path = Path()
+  val starX = FloatArray(CONSTELLATION_STARS)
+  val starY = FloatArray(CONSTELLATION_STARS)
+  val starVisibility = FloatArray(CONSTELLATION_STARS)
+}
+
+internal const val CONSTELLATION_STARS = 34
+
+/** Shared by the live background and its static picker illustration. */
+internal fun DrawScope.drawBackdrop(
+  type: BackgroundType,
+  t: Float,
+  tilt: Offset,
+  p: BackdropPalette,
+  drawing: BackdropDrawingState,
+) {
+  when (type) {
+    BackgroundType.NONE, BackgroundType.RANDOM -> Unit
+    BackgroundType.CIRCLES -> drawCircles(t, tilt, p)
+    BackgroundType.RINGS -> drawRings(t, tilt, p)
+    BackgroundType.SPACE -> drawSpace(t, tilt, p)
+    BackgroundType.SHAPES -> drawShapes(t, tilt, p)
+    BackgroundType.SNOW -> drawSnow(t, tilt, p)
+    BackgroundType.GRID -> drawGrid(t, tilt, p)
+    BackgroundType.PARTICLES -> drawParticles(t, tilt, p)
+    BackgroundType.LAVA -> drawLava(t, tilt, p)
+    BackgroundType.AURORA -> drawAurora(t, tilt, p, drawing.path)
+    BackgroundType.FIREFLIES -> drawFireflies(t, tilt, p)
+    BackgroundType.RAIN -> drawRain(t, tilt, p)
+    BackgroundType.BOKEH -> drawBokeh(t, tilt, p)
+    BackgroundType.SAKURA -> drawSakura(t, tilt, p)
+    BackgroundType.CONSTELLATION -> drawConstellation(t, tilt, p, drawing)
+    BackgroundType.BUBBLES -> drawBubbles(t, tilt, p)
+    BackgroundType.HALLOWEEN -> drawHalloween(t, tilt, p, drawing.path)
+    BackgroundType.FIREWORKS -> drawFireworks(t, tilt, p)
+    BackgroundType.WINTER -> drawWinter(t, tilt, p, drawing.path)
+    BackgroundType.DIWALI -> drawDiwali(t, tilt, p, drawing.path)
+    BackgroundType.HOLI -> drawHoli(t, tilt, p)
   }
 }
 

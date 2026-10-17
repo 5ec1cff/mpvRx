@@ -3,17 +3,12 @@ package app.gyrolet.mpvrx.ui.background
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
-import kotlin.math.PI
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.min
-import kotlin.math.pow
 import kotlin.math.sin
 
 /* Night-sky family: Space, Particles, Constellation. */
@@ -39,23 +34,28 @@ internal fun DrawScope.drawSpace(t: Float, tilt: Offset, p: BackdropPalette) {
     center = n2,
   )
 
-  for (i in 0 until 150) {
+  for (i in 0 until 112) {
     val layer = i % 3 // 0 far, 2 near
     val depth = (layer + 1) / 3f
-    val x = w * fract(hash01(i, 1) + t * 0.0016f * (layer + 1)) + tilt.x * 20.dp.toPx() * depth
+    val fx = fract(hash01(i, 1) + t * 0.0016f * (layer + 1))
+    val edge = smoothstep(0f, 0.025f, fx) * smoothstep(1f, 0.975f, fx)
+    val x = w * fx + tilt.x * 20.dp.toPx() * depth
     val y = h * hash01(i, 2) + tilt.y * 20.dp.toPx() * depth
-    val tw = 0.55f + 0.45f * sin(t * (0.8f + 2.2f * hash01(i, 3)) + i * 3.1f)
+    val tw = (0.65f + 0.35f * sin(t * (0.4f + 0.9f * hash01(i, 3)) + i * 3.1f)) * edge
     val r = (0.55f + 0.75f * depth + 0.5f * hash01(i, 4)).dp.toPx()
     drawCircle(starColor.copy(alpha = (0.25f + 0.55f * depth) * tw), radius = r, center = Offset(x, y))
     if (layer == 2 && hash01(i, 5) > 0.8f) {
       // A few near stars get a soft halo
-      drawCircle(starColor.copy(alpha = 0.08f * tw), radius = r * 4f, center = Offset(x, y))
+      drawCircle(starColor.copy(alpha = 0.06f * tw), radius = r * 4f, center = Offset(x, y))
+      val sparkle = starColor.copy(alpha = 0.20f * tw)
+      drawLine(sparkle, Offset(x - r * 2.5f, y), Offset(x + r * 2.5f, y), strokeWidth = 0.7.dp.toPx())
+      drawLine(sparkle, Offset(x, y - r * 2.5f), Offset(x, y + r * 2.5f), strokeWidth = 0.7.dp.toPx())
     }
   }
 
   // Comet: one pass per 7 s slot, most of the slot is empty sky
   val slot = kotlin.math.floor(t / 7f).toInt()
-  val u = fract(t / 7f) / 0.14f
+  val u = fract(t / 7f) / 0.22f
   if (u in 0f..1f) {
     val sx = w * (0.15f + 0.7f * hash01(slot, 21))
     val sy = h * (0.05f + 0.35f * hash01(slot, 22))
@@ -84,29 +84,35 @@ private fun mote(i: Int, u: Float, w: Float, h: Float): Offset {
 internal fun DrawScope.drawParticles(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
-  for (i in 0 until 48) {
+  for (i in 0 until 38) {
     val depth = 0.35f + 0.65f * hash01(i, 6)
-    val u = fract(hash01(i, 1) + t * (0.016f + 0.03f * hash01(i, 2)))
+    val u = fract(hash01(i, 1) + t * (0.012f + 0.024f * hash01(i, 2)))
     val head = mote(i, u, w, h) + Offset(tilt.x * 24.dp.toPx() * depth, tilt.y * 24.dp.toPx() * depth)
     val tail = mote(i, (u - 0.035f).coerceAtLeast(0f), w, h) + Offset(tilt.x * 24.dp.toPx() * depth, tilt.y * 24.dp.toPx() * depth)
     val life = smoothstep(0f, 0.15f, u) * smoothstep(1f, 0.82f, u)
     val color = p.accent(i)
     val r = (1.1f + 1.8f * depth).dp.toPx()
-    drawLine(color.copy(alpha = 0.30f * life), tail, head, strokeWidth = r * 1.2f, cap = StrokeCap.Round)
+    // The tail grows from zero at birth; avoid a zero-length gradient at the wrap seam.
+    if (u > 0.001f) {
+      drawLine(
+        Brush.linearGradient(listOf(Color.Transparent, color.copy(alpha = 0.34f * life)), start = tail, end = head),
+        tail, head, strokeWidth = r, cap = StrokeCap.Round,
+      )
+    }
     drawCircle(color.copy(alpha = 0.10f * life), radius = r * 4.5f, center = head)
     drawCircle(color.copy(alpha = 0.75f * life), radius = r, center = head)
   }
 }
 
 /** Slowly wandering stars joined by lines while they are near each other, a living star-map. */
-internal fun DrawScope.drawConstellation(t: Float, tilt: Offset, p: BackdropPalette) {
+internal fun DrawScope.drawConstellation(t: Float, tilt: Offset, p: BackdropPalette, drawing: BackdropDrawingState) {
   val w = size.width
   val h = size.height
-  val count = 34
+  val count = CONSTELLATION_STARS
   val reach = min(w, h) * 0.30f
-  val xs = FloatArray(count)
-  val ys = FloatArray(count)
-  val vis = FloatArray(count)
+  val xs = drawing.starX
+  val ys = drawing.starY
+  val vis = drawing.starVisibility
   val shift = Offset(tilt.x * 14.dp.toPx(), tilt.y * 14.dp.toPx())
   for (i in 0 until count) {
     val vx = (hash01(i, 11) - 0.5f) * 0.012f
@@ -120,11 +126,14 @@ internal fun DrawScope.drawConstellation(t: Float, tilt: Offset, p: BackdropPale
   }
   for (i in 0 until count) {
     for (j in i + 1 until count) {
-      val d = hypot(xs[i] - xs[j], ys[i] - ys[j])
-      if (d < reach) {
-        val a = (1f - d / reach).pow(1.6f) * 0.40f * min(vis[i], vis[j])
+      val dx = xs[i] - xs[j]
+      val dy = ys[i] - ys[j]
+      val distanceSquared = dx * dx + dy * dy
+      if (distanceSquared < reach * reach) {
+        val proximity = 1f - distanceSquared / (reach * reach)
+        val a = proximity * proximity * 0.30f * min(vis[i], vis[j])
         if (a > 0.01f) {
-          drawLine(p.primary.copy(alpha = a), Offset(xs[i], ys[i]), Offset(xs[j], ys[j]), strokeWidth = 1.dp.toPx())
+          drawLine(p.primary.copy(alpha = a), Offset(xs[i], ys[i]), Offset(xs[j], ys[j]), strokeWidth = 0.8.dp.toPx())
         }
       }
     }

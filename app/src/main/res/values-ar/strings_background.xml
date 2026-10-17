@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">هالوين سعيد 🎃</string>
   <string name="bg_greeting_new_year">سنة جديدة سعيدة 🎆</string>
   <string name="bg_greeting_winter">أعيادًا سعيدة ❄️</string>
+  <string name="bg_preview">معاينة · %1$s</string>
+  <string name="bg_geometric">الأشكال والتوهج</string>
+  <string name="bg_nature">الطبيعة</string>
+  <string name="bg_sky">السماء والنجوم</string>
+  <string name="bg_interval_title">تغيير الخلفية</string>
+  <string name="bg_behavior">السلوك</string>
 </resources>

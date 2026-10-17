@@ -1,20 +1,26 @@
 package app.gyrolet.mpvrx.ui.background
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import org.koin.compose.koinInject
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import java.time.LocalDate
+import org.koin.compose.koinInject
 
 /**
  * Draws [type] full-screen and cross-fades when it changes. NONE and RANDOM draw nothing here:
@@ -31,38 +37,14 @@ fun AnimatedBackground(
 ) {
   Crossfade(
     targetState = type,
-    animationSpec = tween(durationMillis = 600),
+    animationSpec = AppMotion.spatial(tween(durationMillis = 480, easing = FastOutSlowInEasing), snap()),
     modifier = modifier.fillMaxSize().clipToBounds(),
     label = "background_type",
   ) { shown ->
-    when (shown) {
-      BackgroundType.NONE, BackgroundType.RANDOM -> Box(Modifier.fillMaxSize())
-      BackgroundType.AURORA -> AuroraBackdrop()
-      else ->
-        BackdropCanvas(parallax = parallax, running = !paused) { t, tilt, p ->
-          when (shown) {
-            BackgroundType.CIRCLES -> drawCircles(t, tilt, p)
-            BackgroundType.RINGS -> drawRings(t, tilt, p)
-            BackgroundType.SPACE -> drawSpace(t, tilt, p)
-            BackgroundType.SHAPES -> drawShapes(t, tilt, p)
-            BackgroundType.SNOW -> drawSnow(t, tilt, p)
-            BackgroundType.GRID -> drawGrid(t, tilt, p)
-            BackgroundType.PARTICLES -> drawParticles(t, tilt, p)
-            BackgroundType.LAVA -> drawLava(t, tilt, p)
-            BackgroundType.FIREFLIES -> drawFireflies(t, tilt, p)
-            BackgroundType.RAIN -> drawRain(t, tilt, p)
-            BackgroundType.BOKEH -> drawBokeh(t, tilt, p)
-            BackgroundType.SAKURA -> drawSakura(t, tilt, p)
-            BackgroundType.CONSTELLATION -> drawConstellation(t, tilt, p)
-            BackgroundType.BUBBLES -> drawBubbles(t, tilt, p)
-            BackgroundType.HALLOWEEN -> drawHalloween(t, tilt, p)
-            BackgroundType.FIREWORKS -> drawFireworks(t, tilt, p)
-            BackgroundType.WINTER -> drawWinter(t, tilt, p)
-            BackgroundType.DIWALI -> drawDiwali(t, tilt, p)
-            BackgroundType.HOLI -> drawHoli(t, tilt, p)
-            BackgroundType.NONE, BackgroundType.RANDOM, BackgroundType.AURORA -> Unit
-          }
-        }
+    if (shown == BackgroundType.NONE || shown == BackgroundType.RANDOM) {
+      Box(Modifier.fillMaxSize())
+    } else {
+      BackdropCanvas(type = shown, parallax = parallax, running = !paused)
     }
   }
 }
@@ -88,9 +70,13 @@ fun rememberActiveBackground(): ActiveBackground {
   val seasonal by prefs.seasonalThemes.collectAsState()
   val parallax by prefs.backgroundParallax.collectAsState()
   val overWallpaper by prefs.backgroundOverWallpaper.collectAsState()
-  val event = remember { SeasonalEvent.on() }
+  val today = rememberBackdropDate()
+  val event = remember(today) { SeasonalEvent.on(today) }
 
-  val resolved = remember(picked, interval) { if (picked == BackgroundType.RANDOM) RandomBackground.current(prefs, interval) else picked }
+  val revision = RandomBackground.revision
+  val resolved = remember(picked, interval, today, revision) {
+    if (picked == BackgroundType.RANDOM) RandomBackground.current(prefs, interval) else picked
+  }
   val shown = event.backdropFor(picked, seasonal).let { if (it == BackgroundType.RANDOM) resolved else it }
   return ActiveBackground(shown, parallax, overWallpaper, event?.takeIf { seasonal })
 }
@@ -103,18 +89,30 @@ fun rememberActiveBackground(): ActiveBackground {
 fun rememberSeasonalGreeting(): Int? {
   val prefs = koinInject<AppearancePreferences>()
   val seasonal by prefs.seasonalThemes.collectAsState()
-  val event = remember { SeasonalEvent.on() }
+  val today = rememberBackdropDate()
+  val event = remember(today) { SeasonalEvent.on(today) }
   return event?.takeIf { seasonal }?.greetingRes
+}
+
+/** Re-evaluate seasonal and daily picks when returning to an app left open overnight. */
+@Composable
+private fun rememberBackdropDate(): LocalDate {
+  var today by remember { mutableStateOf(LocalDate.now()) }
+  LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { today = LocalDate.now() }
+  return today
 }
 
 /** Resolves RANDOM once per process (or per interval) so every caller agrees on the same pick. */
 object RandomBackground {
   private var processPick: BackgroundType? = null
+  var revision by mutableIntStateOf(0)
+    private set
 
   /** Forget the current pick so the next lookup rolls again. */
   fun reroll(prefs: AppearancePreferences) {
     processPick = null
     prefs.lastRandomBackgroundDay.set(0L)
+    revision++
   }
 
   fun current(
@@ -126,7 +124,7 @@ object RandomBackground {
     val last =
       BackgroundType.SHUFFLEABLE.firstOrNull { it.name == prefs.lastRandomBackground.get() }
     val lastDay = prefs.lastRandomBackgroundDay.get()
-    if (interval != RandomInterval.EACH_LAUNCH && last != null && lastDay > 0L && today - lastDay < interval.days) {
+    if (interval != RandomInterval.EACH_LAUNCH && last != null && lastDay > 0L && today - lastDay in 0L until interval.days.toLong()) {
       processPick = last
       return last
     }

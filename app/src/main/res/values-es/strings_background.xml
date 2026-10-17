@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">Feliz Halloween 🎃</string>
   <string name="bg_greeting_new_year">Feliz Año Nuevo 🎆</string>
   <string name="bg_greeting_winter">Felices fiestas ❄️</string>
+  <string name="bg_preview">Vista previa · %1$s</string>
+  <string name="bg_geometric">Formas y brillo</string>
+  <string name="bg_nature">Naturaleza</string>
+  <string name="bg_sky">Cielo y estrellas</string>
+  <string name="bg_interval_title">Cambiar fondo</string>
+  <string name="bg_behavior">Comportamiento</string>
 </resources>

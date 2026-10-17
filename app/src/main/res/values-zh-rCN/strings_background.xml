@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">万圣节快乐 🎃</string>
   <string name="bg_greeting_new_year">新年快乐 🎆</string>
   <string name="bg_greeting_winter">节日快乐 ❄️</string>
+  <string name="bg_preview">预览 · %1$s</string>
+  <string name="bg_geometric">几何与光晕</string>
+  <string name="bg_nature">自然</string>
+  <string name="bg_sky">天空与星辰</string>
+  <string name="bg_interval_title">切换背景</string>
+  <string name="bg_behavior">行为</string>
 </resources>

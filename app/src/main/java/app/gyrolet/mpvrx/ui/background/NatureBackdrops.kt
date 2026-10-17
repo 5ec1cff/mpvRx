@@ -81,6 +81,7 @@ internal fun DrawScope.drawSnow(t: Float, tilt: Offset, p: BackdropPalette, inte
   val ice = if (p.isDark) lerp(Color(0xFFF2F8FF), p.primary, 0.08f) else lerp(p.primary, p.ink, 0.35f)
 
   // kind: 0 dot, 1 star, 2 twig flake, 3 crystal
+  val wind = sin(t * 0.13f) * 10.dp.toPx() + sin(t * 0.07f + 1.5f) * 6.dp.toPx()
   val counts = intArrayOf((20 * intensity).toInt(), (16 * intensity).toInt(), (13 * intensity).toInt(), (8 * intensity).toInt())
   var seed = 0
   for (kind in 0..3) {
@@ -92,7 +93,7 @@ internal fun DrawScope.drawSnow(t: Float, tilt: Offset, p: BackdropPalette, inte
       val x =
         w * (hash01(i, 3) * 1.1f - 0.05f) +
           sin(t * (0.35f + 0.3f * hash01(i, 4)) + i * 1.7f) * (10f + 18f * near).dp.toPx() +
-          u * w * 0.05f +
+          u * w * 0.05f + wind * (0.4f + near) +
           tilt.x * 26.dp.toPx() * (0.3f + near)
       val fade = smoothstep(0f, 0.05f, u) * smoothstep(1f, 0.93f, u)
       val c = Offset(x, y)
@@ -137,18 +138,22 @@ internal fun DrawScope.drawRain(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
   val tint = lerp(p.ink, p.secondary, 0.35f)
-  val slant = 0.22f + tilt.x * 0.08f
-  for (i in 0 until 90) {
+  val slant = 0.16f + 0.04f * sin(t * 0.16f) + tilt.x * 0.06f
+  for (i in 0 until 72) {
     val depth = (i % 3 + 1) / 3f
     val len = (16f + 26f * depth).dp.toPx()
-    val u = fract(hash01(i, 1) + t * (0.55f + 0.75f * depth))
+    val u = fract(hash01(i, 1) + t * (0.30f + 0.42f * depth))
     val y = h * (u * 1.2f - 0.1f)
-    val x = w * (hash01(i, 2) * 1.3f - 0.1f) + (y * slant)
-    val a = 0.10f + 0.22f * depth
+    // Wrap across a padded horizontal span: diagonal motion must not empty the left side.
+    val span = w + h * slant + len * 2f
+    val x = fract(hash01(i, 2) + y * slant / span) * span - h * slant - len + tilt.x * 10.dp.toPx()
+    val head = Offset(x, y)
+    val tail = Offset(x - len * slant, y - len)
+    val a = (0.08f + 0.20f * depth) * smoothstep(0f, 0.05f, u) * smoothstep(1f, 0.95f, u)
     drawLine(
-      tint.copy(alpha = a),
-      start = Offset(x - len * slant, y - len),
-      end = Offset(x, y),
+      Brush.linearGradient(listOf(Color.Transparent, tint.copy(alpha = a)), start = tail, end = head),
+      start = tail,
+      end = head,
       strokeWidth = (0.7f + 0.8f * depth).dp.toPx(),
       cap = StrokeCap.Round,
     )
@@ -160,7 +165,7 @@ internal fun DrawScope.drawRain(t: Float, tilt: Offset, p: BackdropPalette) {
     val seed = i + kotlin.math.floor(cyc).toInt() * 31
     val cx = w * hash01(seed, 8)
     val cy = h * (0.84f + 0.13f * hash01(seed, 9))
-    val r = (4f + 20f * ph).dp.toPx()
+    val r = (4f + 24f * (1f - (1f - ph) * (1f - ph))).dp.toPx()
     drawOval(
       color = tint.copy(alpha = 0.26f * (1f - ph) * smoothstep(0f, 0.1f, ph)),
       topLeft = Offset(cx - r, cy - r * 0.32f),
@@ -177,6 +182,8 @@ private fun Path.addPetal(s: Float) {
   close()
 }
 
+private val SakuraPetal: Path by lazy { Path().apply { addPetal(1f) } }
+
 /** Cherry-blossom petals that flutter down, flipping edge-on as they turn. */
 internal fun DrawScope.drawSakura(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
@@ -186,18 +193,17 @@ internal fun DrawScope.drawSakura(t: Float, tilt: Offset, p: BackdropPalette) {
   for (i in 0 until 28) {
     val depth = 0.45f + 0.55f * hash01(i, 6)
     val u = fract(hash01(i, 1) + t * (0.017f + 0.022f * hash01(i, 2)))
-    val x = w * (hash01(i, 3) * 0.9f - 0.1f) + u * w * 0.22f + sin(u * TAU * 2.2f + i) * 32.dp.toPx() * depth + tilt.x * 24.dp.toPx() * depth
+    val x = w * (hash01(i, 3) * 0.9f - 0.1f) + u * w * 0.22f + (sin(u * TAU * 1.6f + i) * 26.dp.toPx() + sin(t * 0.16f) * 12.dp.toPx()) * depth + tilt.x * 24.dp.toPx() * depth
     val y = h * (u * 1.14f - 0.07f) + tilt.y * 14.dp.toPx() * depth
     val spin = (t * (0.5f + 0.7f * hash01(i, 4)) * (if (i % 2 == 0) 1f else -1f) + hash01(i, 5) * TAU) * 57.29578f
     val flip = cos(t * (0.8f + 0.5f * hash01(i, 7)) + i)
     val s = (5f + 6f * depth).dp.toPx()
     val a = 0.80f * smoothstep(0f, 0.06f, u) * smoothstep(1f, 0.94f, u)
-    val petal = Path().apply { addPetal(s) }
     translate(left = x, top = y) {
       rotate(spin, pivot = Offset.Zero) {
-        scale(scaleX = flip, scaleY = 1f, pivot = Offset.Zero) {
-          drawPath(petal, pink.copy(alpha = a))
-          drawLine(deep.copy(alpha = a * 0.5f), Offset(0f, -s * 0.5f), Offset(0f, s * 0.8f), strokeWidth = 0.8.dp.toPx())
+        scale(scaleX = flip * s, scaleY = s, pivot = Offset.Zero) {
+          drawPath(SakuraPetal, (if (flip >= 0f) pink else deep).copy(alpha = a))
+          drawLine(deep.copy(alpha = a * 0.4f), Offset(0f, -0.5f), Offset(0f, 0.8f), strokeWidth = 0.7.dp.toPx() / s)
         }
       }
     }
@@ -213,16 +219,17 @@ internal fun DrawScope.drawFireflies(t: Float, tilt: Offset, p: BackdropPalette)
     val depth = 0.4f + 0.6f * hash01(i, 8)
     val x = w * (0.06f + 0.88f * hash01(i, 1)) + sin(t * (0.17f + 0.2f * hash01(i, 2)) + i) * 44.dp.toPx() + sin(t * (0.41f + 0.2f * hash01(i, 3)) + i * 2f) * 20.dp.toPx() + tilt.x * 24.dp.toPx() * depth
     val y = h * (0.10f + 0.80f * hash01(i, 4)) + cos(t * (0.14f + 0.2f * hash01(i, 5)) + i * 1.4f) * 40.dp.toPx() + sin(t * 0.37f + i) * 16.dp.toPx() + tilt.y * 24.dp.toPx() * depth
-    val b = wave01(t * (0.9f + 0.9f * hash01(i, 6)) + i * 2.1f)
-    val blink = b * b * b
+    val b = wave01(t * (0.55f + 0.65f * hash01(i, 6)) + i * 2.1f)
+    val blink = b * b
+    val warmth = lerp(glow, p.tertiary, 0.18f * hash01(i, 9))
     val c = Offset(x, y)
     val r = (10f + 12f * depth).dp.toPx()
     drawCircle(
-      brush = Brush.radialGradient(listOf(glow.copy(alpha = 0.55f * blink), Color.Transparent), center = c, radius = r),
+      brush = Brush.radialGradient(listOf(warmth.copy(alpha = 0.38f * blink), warmth.copy(alpha = 0.08f * blink), Color.Transparent), center = c, radius = r),
       radius = r,
       center = c,
     )
-    drawCircle(glow.copy(alpha = 0.25f + 0.7f * blink), radius = (1.2f + 0.8f * depth).dp.toPx(), center = c)
+    drawCircle(warmth.copy(alpha = 0.12f + 0.72f * blink), radius = (1.2f + 0.8f * depth).dp.toPx(), center = c)
   }
 }
 
@@ -236,7 +243,7 @@ internal fun DrawScope.drawBubbles(t: Float, tilt: Offset, p: BackdropPalette) {
     val u = fract(hash01(i, 1) + t * (0.018f + 0.03f * hash01(i, 2)))
     val x = w * (0.04f + 0.92f * hash01(i, 3)) + sin(u * TAU * 3f + i) * 18.dp.toPx() * depth + tilt.x * 26.dp.toPx() * depth
     val y = h * (1.08f - 1.16f * u) + tilt.y * 14.dp.toPx() * depth
-    val r = base * (0.018f + 0.05f * depth) * (0.85f + 0.3f * u)
+    val r = base * (0.022f + 0.055f * depth) * (0.85f + 0.3f * u) * (1f + 0.035f * sin(t * 0.7f + i))
     val a = smoothstep(0f, 0.08f, u) * smoothstep(1f, 0.90f, u)
     val color = p.accent(i)
     val c = Offset(x, y)
@@ -251,6 +258,16 @@ internal fun DrawScope.drawBubbles(t: Float, tilt: Offset, p: BackdropPalette) {
       center = c,
     )
     drawCircle(color.copy(alpha = 0.38f * a), radius = r, center = c, style = Stroke(width = 1.2.dp.toPx()))
+    // A second, tinted reflection makes the rim read as a translucent bubble.
+    drawArc(
+      color = p.accent(i + 1).copy(alpha = 0.28f * a),
+      startAngle = 30f + 10f * sin(t * 0.35f + i),
+      sweepAngle = 76f,
+      useCenter = false,
+      topLeft = c - Offset(r, r),
+      size = Size(r * 2f, r * 2f),
+      style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round),
+    )
     // Highlight arc, upper left
     val hr = r * 0.72f
     drawArc(

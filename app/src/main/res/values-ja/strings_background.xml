@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">ハッピーハロウィン 🎃</string>
   <string name="bg_greeting_new_year">あけましておめでとうございます 🎆</string>
   <string name="bg_greeting_winter">ハッピーホリデー ❄️</string>
+  <string name="bg_preview">プレビュー · %1$s</string>
+  <string name="bg_geometric">図形と光</string>
+  <string name="bg_nature">自然</string>
+  <string name="bg_sky">空と星</string>
+  <string name="bg_interval_title">背景の切り替え</string>
+  <string name="bg_behavior">動作</string>
 </resources>

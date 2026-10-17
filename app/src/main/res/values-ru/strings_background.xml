@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">Счастливого Хэллоуина 🎃</string>
   <string name="bg_greeting_new_year">С Новым годом 🎆</string>
   <string name="bg_greeting_winter">С праздниками ❄️</string>
+  <string name="bg_preview">Предпросмотр · %1$s</string>
+  <string name="bg_geometric">Фигуры и свечение</string>
+  <string name="bg_nature">Природа</string>
+  <string name="bg_sky">Небо и звёзды</string>
+  <string name="bg_interval_title">Смена фона</string>
+  <string name="bg_behavior">Поведение</string>
 </resources>

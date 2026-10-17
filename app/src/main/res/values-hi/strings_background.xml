@@ -42,4 +42,10 @@
   <string name="bg_greeting_halloween">हैलोवीन की शुभकामनाएँ 🎃</string>
   <string name="bg_greeting_new_year">नया साल मुबारक 🎆</string>
   <string name="bg_greeting_winter">त्योहारों की शुभकामनाएँ ❄️</string>
+  <string name="bg_preview">प्रीव्यू · %1$s</string>
+  <string name="bg_geometric">आकार और चमक</string>
+  <string name="bg_nature">प्रकृति</string>
+  <string name="bg_sky">आसमान और तारे</string>
+  <string name="bg_interval_title">बैकग्राउंड बदलें</string>
+  <string name="bg_behavior">व्यवहार</string>
 </resources>

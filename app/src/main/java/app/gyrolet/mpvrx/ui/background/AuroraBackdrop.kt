@@ -1,167 +1,57 @@
 package app.gyrolet.mpvrx.ui.background
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * The Aurora backdrop: the Celestial ribbons exactly as they are in the Celestial effects, so the
- * picker and the Celestial toggle show the same artwork.
- */
-@Composable
-internal fun AuroraBackdrop() {
-  val cs = MaterialTheme.colorScheme
-  val transition = rememberInfiniteTransition(label = "celestial_folder_bg")
-  val drift by transition.animateFloat(
-    initialValue = 0f,
-    targetValue = 1f,
-    animationSpec =
-      infiniteRepeatable(
-        animation = tween(durationMillis = 12000, easing = LinearEasing),
-        repeatMode = RepeatMode.Reverse,
-      ),
-    label = "celestial_folder_drift",
+/** Layered, flowing curtains. All movement is continuous, including the glow and star pulses. */
+internal fun DrawScope.drawAurora(t: Float, tilt: Offset, p: BackdropPalette, path: Path) {
+  val w = size.width
+  val h = size.height
+  val shift = Offset(tilt.x * 18.dp.toPx(), tilt.y * 12.dp.toPx())
+  val glow = Offset(w * (0.66f + 0.12f * sin(t * 0.08f)), h * 0.22f) + shift * 0.4f
+  drawCircle(
+    Brush.radialGradient(listOf(p.primary.copy(alpha = 0.14f), Color.Transparent), center = glow, radius = w * 0.85f),
+    radius = w * 0.85f,
+    center = glow,
   )
-  val glowPulse by transition.animateFloat(
-    initialValue = 0f,
-    targetValue = 1f,
-    animationSpec =
-      infiniteRepeatable(
-        animation = tween(durationMillis = 6000, easing = LinearEasing),
-        repeatMode = RepeatMode.Reverse,
-      ),
-    label = "celestial_folder_glow",
-  )
-  val twinkle by transition.animateFloat(
-    initialValue = 0f,
-    targetValue = 1f,
-    animationSpec =
-      infiniteRepeatable(
-        animation = tween(durationMillis = 2600),
-        repeatMode = RepeatMode.Reverse,
-      ),
-    label = "celestial_folder_twinkle",
-  )
-  val primary = cs.primary
-  val secondary = cs.secondary
-  val tertiary = cs.tertiary
-  val sparklePositions =
-    remember {
-      listOf(
-        0.72f to 0.30f, 0.85f to 0.48f, 0.60f to 0.58f, 0.90f to 0.20f, 0.50f to 0.42f,
-        0.20f to 0.22f, 0.32f to 0.62f, 0.12f to 0.45f, 0.78f to 0.65f, 0.42f to 0.15f,
-      )
+  for (ribbon in 0 until 4) {
+    val phase = t * (0.10f + ribbon * 0.018f) + ribbon * 1.7f
+    val centerY = h * (0.24f + ribbon * 0.13f) + shift.y
+    val amplitude = h * (0.07f + 0.025f * sin(phase * 0.7f))
+    path.rewind()
+    val steps = 40
+    for (step in 0..steps) {
+      val x = w * (-0.12f + 1.24f * step / steps) + shift.x
+      val u = step.toFloat() / steps
+      val y = centerY + sin(u * TAU * 0.8f + phase) * amplitude + cos(u * TAU * 1.5f - phase * 0.8f) * amplitude * 0.3f
+      if (step == 0) path.moveTo(x, y) else path.lineTo(x, y)
     }
-
-  Canvas(modifier = Modifier.fillMaxSize()) {
-    val w = size.width
-    val h = size.height
-    val shift = h * 0.05f * (drift - 0.5f)
-
-    // Soft ambient glow, like a distant light source easing the pure-black canvas
-    // into a richer, more premium depth without ever reading as "flat blue".
-    val glowRadius = w * (0.75f + 0.10f * glowPulse)
-    drawRect(
-      brush =
-        Brush.radialGradient(
-          colors =
-            listOf(
-              primary.copy(alpha = 0.10f),
-              tertiary.copy(alpha = 0.05f),
-              Color.Transparent,
-            ),
-          center = Offset(w * 0.82f, h * 0.06f),
-          radius = glowRadius,
-        ),
-      size = size,
+    val color = p.accent(ribbon)
+    val breath = 0.75f + 0.25f * sin(t * 0.24f + ribbon)
+    val brush = Brush.horizontalGradient(
+      0f to Color.Transparent,
+      0.25f to color.copy(alpha = 0.28f * breath),
+      0.65f to p.accent(ribbon + 1).copy(alpha = 0.24f * breath),
+      1f to Color.Transparent,
+      startX = 0f,
+      endX = w,
     )
-    drawRect(
-      brush =
-        Brush.radialGradient(
-          colors =
-            listOf(
-              secondary.copy(alpha = 0.06f),
-              Color.Transparent,
-            ),
-          center = Offset(w * 0.10f, h * 0.85f),
-          radius = w * 0.7f,
-        ),
-      size = size,
-    )
-
-    fun ribbon(
-      color: Color,
-      yStart: Float,
-      yEnd: Float,
-      alpha: Float,
-      strokeWidth: Float,
-      glow: Boolean = false,
-    ) {
-      val path =
-        Path().apply {
-          moveTo(-w * 0.1f, h * yStart + shift)
-          cubicTo(
-            w * 0.35f,
-            h * (yStart - 0.10f) + shift,
-            w * 0.65f,
-            h * (yEnd + 0.10f) - shift,
-            w * 1.1f,
-            h * yEnd - shift,
-          )
-        }
-      val gradientBrush =
-        Brush.linearGradient(
-          colors = listOf(Color.Transparent, color.copy(alpha = alpha), Color.Transparent),
-          start = Offset(0f, h * yStart),
-          end = Offset(w, h * yEnd),
-        )
-      // Wide, low-alpha underlay first for a soft glow halo, then a crisp core stroke.
-      if (glow) {
-        drawPath(
-          path = path,
-          brush = gradientBrush,
-          style = Stroke(width = strokeWidth * 3.2f, cap = StrokeCap.Round),
-          alpha = 0.35f,
-        )
-      }
-      drawPath(
-        path = path,
-        brush = gradientBrush,
-        style = Stroke(width = strokeWidth, cap = StrokeCap.Round),
-      )
-    }
-
-    ribbon(primary, yStart = 0.30f, yEnd = 0.50f, alpha = 0.34f, strokeWidth = 5.dp.toPx(), glow = true)
-    ribbon(tertiary, yStart = 0.38f, yEnd = 0.58f, alpha = 0.22f, strokeWidth = 9.dp.toPx(), glow = true)
-    ribbon(secondary, yStart = 0.24f, yEnd = 0.40f, alpha = 0.16f, strokeWidth = 3.dp.toPx())
-    ribbon(primary, yStart = 0.55f, yEnd = 0.72f, alpha = 0.10f, strokeWidth = 6.dp.toPx())
-
-    sparklePositions.forEachIndexed { index, (fx, fy) ->
-      val phase = (twinkle + index * 0.19f) % 1f
-      val twinkleAlpha = 0.12f + 0.42f * sin(phase * Math.PI).toFloat()
-      drawCircle(
-        color = Color.White.copy(alpha = twinkleAlpha.coerceIn(0f, 1f)),
-        radius = 1.4.dp.toPx(),
-        center = Offset(w * fx, h * fy),
-      )
-    }
+    // Broad translucent curtain, narrow light core: no blur pass or shader dependency.
+    drawPath(path, brush, style = Stroke(width = (28f + ribbon * 7f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.20f)
+    drawPath(path, brush, style = Stroke(width = (10f + ribbon * 3f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.38f)
+    drawPath(path, brush, style = Stroke(width = (2.5f + ribbon).dp.toPx(), cap = StrokeCap.Round))
+  }
+  for (i in 0 until 26) {
+    val center = Offset(w * hash01(i, 31), h * hash01(i, 32)) + shift * (0.25f + 0.35f * hash01(i, 33))
+    val pulse = wave01(t * (0.4f + hash01(i, 34) * 0.5f) + hash01(i, 35) * TAU)
+    drawCircle(p.ink.copy(alpha = 0.12f + 0.34f * pulse), radius = (0.6f + hash01(i, 36)).dp.toPx(), center = center)
   }
 }
