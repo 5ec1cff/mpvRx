@@ -71,7 +71,7 @@ internal fun DrawScope.drawHalloween(t: Float, tilt: Offset, p: BackdropPalette,
   }
 
   // Bats
-  for (i in 0 until 5) {
+  for (i in 0 until backdropCount(5, minimum = 3, maximum = 7)) {
     val u = fract(hash01(i, 1) + t * (0.022f + 0.016f * hash01(i, 2)))
     val s = (7f + 6f * hash01(i, 3)).dp.toPx()
     val dir = if (i % 2 == 0) -1f else 1f
@@ -80,7 +80,7 @@ internal fun DrawScope.drawHalloween(t: Float, tilt: Offset, p: BackdropPalette,
     val flap = sin(t * 9f + i * 1.7f)
     val bat = path.apply { rewind() }
     val fade = smoothstep(0f, 0.08f, u) * smoothstep(1f, 0.92f, u)
-    for (sg in intArrayOf(-1, 1)) {
+    for (sg in -1..1 step 2) {
       val f = sg.toFloat()
       bat.moveTo(0f, -s * 0.1f)
       bat.quadraticTo(f * s * 0.75f, -s * (0.65f + 0.55f * flap), f * s * 1.55f, s * 0.12f * (1f - flap))
@@ -95,7 +95,7 @@ internal fun DrawScope.drawHalloween(t: Float, tilt: Offset, p: BackdropPalette,
   }
 
   // Embers
-  for (i in 0 until 26) {
+  for (i in 0 until backdropCount(26, minimum = 15, maximum = 38)) {
     val u = fract(hash01(i, 11) + t * (0.02f + 0.03f * hash01(i, 12)))
     val x = w * hash01(i, 13) + sin(u * TAU * 2f + i) * 20.dp.toPx()
     val y = h * (1.04f - 0.8f * u)
@@ -114,7 +114,7 @@ private val FireworkPalette =
 private const val FW_SLOT = 2.4f
 private const val FW_RISE = 0.8f
 private const val FW_BURST = 2.8f
-private const val FW_SPARKS = 40
+private const val FW_SPARKS = 34
 
 private fun sparkOffset(angle: Float, speed: Float, age: Float, gravity: Float): Offset {
   // Drag makes the spark decelerate; gravity pulls it down once it has slowed
@@ -162,8 +162,9 @@ internal fun DrawScope.drawFireworks(t: Float, tilt: Offset, p: BackdropPalette)
       )
     }
     val gravity = base * 0.035f
-    for (i in 0 until FW_SPARKS) {
-      val ang = i * TAU / FW_SPARKS + hash01(i, k) * 0.12f
+    val sparks = backdropCount(FW_SPARKS, minimum = 22, maximum = 46)
+    for (i in 0 until sparks) {
+      val ang = i * TAU / sparks + hash01(i, k) * 0.12f
       val speed = base * (0.17f + 0.12f * hash01(i, k + 77))
       val head = Offset(cx, cy) + sparkOffset(ang, speed, a, gravity)
       val tail = Offset(cx, cy) + sparkOffset(ang, speed, (a - 0.07f).coerceAtLeast(0f), gravity)
@@ -194,7 +195,7 @@ internal fun DrawScope.drawWinter(t: Float, tilt: Offset, p: BackdropPalette, pa
     val sag = 22.dp.toPx()
     val topY = (10 + 26 * line).dp.toPx() + tilt.y * 6.dp.toPx()
     val wire = path.apply { rewind() }
-    val steps = 60
+    val steps = 40
     for (s in 0..steps) {
       val x = w * s / steps
       val phase = (x / w * swags + line * 0.5f)
@@ -202,7 +203,7 @@ internal fun DrawScope.drawWinter(t: Float, tilt: Offset, p: BackdropPalette, pa
       if (s == 0) wire.moveTo(x, y) else wire.lineTo(x, y)
     }
     drawPath(wire, p.ink.copy(alpha = 0.20f), style = Stroke(width = 1.dp.toPx()))
-    val bulbs = 16
+    val bulbs = 14
     for (b in 0..bulbs) {
       val x = w * b / bulbs
       val phase = (x / w * swags + line * 0.5f)
@@ -252,7 +253,7 @@ internal fun DrawScope.drawDiwali(t: Float, tilt: Offset, p: BackdropPalette, pa
   drawCircle(Gold.copy(alpha = 0.14f), radius = base * 0.045f, center = mc, style = Stroke(width = 1.2.dp.toPx()))
 
   // Sparks
-  for (i in 0 until 34) {
+  for (i in 0 until backdropCount(34, minimum = 20, maximum = 43)) {
     val u = fract(hash01(i, 1) + t * (0.02f + 0.035f * hash01(i, 2)))
     val x = w * hash01(i, 3) + sin(u * TAU * 2f + i) * 22.dp.toPx() + tilt.x * 14.dp.toPx()
     val y = h * (1.02f - 0.95f * u)
@@ -335,7 +336,7 @@ internal fun DrawScope.drawHoli(t: Float, tilt: Offset, p: BackdropPalette) {
       center = c,
     )
     // Grains thrown outwards
-    for (i in 0 until 26) {
+    for (i in 0 until backdropCount(26, minimum = 16, maximum = 34)) {
       val ang = hash01(i, k + 5) * TAU
       val dist = radius * (0.25f + 0.95f * hash01(i, k + 9)) * (0.4f + 0.6f * grow)
       val g = Offset(c.x + cos(ang) * dist, c.y + sin(ang) * dist)
@@ -344,7 +345,7 @@ internal fun DrawScope.drawHoli(t: Float, tilt: Offset, p: BackdropPalette) {
   }
 
   // Loose dust in the air
-  for (i in 0 until 30) {
+  for (i in 0 until backdropCount(30, minimum = 18, maximum = 42)) {
     val u = fract(hash01(i, 21) + t * (0.012f + 0.02f * hash01(i, 22)))
     val dx = w * fract(hash01(i, 23) + sin(t * 0.1f + i) * 0.02f)
     val dy = h * (1.03f - 1.06f * u)
