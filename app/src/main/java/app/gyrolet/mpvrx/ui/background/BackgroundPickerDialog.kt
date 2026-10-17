@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,17 +36,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -62,6 +66,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -71,6 +76,7 @@ import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.roundedfilled.*
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private val GeometricBackgrounds = listOf(
@@ -100,12 +106,15 @@ fun BackgroundPickerDialog(onDismiss: () -> Unit) {
     derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.key == "preview" } }
   }
   val haptics = rememberAppHaptics()
+  val scope = rememberCoroutineScope()
   val choose: (BackgroundType) -> Unit = { type ->
     if (type != picked || type == BackgroundType.RANDOM) {
       // Invalidate the shared random pick before publishing the mode change.
       if (type == BackgroundType.RANDOM) RandomBackground.reroll(prefs)
       prefs.backgroundType.set(type)
       haptics.selection(true)
+      // Bring the live preview back into view after selecting a thumbnail further down the list.
+      scope.launch { listState.animateScrollToItem(0) }
     }
   }
 
@@ -211,6 +220,7 @@ fun BackgroundPickerDialog(onDismiss: () -> Unit) {
                         RandomBackground.reroll(prefs)
                         prefs.randomBackgroundInterval.set(item)
                         haptics.selection(true)
+                        scope.launch { listState.animateScrollToItem(0) }
                       }
                     },
                   )
@@ -235,8 +245,11 @@ fun BackgroundPickerDialog(onDismiss: () -> Unit) {
           item(key = "behavior") {
             Column(modifier = backgroundItemMotion(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
               SectionTitle(R.string.bg_behavior)
-              Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
-                SwitchPreference(
+              // A dialog opened from a PreferenceCard must not inherit the parent's
+              // transparent row styling: these three rows own their connected surfaces.
+              CompositionLocalProvider(LocalInsidePreferenceCard provides false) {
+                Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+                  SwitchPreference(
                   value = parallax,
                   onValueChange = { prefs.backgroundParallax.set(it) },
                   title = { Text(stringResource(R.string.bg_parallax_title)) },
@@ -265,6 +278,7 @@ fun BackgroundPickerDialog(onDismiss: () -> Unit) {
                   groupIndex = 2,
                   groupSize = 3,
                 )
+                }
               }
             }
           }
@@ -332,13 +346,17 @@ private fun <T> ChoiceGrid(
   val gap = AppConnectedShapeTokens.spacing
   BoxWithConstraints(Modifier.fillMaxWidth()) {
     val columns = ((maxWidth + gap) / (144.dp * fontScale + gap)).toInt().coerceIn(1, maxColumns)
+    // Fixed cell widths keep every tile equal, while a short final row sits in the center.
+    val cellWidth = (maxWidth - gap * (columns - 1)) / columns
     Column(verticalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.selectableGroup()) {
       items.chunked(columns).forEachIndexed { rowIndex, row ->
-        Row(horizontalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth()) {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
+          modifier = Modifier.fillMaxWidth(),
+        ) {
           row.forEachIndexed { column, item ->
-            tile(item, rowIndex * columns + column, items.size, columns, Modifier.weight(1f))
+            tile(item, rowIndex * columns + column, items.size, columns, Modifier.width(cellWidth))
           }
-          repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
         }
       }
     }
@@ -363,12 +381,12 @@ private fun ChoiceTile(
     label = "backgroundChoiceColor",
   )
   val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
-  val height = (if (artwork == null) 52.dp else 112.dp) + 40.dp * fontScale
+  val tileHeight = (if (artwork == null) 72.dp else 136.dp) + 24.dp * fontScale
   Surface(
     color = color,
     shape = shape,
     modifier = modifier
-      .height(height)
+      .height(tileHeight)
       .tvFocusHighlight(shape, focusedScale = 1.01f)
       .appPressFeedback(interactions, pressedScale = 0.98f)
       .clip(shape)
@@ -380,31 +398,53 @@ private fun ChoiceTile(
         onClick = onClick,
       ),
   ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Box(Modifier.fillMaxSize()) {
       if (artwork != null) {
-        BackgroundThumbnail(artwork, Modifier.fillMaxWidth().weight(1f))
-      } else {
-        Icon(icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(24.dp))
+        // Paint edge-to-edge behind both the illustration and its caption.
+        BackgroundThumbnail(artwork, Modifier.fillMaxSize())
+        Box(
+          Modifier.fillMaxSize().background(
+            Brush.verticalGradient(
+              0f to Color.Transparent,
+              0.52f to color.copy(alpha = 0.28f),
+              1f to color.copy(alpha = 0.96f),
+            ),
+          ),
+        )
       }
-      Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+      Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = if (artwork == null) Arrangement.Center else Arrangement.Bottom,
       ) {
+        if (artwork == null) {
+          Icon(icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(24.dp))
+          Spacer(Modifier.height(8.dp))
+        }
         Text(
-          label,
+          text = label,
           style = MaterialTheme.typography.labelLarge,
           fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-          color = if (selected) colors.onSecondaryContainer else colors.onSurface,
+          color = if (artwork != null) colors.onSurface else if (selected) colors.onSecondaryContainer else colors.onSurface,
           textAlign = TextAlign.Center,
-          minLines = 2,
           maxLines = 2,
           overflow = TextOverflow.Ellipsis,
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.fillMaxWidth(),
         )
-        // Reserve the marker's space so selecting a tile never shifts its label.
-        Box(Modifier.size(18.dp)) {
-          if (selected) Icon(MaterialSymbols.RoundedFilled.Check, contentDescription = null, tint = colors.onSecondaryContainer)
+      }
+      if (selected) {
+        // Overlay the marker rather than reserving space beside the label: it stays centered.
+        Surface(
+          modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+          shape = RoundedCornerShape(100),
+          color = colors.secondaryContainer,
+        ) {
+          Icon(
+            MaterialSymbols.RoundedFilled.Check,
+            contentDescription = null,
+            tint = colors.onSecondaryContainer,
+            modifier = Modifier.padding(4.dp).size(16.dp),
+          )
         }
       }
     }
@@ -418,17 +458,9 @@ private fun BackgroundThumbnail(type: BackgroundType, modifier: Modifier = Modif
   val drawing = remember { BackdropDrawingState() }
   Canvas(modifier.clipToBounds()) {
     if (size.minDimension <= 0f) return@Canvas
-    // Draw at a phone-like density so snowflakes and particles retain their relative size.
-    val factor = size.width / 360.dp.toPx()
-    scale(factor, factor, pivot = Offset.Zero) {
-      val canvasSize = size
-      try {
-        drawContext.size = androidx.compose.ui.geometry.Size(canvasSize.width / factor, canvasSize.height / factor)
-        drawBackdrop(type, 12f, Offset.Zero, palette, drawing)
-      } finally {
-        drawContext.size = canvasSize
-      }
-    }
+    // Each renderer already uses its own canvas dimensions. Avoid a fake phone-sized
+    // canvas that crops artwork and creates empty bands inside the connected tile.
+    drawBackdrop(type, 12f, Offset.Zero, palette, drawing)
   }
 }
 
