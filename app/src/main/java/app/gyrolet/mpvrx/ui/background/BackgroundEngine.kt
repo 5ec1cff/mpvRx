@@ -30,6 +30,7 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /* ------------------------------------------------------------------------------------------
  * Shared plumbing for every backdrop.
@@ -70,8 +71,9 @@ private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f
 
 /**
  * Seconds since this backdrop appeared. Read only from drawing, and advance with the display's
- * frame clock so 60/90/120 Hz panels all have evenly paced motion. Hidden or paused surfaces do
- * not request frames. Reset the frame anchor on resume, keeping the artwork's current position.
+ * frame clock while limiting background redraws to approximately 30 Hz to save GPU and battery.
+ * Hidden or paused surfaces do not request frames. Reset the frame anchor on resume while keeping
+ * the artwork's current position.
  */
 @Composable
 internal fun rememberBackdropClock(running: Boolean = true): State<Float> {
@@ -81,16 +83,19 @@ internal fun rememberBackdropClock(running: Boolean = true): State<Float> {
     if (!running) return@LaunchedEffect
     lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
       var last = -1L
+      var elapsed = 0f
       while (true) {
         androidx.compose.runtime.withFrameNanos { now ->
-          if (last < 0L) {
-            last = now
-          } else {
-            // Clamp the step so a stall (dialog, doze) does not teleport particles
-            val dt = ((now - last) / 1_000_000_000f).coerceAtMost(0.1f)
-            clock.floatValue += dt
-            last = now
+          if (last >= 0L) {
+            // Coalesce display refreshes instead of invalidating a full-screen canvas at 120 Hz.
+            // Keep the real elapsed time so motion stays the same on 60/90/120 Hz panels.
+            elapsed += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            if (elapsed >= 1f / 30f) {
+              clock.floatValue += elapsed
+              elapsed = 0f
+            }
           }
+          last = now
         }
       }
     }
@@ -156,6 +161,10 @@ internal fun rememberTilt(enabled: Boolean): State<Offset> {
         }
       }
     lifecycle.lifecycle.addObserver(observer)
+    // The picker is usually opened while already resumed, without another ON_RESUME event.
+    if (lifecycle.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) && sensor != null) {
+      manager?.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_UI)
+    }
 
     onDispose {
       lifecycle.lifecycle.removeObserver(observer)
@@ -238,6 +247,14 @@ internal fun DrawScope.drawBackdrop(
 /* ------------------------------------------------------------------ helpers ---------------- */
 
 internal const val TAU = (2.0 * PI).toFloat()
+
+/** Screen-area-aware particle budget shared by all effects (including their compact previews). */
+internal fun DrawScope.backdropCount(base: Int, minimum: Int = 4, maximum: Int = base * 2): Int {
+  val referenceArea = 360.dp.toPx() * 720.dp.toPx()
+  val fraction = sqrt((size.width * size.height / referenceArea).coerceAtLeast(0f))
+    .coerceIn(0.55f, 1.35f)
+  return (base * fraction).toInt().coerceIn(minimum, maximum.coerceAtLeast(minimum))
+}
 
 /** Fraction part, always in 0..1 (also for negatives). */
 internal fun fract(x: Float): Float = x - floor(x)
