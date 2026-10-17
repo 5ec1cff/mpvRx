@@ -30,7 +30,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -67,6 +66,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
+import app.gyrolet.mpvrx.ui.preferences.SettingsTopAppBar
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -134,21 +134,14 @@ fun BackgroundPickerDialog(onDismiss: () -> Unit) {
       Column(
         modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars).widthIn(max = 760.dp).fillMaxSize(),
       ) {
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Text(
-            text = stringResource(R.string.bg_picker_title),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.weight(1f).semantics { heading() },
-          )
-          IconButton(onClick = onDismiss) {
-            Icon(MaterialSymbols.RoundedFilled.Close, contentDescription = stringResource(R.string.bg_close))
-          }
-        }
+        // Use the exact same header component as the Change Icon settings screen.
+        // System-bar padding is already handled by the fullscreen dialog's parent.
+        SettingsTopAppBar(
+          title = stringResource(R.string.bg_picker_title),
+          onBack = onDismiss,
+          onClose = onDismiss,
+          windowInsets = WindowInsets(0, 0, 0, 0),
+        )
         LazyColumn(
           state = listState,
           contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
