@@ -41,6 +41,9 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -62,6 +65,7 @@ fun LiquidToggle(
     )
     val currentSelected = rememberUpdatedState(selected)
     val currentOnSelect = rememberUpdatedState(onSelect)
+    val reduceMotion = AppMotion.shouldReduceMotion()
 
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
@@ -69,24 +73,28 @@ fun LiquidToggle(
     val animationScope = rememberCoroutineScope()
     var didDrag by remember { mutableStateOf(false) }
     var fraction by remember { mutableFloatStateOf(if (selected()) 1f else 0f) }
-    val dampedDragAnimation = remember(animationScope, enabled, isLtr, dragWidth) {
+    val dampedDragAnimation = remember(animationScope, enabled, isLtr, dragWidth, reduceMotion) {
         DampedDragAnimation(
             animationScope = animationScope,
             initialValue = fraction,
             valueRange = 0f..1f,
             visibilityThreshold = 0.001f,
             initialScale = 1f,
-            pressedScale = 1.5f,
+            pressedScale = if (reduceMotion) 1f else 1.5f,
             onDragStarted = {},
             onDragStopped = {
                 if (!enabled) return@DampedDragAnimation
                 if (didDrag) {
-                    fraction = if (targetValue >= 0.5f) 1f else 0f
-                    currentOnSelect.value(fraction == 1f)
+                    val target = if (fraction >= 0.5f) 1f else 0f
+                    fraction = target
+                    currentOnSelect.value(target == 1f)
+                    animateToValue(target)
                     didDrag = false
                 } else {
-                    fraction = if (currentSelected.value()) 0f else 1f
-                    currentOnSelect.value(fraction == 1f)
+                    val target = if (currentSelected.value()) 0f else 1f
+                    fraction = target
+                    currentOnSelect.value(target == 1f)
+                    animateToValue(target)
                 }
             },
             onDrag = { _, dragAmount ->
@@ -95,20 +103,16 @@ fun LiquidToggle(
                     didDrag = dragAmount.x != 0f
                 }
                 val delta = dragAmount.x / dragWidth
-                fraction =
+                val newFraction =
                     if (isLtr) (fraction + delta).fastCoerceIn(0f, 1f)
                     else (fraction - delta).fastCoerceIn(0f, 1f)
+                fraction = newFraction
+                snapToValue(newFraction)
             }
         )
     }
-    LaunchedEffect(dampedDragAnimation) {
-        snapshotFlow { fraction }
-            .collectLatest { frac ->
-                dampedDragAnimation.updateValue(frac)
-            }
-    }
-    LaunchedEffect(selected) {
-        snapshotFlow { selected() }
+    LaunchedEffect(Unit) {
+        snapshotFlow { currentSelected.value() }
             .collectLatest { isSelected ->
                 val target = if (isSelected) 1f else 0f
                 if (target != fraction) {
@@ -135,6 +139,13 @@ fun LiquidToggle(
                 .size(64f.dp, 28f.dp)
         )
 
+        val toggleShadow = remember {
+            Shadow(
+                radius = 4f.dp,
+                color = Color.Black.copy(alpha = 0.05f)
+            )
+        }
+
         Box(
             Modifier
                 .graphicsLayer {
@@ -146,6 +157,7 @@ fun LiquidToggle(
                 }
                 .semantics {
                     role = Role.Switch
+                    toggleableState = ToggleableState(selected())
                 }
                 .then(if (isInteractive && enabled) dampedDragAnimation.modifier else Modifier)
                 .drawBackdrop(
@@ -178,12 +190,7 @@ fun LiquidToggle(
                             alpha = progress
                         ))
                     },
-                    shadow = {
-                        Shadow(
-                            radius = 4f.dp,
-                            color = Color.Black.copy(alpha = 0.05f)
-                        )
-                    },
+                    shadow = { toggleShadow },
                     innerShadow = {
                         val progress = dampedDragAnimation.pressProgress
                         InnerShadow(

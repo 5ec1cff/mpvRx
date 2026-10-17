@@ -79,6 +79,9 @@ fun LiquidButton(
     remember(animationScope) {
       InteractiveHighlight(animationScope = animationScope)
     }
+  val rememberedHighlight = remember(glassSettings) { glassSettings.highlight(Highlight.Default) }
+  val rememberedShadow = remember { Shadow(radius = 6.dp) }
+  val rememberedInnerShadow = remember { InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f)) }
   // Read animated state in the layer phase, not composition. The same controller survives
   // SDR/HDR renderer changes, so pressing/dragging a button never changes its interaction model.
   //
@@ -125,9 +128,9 @@ fun LiquidButton(
             refractionEnabled = !reducedMotion,
           )
         },
-        highlight = { glassSettings.highlight(Highlight.Default) },
-        shadow = { Shadow(radius = 6.dp) },
-        innerShadow = { InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.18f)) },
+        highlight = { rememberedHighlight },
+        shadow = { rememberedShadow },
+        innerShadow = { rememberedInnerShadow },
         layerBlock = if (animatePress) pressTransform else null,
         onDrawSurface = {
           // The backdrop API samples a rectangular offscreen layer, but the visible

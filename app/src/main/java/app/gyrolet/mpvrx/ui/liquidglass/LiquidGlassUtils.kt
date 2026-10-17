@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
 
 val LocalKyantPlayerBackdrop = staticCompositionLocalOf<Backdrop?> { null }
@@ -122,14 +124,20 @@ fun rememberLiquidGlassSettings(): LiquidGlassSettings {
     fun Float.bounded(default: Float, range: ClosedFloatingPointRange<Float> = 0f..2f): Float =
         if (isFinite()) coerceIn(range) else default
 
-    return LiquidGlassSettings(
-        opacity.bounded(1f, 0f..1f), blur.bounded(1f),
-        refractionHeight.bounded(1f), refractionAmount.bounded(1f),
-        depthEffect, chromaticAberration, vibrancy,
-        saturation.bounded(1f), brightness.bounded(0f, -1f..1f), contrast.bounded(1f),
-        highlightStyle, highlightStrength.bounded(1f), highlightWidth.bounded(1f), highlightBlur.bounded(1f),
-        allowRefraction = !hdrVideoOutput,
-    )
+    return remember(
+        opacity, blur, refractionHeight, refractionAmount, depthEffect,
+        chromaticAberration, vibrancy, saturation, brightness, contrast,
+        highlightStyle, highlightStrength, highlightWidth, highlightBlur, hdrVideoOutput
+    ) {
+        LiquidGlassSettings(
+            opacity.bounded(1f, 0f..1f), blur.bounded(1f),
+            refractionHeight.bounded(1f), refractionAmount.bounded(1f),
+            depthEffect, chromaticAberration, vibrancy,
+            saturation.bounded(1f), brightness.bounded(0f, -1f..1f), contrast.bounded(1f),
+            highlightStyle, highlightStrength.bounded(1f), highlightWidth.bounded(1f), highlightBlur.bounded(1f),
+            allowRefraction = !hdrVideoOutput,
+        )
+    }
 }
 
 fun BackdropEffectScope.liquidGlassEffects(
@@ -169,16 +177,25 @@ suspend fun PointerInputScope.inspectDragGestures(
         val down = awaitFirstDown()
         onDragStart(down)
         var pointer = down.id
-        while (true) {
-            val event = awaitPointerEvent()
-            val anyPressed = event.changes.any { it.pressed }
-            if (!anyPressed) {
-                onDragEnd()
-                break
+        try {
+            while (true) {
+                val event = awaitPointerEvent()
+                val anyPressed = event.changes.any { it.pressed }
+                if (!anyPressed) {
+                    onDragEnd()
+                    break
+                }
+                val change = event.changes.firstOrNull { it.id == pointer } ?: event.changes.first()
+                if (change.isConsumed) {
+                    onDragCancel()
+                    break
+                }
+                pointer = change.id
+                onDrag(change, change.position - change.previousPosition)
             }
-            val change = event.changes.firstOrNull { it.id == pointer } ?: event.changes.first()
-            pointer = change.id
-            onDrag(change, change.position - change.previousPosition)
+        } catch (c: kotlinx.coroutines.CancellationException) {
+            onDragCancel()
+            throw c
         }
     }
 }
@@ -255,9 +272,11 @@ class DampedDragAnimation(
             awaitFrame()
             if (value != targetValue) {
                 val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
-                snapshotFlow { valueAnimation.value }
-                    .filter { abs(it - valueAnimation.targetValue) < threshold }
-                    .first()
+                withTimeoutOrNull(600L) {
+                    snapshotFlow { valueAnimation.value }
+                        .filter { abs(it - valueAnimation.targetValue) < threshold }
+                        .first()
+                }
             }
             launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }

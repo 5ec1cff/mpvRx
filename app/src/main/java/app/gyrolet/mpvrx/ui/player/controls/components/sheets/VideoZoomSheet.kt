@@ -262,7 +262,7 @@ private fun ZoomOverlaySwitch(
 ) {
   Row(
     modifier = Modifier.fillMaxWidth()
-      .background(animatedPlayerSheetSelectionColor(checked), MaterialTheme.shapes.medium)
+      .animatedPlayerSheetBackground(checked, MaterialTheme.shapes.medium)
       .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
       .padding(horizontal = 12.dp, vertical = 10.dp),
     verticalAlignment = Alignment.CenterVertically,

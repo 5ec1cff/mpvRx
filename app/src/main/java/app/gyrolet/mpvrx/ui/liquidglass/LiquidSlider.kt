@@ -231,17 +231,12 @@ fun LiquidSlider(
       },
     )
     // A translucent themed film keeps both the accent and the refracted content visible.
-    val film = androidx.compose.ui.graphics.lerp(
+    val baseFilm = androidx.compose.ui.graphics.lerp(
       MaterialTheme.colorScheme.surfaceContainerHigh,
       accentColor,
       0.18f,
-    ).copy(alpha = if (enabled) 0.72f - 0.28f * animation.pressProgress else 0.32f)
-    // The idle thumb stays white; pressing it reveals the existing themed glass film.
-    val thumbFilm = androidx.compose.ui.graphics.lerp(
-      Color.White,
-      film,
-      animation.pressProgress.coerceIn(0f, 1f),
     )
+    val thumbShadow = remember { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) }
     val thumbModifier = Modifier.drawBackdrop(
           backdrop = combinedBackdrop,
           shape = { Capsule() },
@@ -263,7 +258,7 @@ fun LiquidSlider(
               alpha = progress,
             ))
           },
-          shadow = { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) },
+          shadow = { thumbShadow },
           innerShadow = {
             val progress = animation.pressProgress
             InnerShadow(radius = 4.dp * progress, alpha = progress)
@@ -275,7 +270,16 @@ fun LiquidSlider(
             scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
             scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
           },
-          onDrawSurface = { drawRect(settings.surfaceColor(thumbFilm)) },
+          onDrawSurface = {
+            val progress = animation.pressProgress
+            val film = baseFilm.copy(alpha = if (enabled) 0.72f - 0.28f * progress else 0.32f)
+            val thumbFilm = androidx.compose.ui.graphics.lerp(
+              Color.White,
+              film,
+              progress.coerceIn(0f, 1f),
+            )
+            drawRect(settings.surfaceColor(thumbFilm))
+          },
         )
     Box(
       Modifier.graphicsLayer {

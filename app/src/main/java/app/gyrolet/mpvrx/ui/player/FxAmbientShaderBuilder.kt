@@ -222,8 +222,8 @@ mediump vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 inv_s
     // Euclidean distance into the bar region.
     highp float d = length(vec2(dx, dy));
 
-    // Which axis dominates: pillarbox (dx >= dy) uses bx, letterbox uses by.
-    highp float thick = dx >= dy ? bx : by;
+    // Continuous dominant bar thickness: eliminates diagonal corner cutoffs and blackouts.
+    highp float thick = max(max(bx, by), 0.05);
 
     // Normalised depth: 0 at the video edge, 1 at the nominal reach boundary.
     highp float dn = clamp(d / (thick * ${f(reachScale)}), 0.0, 1.0);

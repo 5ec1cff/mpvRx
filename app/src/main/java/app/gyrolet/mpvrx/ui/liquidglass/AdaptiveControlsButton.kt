@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import com.kyant.shapes.Capsule
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +92,7 @@ fun AdaptiveControlsButton(
         contentDescription = title ?: text,
         tint = LocalContentColor.current,
         modifier = Modifier.size(PlayerLiquidTokens.IconSize),
-        reduceMotion = AppMotion.playerReducedMotion(),
+        reduceMotion = AppMotion.shouldReduceMotion(),
       )
     }
     if (text != null) {
@@ -139,11 +140,12 @@ fun AdaptiveControlsContainer(
   val contentTint =
     if (enabled) resolvedTint else resolvedTint.copy(alpha = resolvedTint.alpha * PlayerButtonAlpha.DISABLED_CONTENT)
   val renderLiquidGlass = liquidGlassEnabled && useGlass && !hideBackground
+  val buttonShape = if (horizontalPadding != null && horizontalPadding > 0.dp) Capsule() else CircleShape
   val controlModifier =
     modifier
       // LiquidButton already clips its glass to the capsule. Clipping again here, over the larger
       // minimum touch target, would cut its drop shadow into a hard-edged halo.
-      .tvFocusHighlight(CircleShape, isInteractive && enabled, clipToShape = !renderLiquidGlass)
+      .tvFocusHighlight(buttonShape, isInteractive && enabled, clipToShape = !renderLiquidGlass)
       .then(if (isInteractive) Modifier.minimumInteractiveComponentSize() else Modifier)
 
   if (renderLiquidGlass) {
