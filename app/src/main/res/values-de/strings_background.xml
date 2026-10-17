@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">Hintergrundanimation</string>
+  <string name="bg_picker_title">Hintergrundanimation</string>
+  <string name="bg_picker_description">Die Animation, die hinter den Bildschirmen der App läuft</string>
+  <string name="bg_close">Schließen</string>
+  <string name="bg_circles">Kreise</string>
+  <string name="bg_rings">Ringe</string>
+  <string name="bg_space">Weltraum</string>
+  <string name="bg_shapes">Formen</string>
+  <string name="bg_snow">Schnee</string>
+  <string name="bg_grid">Raster</string>
+  <string name="bg_particles">Partikel</string>
+  <string name="bg_lava">Lavalampe</string>
+  <string name="bg_aurora">Aurora</string>
+  <string name="bg_fireflies">Glühwürmchen</string>
+  <string name="bg_rain">Regen</string>
+  <string name="bg_bokeh">Bokeh</string>
+  <string name="bg_sakura">Kirschblüten</string>
+  <string name="bg_constellation">Sternbild</string>
+  <string name="bg_bubbles">Blasen</string>
+  <string name="bg_none">Keine</string>
+  <string name="bg_random">Zufall</string>
+  <string name="bg_halloween">Halloween</string>
+  <string name="bg_fireworks">Feuerwerk</string>
+  <string name="bg_winter">Winterlichter</string>
+  <string name="bg_diwali">Diwali</string>
+  <string name="bg_holi">Holi</string>
+  <string name="bg_interval_launch">Bei jedem Start</string>
+  <string name="bg_interval_daily">Täglich</string>
+  <string name="bg_interval_3_days">Alle 3 Tage</string>
+  <string name="bg_parallax_title">Parallaxeneffekt</string>
+  <string name="bg_parallax_summary">Der Hintergrund verschiebt sich sanft, wenn das Gerät geneigt wird</string>
+  <string name="bg_over_wallpaper_title">Über dem Hintergrundbild anzeigen</string>
+  <string name="bg_over_wallpaper_summary">Die Animation läuft über deinem eigenen Hintergrundbild</string>
+  <string name="bg_seasonal_title">Saisonale Themes</string>
+  <string name="bg_seasonal_summary">Festliche Hintergründe und Grüße an Feiertagen</string>
+  <string name="bg_seasonal_notice">Für das aktuelle Fest läuft der Hintergrund „%1$s“. Deaktiviere saisonale Themes, um deine Auswahl zu sehen.</string>
+  <string name="bg_greeting_diwali">Frohes Diwali ✨</string>
+  <string name="bg_greeting_holi">Frohes Holi 🎨</string>
+  <string name="bg_greeting_halloween">Frohes Halloween 🎃</string>
+  <string name="bg_greeting_new_year">Frohes neues Jahr 🎆</string>
+  <string name="bg_greeting_winter">Frohe Feiertage ❄️</string>
+</resources>

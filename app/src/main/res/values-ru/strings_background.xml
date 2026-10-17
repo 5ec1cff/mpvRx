@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">Анимация фона</string>
+  <string name="bg_picker_title">Анимация фона</string>
+  <string name="bg_picker_description">Анимация, которая воспроизводится за экранами приложения</string>
+  <string name="bg_close">Закрыть</string>
+  <string name="bg_circles">Круги</string>
+  <string name="bg_rings">Кольца</string>
+  <string name="bg_space">Космос</string>
+  <string name="bg_shapes">Фигуры</string>
+  <string name="bg_snow">Снег</string>
+  <string name="bg_grid">Сетка</string>
+  <string name="bg_particles">Частицы</string>
+  <string name="bg_lava">Лава-лампа</string>
+  <string name="bg_aurora">Северное сияние</string>
+  <string name="bg_fireflies">Светлячки</string>
+  <string name="bg_rain">Дождь</string>
+  <string name="bg_bokeh">Боке</string>
+  <string name="bg_sakura">Сакура</string>
+  <string name="bg_constellation">Созвездие</string>
+  <string name="bg_bubbles">Пузыри</string>
+  <string name="bg_none">Нет</string>
+  <string name="bg_random">Случайно</string>
+  <string name="bg_halloween">Хэллоуин</string>
+  <string name="bg_fireworks">Фейерверк</string>
+  <string name="bg_winter">Зимние огни</string>
+  <string name="bg_diwali">Дивали</string>
+  <string name="bg_holi">Холи</string>
+  <string name="bg_interval_launch">При каждом запуске</string>
+  <string name="bg_interval_daily">Ежедневно</string>
+  <string name="bg_interval_3_days">Каждые 3 дня</string>
+  <string name="bg_parallax_title">Эффект параллакса</string>
+  <string name="bg_parallax_summary">Фон плавно смещается при наклоне устройства</string>
+  <string name="bg_over_wallpaper_title">Показывать поверх обоев</string>
+  <string name="bg_over_wallpaper_summary">Анимация будет воспроизводиться поверх ваших обоев</string>
+  <string name="bg_seasonal_title">Сезонные темы</string>
+  <string name="bg_seasonal_summary">Праздничные фоны и поздравления в праздники</string>
+  <string name="bg_seasonal_notice">Сейчас для праздника показывается фон «%1$s». Отключите сезонные темы, чтобы увидеть свой выбор.</string>
+  <string name="bg_greeting_diwali">С Дивали ✨</string>
+  <string name="bg_greeting_holi">С Холи 🎨</string>
+  <string name="bg_greeting_halloween">Счастливого Хэллоуина 🎃</string>
+  <string name="bg_greeting_new_year">С Новым годом 🎆</string>
+  <string name="bg_greeting_winter">С праздниками ❄️</string>
+</resources>

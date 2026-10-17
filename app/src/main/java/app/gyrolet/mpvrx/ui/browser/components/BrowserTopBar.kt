@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import app.gyrolet.mpvrx.ui.background.rememberSeasonalGreeting
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -236,6 +237,7 @@ private fun NormalTopBar(
   val darkTheme = isSystemInDarkTheme()
   val themeTransition = LocalThemeTransitionState.current
   val coroutineScope = rememberCoroutineScope()
+  val seasonalGreeting = rememberSeasonalGreeting()
 
   // Track title bounds for animation position
   val titleBounds = remember { mutableStateOf(Rect.Zero) }
@@ -365,6 +367,16 @@ private fun NormalTopBar(
             overflow = TextOverflow.Ellipsis,
             modifier = titleModifier.weight(1f, fill = false),
           )
+          if (seasonalGreeting != null && onBackClick == null) {
+            Text(
+              text = stringResource(seasonalGreeting),
+              style = MaterialTheme.typography.labelLarge,
+              color = MaterialTheme.colorScheme.tertiary.onWallpaper(),
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.padding(start = 10.dp),
+            )
+          }
           if (titleTrailing != null) {
             titleTrailing()
           }

@@ -44,6 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.background.AnimatedBackground
+import app.gyrolet.mpvrx.ui.background.BackdropGate
+import app.gyrolet.mpvrx.ui.background.BackgroundType
+import app.gyrolet.mpvrx.ui.background.rememberActiveBackground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
@@ -113,6 +117,11 @@ fun AppWallpaperHost(content: @Composable () -> Unit) {
     }
   }
   val wallpaperActive = wallpaper != null
+  // Animated backdrop: drawn over the wallpaper only when the user allows it, and screens go
+  // transparent for it exactly as they do for a wallpaper.
+  val activeBackground = rememberActiveBackground()
+  val animationShown =
+    activeBackground.type != BackgroundType.NONE && (!wallpaperActive || activeBackground.overWallpaper)
   val isLightTheme = MaterialTheme.colorScheme.background.luminance() >= 0.5f
   val wallpaperLuminance =
     produceState(initialValue = 0.4f, wallpaper) {
@@ -143,8 +152,17 @@ fun AppWallpaperHost(content: @Composable () -> Unit) {
         )
       }
     }
+    if (animationShown) {
+      Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
+        AnimatedBackground(
+          type = activeBackground.type,
+          parallax = activeBackground.parallax,
+          paused = BackdropGate.covers > 0,
+        )
+      }
+    }
     CompositionLocalProvider(
-      LocalAppWallpaperActive provides wallpaperActive,
+      LocalAppWallpaperActive provides (wallpaperActive || animationShown),
       LocalLightTextOnWallpaper provides lightTextOnWallpaper,
     ) {
       Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {

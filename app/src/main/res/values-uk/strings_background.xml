@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">Анімація фону</string>
+  <string name="bg_picker_title">Анімація фону</string>
+  <string name="bg_picker_description">Анімація, яка відтворюється за екранами застосунку</string>
+  <string name="bg_close">Закрити</string>
+  <string name="bg_circles">Кола</string>
+  <string name="bg_rings">Кільця</string>
+  <string name="bg_space">Космос</string>
+  <string name="bg_shapes">Фігури</string>
+  <string name="bg_snow">Сніг</string>
+  <string name="bg_grid">Сітка</string>
+  <string name="bg_particles">Частинки</string>
+  <string name="bg_lava">Лава-лампа</string>
+  <string name="bg_aurora">Північне сяйво</string>
+  <string name="bg_fireflies">Світлячки</string>
+  <string name="bg_rain">Дощ</string>
+  <string name="bg_bokeh">Боке</string>
+  <string name="bg_sakura">Сакура</string>
+  <string name="bg_constellation">Сузір’я</string>
+  <string name="bg_bubbles">Бульбашки</string>
+  <string name="bg_none">Немає</string>
+  <string name="bg_random">Випадково</string>
+  <string name="bg_halloween">Гелловін</string>
+  <string name="bg_fireworks">Феєрверк</string>
+  <string name="bg_winter">Зимові вогні</string>
+  <string name="bg_diwali">Дівалі</string>
+  <string name="bg_holi">Голі</string>
+  <string name="bg_interval_launch">Під час кожного запуску</string>
+  <string name="bg_interval_daily">Щодня</string>
+  <string name="bg_interval_3_days">Кожні 3 дні</string>
+  <string name="bg_parallax_title">Ефект паралаксу</string>
+  <string name="bg_parallax_summary">Фон плавно зміщується, коли нахиляєте пристрій</string>
+  <string name="bg_over_wallpaper_title">Показувати поверх шпалер</string>
+  <string name="bg_over_wallpaper_summary">Анімація відтворюватиметься поверх ваших шпалер</string>
+  <string name="bg_seasonal_title">Сезонні теми</string>
+  <string name="bg_seasonal_summary">Святкові фони та привітання під час свят</string>
+  <string name="bg_seasonal_notice">Зараз для свята показується фон «%1$s». Вимкніть сезонні теми, щоб побачити свій вибір.</string>
+  <string name="bg_greeting_diwali">З Дівалі ✨</string>
+  <string name="bg_greeting_holi">З Голі 🎨</string>
+  <string name="bg_greeting_halloween">Щасливого Гелловіну 🎃</string>
+  <string name="bg_greeting_new_year">З Новим роком 🎆</string>
+  <string name="bg_greeting_winter">З нагоди свят ❄️</string>
+</resources>
