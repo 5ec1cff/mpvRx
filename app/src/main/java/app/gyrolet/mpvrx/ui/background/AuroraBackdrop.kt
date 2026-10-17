@@ -27,7 +27,7 @@ internal fun DrawScope.drawAurora(t: Float, tilt: Offset, p: BackdropPalette, pa
     val centerY = h * (0.24f + ribbon * 0.13f) + shift.y
     val amplitude = h * (0.07f + 0.025f * sin(phase * 0.7f))
     path.rewind()
-    val steps = 40
+    val steps = 32
     for (step in 0..steps) {
       val x = w * (-0.12f + 1.24f * step / steps) + shift.x
       val u = step.toFloat() / steps
@@ -44,12 +44,12 @@ internal fun DrawScope.drawAurora(t: Float, tilt: Offset, p: BackdropPalette, pa
       startX = 0f,
       endX = w,
     )
-    // Broad translucent curtain, narrow light core: no blur pass or shader dependency.
-    drawPath(path, brush, style = Stroke(width = (28f + ribbon * 7f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.20f)
-    drawPath(path, brush, style = Stroke(width = (10f + ribbon * 3f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.38f)
+    // Soft translucent curtains with a readable, narrow core; still no blur pass.
+    drawPath(path, brush, style = Stroke(width = (32f + ribbon * 7f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.32f)
+    drawPath(path, brush, style = Stroke(width = (12f + ribbon * 3f).dp.toPx(), cap = StrokeCap.Round), alpha = 0.62f)
     drawPath(path, brush, style = Stroke(width = (2.5f + ribbon).dp.toPx(), cap = StrokeCap.Round))
   }
-  for (i in 0 until 26) {
+  for (i in 0 until backdropCount(26, minimum = 15, maximum = 34)) {
     val center = Offset(w * hash01(i, 31), h * hash01(i, 32)) + shift * (0.25f + 0.35f * hash01(i, 33))
     val pulse = wave01(t * (0.4f + hash01(i, 34) * 0.5f) + hash01(i, 35) * TAU)
     drawCircle(p.ink.copy(alpha = 0.12f + 0.34f * pulse), radius = (0.6f + hash01(i, 36)).dp.toPx(), center = center)
