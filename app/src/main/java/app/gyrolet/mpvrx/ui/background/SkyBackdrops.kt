@@ -34,7 +34,7 @@ internal fun DrawScope.drawSpace(t: Float, tilt: Offset, p: BackdropPalette) {
     center = n2,
   )
 
-  for (i in 0 until 112) {
+  for (i in 0 until backdropCount(112, minimum = 58, maximum = 152)) {
     val layer = i % 3 // 0 far, 2 near
     val depth = (layer + 1) / 3f
     val fx = fract(hash01(i, 1) + t * 0.0016f * (layer + 1))
@@ -84,7 +84,7 @@ private fun mote(i: Int, u: Float, w: Float, h: Float): Offset {
 internal fun DrawScope.drawParticles(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
-  for (i in 0 until 38) {
+  for (i in 0 until backdropCount(38, minimum = 22, maximum = 52)) {
     val depth = 0.35f + 0.65f * hash01(i, 6)
     val u = fract(hash01(i, 1) + t * (0.012f + 0.024f * hash01(i, 2)))
     val head = mote(i, u, w, h) + Offset(tilt.x * 24.dp.toPx() * depth, tilt.y * 24.dp.toPx() * depth)
@@ -94,9 +94,20 @@ internal fun DrawScope.drawParticles(t: Float, tilt: Offset, p: BackdropPalette)
     val r = (1.1f + 1.8f * depth).dp.toPx()
     // The tail grows from zero at birth; avoid a zero-length gradient at the wrap seam.
     if (u > 0.001f) {
+      // Lightweight dual-stroke trail instead of a separate gradient shader per mote.
       drawLine(
-        Brush.linearGradient(listOf(Color.Transparent, color.copy(alpha = 0.34f * life)), start = tail, end = head),
-        tail, head, strokeWidth = r, cap = StrokeCap.Round,
+        color = color.copy(alpha = 0.12f * life),
+        start = tail,
+        end = head,
+        strokeWidth = r * 1.55f,
+        cap = StrokeCap.Round,
+      )
+      drawLine(
+        color = color.copy(alpha = 0.32f * life),
+        start = tail + (head - tail) * 0.55f,
+        end = head,
+        strokeWidth = r * 0.78f,
+        cap = StrokeCap.Round,
       )
     }
     drawCircle(color.copy(alpha = 0.10f * life), radius = r * 4.5f, center = head)
@@ -108,8 +119,9 @@ internal fun DrawScope.drawParticles(t: Float, tilt: Offset, p: BackdropPalette)
 internal fun DrawScope.drawConstellation(t: Float, tilt: Offset, p: BackdropPalette, drawing: BackdropDrawingState) {
   val w = size.width
   val h = size.height
-  val count = CONSTELLATION_STARS
-  val reach = min(w, h) * 0.30f
+  // The working buffers have a fixed maximum; previews only need a subset.
+  val count = backdropCount(CONSTELLATION_STARS, minimum = 18, maximum = CONSTELLATION_STARS)
+  val reach = min(w, h) * 0.28f
   val xs = drawing.starX
   val ys = drawing.starY
   val vis = drawing.starVisibility
