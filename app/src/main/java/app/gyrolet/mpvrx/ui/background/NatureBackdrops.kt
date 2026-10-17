@@ -123,7 +123,7 @@ internal fun DrawScope.drawRain(t: Float, tilt: Offset, p: BackdropPalette) {
   val h = size.height
   val tint = lerp(p.ink, p.secondary, 0.35f)
   val slant = 0.16f + 0.04f * sin(t * 0.16f) + tilt.x * 0.06f
-  for (i in 0 until 72) {
+  for (i in 0 until backdropCount(72, minimum = 34, maximum = 100)) {
     val depth = (i % 3 + 1) / 3f
     val len = (16f + 26f * depth).dp.toPx()
     val u = fract(hash01(i, 1) + t * (0.30f + 0.42f * depth))
@@ -134,16 +134,18 @@ internal fun DrawScope.drawRain(t: Float, tilt: Offset, p: BackdropPalette) {
     val head = Offset(x, y)
     val tail = Offset(x - len * slant, y - len)
     val a = (0.08f + 0.20f * depth) * smoothstep(0f, 0.05f, u) * smoothstep(1f, 0.95f, u)
+    // A soft, thin streak is cheaper than allocating a new linear-gradient shader for
+    // each individual drop on every frame.
     drawLine(
-      Brush.linearGradient(listOf(Color.Transparent, tint.copy(alpha = a)), start = tail, end = head),
+      color = tint.copy(alpha = a),
       start = tail,
       end = head,
-      strokeWidth = (0.7f + 0.8f * depth).dp.toPx(),
+      strokeWidth = (0.65f + 0.75f * depth).dp.toPx(),
       cap = StrokeCap.Round,
     )
   }
   // Ripples: each slot has a fixed spot, re-rolled after every cycle
-  for (i in 0 until 12) {
+  for (i in 0 until backdropCount(12, minimum = 5, maximum = 15)) {
     val cyc = t * 0.45f + hash01(i, 7) * 3f
     val ph = fract(cyc)
     val seed = i + kotlin.math.floor(cyc).toInt() * 31
@@ -174,7 +176,7 @@ internal fun DrawScope.drawSakura(t: Float, tilt: Offset, p: BackdropPalette) {
   val h = size.height
   val pink = lerp(Color(0xFFF6A5C0), p.tertiary, 0.2f)
   val deep = lerp(Color(0xFFE0668F), p.primary, 0.2f)
-  for (i in 0 until 28) {
+  for (i in 0 until backdropCount(28, minimum = 16, maximum = 40)) {
     val depth = 0.45f + 0.55f * hash01(i, 6)
     val u = fract(hash01(i, 1) + t * (0.017f + 0.022f * hash01(i, 2)))
     val x = w * (hash01(i, 3) * 0.9f - 0.1f) + u * w * 0.22f + (sin(u * TAU * 1.6f + i) * 26.dp.toPx() + sin(t * 0.16f) * 12.dp.toPx()) * depth + tilt.x * 24.dp.toPx() * depth
@@ -199,7 +201,7 @@ internal fun DrawScope.drawFireflies(t: Float, tilt: Offset, p: BackdropPalette)
   val w = size.width
   val h = size.height
   val glow = lerp(Color(0xFFD8F36A), p.secondary, 0.15f)
-  for (i in 0 until 30) {
+  for (i in 0 until backdropCount(30, minimum = 18, maximum = 40)) {
     val depth = 0.4f + 0.6f * hash01(i, 8)
     val x = w * (0.06f + 0.88f * hash01(i, 1)) + sin(t * (0.17f + 0.2f * hash01(i, 2)) + i) * 44.dp.toPx() + sin(t * (0.41f + 0.2f * hash01(i, 3)) + i * 2f) * 20.dp.toPx() + tilt.x * 24.dp.toPx() * depth
     val y = h * (0.10f + 0.80f * hash01(i, 4)) + cos(t * (0.14f + 0.2f * hash01(i, 5)) + i * 1.4f) * 40.dp.toPx() + sin(t * 0.37f + i) * 16.dp.toPx() + tilt.y * 24.dp.toPx() * depth
@@ -208,12 +210,11 @@ internal fun DrawScope.drawFireflies(t: Float, tilt: Offset, p: BackdropPalette)
     val warmth = lerp(glow, p.tertiary, 0.18f * hash01(i, 9))
     val c = Offset(x, y)
     val r = (10f + 12f * depth).dp.toPx()
-    drawCircle(
-      brush = Brush.radialGradient(listOf(warmth.copy(alpha = 0.38f * blink), warmth.copy(alpha = 0.08f * blink), Color.Transparent), center = c, radius = r),
-      radius = r,
-      center = c,
-    )
-    drawCircle(warmth.copy(alpha = 0.12f + 0.72f * blink), radius = (1.2f + 0.8f * depth).dp.toPx(), center = c)
+    // Three concentric glows approximate the soft firefly bloom without compiling a
+    // distinct radial-gradient shader for every light on every frame.
+    drawCircle(warmth.copy(alpha = 0.055f * blink), radius = r, center = c)
+    drawCircle(warmth.copy(alpha = 0.14f * blink), radius = r * 0.36f, center = c)
+    drawCircle(warmth.copy(alpha = 0.14f + 0.72f * blink), radius = (1.2f + 0.8f * depth).dp.toPx(), center = c)
   }
 }
 
@@ -222,7 +223,7 @@ internal fun DrawScope.drawBubbles(t: Float, tilt: Offset, p: BackdropPalette) {
   val w = size.width
   val h = size.height
   val base = min(w, h)
-  for (i in 0 until 20) {
+  for (i in 0 until backdropCount(20, minimum = 12, maximum = 28)) {
     val depth = 0.35f + 0.65f * hash01(i, 6)
     val u = fract(hash01(i, 1) + t * (0.018f + 0.03f * hash01(i, 2)))
     val x = w * (0.04f + 0.92f * hash01(i, 3)) + sin(u * TAU * 3f + i) * 18.dp.toPx() * depth + tilt.x * 26.dp.toPx() * depth
