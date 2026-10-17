@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">حركة الخلفية</string>
+  <string name="bg_picker_title">حركة الخلفية</string>
+  <string name="bg_picker_description">الحركة التي تُعرض خلف شاشات التطبيق</string>
+  <string name="bg_close">إغلاق</string>
+  <string name="bg_circles">دوائر</string>
+  <string name="bg_rings">حلقات</string>
+  <string name="bg_space">الفضاء</string>
+  <string name="bg_shapes">أشكال</string>
+  <string name="bg_snow">ثلج</string>
+  <string name="bg_grid">شبكة</string>
+  <string name="bg_particles">جسيمات</string>
+  <string name="bg_lava">مصباح الحمم</string>
+  <string name="bg_aurora">الشفق القطبي</string>
+  <string name="bg_fireflies">اليراعات</string>
+  <string name="bg_rain">مطر</string>
+  <string name="bg_bokeh">بوكيه</string>
+  <string name="bg_sakura">ساكورا</string>
+  <string name="bg_constellation">كوكبة</string>
+  <string name="bg_bubbles">فقاعات</string>
+  <string name="bg_none">بدون</string>
+  <string name="bg_random">عشوائي</string>
+  <string name="bg_halloween">هالوين</string>
+  <string name="bg_fireworks">ألعاب نارية</string>
+  <string name="bg_winter">أضواء الشتاء</string>
+  <string name="bg_diwali">ديوالي</string>
+  <string name="bg_holi">هولي</string>
+  <string name="bg_interval_launch">عند كل تشغيل</string>
+  <string name="bg_interval_daily">يوميًا</string>
+  <string name="bg_interval_3_days">كل 3 أيام</string>
+  <string name="bg_parallax_title">تأثير المنظور</string>
+  <string name="bg_parallax_summary">إزاحة سلسة للخلفية عند إمالة الجهاز</string>
+  <string name="bg_over_wallpaper_title">عرض فوق الخلفية المخصصة</string>
+  <string name="bg_over_wallpaper_summary">تشغيل الحركة فوق خلفيتك المخصصة</string>
+  <string name="bg_seasonal_title">السمات الموسمية</string>
+  <string name="bg_seasonal_summary">خلفيات وتهانٍ احتفالية في الأعياد والمناسبات</string>
+  <string name="bg_seasonal_notice">يتم الآن عرض خلفية %1$s للمناسبة الحالية. أوقف السمات الموسمية لرؤية اختيارك.</string>
+  <string name="bg_greeting_diwali">ديوالي سعيدة ✨</string>
+  <string name="bg_greeting_holi">هولي سعيدة 🎨</string>
+  <string name="bg_greeting_halloween">هالوين سعيد 🎃</string>
+  <string name="bg_greeting_new_year">سنة جديدة سعيدة 🎆</string>
+  <string name="bg_greeting_winter">أعيادًا سعيدة ❄️</string>
+</resources>

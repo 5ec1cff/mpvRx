@@ -16,7 +16,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 
-/* Night-sky family: Space, Particles, Constellation, Aurora. */
+/* Night-sky family: Space, Particles, Constellation. */
 
 /** Three layers of stars sliding at different speeds, two faint nebulae, and a comet every few seconds. */
 internal fun DrawScope.drawSpace(t: Float, tilt: Offset, p: BackdropPalette) {
@@ -135,90 +135,5 @@ internal fun DrawScope.drawConstellation(t: Float, tilt: Offset, p: BackdropPale
     val c = Offset(xs[i], ys[i])
     drawCircle(p.ink.copy(alpha = 0.10f * vis[i] * tw), radius = r * 4f, center = c)
     drawCircle(lerp(p.ink, p.secondary, 0.3f).copy(alpha = 0.75f * vis[i] * tw), radius = r, center = c)
-  }
-}
-
-private val AuroraSparkles =
-  listOf(
-    0.72f to 0.30f, 0.85f to 0.48f, 0.60f to 0.58f, 0.90f to 0.20f, 0.50f to 0.42f,
-    0.20f to 0.22f, 0.32f to 0.62f, 0.12f to 0.45f, 0.78f to 0.65f, 0.42f to 0.15f,
-  )
-
-/**
- * The Celestial ribbons: two soft corner glows, four glowing ribbons tinted from the theme that
- * sway against each other, and ten twinkling specks. Same artwork as the Celestial effect, here
- * driven by the shared clock so it can take tilt and be picked like any other backdrop.
- */
-internal fun DrawScope.drawAurora(t: Float, tilt: Offset, p: BackdropPalette) {
-  val w = size.width
-  val h = size.height
-
-  // Back-and-forth ramps, same timing as the original infinite transitions (12 s, 6 s, 2.6 s)
-  fun pingPong(period: Float): Float {
-    val ph = fract(t / (period * 2f))
-    return if (ph < 0.5f) ph * 2f else 2f - ph * 2f
-  }
-  val drift = pingPong(12f)
-  val glowPulse = pingPong(6f)
-  val twinkle = pulse(t / 5.2f)
-
-  val primary = p.primary
-  val secondary = p.secondary
-  val tertiary = p.tertiary
-  val shift = h * 0.05f * (drift - 0.5f)
-  val tiltX = tilt.x * 18.dp.toPx()
-  val tiltY = tilt.y * 18.dp.toPx()
-
-  drawRect(
-    brush =
-      Brush.radialGradient(
-        colors = listOf(primary.copy(alpha = 0.10f), tertiary.copy(alpha = 0.05f), Color.Transparent),
-        center = Offset(w * 0.82f + tiltX * 0.4f, h * 0.06f + tiltY * 0.4f),
-        radius = w * (0.75f + 0.10f * glowPulse),
-      ),
-    size = size,
-  )
-  drawRect(
-    brush =
-      Brush.radialGradient(
-        colors = listOf(secondary.copy(alpha = 0.06f), Color.Transparent),
-        center = Offset(w * 0.10f + tiltX * 0.4f, h * 0.85f + tiltY * 0.4f),
-        radius = w * 0.7f,
-      ),
-    size = size,
-  )
-
-  fun ribbon(color: Color, yStart: Float, yEnd: Float, alpha: Float, strokeWidth: Float, glow: Boolean = false) {
-    val path =
-      Path().apply {
-        moveTo(-w * 0.1f + tiltX, h * yStart + shift + tiltY)
-        cubicTo(
-          w * 0.35f + tiltX, h * (yStart - 0.10f) + shift + tiltY,
-          w * 0.65f + tiltX, h * (yEnd + 0.10f) - shift + tiltY,
-          w * 1.1f + tiltX, h * yEnd - shift + tiltY,
-        )
-      }
-    val brush =
-      Brush.linearGradient(
-        colors = listOf(Color.Transparent, color.copy(alpha = alpha), Color.Transparent),
-        start = Offset(0f, h * yStart),
-        end = Offset(w, h * yEnd),
-      )
-    // Wide faint underlay first for the halo, then the crisp core
-    if (glow) {
-      drawPath(path, brush, alpha = 0.35f, style = Stroke(width = strokeWidth * 3.2f, cap = StrokeCap.Round))
-    }
-    drawPath(path, brush, style = Stroke(width = strokeWidth, cap = StrokeCap.Round))
-  }
-
-  ribbon(primary, 0.30f, 0.50f, 0.34f, 5.dp.toPx(), glow = true)
-  ribbon(tertiary, 0.38f, 0.58f, 0.22f, 9.dp.toPx(), glow = true)
-  ribbon(secondary, 0.24f, 0.40f, 0.16f, 3.dp.toPx())
-  ribbon(primary, 0.55f, 0.72f, 0.10f, 6.dp.toPx())
-
-  AuroraSparkles.forEachIndexed { index, (fx, fy) ->
-    val phase = (twinkle + index * 0.19f) % 1f
-    val a = (0.12f + 0.42f * sin(phase * PI.toFloat())).coerceIn(0f, 1f)
-    drawCircle(p.ink.copy(alpha = a), radius = 1.4.dp.toPx(), center = Offset(w * fx + tiltX * 0.6f, h * fy + tiltY * 0.6f))
   }
 }

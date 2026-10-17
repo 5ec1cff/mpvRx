@@ -23,7 +23,6 @@ enum class BackgroundType(
   AURORA(R.string.bg_aurora),
   FIREFLIES(R.string.bg_fireflies),
   RAIN(R.string.bg_rain),
-  WAVES(R.string.bg_waves),
   BOKEH(R.string.bg_bokeh),
   SAKURA(R.string.bg_sakura),
   CONSTELLATION(R.string.bg_constellation),

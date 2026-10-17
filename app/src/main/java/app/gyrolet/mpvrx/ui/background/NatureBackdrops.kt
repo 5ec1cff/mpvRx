@@ -17,38 +17,117 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-/* Weather and nature family: Snow, Rain, Waves, Sakura, Fireflies, Bubbles. */
+/* Weather and nature family: Snow, Rain, Sakura, Fireflies, Bubbles. */
 
-/** Three depth layers of falling snow; the nearest, biggest flakes are drawn as six-armed crystals. */
+/**
+ * Unit snowflakes (radius 1, centred on the origin) built once. Three levels of detail, so near
+ * flakes read as proper crystals and far ones as simple stars:
+ * 0 = six plain arms, 1 = arms with one pair of side twigs, 2 = arms with two pairs of twigs, tipped
+ * and with a small hexagon at the heart.
+ */
+private val SnowflakePaths: List<Path> by lazy {
+  fun flake(level: Int): Path {
+    val path = Path()
+    for (arm in 0 until 6) {
+      val a = arm * TAU / 6f
+      val dx = cos(a)
+      val dy = sin(a)
+      path.moveTo(0f, 0f)
+      path.lineTo(dx, dy)
+      val twigs =
+        when (level) {
+          0 -> emptyList()
+          1 -> listOf(0.55f to 0.30f)
+          else -> listOf(0.40f to 0.34f, 0.68f to 0.24f)
+        }
+      for ((at, len) in twigs) {
+        val bx = dx * at
+        val by = dy * at
+        for (side in intArrayOf(-1, 1)) {
+          val ta = a + side * TAU / 6f
+          path.moveTo(bx, by)
+          path.lineTo(bx + cos(ta) * len, by + sin(ta) * len)
+        }
+      }
+      if (level == 2) {
+        // Little cross-bar near the tip
+        val tipX = dx * 0.88f
+        val tipY = dy * 0.88f
+        path.moveTo(tipX - dy * 0.09f, tipY + dx * 0.09f)
+        path.lineTo(tipX + dy * 0.09f, tipY - dx * 0.09f)
+      }
+    }
+    if (level == 2) {
+      for (v in 0..6) {
+        val a = v * TAU / 6f + TAU / 12f
+        val x = cos(a) * 0.16f
+        val y = sin(a) * 0.16f
+        if (v == 0) path.moveTo(x, y) else path.lineTo(x, y)
+      }
+    }
+    return path
+  }
+  listOf(flake(0), flake(1), flake(2))
+}
+
+/**
+ * Falling snow of four kinds, drawn far to near: soft out-of-focus dots, thin six-armed stars,
+ * mid-size flakes with twigs, and a few large detailed crystals up front. Each drifts on its own
+ * sway and turns slowly. [intensity] scales how many there are.
+ */
 internal fun DrawScope.drawSnow(t: Float, tilt: Offset, p: BackdropPalette, intensity: Float = 1f) {
   val w = size.width
   val h = size.height
-  val tint = lerp(p.ink, p.primary, 0.15f)
-  val count = (72 * intensity).toInt()
-  for (i in 0 until count) {
-    val layer = i % 3
-    val depth = (layer + 1) / 3f
-    val u = fract(hash01(i, 1) + t * (0.028f + 0.05f * depth))
-    val y = h * (u * 1.1f - 0.05f) + tilt.y * 14.dp.toPx() * depth
-    val x = w * hash01(i, 2) + sin(t * 0.55f + i * 1.3f) * 16.dp.toPx() * depth + u * w * 0.06f + tilt.x * 26.dp.toPx() * depth
-    val r = (0.8f + 2.3f * depth).dp.toPx()
-    val a = (0.28f + 0.50f * depth) * smoothstep(0f, 0.05f, u) * smoothstep(1f, 0.95f, u)
-    val c = Offset(x, y)
-    if (layer == 2 && hash01(i, 3) > 0.45f) {
-      // Crystal: three crossing strokes, spinning slowly
-      val arm = r * 3.2f
-      val spin = t * 0.45f * (if (i % 2 == 0) 1f else -1f) + i
-      val stroke = (0.9f + 0.4f * depth).dp.toPx()
-      for (k in 0 until 3) {
-        val ang = spin + k * TAU / 6f
-        val dx = cos(ang) * arm
-        val dy = sin(ang) * arm
-        drawLine(tint.copy(alpha = a), Offset(x - dx, y - dy), Offset(x + dx, y + dy), strokeWidth = stroke, cap = StrokeCap.Round)
+  val ice = if (p.isDark) lerp(Color(0xFFF2F8FF), p.primary, 0.08f) else lerp(p.primary, p.ink, 0.35f)
+
+  // kind: 0 dot, 1 star, 2 twig flake, 3 crystal
+  val counts = intArrayOf((20 * intensity).toInt(), (16 * intensity).toInt(), (13 * intensity).toInt(), (8 * intensity).toInt())
+  var seed = 0
+  for (kind in 0..3) {
+    for (n in 0 until counts[kind]) {
+      val i = seed++
+      val near = kind / 3f
+      val u = fract(hash01(i, 1) + t * (0.020f + 0.020f * near + 0.012f * hash01(i, 2)))
+      val y = h * (u * 1.16f - 0.08f) + tilt.y * 12.dp.toPx() * (0.4f + near)
+      val x =
+        w * (hash01(i, 3) * 1.1f - 0.05f) +
+          sin(t * (0.35f + 0.3f * hash01(i, 4)) + i * 1.7f) * (10f + 18f * near).dp.toPx() +
+          u * w * 0.05f +
+          tilt.x * 26.dp.toPx() * (0.3f + near)
+      val fade = smoothstep(0f, 0.05f, u) * smoothstep(1f, 0.93f, u)
+      val c = Offset(x, y)
+      when (kind) {
+        0 -> {
+          val r = (4f + 8f * hash01(i, 5)).dp.toPx()
+          drawCircle(
+            brush = Brush.radialGradient(listOf(ice.copy(alpha = 0.45f * fade), ice.copy(alpha = 0.18f * fade), Color.Transparent), center = c, radius = r),
+            radius = r,
+            center = c,
+          )
+        }
+        else -> {
+          val r = when (kind) {
+            1 -> (4f + 3f * hash01(i, 5)).dp.toPx()
+            2 -> (7f + 5f * hash01(i, 5)).dp.toPx()
+            else -> (12f + 8f * hash01(i, 5)).dp.toPx()
+          }
+          val level = if (kind == 1) 0 else if (kind == 2) 1 else 2
+          val alpha = (if (kind == 1) 0.55f else if (kind == 2) 0.72f else 0.88f) * fade
+          val spin = (if (i % 2 == 0) 1f else -1f) * t * (6f + 14f * hash01(i, 6)) + hash01(i, 7) * 360f
+          val line = (if (kind == 3) 1.5f else if (kind == 2) 1.2f else 1f).dp.toPx()
+          translate(left = x, top = y) {
+            rotate(spin, pivot = Offset.Zero) {
+              scale(r, r, pivot = Offset.Zero) {
+                drawPath(SnowflakePaths[level], ice.copy(alpha = alpha), style = Stroke(width = line / r, cap = StrokeCap.Round))
+              }
+            }
+          }
+          if (kind == 3) {
+            // A faint halo so the big crystals glow slightly
+            drawCircle(ice.copy(alpha = 0.07f * fade), radius = r * 1.5f, center = c)
+          }
+        }
       }
-      drawCircle(tint.copy(alpha = a * 0.5f), radius = r * 0.55f, center = c)
-    } else {
-      drawCircle(tint.copy(alpha = a * 0.22f), radius = r * 2.6f, center = c)
-      drawCircle(tint.copy(alpha = a), radius = r, center = c)
     }
   }
 }
@@ -88,45 +167,6 @@ internal fun DrawScope.drawRain(t: Float, tilt: Offset, p: BackdropPalette) {
       size = Size(r * 2f, r * 0.64f),
       style = Stroke(width = 1.dp.toPx()),
     )
-  }
-}
-
-/** Four layers of rolling water along the bottom, each its own pitch and speed, topped by a bright crest. */
-internal fun DrawScope.drawWaves(t: Float, tilt: Offset, p: BackdropPalette) {
-  val w = size.width
-  val h = size.height
-  val step = 12.dp.toPx()
-  val n = (w / step).toInt() + 2
-  for (layer in 0 until 4) {
-    val k = layer / 3f
-    val baseY = h * (0.60f + 0.10f * layer) + tilt.y * 10.dp.toPx() * (1f - k * 0.5f)
-    val amp = h * (0.020f + 0.006f * layer)
-    val f1 = TAU / (w * (0.9f - 0.12f * layer))
-    val f2 = TAU / (w * (0.45f - 0.05f * layer))
-    val dir = if (layer % 2 == 0) 1f else -1f
-    val ph1 = t * (0.35f + 0.10f * layer) * dir + tilt.x * 1.5f + layer * 1.7f
-    val ph2 = t * (0.55f + 0.08f * layer) * -dir + layer * 0.9f
-    val top = Path()
-    val fill = Path()
-    fill.moveTo(0f, h)
-    for (s in 0..n) {
-      val x = s * step
-      val y = baseY + amp * sin(x * f1 + ph1) + amp * 0.45f * sin(x * f2 + ph2)
-      if (s == 0) top.moveTo(x, y) else top.lineTo(x, y)
-      fill.lineTo(x, y)
-    }
-    fill.lineTo(n * step, h)
-    fill.close()
-    val color = p.accent(layer)
-    drawPath(
-      fill,
-      Brush.verticalGradient(
-        colors = listOf(color.copy(alpha = 0.16f + 0.02f * layer), color.copy(alpha = 0.02f)),
-        startY = baseY - amp * 2f,
-        endY = h,
-      ),
-    )
-    drawPath(top, color.copy(alpha = 0.34f - 0.04f * layer), style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round))
   }
 }
 

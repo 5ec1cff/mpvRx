@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">背景アニメーション</string>
+  <string name="bg_picker_title">背景アニメーション</string>
+  <string name="bg_picker_description">アプリの画面の背後で再生されるアニメーション</string>
+  <string name="bg_close">閉じる</string>
+  <string name="bg_circles">サークル</string>
+  <string name="bg_rings">リング</string>
+  <string name="bg_space">宇宙</string>
+  <string name="bg_shapes">シェイプ</string>
+  <string name="bg_snow">雪</string>
+  <string name="bg_grid">グリッド</string>
+  <string name="bg_particles">パーティクル</string>
+  <string name="bg_lava">ラバランプ</string>
+  <string name="bg_aurora">オーロラ</string>
+  <string name="bg_fireflies">ホタル</string>
+  <string name="bg_rain">雨</string>
+  <string name="bg_bokeh">ボケ</string>
+  <string name="bg_sakura">桜</string>
+  <string name="bg_constellation">星座</string>
+  <string name="bg_bubbles">シャボン玉</string>
+  <string name="bg_none">なし</string>
+  <string name="bg_random">ランダム</string>
+  <string name="bg_halloween">ハロウィン</string>
+  <string name="bg_fireworks">花火</string>
+  <string name="bg_winter">ウィンターライト</string>
+  <string name="bg_diwali">ディワリ</string>
+  <string name="bg_holi">ホーリー</string>
+  <string name="bg_interval_launch">起動するたび</string>
+  <string name="bg_interval_daily">毎日</string>
+  <string name="bg_interval_3_days">3日ごと</string>
+  <string name="bg_parallax_title">視差効果</string>
+  <string name="bg_parallax_summary">端末を傾けると背景がなめらかに動きます</string>
+  <string name="bg_over_wallpaper_title">壁紙の上に表示</string>
+  <string name="bg_over_wallpaper_summary">カスタム壁紙の上にアニメーションを表示します</string>
+  <string name="bg_seasonal_title">季節のテーマ</string>
+  <string name="bg_seasonal_summary">祝日に合わせた背景とあいさつを表示します</string>
+  <string name="bg_seasonal_notice">現在のお祭りに合わせて「%1$s」を表示中です。自分の選択を見るには季節のテーマをオフにしてください。</string>
+  <string name="bg_greeting_diwali">ハッピー・ディワリ ✨</string>
+  <string name="bg_greeting_holi">ハッピー・ホーリー 🎨</string>
+  <string name="bg_greeting_halloween">ハッピーハロウィン 🎃</string>
+  <string name="bg_greeting_new_year">あけましておめでとうございます 🎆</string>
+  <string name="bg_greeting_winter">ハッピーホリデー ❄️</string>
+</resources>

@@ -5,7 +5,6 @@
   <string name="bg_picker_title">बैकग्राउंड एनिमेशन</string>
   <string name="bg_picker_description">ऐप की स्क्रीन के पीछे चलने वाला एनिमेशन</string>
   <string name="bg_close">बंद करें</string>
-
   <string name="bg_circles">सर्कल</string>
   <string name="bg_rings">रिंग्स</string>
   <string name="bg_space">अंतरिक्ष</string>
@@ -17,24 +16,20 @@
   <string name="bg_aurora">ऑरोरा</string>
   <string name="bg_fireflies">जुगनू</string>
   <string name="bg_rain">बारिश</string>
-  <string name="bg_waves">लहरें</string>
   <string name="bg_bokeh">बोकेह</string>
   <string name="bg_sakura">साकुरा</string>
   <string name="bg_constellation">तारामंडल</string>
   <string name="bg_bubbles">बुलबुले</string>
   <string name="bg_none">कोई नहीं</string>
   <string name="bg_random">रैंडम</string>
-
   <string name="bg_halloween">हैलोवीन</string>
   <string name="bg_fireworks">आतिशबाज़ी</string>
   <string name="bg_winter">विंटर लाइट्स</string>
   <string name="bg_diwali">दिवाली</string>
   <string name="bg_holi">होली</string>
-
   <string name="bg_interval_launch">हर बार खोलने पर</string>
   <string name="bg_interval_daily">रोज़</string>
   <string name="bg_interval_3_days">हर 3 दिन</string>
-
   <string name="bg_parallax_title">पैरालैक्स इफ़ेक्ट</string>
   <string name="bg_parallax_summary">डिवाइस झुकाने पर बैकग्राउंड हल्का खिसकता है</string>
   <string name="bg_over_wallpaper_title">वॉलपेपर के ऊपर दिखाएँ</string>
@@ -42,10 +37,9 @@
   <string name="bg_seasonal_title">त्योहारी थीम</string>
   <string name="bg_seasonal_summary">त्योहारों पर खास बैकग्राउंड और शुभकामनाएँ</string>
   <string name="bg_seasonal_notice">इस समय त्योहार का %1$s चल रहा है। अपनी पसंद देखने के लिए त्योहारी थीम बंद करें।</string>
-
   <string name="bg_greeting_diwali">शुभ दीपावली ✨</string>
   <string name="bg_greeting_holi">होली की शुभकामनाएँ 🎨</string>
-  <string name="bg_greeting_halloween">Happy Halloween 🎃</string>
+  <string name="bg_greeting_halloween">हैलोवीन की शुभकामनाएँ 🎃</string>
   <string name="bg_greeting_new_year">नया साल मुबारक 🎆</string>
-  <string name="bg_greeting_winter">Happy Holidays ❄️</string>
+  <string name="bg_greeting_winter">त्योहारों की शुभकामनाएँ ❄️</string>
 </resources>

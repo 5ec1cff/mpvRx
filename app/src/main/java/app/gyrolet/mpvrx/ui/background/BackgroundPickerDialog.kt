@@ -281,7 +281,6 @@ private fun iconFor(type: BackgroundType): ImageVector =
     BackgroundType.AURORA -> MaterialSymbols.RoundedFilled.Gradient
     BackgroundType.FIREFLIES -> MaterialSymbols.RoundedFilled.Flare
     BackgroundType.RAIN -> MaterialSymbols.RoundedFilled.Rainy
-    BackgroundType.WAVES -> MaterialSymbols.RoundedFilled.Waves
     BackgroundType.BOKEH -> MaterialSymbols.RoundedFilled.Lens_blur
     BackgroundType.SAKURA -> MaterialSymbols.RoundedFilled.Local_florist
     BackgroundType.CONSTELLATION -> MaterialSymbols.RoundedFilled.Hub

@@ -37,6 +37,7 @@ fun AnimatedBackground(
   ) { shown ->
     when (shown) {
       BackgroundType.NONE, BackgroundType.RANDOM -> Box(Modifier.fillMaxSize())
+      BackgroundType.AURORA -> AuroraBackdrop()
       else ->
         BackdropCanvas(parallax = parallax, running = !paused) { t, tilt, p ->
           when (shown) {
@@ -48,10 +49,8 @@ fun AnimatedBackground(
             BackgroundType.GRID -> drawGrid(t, tilt, p)
             BackgroundType.PARTICLES -> drawParticles(t, tilt, p)
             BackgroundType.LAVA -> drawLava(t, tilt, p)
-            BackgroundType.AURORA -> drawAurora(t, tilt, p)
             BackgroundType.FIREFLIES -> drawFireflies(t, tilt, p)
             BackgroundType.RAIN -> drawRain(t, tilt, p)
-            BackgroundType.WAVES -> drawWaves(t, tilt, p)
             BackgroundType.BOKEH -> drawBokeh(t, tilt, p)
             BackgroundType.SAKURA -> drawSakura(t, tilt, p)
             BackgroundType.CONSTELLATION -> drawConstellation(t, tilt, p)
@@ -61,7 +60,7 @@ fun AnimatedBackground(
             BackgroundType.WINTER -> drawWinter(t, tilt, p)
             BackgroundType.DIWALI -> drawDiwali(t, tilt, p)
             BackgroundType.HOLI -> drawHoli(t, tilt, p)
-            BackgroundType.NONE, BackgroundType.RANDOM -> Unit
+            BackgroundType.NONE, BackgroundType.RANDOM, BackgroundType.AURORA -> Unit
           }
         }
     }

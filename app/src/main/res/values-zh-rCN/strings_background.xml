@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- Background animation -->
+  <string name="bg_pref_title">背景动画</string>
+  <string name="bg_picker_title">背景动画</string>
+  <string name="bg_picker_description">在应用界面后方播放的动画</string>
+  <string name="bg_close">关闭</string>
+  <string name="bg_circles">圆圈</string>
+  <string name="bg_rings">圆环</string>
+  <string name="bg_space">太空</string>
+  <string name="bg_shapes">形状</string>
+  <string name="bg_snow">雪</string>
+  <string name="bg_grid">网格</string>
+  <string name="bg_particles">粒子</string>
+  <string name="bg_lava">熔岩灯</string>
+  <string name="bg_aurora">极光</string>
+  <string name="bg_fireflies">萤火虫</string>
+  <string name="bg_rain">雨</string>
+  <string name="bg_bokeh">焦外光斑</string>
+  <string name="bg_sakura">樱花</string>
+  <string name="bg_constellation">星座</string>
+  <string name="bg_bubbles">气泡</string>
+  <string name="bg_none">无</string>
+  <string name="bg_random">随机</string>
+  <string name="bg_halloween">万圣节</string>
+  <string name="bg_fireworks">烟花</string>
+  <string name="bg_winter">冬日彩灯</string>
+  <string name="bg_diwali">排灯节</string>
+  <string name="bg_holi">洒红节</string>
+  <string name="bg_interval_launch">每次启动</string>
+  <string name="bg_interval_daily">每天</string>
+  <string name="bg_interval_3_days">每 3 天</string>
+  <string name="bg_parallax_title">视差效果</string>
+  <string name="bg_parallax_summary">倾斜设备时背景会平滑移动</string>
+  <string name="bg_over_wallpaper_title">显示在壁纸上方</string>
+  <string name="bg_over_wallpaper_summary">在自定义壁纸上方播放动画</string>
+  <string name="bg_seasonal_title">节日主题</string>
+  <string name="bg_seasonal_summary">在节假日显示节日背景和祝福</string>
+  <string name="bg_seasonal_notice">当前节日正在显示“%1$s”背景。关闭节日主题即可查看你的选择。</string>
+  <string name="bg_greeting_diwali">排灯节快乐 ✨</string>
+  <string name="bg_greeting_holi">洒红节快乐 🎨</string>
+  <string name="bg_greeting_halloween">万圣节快乐 🎃</string>
+  <string name="bg_greeting_new_year">新年快乐 🎆</string>
+  <string name="bg_greeting_winter">节日快乐 ❄️</string>
+</resources>
