@@ -2638,4 +2638,13 @@
     <string name="color_picker_hue">Hue. Use Sliders for precise adjustment.</string>
     <string name="color_picker_selected">Selected color</string>
     <string name="color_picker_quick_colors">Quick colors</string>
+    <string name="app_icon_custom_background">Custom background</string>
+    <string name="app_icon_custom_background_hint">Choose a background for a home-screen shortcut. The app-drawer icon stays unchanged. Your launcher may add a small app badge.</string>
+    <string name="app_icon_custom_logo_hint">Choose an existing logo for your custom background</string>
+    <string name="app_icon_shortcut_preview">Home-screen shortcut preview</string>
+    <string name="app_icon_shortcut_apply">Add or update shortcut</string>
+    <string name="app_icon_shortcut_requested">Request sent. Confirm in your launcher to add the shortcut.</string>
+    <string name="app_icon_shortcut_updated">Home-screen shortcut updated</string>
+    <string name="app_icon_shortcut_unsupported">This launcher does not support adding home-screen shortcuts</string>
+    <string name="app_icon_shortcut_failed">Could not save the shortcut. Please try again.</string>
 </resources>
