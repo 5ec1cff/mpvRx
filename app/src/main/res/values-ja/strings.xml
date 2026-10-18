@@ -2600,4 +2600,6 @@
   <string name="app_icon_shortcut_updated">ホーム画面のショートカットを更新しました</string>
   <string name="app_icon_shortcut_unsupported">このランチャーはホーム画面へのショートカット追加に対応していません。</string>
   <string name="app_icon_shortcut_failed">ショートカットを保存できませんでした。もう一度お試しください。</string>
+  <string name="color_picker_wheel">カラーホイール</string>
+  <string name="color_picker_brightness">明るさ</string>
 </resources>

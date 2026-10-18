@@ -2611,4 +2611,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="app_icon_shortcut_updated">Raccourci d\'accueil mis à jour</string>
   <string name="app_icon_shortcut_unsupported">Ce lanceur ne permet pas d\'ajouter des raccourcis à l\'écran d\'accueil.</string>
   <string name="app_icon_shortcut_failed">Impossible d\'enregistrer le raccourci. Veuillez réessayer.</string>
+  <string name="color_picker_wheel">Roue chromatique</string>
+  <string name="color_picker_brightness">Luminosité</string>
 </resources>

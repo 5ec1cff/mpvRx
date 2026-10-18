@@ -2667,4 +2667,6 @@
     <string name="app_icon_shortcut_updated">Home-screen shortcut updated</string>
     <string name="app_icon_shortcut_unsupported">This launcher does not support adding home-screen shortcuts</string>
     <string name="app_icon_shortcut_failed">Could not save the shortcut. Please try again.</string>
+  <string name="color_picker_wheel">Wheel</string>
+  <string name="color_picker_brightness">Brightness</string>
 </resources>

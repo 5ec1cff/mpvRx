@@ -2611,4 +2611,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="app_icon_shortcut_updated">Startbildschirmverknüpfung aktualisiert</string>
   <string name="app_icon_shortcut_unsupported">Dieses Startprogramm unterstützt keine Startbildschirmverknüpfungen.</string>
   <string name="app_icon_shortcut_failed">Verknüpfung konnte nicht gespeichert werden. Bitte erneut versuchen.</string>
+  <string name="color_picker_wheel">Farbrad</string>
+  <string name="color_picker_brightness">Helligkeit</string>
 </resources>

@@ -2598,4 +2598,6 @@
   <string name="app_icon_shortcut_updated">主屏幕快捷方式已更新</string>
   <string name="app_icon_shortcut_unsupported">此启动器不支持添加主屏幕快捷方式。</string>
   <string name="app_icon_shortcut_failed">无法保存快捷方式，请重试。</string>
+  <string name="color_picker_wheel">色轮</string>
+  <string name="color_picker_brightness">亮度</string>
 </resources>

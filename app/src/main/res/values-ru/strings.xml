@@ -2633,4 +2633,6 @@
   <string name="app_icon_shortcut_updated">Ярлык главного экрана обновлён</string>
   <string name="app_icon_shortcut_unsupported">Этот лаунчер не поддерживает добавление ярлыков на главный экран.</string>
   <string name="app_icon_shortcut_failed">Не удалось сохранить ярлык. Попробуйте ещё раз.</string>
+  <string name="color_picker_wheel">Цветовой круг</string>
+  <string name="color_picker_brightness">Яркость</string>
 </resources>

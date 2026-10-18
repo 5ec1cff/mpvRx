@@ -2611,4 +2611,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="app_icon_shortcut_updated">Atalho da tela inicial atualizado</string>
   <string name="app_icon_shortcut_unsupported">Este iniciador não permite adicionar atalhos à tela inicial.</string>
   <string name="app_icon_shortcut_failed">Não foi possível salvar o atalho. Tente novamente.</string>
+  <string name="color_picker_wheel">Círculo cromático</string>
+  <string name="color_picker_brightness">Brilho</string>
 </resources>

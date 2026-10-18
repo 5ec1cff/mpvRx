@@ -85,6 +85,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.components.ExpressiveColorPicker
+import app.gyrolet.mpvrx.ui.components.ColorPickerMode
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -122,7 +123,7 @@ object AppIconPreferencesScreen : Screen {
     var customBackground by rememberSaveable { mutableStateOf(CustomIconShortcut.appliedMode(context) != "preset") }
     var customColor by rememberSaveable { mutableIntStateOf(CustomIconShortcut.savedColor(context)) }
     var customMark by rememberSaveable { mutableStateOf(CustomIconShortcut.savedMark(context, pending.mark)) }
-    var customMode by rememberSaveable { mutableStateOf("picker") }
+    var customMode by rememberSaveable { mutableStateOf("wheel") }
     val nearestIcon = remember(context, customColor, customMark) {
       LauncherIcon.closest(context, customColor, customMark)
     }
@@ -180,12 +181,12 @@ object AppIconPreferencesScreen : Screen {
               horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
             ) {
               listOf(
+                "wheel" to R.string.color_picker_wheel,
                 "picker" to R.string.color_picker_field,
                 "sliders" to R.string.color_picker_sliders,
-
               ).forEachIndexed { index, choice ->
                 val selected = customMode == choice.first
-                val shape = connectedShape(index, 2, ConnectedLayout.Horizontal)
+                val shape = connectedShape(index, 3, ConnectedLayout.Horizontal)
                 androidx.compose.material3.Surface(
                   modifier = Modifier.weight(1f).clip(shape).selectable(selected = selected, role = Role.RadioButton) { customMode = choice.first },
                   color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
@@ -210,7 +211,11 @@ object AppIconPreferencesScreen : Screen {
               color = customColor,
               onColorChange = { customColor = it },
               showAlpha = false,
-              forcedSliders = customMode == "sliders",
+              forcedMode = when (customMode) {
+                "wheel" -> ColorPickerMode.Wheel
+                "sliders" -> ColorPickerMode.Sliders
+                else -> ColorPickerMode.Field
+              },
             )
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
               TextButton(onClick = {

@@ -2611,4 +2611,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="app_icon_shortcut_updated">Acceso directo de inicio actualizado</string>
   <string name="app_icon_shortcut_unsupported">Este iniciador no admite accesos directos en la pantalla de inicio.</string>
   <string name="app_icon_shortcut_failed">No se pudo guardar el acceso directo. Vuelve a intentarlo.</string>
+  <string name="color_picker_wheel">Rueda de colores</string>
+  <string name="color_picker_brightness">Brillo</string>
 </resources>

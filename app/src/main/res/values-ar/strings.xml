@@ -2653,4 +2653,6 @@
   <string name="app_icon_shortcut_updated">تم تحديث اختصار الشاشة الرئيسية</string>
   <string name="app_icon_shortcut_unsupported">لا يدعم مشغل التطبيقات هذا إضافة اختصارات للشاشة الرئيسية.</string>
   <string name="app_icon_shortcut_failed">تعذر حفظ الاختصار. يُرجى المحاولة مرة أخرى.</string>
+  <string name="color_picker_wheel">عجلة الألوان</string>
+  <string name="color_picker_brightness">السطوع</string>
 </resources>

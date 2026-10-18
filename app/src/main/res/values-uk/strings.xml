@@ -2573,4 +2573,6 @@
   <string name="app_icon_shortcut_updated">Ярлик головного екрана оновлено</string>
   <string name="app_icon_shortcut_unsupported">Цей лаунчер не підтримує додавання ярликів на головний екран.</string>
   <string name="app_icon_shortcut_failed">Не вдалося зберегти ярлик. Спробуйте ще раз.</string>
+  <string name="color_picker_wheel">Колірне коло</string>
+  <string name="color_picker_brightness">Яскравість</string>
 </resources>
