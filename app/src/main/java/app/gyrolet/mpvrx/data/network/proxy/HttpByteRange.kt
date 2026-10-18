@@ -12,6 +12,8 @@ package app.gyrolet.mpvrx.data.network.proxy
 internal data class HttpByteRange(
   val start: Long,
   val endInclusive: Long,
+  /** True for `bytes=START-`, where the client will keep reading until EOF. */
+  val openEnded: Boolean = false,
 ) {
   val length: Long = endInclusive - start + 1L
 
@@ -44,7 +46,11 @@ internal data class HttpByteRange(
           endText.toLongOrNull() ?: return null
         }
       if (requestedEnd < start) return null
-      return HttpByteRange(start, requestedEnd.coerceAtMost(completeLength - 1L))
+      return HttpByteRange(
+        start = start,
+        endInclusive = requestedEnd.coerceAtMost(completeLength - 1L),
+        openEnded = endText.isEmpty(),
+      )
     }
   }
 }

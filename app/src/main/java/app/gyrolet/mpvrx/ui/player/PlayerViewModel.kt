@@ -3351,6 +3351,9 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     const val ABSOLUTE_SEEK_FEEDBACK_HOLD_MS = 3000L
     // The thumb updates immediately; decoder previews only need a modest cadence.
     const val PREVIEW_SEEK_INTERVAL_MS = 200L
+    // Network previews open remote ranges; keep them rare so the final seek is not queued behind
+    // abandoned preview work.
+    const val NETWORK_PREVIEW_SEEK_INTERVAL_MS = 800L
     const val FRAME_SEEK_POLL_INTERVAL_MS = 10L
     const val FRAME_SEEK_MIN_SETTLE_POLLS = 8
     const val FRAME_SEEK_MAX_SETTLE_POLLS = 75
@@ -5105,6 +5108,13 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
   private suspend fun runSeekPreviewLoop(generation: Long) {
     var lastSentPosition: Float? = null
+    // Network seek previews each cost an upstream range open on some servers (SMB/WebDAV can take
+    // most of a second per open), so they run at a much lower cadence than local previews.
+    val isNetworkItem =
+      PlaybackSession.state.value.currentItem?.let { item ->
+        item.networkSource != null || item.originalUri.startsWith("mpvrx-network://")
+      } == true
+    val intervalMs = if (isNetworkItem) NETWORK_PREVIEW_SEEK_INTERVAL_MS else PREVIEW_SEEK_INTERVAL_MS
     while (kotlinx.coroutines.currentCoroutineContext().isActive) {
       val target =
         synchronized(seekPreviewLock) {
@@ -5120,7 +5130,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       if (previous != null && kotlin.math.abs(target - previous) < 0.5f) continue
       if (!PlaybackSession.commandForGeneration(generation, "seek", target.toString(), "absolute+keyframes")) return
       lastSentPosition = target
-      delay(PREVIEW_SEEK_INTERVAL_MS)
+      delay(intervalMs)
     }
   }
 

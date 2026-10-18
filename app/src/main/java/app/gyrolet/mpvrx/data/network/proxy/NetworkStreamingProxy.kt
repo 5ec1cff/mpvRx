@@ -54,6 +54,13 @@ class NetworkStreamingProxy private constructor() :
     private const val TAG = "NetworkStreamingProxy"
     private const val TOKEN_BYTES = 24
     private const val PROXY_OPERATION_TIMEOUT_SECONDS = 75L
+    private const val RANGE_CHUNK_BYTES = 8L * 1024 * 1024
+    private const val RANGE_CHUNK_CACHE_BYTES = 48L * 1024 * 1024
+    private const val RANGE_CHUNK_READ_TIMEOUT_MS = 45_000L
+    private const val CHUNK_TRANSFER_BUFFER_BYTES = 64 * 1024
+    private const val RANGE_CONTIGUITY_BYTES = 16L * 1024 * 1024
+    private const val RANGE_MAX_CLUSTERS = 2
+    private const val RANGE_CLUSTER_TTL_NANOS = 10_000_000_000L
 
     @Volatile
     private var instance: NetworkStreamingProxy? = null
@@ -88,7 +95,39 @@ class NetworkStreamingProxy private constructor() :
     val knownSizes = ConcurrentHashMap<NetworkPath, Long>().apply {
       if (fileSize >= 0L) put(primaryPath, fileSize)
     }
+    val chunkCache = RangeChunkCache(maxResidentBytes = RANGE_CHUNK_CACHE_BYTES)
     val clientMutex = Mutex()
+
+    private class RangeCluster(
+      var center: Long,
+      var lastSeenNanos: Long,
+    )
+
+    private val rangeClusters = ArrayList<RangeCluster>()
+
+    /**
+     * Groups nearby range starts into clusters (the player reads a non-interleaved file from two
+     * or more distant regions at once). A start that matches no live cluster while all cluster
+     * slots are taken is a real seek.
+     */
+    @Synchronized
+    fun noteRangeStart(start: Long): Boolean {
+      val now = System.nanoTime()
+      rangeClusters.removeAll { now - it.lastSeenNanos > RANGE_CLUSTER_TTL_NANOS }
+      val existing = rangeClusters.firstOrNull { kotlin.math.abs(start - it.center) <= RANGE_CONTIGUITY_BYTES }
+      if (existing != null) {
+        existing.center = start
+        existing.lastSeenNanos = now
+        return false
+      }
+      if (rangeClusters.size < RANGE_MAX_CLUSTERS) {
+        rangeClusters.add(RangeCluster(start, now))
+        return false
+      }
+      rangeClusters.clear()
+      rangeClusters.add(RangeCluster(start, now))
+      return true
+    }
 
     @Volatile
     var client: NetworkClient? = null
@@ -206,13 +245,27 @@ class NetworkStreamingProxy private constructor() :
     if (fileSize < 0L) return upstreamFailure(headOnly)
     val range = HttpByteRange.parse(rangeHeader, fileSize) ?: return rangeNotSatisfiable(fileSize)
     val mimeType = mimeTypeFor(streamInfo, path)
+    val isPrimaryOpenRange = range.openEnded && path == streamInfo.primaryPath
+    val isSeek = !headOnly && isPrimaryOpenRange && streamInfo.noteRangeStart(range.start)
+    if (isSeek) {
+      // A scrub jumps far away from every recent request; drop fills for the positions that were
+      // already abandoned so the new target (or the final release position) fills first.
+      streamInfo.chunkCache.cancelInProgressFills()
+    }
 
     val response =
       if (headOnly) {
         HeadResponse(Response.Status.PARTIAL_CONTENT, mimeType, range.length)
       } else {
-        val inputStream = getStream(streamInfo, path, range.start)
-          ?: return upstreamFailure(headOnly)
+        val inputStream =
+          if (isPrimaryOpenRange) {
+            // mpv alternates between distant video and audio regions in non-interleaved files.
+            // Serve the opening chunk from a resident copy so those repeated random reads do not
+            // each pay the store's per-request latency.
+            ChunkedRangeInputStream(streamInfo, path, fileSize, range.start, range.endInclusive)
+          } else {
+            getStream(streamInfo, path, range.start) ?: return upstreamFailure(headOnly)
+          }
         newFixedLengthResponse(
           Response.Status.PARTIAL_CONTENT,
           mimeType,
@@ -281,6 +334,162 @@ class NetworkStreamingProxy private constructor() :
     }.getOrNull()
 
   /**
+   * Serves an open-ended range request from progressively filled chunks.
+   *
+   * The opening chunk starts filling in the background and its bytes are forwarded as they arrive,
+   * so a seek does not wait for a whole chunk. Requests that land in a resident chunk are served
+   * from memory; anything else streams directly from upstream inside the same response, keeping
+   * Content-Length and EOF exactly as NanoHTTPD would have produced without the cache.
+   */
+  private inner class ChunkedRangeInputStream(
+    private val streamInfo: StreamInfo,
+    private val path: NetworkPath,
+    private val fileSize: Long,
+    start: Long,
+    private val endInclusive: Long,
+  ) : InputStream() {
+    private var position = start
+    private val initialChunkIndex = start / RANGE_CHUNK_BYTES
+    private var upstream: InputStream? = null
+    private var upstreamPosition = -1L
+    private var closed = false
+    private val singleByte = ByteArray(1)
+
+    override fun read(): Int {
+      val count = read(singleByte, 0, 1)
+      return if (count < 0) -1 else singleByte[0].toInt() and 0xFF
+    }
+
+    override fun read(
+      b: ByteArray,
+      off: Int,
+      len: Int,
+    ): Int {
+      if (off < 0 || len < 0 || off > b.size - len) throw IndexOutOfBoundsException()
+      if (len == 0) return 0
+      if (closed || position > endInclusive) return -1
+
+      val maxRead = minOf(len.toLong(), endInclusive - position + 1L).toInt()
+      val index = position / RANGE_CHUNK_BYTES
+      // Only the chunk the response starts in is filled on demand. Later chunks are served from
+      // prefetch when resident; otherwise the response streams directly from upstream so
+      // sequential playback never waits on a fill.
+      val chunk =
+        streamInfo.chunkCache.get(path, index)
+          ?: if (index == initialChunkIndex) obtainChunk(index) else null
+      if (chunk != null) {
+        val offsetInChunk = (position - chunk.start).toInt()
+        val available =
+          runCatching {
+            chunk.awaitAvailable(
+              offsetInChunk + 1,
+              System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RANGE_CHUNK_READ_TIMEOUT_MS),
+            )
+          }.getOrDefault(-1)
+        if (available > offsetInChunk) {
+          val count = chunk.copyTo(offsetInChunk, b, off, maxRead)
+          if (count > 0) {
+            position += count
+            if (position - chunk.start >= RANGE_CHUNK_BYTES / 2) {
+              prefetchChunk(index + 1)
+            }
+            return count
+          }
+        }
+      }
+      return readUpstream(b, off, maxRead)
+    }
+
+    override fun close() {
+      if (closed) return
+      closed = true
+      closeUpstream()
+    }
+
+    private fun obtainChunk(index: Long): RangeChunkCache.Chunk? {
+      val start = index * RANGE_CHUNK_BYTES
+      if (start >= fileSize) return null
+      return runCatching {
+        streamInfo.chunkCache.obtain(
+          path,
+          index,
+          start,
+          minOf(RANGE_CHUNK_BYTES, fileSize - start).toInt(),
+          proxyScope,
+        ) { chunk, context -> fillChunk(streamInfo, path, chunk, context) }
+      }.getOrNull()
+    }
+
+    private fun readUpstream(
+      b: ByteArray,
+      off: Int,
+      len: Int,
+    ): Int {
+      if (upstream == null || upstreamPosition != position) {
+        closeUpstream()
+        val opened = getStream(streamInfo, path, position)
+          ?: throw IOException("Upstream stream failed while serving a cached range")
+        upstream = opened
+        upstreamPosition = position
+      }
+      val count = upstream!!.read(b, off, len)
+      if (count > 0) {
+        position += count
+        upstreamPosition = position
+      }
+      return count
+    }
+
+    private fun closeUpstream() {
+      upstream?.let { stream -> runCatching { stream.close() } }
+      upstream = null
+      upstreamPosition = -1L
+    }
+
+    private fun prefetchChunk(index: Long) {
+      val start = index * RANGE_CHUNK_BYTES
+      if (start >= fileSize) return
+      streamInfo.chunkCache.prefetch(
+        proxyScope,
+        path,
+        index,
+        start,
+        minOf(RANGE_CHUNK_BYTES, fileSize - start).toInt(),
+      ) { chunk, context -> fillChunk(streamInfo, path, chunk, context) }
+    }
+  }
+
+  private suspend fun fillChunk(
+    streamInfo: StreamInfo,
+    path: NetworkPath,
+    chunk: RangeChunkCache.Chunk,
+    context: RangeChunkCache.FillContext,
+  ) {
+    val opened =
+      withConnectedClient(streamInfo) { client -> client.getFileStream(path.value, chunk.start) }
+    val source = opened.getOrElse { error -> throw IOException("Upstream chunk open failed", error) }
+    source.use { stream ->
+      if (!context.attach(stream)) throw IOException("Chunk fill cancelled")
+      try {
+        val buffer = ByteArray(CHUNK_TRANSFER_BUFFER_BYTES)
+        var remaining = chunk.capacity
+        val deadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(RANGE_CHUNK_READ_TIMEOUT_MS)
+        while (remaining > 0) {
+          context.throwIfCancelled()
+          if (System.nanoTime() - deadlineNanos > 0L) throw IOException("Timed out reading an upstream chunk")
+          val count = stream.read(buffer, 0, minOf(buffer.size, remaining))
+          if (count < 0) break
+          if (count == 0) continue
+          chunk.append(buffer, 0, count)
+          remaining -= count
+        }
+      } finally {
+        context.detach(stream)
+      }
+    }
+  }
+
+  /**
    * NanoHTTPD's serve API is synchronous, but upstream clients are suspend-based. Do not use
    * runBlocking here: it installs a nested coroutine event loop on every range request and can
    * amplify thread contention under rapid seeks. Dispatch the suspend work onto the proxy's bounded
@@ -328,7 +537,30 @@ class NetworkStreamingProxy private constructor() :
   private suspend fun <T> withConnectedClient(
     streamInfo: StreamInfo,
     operation: suspend (NetworkClient) -> Result<T>,
-  ): Result<T> =
+  ): Result<T> {
+    val client = ensureClient(streamInfo).getOrElse { return Result.failure(it) }
+    // The operation runs outside the mutex: opening the video and audio chunks at once must not
+    // serialize the two upstream requests behind each other.
+    val result = operation(client)
+    result.exceptionOrNull()?.let { error ->
+      if (error is CancellationException) throw error
+      // Client error messages are app-constructed (HTTP status etc.) and carry no URLs/credentials.
+      Log.w(TAG, "Upstream operation failed (${error::class.java.simpleName}: ${error.message})")
+      // A dead session would otherwise be reused forever; evict it so the next request
+      // reconnects instead of failing every range request until the stream is re-registered.
+      if (!client.isConnected()) {
+        streamInfo.clientMutex.withLock {
+          if (streamInfo.client === client) {
+            streamInfo.client = null
+            runCatching { client.disconnect() }
+          }
+        }
+      }
+    }
+    return result
+  }
+
+  private suspend fun ensureClient(streamInfo: StreamInfo): Result<NetworkClient> =
     streamInfo.clientMutex.withLock {
       var client = streamInfo.client
       if (client == null) {
@@ -364,21 +596,7 @@ class NetworkStreamingProxy private constructor() :
           }
         }
       }
-
-      val result = operation(client)
-      result.exceptionOrNull()?.let { error ->
-        if (error is CancellationException) throw error
-        // Client error messages are app-constructed (HTTP status etc.) and carry no URLs/credentials.
-        Log.w(TAG, "Upstream operation failed (${error::class.java.simpleName}: ${error.message})")
-        // A dead session would otherwise be reused forever; evict it so the next request
-        // reconnects instead of failing every range request until the stream is re-registered.
-        val activeClient = streamInfo.client
-        if (activeClient != null && !activeClient.isConnected()) {
-          streamInfo.client = null
-          runCatching { activeClient.disconnect() }
-        }
-      }
-      result
+      Result.success(client)
     }
 
   private data class Route(
@@ -466,6 +684,7 @@ class NetworkStreamingProxy private constructor() :
 
   private suspend fun close(streamInfo: StreamInfo) =
     withContext(NonCancellable) {
+      streamInfo.chunkCache.dispose()
       streamInfo.clientMutex.withLock {
         val client = streamInfo.client
         streamInfo.client = null

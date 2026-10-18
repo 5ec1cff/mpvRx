@@ -2292,11 +2292,14 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     )
     // demuxer-lavf-o only reaches demuxer-internal opens (HLS/DASH segments). The primary http(s)
     // URL is opened by stream_lavf, which reads stream-lavf-o; without it a dropped connection or
-    // one failed seek-reopen permanently stalls network playback (endless buffering).
+    // one failed seek-reopen permanently stalls network playback (endless buffering). Persistent
+    // connections are pointless against the loopback proxies, which close every response.
+    val viaLoopbackProxy = playableUri.startsWith("http://127.0.0.1:")
     setPropertyString(
       "stream-lavf-o",
-      "reconnect=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx,reconnect_streamed=1," +
-        "reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
+      (if (viaLoopbackProxy) "http_persistent=0," else "") +
+        "reconnect=1,reconnect_on_network_error=1,reconnect_on_http_error=5xx," +
+        "reconnect_streamed=1,reconnect_delay_max=5,reconnect_max_retries=5,reconnect_delay_total_max=20",
     )
     Log.d(TAG, "Applied streaming options for the first network item of this core")
   }
