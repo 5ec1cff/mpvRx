@@ -4,6 +4,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 ## 3.0.0 — Expressive
 
+**Release date:** October 18, 2026
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/Riteshp2001/mpvRx/403294620e0c38b7ec965a493ff6b97efcbb4198/website/public/images/icon.png" width="160" height="160" alt="mpvRx solid purple app icon" />
 </p>
@@ -23,8 +25,8 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 ### ✨ More to explore
 
 - **Expressive from screen to screen:** Connected shapes, full-tile selection, rounded controls, and refreshed navigation, settings, dialogs, and player panels.
-- **Color picking you can see:** A touch-controlled color field, hue strip, RGB sliders, selected-color preview, and quick swatches. Subtitle colors also include opacity adjustment; theme colors and custom shortcut backgrounds share the same picker.
-- **Liquid Glass controls:** Refractive styling for player controls and sliders, with a dedicated settings page to tune the effect.
+- **Color picking you can see:** An HSV color wheel with an independent brightness slider, a touch-controlled color field, hue strip, RGB sliders, selected-color preview, and quick swatches. Subtitle colors also include opacity adjustment; theme colors and custom shortcut backgrounds share the same picker.
+- **Liquid Glass controls (experimental):** Refractive styling for player controls and sliders on Android 12 and newer, with a dedicated settings page and an optional HDR mode.
 - **Less waiting, more watching:** Saved library and folder listings appear immediately, with media changes refreshed in the background.
 - **Your new Profile hub:** Recents, Playlists, Snapshots, and watch statistics together, with an editable avatar.
 - **Six ways to set the mood:** Ambilight, Cinema, Echo, and Mirror join Glow and YouTube ambient modes, with quality presets and adjustment controls.
@@ -55,6 +57,8 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 
 #### Liquid Glass
 
+- **Experimental feature:** Available on Android 12 and newer. HDR glass is separately optional; rendering and performance can vary by device.
+
 - **Real refraction:** Liquid Glass bends light with lens curvature and physics-based highlights, and falls back to standard Material controls when turned off.
 - **Live video behind the glass:** Player controls, sheets, and panels refract the playing video in real time, even while zoomed or panned. HDR video is supported, and the glass waits for a rendered HDR frame before sampling it.
 - **More glass surfaces:** The seekbar (with a liquid thumb), brightness and volume sliders, subtitle color sliders, the selection bar, player update pills, the cast button, and music sheets all use glass.
@@ -70,16 +74,22 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 
 - **Revamped mpvRx icon:** A rounded play mark with a detached tip and a solid purple finish introduces the new visual identity of 3.0.0. The Classic logo remains available.
 
-- **Icon builder:** Choose from 34 supported combinations of 10 backgrounds and 5 existing logos, with a live preview and a swipe carousel. Your previous icon carries over.
-- **Custom background tile:** Use the shared color picker to create a home-screen shortcut with any solid background and an existing logo. Reapplying updates the same shortcut; unsupported launchers show an explanation.
+- **Icon builder:** Combine supported backgrounds and logos with a live preview, connected selection tiles, and a swipe carousel. Wallpaper colors are available on Android 12 and newer; your previous icon carries over.
+- **Custom background tile:** Pick a solid color and logo, compare the requested color with the closest supported native launcher icon, then confirm the icon change. An optional home-screen shortcut preserves the exact chosen color on supported launchers.
 - **Matching preset splash:** On Android 13 and newer, a built-in icon selection sets the splash theme for the next cold start. Older Android versions retain the default splash; custom shortcuts do not replace it.
 
 #### A Shared Color Picker
 
-- **Pick visually or precisely:** Drag across the saturation/brightness field, move the hue strip, or switch to RGB sliders. A live swatch and hex readout show the selected color, with quick colors close at hand.
+- **Pick visually or precisely:** Use the HSV wheel to choose hue and saturation with a separate brightness slider, drag across the saturation/brightness field, move the hue strip, or switch to RGB sliders. A live swatch and hex readout show the selected color, with quick colors close at hand.
 - **Right where you need it:** Subtitle colors stay embedded beneath the Text, Border, and Shadow controls. Custom theme colors and the new shortcut-background editor use the same component.
 - **Subtitle transparency:** Adjust opacity over a checkerboard preview. Theme and shortcut backgrounds use solid colors.
 - **Connected design:** The picker’s sections use the app’s Material 3 Expressive connected shapes and theme colors.
+
+### Animated Backgrounds
+
+- **More ways to personalize:** Animated backgrounds include snow, rain, sakura, fireflies, bubbles, geometry, bokeh, ripples, space particles, constellations, aurora, and seasonal themes.
+- **Connected preview:** The background picker uses centered connected tiles, the shared icon switch, and a scrollable preview.
+- **Smoother animation:** Particle budgets adapt to screen area, with frame-pacing improvements and less repeated shader and curve work.
 
 ### Profile, Playlists, and Library
 
@@ -97,6 +107,9 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 
 #### Browsing
 
+- **Responsive folder previews:** Connected collages show at most four sections and adapt to compact screens and folder contents, with consistent selection tile sizes.
+- **Sort sheet:** Changing between Library, Folders, and Tree keeps the sheet open; irrelevant folder-grid options are hidden in Library view.
+
 - **Live updates:** The browser refreshes while it is open when videos or songs are added or removed.
 - **Optimistic delete:** Deleting from Library view removes items immediately.
 - **Internal storage label:** The internal volume is labeled "Internal Storage" instead of a folder named "0".
@@ -112,6 +125,8 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 - **Leaner scanning:** Scans check each folder once instead of each file, so large libraries need far fewer storage queries. Normal refreshes no longer trigger a full-storage media scan.
 
 #### Hidden Folders (.nomedia)
+
+- **Folder access:** Detected hidden folders can be granted access through Android's folder picker. The access lists put .nomedia folders before dot-folders.
 
 - **Per-view hidden scans:** Choose separately whether Library, Tree, and Folders include hidden folders, with switches for marker files and dot-folders and per-marker exclusions.
 - **Listed without waiting:** Hidden folders appear right away; their durations fill in afterwards in the background.
@@ -199,6 +214,7 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 - **Streaming tools:** The yt-dlp manager and P2P controls now live in Network settings.
 - **Downloads:** The Downloads screen was redesigned, and in-app updates resume interrupted APK downloads.
 - **Steadier lists:** Network and music lists stay on screen during temporary connection failures.
+- **WebDAV filenames:** Preserve decomposed Unicode filenames in playback URLs, fixing HTTP 404 errors for some files copied from macOS (#881).
 
 ### Google Play Build
 
@@ -216,11 +232,14 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 - **Notification style:** Also available under Advanced (#717).
 - **Fonts:** Every imported font file is kept, duplicate families are flagged in the font pickers (#860), and the chosen app font is honored everywhere (#717).
 - **Hall of Fame:** A redesigned contributors screen, with avatars cached for 72 hours.
+- **Reorder navigation:** Rearrange bottom navigation destinations and Music library tabs from their settings.
+- **Device Info:** Refreshed information layout, corrected copy/version output, and a list of native dependencies reported by mpvlib.
 
 ### Translations
 
 - **Ukrainian:** Added a complete Ukrainian translation, contributed by [@WATCHER-00](https://github.com/WATCHER-00). Every user-facing string and plural is covered.
-- **New strings:** Secure Folder settings and lyrics states are translated.
+- **New strings:** Completed 61 missing strings across all ten existing translation locales, including icons, hidden-folder scanning, ambient effects, downloads, navigation, and the color picker.
+- **Translation cleanup:** Removed redundant locale copies of non-translatable resources while preserving formatting placeholders; HSV wheel controls are localized.
 
 ### Removed
 
@@ -234,10 +253,18 @@ This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic lo
 - **Liquid Glass sliders:** Subtitle color sliders drag smoothly instead of scrolling the page (#861).
 - **Layout polish:** Checkboxes have space before their labels, and browser controls, audio rows, and expandable headers line up (#717).
 - **Folder settings:** Folder settings and the blacklist scroll together as one list.
+- **RTL and system navigation:** The player controls drawer stays on the right in RTL layouts, and three-button navigation has improved contrast.
+- **Playlist interaction:** Connected playlist rows and more stable drag reordering.
+
+### Release and Upgrade
+
+- **Version:** 3.0.0, with an increased Android version code so it can update existing 2.7.2 stable and preview installations signed with the same key.
+- **Packages:** Standard universal and per-architecture APKs, FongMi, No Vulkan, and Play Store universal APKs, plus a Play Store app bundle.
+- **Changes since 2.7.2:** [Full comparison](https://github.com/Riteshp2001/mpvRx/compare/v2.7.2...v3.0.0).
 
 ### Thanks
 
-Thanks to [@Arnab11](https://github.com/Arnab11), [@Utsavrajputt](https://github.com/Utsavrajputt), and [@SunnyVishnu3](https://github.com/SunnyVishnu3) for their pull requests, to [@WATCHER-00](https://github.com/WATCHER-00) for the Ukrainian translation, and to everyone who reported bugs and UI issues.
+Thanks to [@ThisisWyatt](https://github.com/ThisisWyatt), [@Arnab11](https://github.com/Arnab11), [@Utsavrajputt](https://github.com/Utsavrajputt), and [@SunnyVishnu3](https://github.com/SunnyVishnu3) for their pull requests, to [@WATCHER-00](https://github.com/WATCHER-00) for the Ukrainian translation, and to everyone who reported bugs and UI issues.
 
 ## 2.7.2 - Hotfixes - mpvlib 1.1.1, Track Badges, Pinned Videos, and Font Sharing
 
