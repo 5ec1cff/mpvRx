@@ -88,7 +88,7 @@ fun SubtitleSettingsColorsCard(
     colors = panelCardsColors(),
     shape = shape,
   ) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
       AssOverrideWarningBanner(viewModel = viewModel, preferences = preferences)
 
       var currentColorType by remember { mutableStateOf(SubColorType.Text) }
@@ -101,6 +101,7 @@ fun SubtitleSettingsColorsCard(
           currentColorType.property,
         )
       val colorEditingEnabled = currentColorOptions.none(configOwnedOptions::contains)
+      PanelConnectedTile(index = 0, itemCount = 5) {
       Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -143,8 +144,11 @@ fun SubtitleSettingsColorsCard(
           }
         }
       }
+      }
       SubtitlesColorPicker(
         currentColor,
+        startIndex = 1,
+        itemCount = 5,
         enabled = colorEditingEnabled,
         onColorChange = {
           currentColor = it
@@ -217,9 +221,11 @@ fun SubtitlesColorPicker(
   onColorChange: (Int) -> Unit,
   modifier: Modifier = Modifier,
   enabled: Boolean = true,
+  startIndex: Int = 0,
+  itemCount: Int = 4,
 ) {
   Column(modifier, verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
-    PanelConnectedTile(index = 0, itemCount = 4) {
+    PanelConnectedTile(index = startIndex, itemCount = itemCount) {
       TintedSliderItem(
         stringResource(R.string.player_sheets_sub_color_red),
         color.red,
@@ -232,7 +238,7 @@ fun SubtitlesColorPicker(
       )
     }
 
-    PanelConnectedTile(index = 1, itemCount = 4) {
+    PanelConnectedTile(index = startIndex + 1, itemCount = itemCount) {
       TintedSliderItem(
         stringResource(R.string.player_sheets_sub_color_green),
         color.green,
@@ -245,7 +251,7 @@ fun SubtitlesColorPicker(
       )
     }
 
-    PanelConnectedTile(index = 2, itemCount = 4) {
+    PanelConnectedTile(index = startIndex + 2, itemCount = itemCount) {
       TintedSliderItem(
         stringResource(R.string.player_sheets_sub_color_blue),
         color.blue,
@@ -258,7 +264,7 @@ fun SubtitlesColorPicker(
       )
     }
 
-    PanelConnectedTile(index = 3, itemCount = 4) {
+    PanelConnectedTile(index = startIndex + 3, itemCount = itemCount) {
       TintedSliderItem(
         stringResource(R.string.player_sheets_sub_color_alpha),
         color.alpha,

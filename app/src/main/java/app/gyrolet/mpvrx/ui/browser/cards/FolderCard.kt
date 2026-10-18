@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -155,6 +156,8 @@ fun FolderCard(
   newVideoCount: Int = 0,
   customChipContent: @Composable (() -> Unit)? = null,
   isGridMode: Boolean = false,
+  gridRowMinHeight: Dp = 0.dp,
+  onGridContentHeightChanged: ((Int) -> Unit)? = null,
   isPinned: Boolean = false,
   onPinClick: (() -> Unit)? = null,
   thumbnail: ImageBitmap? = null,
@@ -273,11 +276,7 @@ fun FolderCard(
   }
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
-  val gridFooterHeight = with(LocalDensity.current) {
-    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 +
-      MaterialTheme.typography.labelSmall.lineHeight.toDp() * 2 +
-      (if (customChipContent != null) 56.dp else 38.dp)
-  }
+  // Derive row height from actual measured labels and chips instead of a fixed footer.
 
   // Scoped document-tree folders can be swiped for playback, playlists and watched state,
   // but Delete must not target a directory in the Play Store flavor.
@@ -295,7 +294,7 @@ fun FolderCard(
     modifier =
       modifier
         .fillMaxWidth()
-        .then(if (isGridMode) Modifier.mediaGridTileHeight(20f / 17f, gridFooterHeight) else Modifier)
+        .then(if (isGridMode && gridRowMinHeight > 0.dp) Modifier.heightIn(min = gridRowMinHeight) else Modifier)
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }
@@ -307,7 +306,9 @@ fun FolderCard(
     shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
-    Box(modifier = if (isGridMode) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
+    // Size the actual Card content, not just the swipe wrapper's outer box; otherwise
+    // the selected tonal background stops above a taller neighbor in the same row.
+    Box(modifier = if (isGridMode) Modifier.fillMaxWidth().heightIn(min = gridRowMinHeight) else Modifier.fillMaxWidth()) {
       Box(
         modifier =
           Modifier
@@ -324,7 +325,8 @@ fun FolderCard(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(horizontal = 4.dp, vertical = 6.dp),
+              .padding(horizontal = 4.dp, vertical = 6.dp)
+              .onSizeChanged { size -> onGridContentHeightChanged?.invoke(size.height) },
           horizontalAlignment = horizontalAlignment,
         ) {
           val aspect = 20f / 17f

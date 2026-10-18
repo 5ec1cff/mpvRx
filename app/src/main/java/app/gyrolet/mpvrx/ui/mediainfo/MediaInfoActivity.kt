@@ -595,11 +595,6 @@ class MediaInfoActivity : AppCompatActivity() {
             contentColor = contentColor,
             shape = tabShape,
             modifier = Modifier.animateContentSize(),
-            border =
-              BorderStroke(
-                1.dp,
-                if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-              ),
           ) {
             Row(
               modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -638,7 +633,6 @@ class MediaInfoActivity : AppCompatActivity() {
   private fun ExpressiveInfoCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
-    borderColor: Color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
     shape: Shape = MaterialTheme.shapes.extraLarge,
     content: @Composable ColumnScope.() -> Unit,
   ) {
@@ -646,7 +640,6 @@ class MediaInfoActivity : AppCompatActivity() {
       modifier = modifier,
       shape = shape,
       colors = CardDefaults.cardColors(containerColor = containerColor),
-      border = BorderStroke(1.dp, borderColor),
       content = content,
     )
   }
@@ -676,7 +669,6 @@ class MediaInfoActivity : AppCompatActivity() {
             Toast.makeText(context, context.getString(R.string.toast_copied_value, value), Toast.LENGTH_SHORT).show()
           },
       containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-      borderColor = Color.Transparent,
       shape = shape,
     ) {
       Row(
@@ -728,7 +720,6 @@ class MediaInfoActivity : AppCompatActivity() {
           shape = RoundedCornerShape(12.dp),
           color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
           contentColor = MaterialTheme.colorScheme.primary,
-          border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
         ) {
           Text(
             text = label,
@@ -835,7 +826,6 @@ class MediaInfoActivity : AppCompatActivity() {
       ExpressiveInfoCard(
         modifier = Modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
       ) {
         Row(
           modifier = Modifier.fillMaxWidth().padding(20.dp),
@@ -1316,7 +1306,6 @@ class MediaInfoActivity : AppCompatActivity() {
       modifier = modifier.clip(shape).clickable { requestValueDetail(label, value) },
       shape = shape,
       color = MaterialTheme.colorScheme.surfaceContainerHigh,
-      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)),
     ) {
       Column(
         modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -1537,7 +1526,6 @@ class MediaInfoActivity : AppCompatActivity() {
                   Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                   ) {
                     Text(
                       text = timestamp,

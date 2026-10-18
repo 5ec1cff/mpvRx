@@ -92,10 +92,13 @@ fun SubtitlesMiscellaneousCard(
         LaunchedEffect(preferences.overrideAssSubs.get()) {
           overrideAssSubs = preferences.overrideAssSubs.get()
         }
+        val secondarySid by PlaybackSession.propInt["secondary-sid"].collectAsState()
+        val isSecondaryActive = (secondarySid ?: PlaybackSession.getPropertyString("secondary-sid")?.toIntOrNull() ?: 0) > 0
+        val connectedItemCount = if (isSecondaryActive) 10 else 8
         SwitchPreference(
           overrideAssSubs,
           groupIndex = 0,
-          groupSize = 5,
+          groupSize = connectedItemCount,
           enabled = layoutOptions.none(configOwnedOptions::contains),
           onValueChange = {
             overrideAssSubs = it
@@ -110,7 +113,7 @@ fun SubtitlesMiscellaneousCard(
         SwitchPreference(
           scaleByWindow,
           groupIndex = 1,
-          groupSize = 5,
+          groupSize = connectedItemCount,
           enabled = scaleByWindowOptions.none(configOwnedOptions::contains),
           onValueChange = {
             scaleByWindow = it
@@ -131,7 +134,7 @@ fun SubtitlesMiscellaneousCard(
         SwitchPreference(
           secondaryPinchZoom,
           groupIndex = 2,
-          groupSize = 5,
+          groupSize = connectedItemCount,
           enabled = scaleOptions.none(configOwnedOptions::contains),
           onValueChange = {
             secondaryPinchZoom = it
@@ -146,7 +149,7 @@ fun SubtitlesMiscellaneousCard(
         SwitchPreference(
           blendSubtitlesWithVideo,
           groupIndex = 3,
-          groupSize = 5,
+          groupSize = connectedItemCount,
           enabled = blendOptions.none(configOwnedOptions::contains),
           onValueChange = {
             blendSubtitlesWithVideo = it
@@ -163,7 +166,7 @@ fun SubtitlesMiscellaneousCard(
         SwitchPreference(
           forceRtlSubtitles,
           groupIndex = 4,
-          groupSize = 5,
+          groupSize = connectedItemCount,
           enabled = bidiOptions.none(configOwnedOptions::contains),
           onValueChange = {
             forceRtlSubtitles = it
@@ -176,11 +179,9 @@ fun SubtitlesMiscellaneousCard(
         )
         val subScale by preferences.subScale.collectAsState()
         val subPos by PlaybackSession.propInt["sub-pos"].collectAsState()
-        val secondarySid by PlaybackSession.propInt["secondary-sid"].collectAsState()
-        val isSecondaryActive = (secondarySid ?: PlaybackSession.getPropertyString("secondary-sid")?.toIntOrNull() ?: 0) > 0
         val secondarySubScale by preferences.secondarySubScale.collectAsState()
         val secondarySubPos by PlaybackSession.propInt["secondary-sub-pos"].collectAsState()
-        PanelConnectedTile(index = 0, itemCount = if (isSecondaryActive) 4 else 2) {
+        PanelConnectedTile(index = 5, itemCount = connectedItemCount) {
           SliderItem(
             label = stringResource(
               if (isSecondaryActive) R.string.player_sheets_sub_primary_scale else R.string.player_sheets_sub_scale,
@@ -201,7 +202,7 @@ fun SubtitlesMiscellaneousCard(
             },
           )
         }
-        PanelConnectedTile(index = 1, itemCount = if (isSecondaryActive) 4 else 2) {
+        PanelConnectedTile(index = 6, itemCount = connectedItemCount) {
           SliderItem(
             label = stringResource(
               if (isSecondaryActive) R.string.player_sheets_sub_primary_position else R.string.player_sheets_sub_position,
@@ -223,7 +224,7 @@ fun SubtitlesMiscellaneousCard(
           )
         }
         if (isSecondaryActive) {
-          PanelConnectedTile(index = 2, itemCount = if (isSecondaryActive) 4 else 2) {
+          PanelConnectedTile(index = 7, itemCount = connectedItemCount) {
             SliderItem(
               label = stringResource(R.string.player_sheets_secondary_sub_scale),
               value = secondarySubScale,
@@ -239,7 +240,7 @@ fun SubtitlesMiscellaneousCard(
               },
             )
           }
-          PanelConnectedTile(index = 3, itemCount = if (isSecondaryActive) 4 else 2) {
+          PanelConnectedTile(index = 8, itemCount = connectedItemCount) {
             SliderItem(
               label = stringResource(R.string.player_sheets_secondary_sub_position),
               value = secondarySubPos ?: preferences.secondarySubPos.get(),
@@ -256,11 +257,12 @@ fun SubtitlesMiscellaneousCard(
             )
           }
         }
+        PanelConnectedTile(index = connectedItemCount - 1, itemCount = connectedItemCount) {
         Row(
           modifier =
             Modifier
               .fillMaxWidth()
-              .padding(end = MaterialTheme.spacing.medium, bottom = MaterialTheme.spacing.medium),
+              .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.smaller),
           horizontalArrangement = Arrangement.End,
         ) {
           TextButton(
@@ -294,6 +296,7 @@ fun SubtitlesMiscellaneousCard(
               Text(stringResource(R.string.generic_reset))
             }
           }
+        }
         }
       }
     }

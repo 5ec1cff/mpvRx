@@ -15,8 +15,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -190,16 +187,6 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
       valueFormatter = { "%.1f".format(it) },
       enabled = delayControlEnabled,
     )
-    Text(
-      text = stringResource(R.string.player_sheets_delay_quick_sync_summary),
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    QuickSyncOffsets(
-      delay = delay,
-      enabled = delayControlEnabled,
-      onSelect = onDelayChange,
-    )
     Column(
       modifier = Modifier.animateContentSize(),
     ) { extraSettings() }
@@ -290,44 +277,6 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
   }
 }
 
-/**
- * One tap offsets covering the delays that actually show up in practice.
- *
- * Each chip selects an absolute offset rather than nudging the current one, so repeated taps
- * are idempotent and the value the user sees is the value they picked. It also means a file
- * that was synced in a previous session only needs the same chip again, and the value is
- * stored per media so it is reapplied on the next playback.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun QuickSyncOffsets(
-  delay: Float,
-  enabled: Boolean,
-  onSelect: (Float) -> Unit,
-) {
-  FlowRow(
-    modifier = Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
-    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
-  ) {
-    QUICK_SYNC_OFFSETS.forEach { offset ->
-      FilterChip(
-        selected = delay == offset,
-        enabled = enabled,
-        onClick = { onSelect(offset) },
-        label = {
-          // The signed format would render the zero chip as "+0 s", so it gets its own string.
-          if (offset == 0f) {
-            Text(stringResource(R.string.player_sheets_delay_offset_zero_seconds))
-          } else {
-            Text(stringResource(R.string.player_sheets_delay_offset_seconds, offset.toInt()))
-          }
-        },
-      )
-    }
-  }
-}
-
 @Composable
 fun SubtitleDelayTitle(
   onClose: () -> Unit,
@@ -358,5 +307,3 @@ enum class DelayType {
   Subtitle,
 }
 
-/** Offsets offered by [QuickSyncOffsets], in seconds. */
-private val QUICK_SYNC_OFFSETS = listOf(-3f, -2f, -1f, 0f, 1f, 2f, 3f)

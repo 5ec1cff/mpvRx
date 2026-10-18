@@ -69,6 +69,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -80,6 +81,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -1475,6 +1477,12 @@ private fun GridContent(
 
     val spansInfo = calculateResponsiveGridSpans(maxWidth = maxWidth, isDualPane = isDualPane)
     val computedColumns = spansInfo.spans / spansInfo.folderSpan
+    val density = LocalDensity.current
+    // Row height follows the tallest natural card in the row, and is recalculated
+    // when folders, the column count, or display preferences change.
+    val measuredFolderHeights = remember(folders, computedColumns, folderCardUiConfig) {
+      mutableStateMapOf<String, Int>()
+    }
 
     LazyVerticalGrid(
       columns = GridCells.Fixed(computedColumns),
@@ -1497,6 +1505,9 @@ private fun GridContent(
         val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
         val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
+        val firstInRow = index / computedColumns * computedColumns
+        val tallestContentInRow = (firstInRow until minOf(firstInRow + computedColumns, folders.size))
+          .maxOfOrNull { measuredFolderHeights[folders[it].bucketId] ?: 0 } ?: 0
 
         FolderCard(
           folder = folder,
@@ -1517,6 +1528,12 @@ private fun GridContent(
           newVideoCount = newCount,
           customIcon = if (archiveFolder) Icons.RoundedFilled.FolderZip else null,
           isGridMode = true,
+          gridRowMinHeight = with(density) { tallestContentInRow.toDp() },
+          onGridContentHeightChanged = { contentHeight ->
+            if (measuredFolderHeights[folder.bucketId] != contentHeight) {
+              measuredFolderHeights[folder.bucketId] = contentHeight
+            }
+          },
           uiConfig = folderCardUiConfig,
           allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails,
           isPinned = folder.path in pinnedFolderPaths,

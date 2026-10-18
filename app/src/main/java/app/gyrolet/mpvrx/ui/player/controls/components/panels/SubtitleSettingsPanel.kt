@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.player.controls.components.panels
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -39,7 +40,7 @@ fun SubtitleSettingsPanel(
     },
   ) {
     Column(
-      Modifier.padding(MaterialTheme.spacing.medium),
+      Modifier.fillMaxWidth().padding(MaterialTheme.spacing.medium),
       verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
     ) {
       SubtitleSettingsTypographyCard(

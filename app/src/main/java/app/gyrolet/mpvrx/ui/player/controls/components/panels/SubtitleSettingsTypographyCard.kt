@@ -165,8 +165,9 @@ fun SubtitleSettingsTypographyCard(
       var localShadowOffset by remember(shadowOffset) {
         mutableStateOf(shadowOffset ?: preferences.shadowOffset.get())
       }
-      Row(
-        Modifier
+      PanelConnectedTile(index = 0, itemCount = 6) {
+        Row(
+          Modifier
           .fillMaxWidth()
           .horizontalScroll(rememberScrollState())
           .padding(start = MaterialTheme.spacing.extraSmall, end = MaterialTheme.spacing.medium),
@@ -232,7 +233,9 @@ fun SubtitleSettingsTypographyCard(
           }
         }
       }
-      Row(
+      }
+      PanelConnectedTile(index = 1, itemCount = 6) {
+        Row(
         modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium),
         horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
         verticalAlignment = Alignment.CenterVertically,
@@ -266,7 +269,8 @@ fun SubtitleSettingsTypographyCard(
           enabled = !ownsAny(fontOptions),
         )
       }
-      PanelConnectedTile(index = 0, itemCount = 1) {
+      }
+      PanelConnectedTile(index = 2, itemCount = 6) {
         SliderItem(
           label = stringResource(R.string.player_sheets_sub_typography_font_size),
           max = 100,
@@ -279,10 +283,11 @@ fun SubtitleSettingsTypographyCard(
           },
           enabled = !ownsAny(fontSizeOptions),
         ) {
+          Icon(Icons.RoundedFilled.FormatSize, null)
+        }
       }
-        Icon(Icons.RoundedFilled.FormatSize, null)
-      }
-      ProvidePreferenceLocals(
+      PanelConnectedTile(index = 3, itemCount = 6) {
+        ProvidePreferenceLocals(
         theme = preferenceTheme(iconContainerMinWidth = 64.dp),
       ) {
         ListPreference(
@@ -300,7 +305,8 @@ fun SubtitleSettingsTypographyCard(
           icon = { Icon(Icons.RoundedFilled.BorderStyle, null) },
         )
       }
-      PanelConnectedTile(index = 0, itemCount = 1) {
+      }
+      PanelConnectedTile(index = 4, itemCount = 6) {
         SliderItem(
           stringResource(R.string.player_sheets_sub_typography_border_size),
           value = borderSize ?: preferences.borderSize.get(),
@@ -315,7 +321,7 @@ fun SubtitleSettingsTypographyCard(
           icon = { Icon(Icons.RoundedFilled.BorderColor, null) },
         )
       }
-      PanelConnectedTile(index = 0, itemCount = 1) {
+      PanelConnectedTile(index = 5, itemCount = 6) {
         SliderItem(
           stringResource(R.string.player_sheets_subtitles_shadow_offset),
           value = localShadowOffset.coerceIn(-20, 20),
