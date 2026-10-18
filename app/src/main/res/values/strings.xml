@@ -2606,6 +2606,19 @@
   <string name="app_icon_bg_lilac">Lilac</string>
   <string name="app_icon_bg_mint">Mint</string>
   <string name="app_icon_bg_ember">Ember</string>
+  <string name="app_icon_bg_crimson">Crimson</string>
+  <string name="app_icon_bg_rose">Rose</string>
+  <string name="app_icon_bg_peach">Peach</string>
+  <string name="app_icon_bg_amber">Amber</string>
+  <string name="app_icon_bg_lemon">Lemon</string>
+  <string name="app_icon_bg_lime">Lime</string>
+  <string name="app_icon_bg_forest">Forest</string>
+  <string name="app_icon_bg_teal">Teal</string>
+  <string name="app_icon_bg_sky">Sky</string>
+  <string name="app_icon_bg_cobalt">Cobalt</string>
+  <string name="app_icon_bg_plum">Plum</string>
+  <string name="app_icon_bg_cocoa">Cocoa</string>
+  <string name="app_icon_bg_wallpaper">Wallpaper colors</string>
 
   <string name="app_icon_logo_solid">Solid purple</string>
   <string name="app_icon_logo_gradient">Gradient purple</string>
@@ -2641,9 +2654,12 @@
     <string name="color_picker_selected">Selected color</string>
     <string name="color_picker_quick_colors">Quick colors</string>
     <string name="app_icon_custom_background">Custom background</string>
-    <string name="app_icon_custom_background_hint">Choose a background for a home-screen shortcut. The app-drawer icon stays unchanged. Your launcher may add a small app badge.</string>
-    <string name="app_icon_custom_logo_hint">Choose an existing logo for your custom background</string>
+    <string name="app_icon_custom_background_hint">Choose any color. The actual launcher icon uses its closest supported background, not a shortcut. Android does not allow unrestricted runtime launcher icon colors. Wallpaper colors follow your device theme on Android 12+.</string>
+    <string name="app_icon_custom_logo_hint">Choose an available logo for the matched launcher background</string>
     <string name="app_icon_shortcut_preview">Home-screen shortcut preview</string>
+    <string name="app_icon_custom_requested">Picked color</string>
+    <string name="app_icon_custom_native_match">Actual launcher icon</string>
+    <string name="app_icon_use_wallpaper_colors">Use wallpaper colors instead</string>
     <string name="app_icon_shortcut_apply">Add or update shortcut</string>
     <string name="app_icon_shortcut_requested">Request sent. Confirm in your launcher to add the shortcut.</string>
     <string name="app_icon_shortcut_updated">Home-screen shortcut updated</string>

@@ -10,4 +10,17 @@
     <color name="icon_bg_lilac">#FFDCCBFF</color>
     <color name="icon_bg_mint">#FFCDF5E1</color>
     <color name="icon_bg_ember">#FFFF6B35</color>
+    <color name="icon_bg_crimson">#FFB72E45</color>
+    <color name="icon_bg_rose">#FFFFB5CF</color>
+    <color name="icon_bg_peach">#FFFFD1B0</color>
+    <color name="icon_bg_amber">#FFFFC65C</color>
+    <color name="icon_bg_lemon">#FFFFEF93</color>
+    <color name="icon_bg_lime">#FFC5EA85</color>
+    <color name="icon_bg_forest">#FF176B4C</color>
+    <color name="icon_bg_teal">#FF2ABEA8</color>
+    <color name="icon_bg_sky">#FF83CBF3</color>
+    <color name="icon_bg_cobalt">#FF3156C6</color>
+    <color name="icon_bg_plum">#FF8A4BA7</color>
+    <color name="icon_bg_cocoa">#FF8A6044</color>
+    <color name="icon_bg_wallpaper">#FF6A76DB</color>
 </resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- System accent color changes with the device's Material You / wallpaper palette. -->
+    <color name="icon_bg_wallpaper">@android:color/system_accent1_500</color>
+</resources>

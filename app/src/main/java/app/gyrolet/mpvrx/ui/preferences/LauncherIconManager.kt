@@ -16,6 +16,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import app.gyrolet.mpvrx.R
 
 /** Backdrop of a launcher icon. Each one also needs a color in colors_app_icon.xml. */
@@ -34,6 +35,19 @@ internal enum class IconBackground(
   Lilac("Lilac", R.color.icon_bg_lilac, R.string.app_icon_bg_lilac),
   Mint("Mint", R.color.icon_bg_mint, R.string.app_icon_bg_mint),
   Ember("Ember", R.color.icon_bg_ember, R.string.app_icon_bg_ember),
+  Crimson("Crimson", R.color.icon_bg_crimson, R.string.app_icon_bg_crimson),
+  Rose("Rose", R.color.icon_bg_rose, R.string.app_icon_bg_rose),
+  Peach("Peach", R.color.icon_bg_peach, R.string.app_icon_bg_peach),
+  Amber("Amber", R.color.icon_bg_amber, R.string.app_icon_bg_amber),
+  Lemon("Lemon", R.color.icon_bg_lemon, R.string.app_icon_bg_lemon),
+  Lime("Lime", R.color.icon_bg_lime, R.string.app_icon_bg_lime),
+  Forest("Forest", R.color.icon_bg_forest, R.string.app_icon_bg_forest),
+  Teal("Teal", R.color.icon_bg_teal, R.string.app_icon_bg_teal),
+  Sky("Sky", R.color.icon_bg_sky, R.string.app_icon_bg_sky),
+  Cobalt("Cobalt", R.color.icon_bg_cobalt, R.string.app_icon_bg_cobalt),
+  Plum("Plum", R.color.icon_bg_plum, R.string.app_icon_bg_plum),
+  Cocoa("Cocoa", R.color.icon_bg_cocoa, R.string.app_icon_bg_cocoa),
+  Wallpaper("Wallpaper", R.color.icon_bg_wallpaper, R.string.app_icon_bg_wallpaper),
 }
 
 /** The ribbon drawn over a background, as a 108dp adaptive foreground layer. */
@@ -101,6 +115,32 @@ internal class LauncherIcon(
       LauncherIcon(IconBackground.Azure, IconMark.Classic, R.mipmap.ic_launcher_azure_classic, R.style.Theme_mpvrx_Splash_AzureClassic),
       LauncherIcon(IconBackground.Lilac, IconMark.Classic, R.mipmap.ic_launcher_lilac_classic, R.style.Theme_mpvrx_Splash_LilacClassic),
       LauncherIcon(IconBackground.Mint, IconMark.Classic, R.mipmap.ic_launcher_mint_classic, R.style.Theme_mpvrx_Splash_MintClassic),
+      LauncherIcon(IconBackground.Crimson, IconMark.White, R.mipmap.ic_launcher_crimson_white, R.style.Theme_mpvrx_Splash_CrimsonWhite),
+      LauncherIcon(IconBackground.Crimson, IconMark.Black, R.mipmap.ic_launcher_crimson_black, R.style.Theme_mpvrx_Splash_CrimsonBlack),
+      LauncherIcon(IconBackground.Rose, IconMark.White, R.mipmap.ic_launcher_rose_white, R.style.Theme_mpvrx_Splash_RoseWhite),
+      LauncherIcon(IconBackground.Rose, IconMark.Black, R.mipmap.ic_launcher_rose_black, R.style.Theme_mpvrx_Splash_RoseBlack),
+      LauncherIcon(IconBackground.Peach, IconMark.White, R.mipmap.ic_launcher_peach_white, R.style.Theme_mpvrx_Splash_PeachWhite),
+      LauncherIcon(IconBackground.Peach, IconMark.Black, R.mipmap.ic_launcher_peach_black, R.style.Theme_mpvrx_Splash_PeachBlack),
+      LauncherIcon(IconBackground.Amber, IconMark.White, R.mipmap.ic_launcher_amber_white, R.style.Theme_mpvrx_Splash_AmberWhite),
+      LauncherIcon(IconBackground.Amber, IconMark.Black, R.mipmap.ic_launcher_amber_black, R.style.Theme_mpvrx_Splash_AmberBlack),
+      LauncherIcon(IconBackground.Lemon, IconMark.White, R.mipmap.ic_launcher_lemon_white, R.style.Theme_mpvrx_Splash_LemonWhite),
+      LauncherIcon(IconBackground.Lemon, IconMark.Black, R.mipmap.ic_launcher_lemon_black, R.style.Theme_mpvrx_Splash_LemonBlack),
+      LauncherIcon(IconBackground.Lime, IconMark.White, R.mipmap.ic_launcher_lime_white, R.style.Theme_mpvrx_Splash_LimeWhite),
+      LauncherIcon(IconBackground.Lime, IconMark.Black, R.mipmap.ic_launcher_lime_black, R.style.Theme_mpvrx_Splash_LimeBlack),
+      LauncherIcon(IconBackground.Forest, IconMark.White, R.mipmap.ic_launcher_forest_white, R.style.Theme_mpvrx_Splash_ForestWhite),
+      LauncherIcon(IconBackground.Forest, IconMark.Black, R.mipmap.ic_launcher_forest_black, R.style.Theme_mpvrx_Splash_ForestBlack),
+      LauncherIcon(IconBackground.Teal, IconMark.White, R.mipmap.ic_launcher_teal_white, R.style.Theme_mpvrx_Splash_TealWhite),
+      LauncherIcon(IconBackground.Teal, IconMark.Black, R.mipmap.ic_launcher_teal_black, R.style.Theme_mpvrx_Splash_TealBlack),
+      LauncherIcon(IconBackground.Sky, IconMark.White, R.mipmap.ic_launcher_sky_white, R.style.Theme_mpvrx_Splash_SkyWhite),
+      LauncherIcon(IconBackground.Sky, IconMark.Black, R.mipmap.ic_launcher_sky_black, R.style.Theme_mpvrx_Splash_SkyBlack),
+      LauncherIcon(IconBackground.Cobalt, IconMark.White, R.mipmap.ic_launcher_cobalt_white, R.style.Theme_mpvrx_Splash_CobaltWhite),
+      LauncherIcon(IconBackground.Cobalt, IconMark.Black, R.mipmap.ic_launcher_cobalt_black, R.style.Theme_mpvrx_Splash_CobaltBlack),
+      LauncherIcon(IconBackground.Plum, IconMark.White, R.mipmap.ic_launcher_plum_white, R.style.Theme_mpvrx_Splash_PlumWhite),
+      LauncherIcon(IconBackground.Plum, IconMark.Black, R.mipmap.ic_launcher_plum_black, R.style.Theme_mpvrx_Splash_PlumBlack),
+      LauncherIcon(IconBackground.Cocoa, IconMark.White, R.mipmap.ic_launcher_cocoa_white, R.style.Theme_mpvrx_Splash_CocoaWhite),
+      LauncherIcon(IconBackground.Cocoa, IconMark.Black, R.mipmap.ic_launcher_cocoa_black, R.style.Theme_mpvrx_Splash_CocoaBlack),
+      LauncherIcon(IconBackground.Wallpaper, IconMark.White, R.mipmap.ic_launcher_wallpaper_white, R.style.Theme_mpvrx_Splash_WallpaperWhite),
+      LauncherIcon(IconBackground.Wallpaper, IconMark.Black, R.mipmap.ic_launcher_wallpaper_black, R.style.Theme_mpvrx_Splash_WallpaperBlack),
     )
 
     /** Black with the solid purple ribbon: what the app has always shipped with. */
@@ -116,6 +156,27 @@ internal class LauncherIcon(
     /** The icon for [background] keeping [mark] when it reads there, else the background's own mark. */
     fun resolve(background: IconBackground, mark: IconMark): LauncherIcon =
       of(background, mark) ?: entries.first { it.background == background }
+
+    /** Match free-form picks to a real packaged launcher icon, not a home-screen shortcut. */
+    fun closest(context: Context, color: Int, mark: IconMark): LauncherIcon {
+      val requested = DoubleArray(3)
+      ColorUtils.colorToLAB(color or 0xFF000000.toInt(), requested)
+      val candidate = DoubleArray(3)
+      val background = IconBackground.entries.asSequence()
+        .filter { it != IconBackground.Wallpaper }
+        .minByOrNull { option ->
+          ColorUtils.colorToLAB(ContextCompat.getColor(context, option.color), candidate)
+          val dl = requested[0] - candidate[0]
+          val da = requested[1] - candidate[1]
+          val db = requested[2] - candidate[2]
+          dl * dl + da * da + db * db
+        } ?: IconBackground.Black
+      return of(background, mark) ?: run {
+        val bgColor = ContextCompat.getColor(context, background.color)
+        val readable = if (ColorUtils.calculateLuminance(bgColor) > 0.25) IconMark.Black else IconMark.White
+        of(background, readable) ?: resolve(background, mark)
+      }
+    }
   }
 }
 
@@ -199,7 +260,7 @@ internal object LauncherIconManager {
     runCatching { applySplashTheme(activity, current(activity)) }
     runCatching {
       val icon = current(activity)
-      val bitmap = cachedArtwork?.takeIf { it.first == icon }?.second ?: run {
+      val bitmap = cachedArtwork?.takeIf { it.first == icon && icon.background != IconBackground.Wallpaper }?.second ?: run {
         val drawable: Drawable = ContextCompat.getDrawable(activity, icon.preview) ?: return@runCatching
         Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888).also {
           drawable.setBounds(0, 0, it.width, it.height)
