@@ -116,6 +116,31 @@ object LiquidGlassPreferencesScreen : Screen {
               contentPadding = PaddingValues(bottom = 28.dp),
             ) {
               item {
+                Row(
+                  modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(50.dp),
+                  ) {
+                    Text(
+                      text = stringResource(R.string.pref_experimental_badge),
+                      style = MaterialTheme.typography.labelSmall,
+                      color = MaterialTheme.colorScheme.onTertiaryContainer,
+                      modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                  }
+                  Text(
+                    text = stringResource(R.string.pref_liquid_glass_experimental_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                  )
+                }
+              }
+              item {
                 PreferenceSectionHeader(title = stringResource(R.string.pref_section_general))
               }
               item {
