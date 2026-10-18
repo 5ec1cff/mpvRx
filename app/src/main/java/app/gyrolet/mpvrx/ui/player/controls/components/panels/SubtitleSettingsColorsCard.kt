@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -52,7 +51,7 @@ import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
 import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.deleteAndGet
 import app.gyrolet.mpvrx.presentation.components.ExpandableCard
-import app.gyrolet.mpvrx.presentation.components.TintedSliderItem
+import app.gyrolet.mpvrx.ui.components.ExpressiveColorPicker
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
@@ -145,10 +144,9 @@ fun SubtitleSettingsColorsCard(
         }
       }
       }
-      SubtitlesColorPicker(
+      ExpressiveColorPicker(
         currentColor,
-        startIndex = 1,
-        itemCount = 5,
+        attachedToHeader = true,
         enabled = colorEditingEnabled,
         onColorChange = {
           currentColor = it
@@ -213,70 +211,6 @@ fun resetColors(
 
 val getCurrentMPVColor: (SubColorType) -> Int = {
   PlaybackSession.getPropertyString(it.property)?.uppercase()?.toColorInt() ?: 0xFFFFFFFF.toInt()
-}
-
-@Composable
-fun SubtitlesColorPicker(
-  color: Int,
-  onColorChange: (Int) -> Unit,
-  modifier: Modifier = Modifier,
-  enabled: Boolean = true,
-  startIndex: Int = 0,
-  itemCount: Int = 4,
-) {
-  Column(modifier, verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
-    PanelConnectedTile(index = startIndex, itemCount = itemCount) {
-      TintedSliderItem(
-        stringResource(R.string.player_sheets_sub_color_red),
-        color.red,
-        color.red.toString(),
-        onChange = { onColorChange(color.copyAsArgb(red = it)) },
-        max = 255,
-        tint = Color.Red,
-        enabled = enabled,
-        continuous = true,
-      )
-    }
-
-    PanelConnectedTile(index = startIndex + 1, itemCount = itemCount) {
-      TintedSliderItem(
-        stringResource(R.string.player_sheets_sub_color_green),
-        color.green,
-        color.green.toString(),
-        onChange = { onColorChange(color.copyAsArgb(green = it)) },
-        max = 255,
-        tint = Color.Green,
-        enabled = enabled,
-        continuous = true,
-      )
-    }
-
-    PanelConnectedTile(index = startIndex + 2, itemCount = itemCount) {
-      TintedSliderItem(
-        stringResource(R.string.player_sheets_sub_color_blue),
-        color.blue,
-        color.blue.toString(),
-        onChange = { onColorChange(color.copyAsArgb(blue = it)) },
-        max = 255,
-        tint = Color.Blue,
-        enabled = enabled,
-        continuous = true,
-      )
-    }
-
-    PanelConnectedTile(index = startIndex + 3, itemCount = itemCount) {
-      TintedSliderItem(
-        stringResource(R.string.player_sheets_sub_color_alpha),
-        color.alpha,
-        color.alpha.toString(),
-        onChange = { onColorChange(color.copyAsArgb(alpha = it)) },
-        max = 255,
-        tint = Color.White,
-        enabled = enabled,
-        continuous = true,
-      )
-    }
-  }
 }
 
 @Composable

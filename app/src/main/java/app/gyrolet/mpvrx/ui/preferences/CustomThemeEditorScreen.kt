@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.preferences
 
 import android.graphics.Color as AndroidColor
+import app.gyrolet.mpvrx.ui.components.ExpressiveColorPicker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -30,8 +31,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -66,7 +65,6 @@ import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
-import kotlin.math.roundToInt
 
 @Serializable
 data class CustomThemeEditorScreen(
@@ -404,51 +402,12 @@ private fun ThemeColorEditor(
           singleLine = true,
         )
       }
-      ColorChannelSlider(
-        label = stringResource(R.string.player_sheets_sub_color_red),
-        value = AndroidColor.red(argb),
-        tint = Color.Red,
-        onValueChange = { red -> onHexChange(argb.withColorChannel(red = red).toOpaqueHex()) },
-      )
-      ColorChannelSlider(
-        label = stringResource(R.string.player_sheets_sub_color_green),
-        value = AndroidColor.green(argb),
-        tint = Color.Green,
-        onValueChange = { green -> onHexChange(argb.withColorChannel(green = green).toOpaqueHex()) },
-      )
-      ColorChannelSlider(
-        label = stringResource(R.string.player_sheets_sub_color_blue),
-        value = AndroidColor.blue(argb),
-        tint = Color.Blue,
-        onValueChange = { blue -> onHexChange(argb.withColorChannel(blue = blue).toOpaqueHex()) },
+      ExpressiveColorPicker(
+        color = argb,
+        onColorChange = { onHexChange(it.toOpaqueHex()) },
+        showAlpha = false,
       )
     }
-  }
-}
-
-@Composable
-private fun ColorChannelSlider(
-  label: String,
-  value: Int,
-  tint: Color,
-  onValueChange: (Int) -> Unit,
-) {
-  Column {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-      Text(label, style = MaterialTheme.typography.labelMedium)
-      Text(value.toString(), style = MaterialTheme.typography.labelMedium)
-    }
-    Slider(
-      value = value.toFloat(),
-      onValueChange = { onValueChange(it.roundToInt().coerceIn(0, 255)) },
-      valueRange = 0f..255f,
-      modifier = Modifier.fillMaxWidth().tvFocusHighlight(RoundedCornerShape(12.dp), focusedScale = 1.01f),
-      colors =
-        SliderDefaults.colors(
-          thumbColor = tint,
-          activeTrackColor = tint,
-        ),
-    )
   }
 }
 
@@ -466,9 +425,3 @@ private fun normalizeHexInput(value: String): String {
 private fun Color?.toEditorHex(fallback: String): String = this?.toArgb()?.toOpaqueHex() ?: fallback
 
 private fun Int.toOpaqueHex(): String = "#%06X".format(this and 0x00FFFFFF)
-
-private fun Int.withColorChannel(
-  red: Int = AndroidColor.red(this),
-  green: Int = AndroidColor.green(this),
-  blue: Int = AndroidColor.blue(this),
-): Int = AndroidColor.rgb(red, green, blue)

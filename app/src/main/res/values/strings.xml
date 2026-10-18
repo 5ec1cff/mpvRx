@@ -2632,4 +2632,10 @@
   <string name="pref_nav_home_summary">Browse local folders and files (always available)</string>
   <string name="pref_nav_actions_section">Navigation actions</string>
   <string name="pref_about_playback_libraries">Playback libraries</string>
+    <string name="color_picker_field">Picker</string>
+    <string name="color_picker_sliders">Sliders</string>
+    <string name="color_picker_field_description">Saturation and brightness. Use Sliders for precise adjustment.</string>
+    <string name="color_picker_hue">Hue. Use Sliders for precise adjustment.</string>
+    <string name="color_picker_selected">Selected color</string>
+    <string name="color_picker_quick_colors">Quick colors</string>
 </resources>
