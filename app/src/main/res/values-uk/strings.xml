@@ -6,7 +6,6 @@
   <string name="generic_increase">Збільшити</string>
   <string name="generic_decrease">Зменшити</string>
   <string name="generic_remove_from_favorites">Вилучити з обраного</string>
-  <string name="app_name" translatable="false">mpvRx</string>
   <string name="generic_reset">Скинути</string>
   <string name="generic_back">Назад</string>
   <string name="generic_home">Головна</string>
@@ -463,11 +462,6 @@
   <string name="track_badge_descriptive">Описові</string>
   <string name="track_badge_primary">Основні</string>
   <string name="track_badge_secondary">Вторинні</string>
-  <string name="player_sheets_track_title_w_lang" translatable="false">#%1$d: %2$s (%3$s)</string>
-  <string name="player_sheets_track_title_wo_lang" translatable="false">#%1$d: %2$s</string>
-  <string name="player_sheets_track_lang_wo_title" translatable="false">#%1$d: %2$s</string>
-  <string name="player_sheets_chapter_title_substitute_subtitle" translatable="false">Subtitle #%d</string>
-  <string name="player_sheets_chapter_title_substitute_audio" translatable="false">Audio #%d</string>
   <string name="player_sheets_off">Вимкнено</string>
   <string name="player_sheets_subtitles_settings_title">Налаштування субтитрів</string>
   <string name="player_sheets_subtitles_color_text">Текст</string>
@@ -560,15 +554,12 @@
   <string name="timer_title">Таймер сну</string>
   <string name="timer_remaining">Залишилося: %s</string>
   <string name="toast_sleep_timer_ended">Таймер сну завершився</string>
-  <string name="volume_slider_absolute_value" translatable="false">%d</string>
-  <string name="github_repo_url" translatable="false">https://github.com/Riteshp2001/mpvRx</string>
   <string name="swap_the_volume_and_brightness_slider">Поміняти місцями повзунки гучності та яскравості</string>
   <string name="pref_player_display_reduce_player_animation">Зменшити анімацію плеєра</string>
   <string name="pref_player_display_hide_player_control_time">Час приховування елементів керування</string>
   <string name="show_splash_ovals_on_double_tap_to_seek">Показувати хвилі під час подвійного дотику для перемотування</string>
   <string name="show_time_on_double_tap_to_seek">Показувати час перемотування</string>
   <string name="player_sheets_frame_navigation_title">Покадрова навігація</string>
-  <string name="player_sheets_frame_navigation_snapshot_saved" translatable="false">Saved to Pictures/mpvSnaps</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Включати субтитри у знімок кадру</string>
   <string name="player_sheets_zoom_slider_label">Масштаб відео</string>
   <plurals name="seconds">
@@ -993,13 +984,8 @@
   <string name="pref_decoder_vulkan_experimental_title">Vulkan (Експериментально)</string>
   <string name="hdr_mode_off">Вимкнено</string>
   <string name="hdr_mode_off_description">Звичайний вивід SDR</string>
-  <string name="hdr_mode_bt2100_pq" translatable="false">BT.2100 PQ</string>
-  <string name="hdr_mode_pq_short" translatable="false">PQ</string>
   <string name="hdr_mode_bt2100_pq_description">PQ у стилі HDR10 з тональним відображенням Astra та колірним охопленням Bottosson</string>
-  <string name="hdr_mode_bt2100_hlg" translatable="false">BT.2100 HLG</string>
-  <string name="hdr_mode_hlg_short" translatable="false">HLG</string>
   <string name="hdr_mode_bt2100_hlg_description">HLG HDR через ланцюжок шейдерів hdr-toys Astra та Bottosson</string>
-  <string name="hdr_mode_bt2020" translatable="false">BT.2020</string>
   <string name="hdr_mode_bt2020_description">Перетворення BT.2020 / BT.1886 з використанням охоплення hdr-toys</string>
   <string name="hdr_mode_linear">Лінійний HDR</string>
   <string name="hdr_mode_linear_short">Лінійний</string>
@@ -1328,14 +1314,8 @@
   <string name="ui_advanced_options">Розширені параметри</string>
   <string name="ui_target_size">Цільовий розмір</string>
   <string name="ui_encoding">Кодування</string>
-  <string name="ui_av1" translatable="false">AV1</string>
-  <string name="ui_h_265" translatable="false">H.265</string>
-  <string name="ui_h_264" translatable="false">H.264</string>
   <string name="ui_resolution">Роздільність</string>
   <string name="ui_framerate">Частота кадрів</string>
-  <string name="ui_60fps" translatable="false">60fps</string>
-  <string name="ui_30fps" translatable="false">30fps</string>
-  <string name="ui_24fps" translatable="false">24fps</string>
   <string name="ui_audio_options">Параметри звуку</string>
   <string name="ui_remove_audio">Видалити звук</string>
   <string name="ui_audio_bitrate">Бітрейт звуку</string>
@@ -2189,8 +2169,6 @@
   <string name="audiobook_language">Мова</string>
   <string name="audiobook_publisher">Видавництво</string>
   <string name="audiobook_published">Опубліковано</string>
-  <string name="audiobook_isbn" translatable="false">ISBN</string>
-  <string name="audiobook_asin" translatable="false">ASIN</string>
   <string name="audiobook_details">Подробиці про книгу</string>
   <string name="audiobook_edit">Редагувати книгу</string>
   <string name="audiobook_search_online_title">Онлайн-пошук обкладинки</string>
@@ -2534,4 +2512,65 @@
   <string name="pref_playstore_hidden_dot">Назва папки починається з крапки</string>
   <string name="pref_playstore_hidden_marker">Містить файл %1$s</string>
   <string name="pref_playstore_hidden_access_required">Потрібен доступ до папки</string>
+  <string name="app_icon_create_custom_shortcut">Додати точну власну піктограму на головний екран</string>
+  <string name="pref_experimental_badge">Експериментально</string>
+  <string name="pref_liquid_glass_experimental_note">Ефекти рідкого скла є експериментальними й можуть відрізнятися залежно від пристрою.</string>
+  <string name="pref_hidden_scan_per_mode_summary">Виберіть, чи скануватиме кожен режим головного екрана папки, приховані маркером або з крапкою на початку назви. Після вимкнення їх також буде пропущено під час перегляду. Перемикач угорі вмикає приховані медіафайли в усьому застосунку.</string>
+  <string name="pref_hidden_scan_scoped_summary">Кожен режим перегляду може включати або пропускати папки з крапкою на початку назви чи приховані маркером лише в межах папок, до яких надано доступ в Android. Інші папки залишаються недоступними.</string>
+  <string name="pref_hidden_scan_library">Медіатека</string>
+  <string name="pref_hidden_scan_tree">Дерево</string>
+  <string name="pref_hidden_scan_folders">Папки</string>
+  <string name="pref_hidden_scan_marked">Сканувати папки, приховані маркером</string>
+  <string name="pref_hidden_scan_marked_summary">Папки з файлом .nomedia або іншим маркером із вашого списку</string>
+  <string name="pref_hidden_scan_single_marker_summary">Включати папки з цим маркером у цьому поданні</string>
+  <string name="pref_hidden_scan_dot_summary">Папки, назви яких починаються з крапки, наприклад .Videos</string>
+  <string name="ambient_cinema">Кіно</string>
+  <string name="ambient_echo">Відлуння</string>
+  <string name="ambient_mirror">Дзеркало</string>
+  <string name="ambient_ambilight">Ambilight</string>
+  <string name="ambient_fx_auto_hint">Цей режим повністю автоматичний: параметри зафіксовано для найкращого візуального результату, змінити їх не можна.</string>
+  <string name="app_icon_bg_crimson">Багряний</string>
+  <string name="app_icon_bg_rose">Рожевий</string>
+  <string name="app_icon_bg_peach">Персиковий</string>
+  <string name="app_icon_bg_amber">Бурштиновий</string>
+  <string name="app_icon_bg_lemon">Лимонний</string>
+  <string name="app_icon_bg_lime">Лаймовий</string>
+  <string name="app_icon_bg_forest">Лісовий зелений</string>
+  <string name="app_icon_bg_teal">Бірюзовий</string>
+  <string name="app_icon_bg_sky">Небесно-блакитний</string>
+  <string name="app_icon_bg_cobalt">Кобальтовий</string>
+  <string name="app_icon_bg_plum">Сливовий</string>
+  <string name="app_icon_bg_cocoa">Какао</string>
+  <string name="app_icon_bg_wallpaper">Кольори шпалер</string>
+  <string name="downloads_all">Усі завантаження</string>
+  <string name="downloads_attention_section">Потребує уваги</string>
+  <string name="downloads_search_hint">Пошук завантажень</string>
+  <string name="downloads_no_matches_hint">Спробуйте інший фільтр або пошуковий запит.</string>
+  <string name="search_clear_query">Очистити пошук</string>
+  <string name="libraries_built_together">Створено разом</string>
+  <string name="libraries_count">Бібліотеки · %1$d</string>
+  <string name="libraries_search_hint">Пошук бібліотек або ліцензій</string>
+  <string name="libraries_open_project">Відкрити сайт проєкту</string>
+  <string name="pref_nav_home_title">Головна / Файли</string>
+  <string name="pref_nav_home_summary">Перегляд локальних папок і файлів (завжди доступний)</string>
+  <string name="pref_nav_actions_section">Дії навігації</string>
+  <string name="pref_about_playback_libraries">Бібліотеки відтворення</string>
+  <string name="color_picker_field">Вибір кольору</string>
+  <string name="color_picker_sliders">Повзунки</string>
+  <string name="color_picker_field_description">Насиченість і яскравість. Для точного налаштування скористайтеся повзунками.</string>
+  <string name="color_picker_hue">Відтінок. Для точного налаштування скористайтеся повзунками.</string>
+  <string name="color_picker_selected">Вибраний колір</string>
+  <string name="color_picker_quick_colors">Швидкі кольори</string>
+  <string name="app_icon_custom_background">Власне тло</string>
+  <string name="app_icon_custom_background_hint">Виберіть колір. Android використовує найближчу вбудовану піктограму в списку застосунків. Точний колір можна зберегти як піктограму головного екрана й використовувати в нещодавніх застосунках.</string>
+  <string name="app_icon_custom_logo_hint">Виберіть логотип для накладання на власне тло.</string>
+  <string name="app_icon_shortcut_preview">Попередній перегляд ярлика головного екрана</string>
+  <string name="app_icon_custom_requested">Ваш дизайн</string>
+  <string name="app_icon_custom_native_match">Фактична піктограма лаунчера</string>
+  <string name="app_icon_use_wallpaper_colors">Використати кольори шпалер</string>
+  <string name="app_icon_shortcut_apply">Додати або оновити ярлик</string>
+  <string name="app_icon_shortcut_requested">Запит надіслано. Підтвердьте додавання ярлика в лаунчері.</string>
+  <string name="app_icon_shortcut_updated">Ярлик головного екрана оновлено</string>
+  <string name="app_icon_shortcut_unsupported">Цей лаунчер не підтримує додавання ярликів на головний екран.</string>
+  <string name="app_icon_shortcut_failed">Не вдалося зберегти ярлик. Спробуйте ще раз.</string>
 </resources>
