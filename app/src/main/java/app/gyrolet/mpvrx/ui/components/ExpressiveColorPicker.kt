@@ -2,6 +2,9 @@
 package app.gyrolet.mpvrx.ui.components
 
 import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,13 +19,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.SliderDefaults
@@ -49,10 +52,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
@@ -97,9 +105,36 @@ fun ExpressiveColorPicker(
   Column(modifier.alpha(if (enabled) 1f else 0.45f), verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
     PickerTile(0 + offset, count + offset) {
       Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          FilterChip(selected = !sliders, onClick = { sliders = false }, label = { Text(stringResource(R.string.color_picker_field)) })
-          FilterChip(selected = sliders, onClick = { sliders = true }, label = { Text(stringResource(R.string.color_picker_sliders)) })
+        Row(
+          modifier = Modifier.fillMaxWidth().selectableGroup(),
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+        ) {
+          listOf(R.string.color_picker_field, R.string.color_picker_sliders).forEachIndexed { index, label ->
+            val selected = sliders == (index == 1)
+            val shape = rememberConnectedShape(index, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens)
+            val colors = MaterialTheme.colorScheme
+            Surface(
+              modifier = Modifier.weight(1f).clip(shape).selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = { sliders = index == 1 },
+              ),
+              shape = shape,
+              color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
+              contentColor = if (selected) colors.onSecondaryContainer else colors.onSurface,
+              border = BorderStroke(1.dp, if (selected) colors.secondaryContainer else colors.outlineVariant),
+            ) {
+              Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                if (selected) Icon(Icons.RoundedFilled.Check, null, modifier = Modifier.size(18.dp))
+                Text(stringResource(label), style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center,
+                  modifier = Modifier.weight(1f, fill = false))
+              }
+            }
+          }
         }
         if (sliders) {
           listOf(R.string.player_sheets_sub_color_red, R.string.player_sheets_sub_color_green, R.string.player_sheets_sub_color_blue).forEachIndexed { index, label ->

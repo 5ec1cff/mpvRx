@@ -219,6 +219,8 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
     AdvancedPreferencesScreen to
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_app_language_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_notification_style, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_export_settings_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_import_settings_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf_storage_location, itemIndex = 5),

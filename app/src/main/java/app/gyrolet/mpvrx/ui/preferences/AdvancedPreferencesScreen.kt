@@ -343,40 +343,13 @@ object AdvancedPreferencesScreen : Screen {
               .padding(padding)
               .then(settingsHighlight),
         ) {
-          // App Language Section
+          // Language and notification style share one connected Advanced group.
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
-              title = stringResource(R.string.pref_section_app_language),
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.First,
+              title = stringResource(R.string.pref_advanced),
               modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
             )
-          }
-
-          item {
-            PreferenceCard {
-              ExpressivePreferenceItem {
-              ListPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
-                value = currentAppLanguage,
-                onValueChange = { language ->
-                  if (language != currentAppLanguage) pendingAppLanguage = language
-                },
-                values = AppLanguage.entries,
-                valueToText = { AnnotatedString(it.displayName(context)) },
-                title = { Text(stringResource(R.string.pref_app_language_title)) },
-                summary = {
-                  Text(
-                    text = currentAppLanguage.displayName(context),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
-              }
-            }
-          }
-
-          // Notification style also lives under Player; both edit the same preference.
-          item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_playback))
           }
 
           item {
@@ -389,6 +362,24 @@ object AdvancedPreferencesScreen : Screen {
               notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
                 ?: NotificationStyle.Media
             PreferenceCard {
+              ExpressivePreferenceItem {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
+                  value = currentAppLanguage,
+                  onValueChange = { language ->
+                    if (language != currentAppLanguage) pendingAppLanguage = language
+                  },
+                  values = AppLanguage.entries,
+                  valueToText = { AnnotatedString(it.displayName(context)) },
+                  title = { Text(stringResource(R.string.pref_app_language_title)) },
+                  summary = {
+                    Text(
+                      text = currentAppLanguage.displayName(context),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
               ExpressivePreferenceItem {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
