@@ -2,22 +2,44 @@
 
 These notes are written in plain English and focus on what changed for real use.
 
-## 3.0.0 - Expressive - Material 3 Expressive, Liquid Glass, Profile Hub, and a Google Play Build
+## 3.0.0 — Expressive
 
-mpvRx 3.0.0 refreshes the whole app. Every screen moves to Material 3 Expressive, refractive Liquid Glass comes to the player, your library opens instantly instead of rescanning, and a Google Play build joins the release lineup. It took 310 commits from five contributors since 2.7.2.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Riteshp2001/mpvRx/403294620e0c38b7ec965a493ff6b97efcbb4198/website/public/images/icon.png" width="160" height="160" alt="mpvRx solid purple app icon" />
+</p>
 
-### Highlights
+<p align="center"><strong>A fresh face. More color. Your player.</strong><br />A revamped mpvRx icon · Material 3 Expressive · Liquid Glass · Profile Hub</p>
 
-- **A new look everywhere:** Material 3 Expressive across navigation, the browser, player sheets, settings, dialogs, and menus, with connected rows and full-tile selection.
-- **Refractive Liquid Glass:** Glass with lens curvature that reflects the live video on player controls, sheets, sliders, and the seekbar, including during HDR playback.
-- **Opens instantly:** Folders, Tree, Library, and opened folders reuse what they already know, so reopening the app no longer rescans storage. Only real video or audio changes trigger a refresh.
-- **Profile hub:** Recents, Playlists, Snapshots, and watch statistics in one place, with an editable avatar.
-- **Four new ambient modes:** Ambilight, Cinema, Echo, and Mirror join Glow and YouTube, each with quality presets and sliders.
-- **Build your own icon:** Mix 10 backgrounds with 5 logos for 34 launcher icons, and the splash screen matches your choice.
-- **Google Play build:** A new policy-compliant edition that reads media from folders you choose, shipped as a universal APK and an app bundle.
-- **Hands-on subtitles:** Long-press and drag a subtitle to move it, pinch to resize it, and position primary and secondary tracks independently.
-- **Lyrics, reworked:** A new lrc.red provider, automatic matching that races providers, backing vocals and duets, and embedded lyrics that appear immediately.
-- **mpvlib 1.1.3:** Every build ships the latest native mpv library.
+**A new chapter deserves a new face.** mpvRx 3.0.0 arrives with a revamped app icon and a refreshed interface to match. Open the player to discover connected Material 3 Expressive layouts, more control over color, and a new home for your playlists, snapshots, and watch statistics.
+
+### 💜 Meet the new mpvRx icon
+
+**A bold purple play mark. Softer curves. A fresh identity for 3.0.0.**
+
+The revamped icon brings the player’s identity into focus: a rounded, ribbon-like play symbol with a distinctive detached tip, finished in solid purple. It gives mpvRx a recognizable new face on your home screen and introduces the expressive look waiting inside the app.
+
+This is the visual centerpiece of **mpvRx 3.0.0 — Expressive**. The Classic logo remains available in App icon settings if you prefer the familiar look.
+
+### ✨ More to explore
+
+- **Expressive from screen to screen:** Connected shapes, full-tile selection, rounded controls, and refreshed navigation, settings, dialogs, and player panels.
+- **Color picking you can see:** A touch-controlled color field, hue strip, RGB sliders, selected-color preview, and quick swatches. Subtitle colors also include opacity adjustment; theme colors and custom shortcut backgrounds share the same picker.
+- **Liquid Glass controls:** Refractive styling for player controls and sliders, with a dedicated settings page to tune the effect.
+- **Less waiting, more watching:** Saved library and folder listings appear immediately, with media changes refreshed in the background.
+- **Your new Profile hub:** Recents, Playlists, Snapshots, and watch statistics together, with an editable avatar.
+- **Six ways to set the mood:** Ambilight, Cinema, Echo, and Mirror join Glow and YouTube ambient modes, with quality presets and adjustment controls.
+- **Hands-on subtitles:** Long-press and drag to reposition, pinch to resize, and adjust primary and secondary tracks independently.
+- **Lyrics, reworked:** A new lrc.red provider, automatic provider matching, backing vocals and duets, and faster access to embedded lyrics.
+- **Another way to install:** A Google Play build joins the release lineup with user-selected media folders, a universal APK, and an app bundle.
+- **Under the hood:** mpvlib 1.1.3 across the release builds.
+
+### 🚀 Three things to try first
+
+1. **Explore the new look.** Take the revamped icon and connected layouts for a spin, then try the new picker in custom theme colors.
+2. **Set the scene.** Explore ambient lighting and tune the player’s Liquid Glass controls.
+3. **Make yourself at home.** Visit Profile for playlists, snapshots, recent media, and watch statistics.
+
+---
 
 ### A New Look
 
@@ -46,8 +68,18 @@ mpvRx 3.0.0 refreshes the whole app. Every screen moves to Material 3 Expressive
 
 #### Icons and Splash Screen
 
-- **Icon builder:** Combine 10 backgrounds with 5 logos (Solid purple, Gradient purple, White, Black, and Classic) for 34 readable launcher icons, with a live preview and a swipe carousel. Your previous icon carries over.
-- **Matching splash:** The launch splash follows your theme and matches the icon you chose.
+- **Revamped mpvRx icon:** A rounded play mark with a detached tip and a solid purple finish introduces the new visual identity of 3.0.0. The Classic logo remains available.
+
+- **Icon builder:** Choose from 34 supported combinations of 10 backgrounds and 5 existing logos, with a live preview and a swipe carousel. Your previous icon carries over.
+- **Custom background tile:** Use the shared color picker to create a home-screen shortcut with any solid background and an existing logo. Reapplying updates the same shortcut; unsupported launchers show an explanation.
+- **Matching preset splash:** On Android 13 and newer, a built-in icon selection sets the splash theme for the next cold start. Older Android versions retain the default splash; custom shortcuts do not replace it.
+
+#### A Shared Color Picker
+
+- **Pick visually or precisely:** Drag across the saturation/brightness field, move the hue strip, or switch to RGB sliders. A live swatch and hex readout show the selected color, with quick colors close at hand.
+- **Right where you need it:** Subtitle colors stay embedded beneath the Text, Border, and Shadow controls. Custom theme colors and the new shortcut-background editor use the same component.
+- **Subtitle transparency:** Adjust opacity over a checkerboard preview. Theme and shortcut backgrounds use solid colors.
+- **Connected design:** The picker’s sections use the app’s Material 3 Expressive connected shapes and theme colors.
 
 ### Profile, Playlists, and Library
 
