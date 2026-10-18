@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.domain.network
 
+import android.net.Uri
 import java.net.URI
 
 /**
@@ -81,6 +82,14 @@ value class NetworkPath private constructor(
 }
 
 /**
+ * Percent-encodes a decoded network path for use in a URL.
+ *
+ * Do not use java.net.URI's component constructor for this: it NFC-normalizes the path, turning an
+ * NFD filename reported by the server into a different URL that no longer resolves.
+ */
+fun encodeNetworkPathForUrl(path: String): String = Uri.encode(path, "/")
+
+/**
  * Credential-free, persistent reference to a file below a saved network connection.
  *
  * The URI contains only the Room connection id and a normalized relative path. It can therefore
@@ -100,7 +109,7 @@ object NetworkPlaybackUri {
   ): String {
     require(connectionId > 0L) { "A saved network connection is required" }
     val normalizedPath = NetworkPath.from(path)
-    return URI(SCHEME, connectionId.toString(), normalizedPath.value, null, null).toASCIIString()
+    return "$SCHEME://$connectionId${encodeNetworkPathForUrl(normalizedPath.value)}"
   }
 
   fun parse(rawUri: String): Reference? =

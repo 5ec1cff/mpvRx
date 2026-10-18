@@ -14,6 +14,7 @@ import app.gyrolet.mpvrx.data.network.client.NetworkClient
 import app.gyrolet.mpvrx.data.network.client.NetworkMimeTypes
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
 import app.gyrolet.mpvrx.domain.network.NetworkPath
+import app.gyrolet.mpvrx.domain.network.encodeNetworkPathForUrl
 import app.gyrolet.mpvrx.repository.NetworkRepository
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.CancellationException
@@ -31,7 +32,6 @@ import org.koin.core.component.inject
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
-import java.net.URI
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
@@ -153,7 +153,7 @@ class NetworkStreamingProxy private constructor() :
     }
 
     val route = "/$token${path.value}"
-    return URI("http", null, "127.0.0.1", listeningPort, route, null, null).toASCIIString()
+    return "http://127.0.0.1:$listeningPort${encodeNetworkPathForUrl(route)}"
   }
 
   /** Unregisters the logical ID supplied to [registerStream]. */
