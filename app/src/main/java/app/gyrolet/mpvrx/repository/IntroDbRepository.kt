@@ -720,7 +720,7 @@ class IntroDbRepository(
 
   private fun parseTheIntroDbMediaBody(body: String): List<IntroDbSegment> {
     val payload = json.parseToJsonElement(body).jsonObject
-    check(payload["tmdb_id"] is JsonPrimitive && payload["type"] is JsonPrimitive) {
+    check(payload["tvdb_id"] is JsonPrimitive && payload["type"] is JsonPrimitive) {
       "Invalid TheIntroDB media response"
     }
     return listOf("intro", "recap", "credits", "preview").flatMap { type ->
@@ -1408,7 +1408,7 @@ class IntroDbRepository(
   companion object {
     private const val TAG = "IntroDbRepository"
     private const val PROVIDER_LOOKUP_TIMEOUT_MS = 8_000L
-    private const val THEINTRODB_MEDIA_URL = "https://api.theintrodb.org/v3/media"
+    private const val THEINTRODB_MEDIA_URL = "https://api.theintrodb.org/v4/media"
     private const val SKIPDB_SEGMENTS_URL = "https://api.skipdb.tv/api/segments"
     private const val ANISKIP_SKIP_TIMES_URL = "https://api.aniskip.com/v2/skip-times"
     private const val JIKAN_SEARCH_URL = "https://api.jikan.moe/v4/anime"
