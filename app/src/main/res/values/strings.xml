@@ -1,8 +1,5 @@
 <resources>
-  <string name="app_icon_background_image">Image</string>
-  <string name="app_icon_choose_image">Choose background image</string>
-  <string name="app_icon_image_hint">Choose a photo for your custom icon. It will be centre-cropped and stored on this device.</string>
-  <string name="app_icon_image_failed">Couldn\'t open that image. Try another photo.</string>
+
   <string name="app_icon_create_custom_shortcut">Add exact custom icon to home screen</string>
   <string name="pref_experimental_badge">Experimental</string>
   <string name="pref_liquid_glass_experimental_note">Liquid glass effects are experimental and may vary by device.</string>
@@ -2659,7 +2656,7 @@
     <string name="color_picker_selected">Selected color</string>
     <string name="color_picker_quick_colors">Quick colors</string>
     <string name="app_icon_custom_background">Custom background</string>
-    <string name="app_icon_custom_background_hint">Choose a color or photo. Android uses the closest built-in icon in your app drawer. Your exact design can be saved as a home-screen icon and used in Recents.</string>
+    <string name="app_icon_custom_background_hint">Choose a color. Android uses the closest built-in icon in your app drawer. Your exact color can be saved as a home-screen icon and used in Recents.</string>
     <string name="app_icon_custom_logo_hint">Choose any logo to overlay on your custom background.</string>
     <string name="app_icon_shortcut_preview">Home-screen shortcut preview</string>
     <string name="app_icon_custom_requested">Your design</string>
