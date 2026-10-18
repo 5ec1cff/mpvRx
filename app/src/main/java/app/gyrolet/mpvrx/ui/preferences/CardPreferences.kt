@@ -50,6 +50,7 @@ import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
 
 /**
  * A connected Material 3 Expressive group for legacy Compose Preference rows.
@@ -75,11 +76,12 @@ fun PreferenceCard(
   val innerRadius = AppConnectedShapeTokens.innerCorner
   var tileFrames by remember { mutableStateOf(emptyList<ConnectedPreferenceFrame>()) }
   val reduceMotion = AppMotion.shouldReduceMotion()
+  val lowEnd = rememberLowEndDevice()
   val frames = tileFrames
   val tileColors = frames.map { frame ->
     animateColorAsState(
       targetValue = if (frame.selected) colors.secondaryContainer else colors.surfaceContainerLow,
-      animationSpec = if (reduceMotion) snap() else AppMotion.Effect.Color,
+      animationSpec = if (reduceMotion || lowEnd) snap() else AppMotion.Effect.Color,
       label = "connectedPreferenceSelection",
     )
   }
@@ -89,7 +91,7 @@ fun PreferenceCard(
     modifier = modifier
       .fillMaxWidth()
       .padding(horizontal = 16.dp, vertical = 8.dp)
-      .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring),
+      .then(if (lowEnd || reduceMotion) Modifier else Modifier.animateContentSize(AppMotion.IntSizeSpring)),
   ) {
     val columnScope = this
     Layout(
@@ -173,11 +175,12 @@ fun ExpressivePreferenceGroup(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   val reduceMotion = AppMotion.shouldReduceMotion()
+  val lowEnd = rememberLowEndDevice()
   Column(
     modifier =
       modifier
         .fillMaxWidth()
-        .animateContentSize(if (reduceMotion) snap() else AppMotion.IntSizeSpring)
+        .then(if (lowEnd || reduceMotion) Modifier else Modifier.animateContentSize(AppMotion.IntSizeSpring))
         .padding(horizontal = 16.dp, vertical = 8.dp),
     verticalArrangement = Arrangement.spacedBy(4.dp),
     content = content,

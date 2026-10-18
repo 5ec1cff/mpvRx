@@ -20,9 +20,10 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.LiquidControlColors
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidToggle
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
-import app.gyrolet.mpvrx.ui.liquidglass.LiquidControlColors
+import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import org.koin.compose.koinInject
@@ -38,7 +39,9 @@ fun IconSwitch(
   val appearancePreferences = koinInject<AppearancePreferences>()
   val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
 
-  if (liquidGlassEnabled) {
+  // Avoid a separate sampled glass layer for each settings switch on budget devices.
+  val lowEndDevice = rememberLowEndDevice()
+  if (liquidGlassEnabled && !lowEndDevice) {
     val switchBackdropColor = MaterialTheme.colorScheme.surfaceContainer
     val canvasBackdrop = rememberCanvasBackdrop { drawRect(switchBackdropColor) }
     val backdrop = LocalKyantPlayerBackdrop.current ?: canvasBackdrop

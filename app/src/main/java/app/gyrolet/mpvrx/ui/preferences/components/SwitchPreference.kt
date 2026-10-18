@@ -42,6 +42,7 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -68,6 +69,7 @@ fun SwitchPreference(
       "groupIndex ($groupIndex) must be within groupSize ($groupSize)"
     }
   }
+  val lowEnd = rememberLowEndDevice()
   val haptics = rememberAppHaptics()
   val interactionSource = remember { MutableInteractionSource() }
   val updateValue: (Boolean) -> Unit = { checked ->
@@ -100,7 +102,7 @@ fun SwitchPreference(
       value -> MaterialTheme.colorScheme.secondaryContainer
       else -> MaterialTheme.colorScheme.surfaceContainerLow
     },
-    animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
+    animationSpec = if (lowEnd) snap() else AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "settingsOptionSelectionColor",
   )
   Surface(
@@ -116,7 +118,7 @@ fun SwitchPreference(
       modifier =
         Modifier
           .fillMaxWidth()
-          .appPressFeedback(interactionSource, enabled = enabled, pressedScale = 0.99f)
+          .then(if (lowEnd) Modifier else Modifier.appPressFeedback(interactionSource, enabled = enabled, pressedScale = 0.99f))
           .clip(shape)
           .toggleable(
             value = value,

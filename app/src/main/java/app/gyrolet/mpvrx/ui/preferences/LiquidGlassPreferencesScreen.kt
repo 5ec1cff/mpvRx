@@ -51,6 +51,7 @@ import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidToggle
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
+import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.preferences.components.liquidGlassPreferences
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -191,6 +192,7 @@ object LiquidGlassPreferencesScreen : Screen {
 @Composable
 private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: Boolean = false) {
   val backdrop = rememberLayerBackdrop()
+  val lowEnd = rememberLowEndDevice()
   val settings = rememberLiquidGlassSettings()
   val colors = MaterialTheme.colorScheme
   val shape = MaterialTheme.shapes.extraLargeIncreased
@@ -227,7 +229,7 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
           .padding(if (compact) 8.dp else 20.dp)
           .fillMaxWidth()
           .then(
-            if (enabled) {
+            if (enabled && !lowEnd) {
               Modifier.drawBackdrop(
                 backdrop = backdrop,
                 shape = { shape },
@@ -267,7 +269,7 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        if (enabled) {
+        if (enabled && !lowEnd) {
           LiquidButton(
             onClick = { playing = !playing },
             backdrop = backdrop,
@@ -294,7 +296,7 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
           verticalAlignment = Alignment.CenterVertically,
         ) {
           Icon(Icons.RoundedFilled.Repeat, contentDescription = null, tint = colors.onSurface)
-          if (enabled) {
+          if (enabled && !lowEnd) {
             LiquidToggle(
               selected = { repeating },
               onSelect = { repeating = it },

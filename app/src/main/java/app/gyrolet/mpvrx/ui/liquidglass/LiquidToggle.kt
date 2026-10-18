@@ -1,5 +1,7 @@
 package app.gyrolet.mpvrx.ui.liquidglass
 
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,8 @@ import com.kyant.backdrop.backdrops.rememberBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
@@ -52,17 +56,11 @@ fun LiquidToggle(
     onSelect: (Boolean) -> Unit,
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
-    accentColor: Color = LiquidControlColors.accent,
+    accentColor: Color = if (isSystemInDarkTheme()) Color(0xFF30D158) else Color(0xFF34C759),
     enabled: Boolean = true,
     isInteractive: Boolean = true,
 ) {
-    val glassSettings = rememberLiquidGlassSettings()
-    val trackColor = LiquidControlColors.inactiveTrack
-    val thumbFilm = androidx.compose.ui.graphics.lerp(
-        MaterialTheme.colorScheme.surfaceContainerHigh,
-        accentColor,
-        0.18f,
-    )
+    val trackColor = if (isSystemInDarkTheme()) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.20f)
     val currentSelected = rememberUpdatedState(selected)
     val currentOnSelect = rememberUpdatedState(onSelect)
     val reduceMotion = AppMotion.shouldReduceMotion()
@@ -134,7 +132,7 @@ fun LiquidToggle(
                 .clip(Capsule())
                 .drawBehind {
                     val frac = dampedDragAnimation.value
-                    drawRect(glassSettings.surfaceColor(lerp(trackColor, accentColor, frac)))
+                    drawRect(lerp(trackColor, accentColor, frac))
                 }
                 .size(64f.dp, 28f.dp)
         )
@@ -175,20 +173,18 @@ fun LiquidToggle(
                     shape = { Capsule() },
                     effects = {
                         val progress = dampedDragAnimation.pressProgress
-                        liquidGlassEffects(
-                            glassSettings,
-                            8f.dp.toPx() * (1f - progress),
-                            5f.dp.toPx() * progress,
-                            10f.dp.toPx() * progress,
-                        )
+                        blur(8f.dp.toPx() * (1f - progress))
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            lens(5f.dp.toPx() * progress, 10f.dp.toPx() * progress, chromaticAberration = true)
+                        }
                     },
                     highlight = {
                         val progress = dampedDragAnimation.pressProgress
-                        glassSettings.highlight(Highlight.Ambient.copy(
+                        Highlight.Ambient.copy(
                             width = Highlight.Ambient.width / 1.5f,
                             blurRadius = Highlight.Ambient.blurRadius / 1.5f,
                             alpha = progress
-                        ))
+                        )
                     },
                     shadow = { toggleShadow },
                     innerShadow = {
@@ -207,13 +203,8 @@ fun LiquidToggle(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
-                        // Off = white; on = the existing themed film, with a smooth transition.
-                        val film = lerp(
-                            Color.White,
-                            thumbFilm.copy(alpha = 0.72f - 0.28f * progress),
-                            dampedDragAnimation.value.coerceIn(0f, 1f),
-                        )
-                        drawRect(glassSettings.surfaceColor(film))
+                        // Match Kyant's original white glass thumb.
+                        drawRect(Color.White.copy(alpha = 1f - progress))
                     }
                 )
                 .size(40f.dp, 24f.dp)

@@ -260,12 +260,18 @@ internal object LauncherIconManager {
     runCatching { applySplashTheme(activity, current(activity)) }
     runCatching {
       val icon = current(activity)
-      val bitmap = cachedArtwork?.takeIf { it.first == icon && icon.background != IconBackground.Wallpaper }?.second ?: run {
-        val drawable: Drawable = ContextCompat.getDrawable(activity, icon.preview) ?: return@runCatching
-        Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888).also {
-          drawable.setBounds(0, 0, it.width, it.height)
-          drawable.draw(Canvas(it))
-          cachedArtwork = icon to it
+      val customMode = CustomIconShortcut.appliedMode(activity)
+      val bitmap = if (customMode != "preset") {
+        CustomIconShortcut.render(activity, customMode, CustomIconShortcut.savedColor(activity),
+          CustomIconShortcut.savedMark(activity, icon.mark), size = 128) ?: return@runCatching
+      } else {
+        cachedArtwork?.takeIf { it.first == icon && icon.background != IconBackground.Wallpaper }?.second ?: run {
+          val drawable: Drawable = ContextCompat.getDrawable(activity, icon.preview) ?: return@runCatching
+          Bitmap.createBitmap(128, 128, Bitmap.Config.ARGB_8888).also {
+            drawable.setBounds(0, 0, it.width, it.height)
+            drawable.draw(Canvas(it))
+            cachedArtwork = icon to it
+          }
         }
       }
       activity.setTaskDescription(ActivityManager.TaskDescription(activity.getString(R.string.app_name), bitmap))

@@ -76,6 +76,7 @@ fun ExpressiveColorPicker(
   enabled: Boolean = true,
   showAlpha: Boolean = true,
   attachedToHeader: Boolean = false,
+  forcedSliders: Boolean? = null,
 ) {
   var sliders by rememberSaveable { mutableStateOf(false) }
   val hsv = remember { floatArrayOf(0f, 0f, 0f).also { AndroidColor.colorToHSV(color, it) } }
@@ -100,12 +101,13 @@ fun ExpressiveColorPicker(
     emittedColor = AndroidColor.HSVToColor(if (showAlpha) AndroidColor.alpha(color) else 255, floatArrayOf(h, s, v))
     onColorChange(emittedColor)
   }
+  val showSliders = forcedSliders ?: sliders
   val count = if (showAlpha) 4 else 3
   val offset = if (attachedToHeader) 1 else 0
   Column(modifier.alpha(if (enabled) 1f else 0.45f), verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
     PickerTile(0 + offset, count + offset) {
       Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
+        if (forcedSliders == null) Row(
           modifier = Modifier.fillMaxWidth().selectableGroup(),
           horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
         ) {
@@ -136,7 +138,7 @@ fun ExpressiveColorPicker(
             }
           }
         }
-        if (sliders) {
+        if (showSliders) {
           listOf(R.string.player_sheets_sub_color_red, R.string.player_sheets_sub_color_green, R.string.player_sheets_sub_color_blue).forEachIndexed { index, label ->
             val shift = 16 - index * 8
             ChannelSlider(stringResource(label), (color ushr shift) and 255, enabled) {
