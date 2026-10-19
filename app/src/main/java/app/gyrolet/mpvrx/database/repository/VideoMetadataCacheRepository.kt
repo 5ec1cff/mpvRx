@@ -37,7 +37,7 @@ class VideoMetadataCacheRepository(
 ) {
   companion object {
     private const val TAG = "VideoMetadataCache"
-    private const val PARALLEL_PROCESSING_LIMIT = 4
+    private const val PARALLEL_PROCESSING_LIMIT = 2
     private const val CACHE_VALIDITY_DAYS = 30L
     private const val MAINTENANCE_PREFS = "video_metadata_cache"
     private const val LAST_MAINTENANCE_MS = "last_maintenance_ms"

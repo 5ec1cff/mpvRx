@@ -1111,7 +1111,7 @@ internal fun VideoListContent(
                 // Visible cards have priority: bulk work resumes only after the scroll settles.
                 thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
                 if (!scrolling) {
-                  delay(850L)
+                  delay(1_500L)
                   thumbnailRepository.startFolderThumbnailGeneration(
                     folderId = generationId,
                     videos = latestVideosWithInfo.map { it.video },
@@ -1215,7 +1215,7 @@ internal fun VideoListContent(
                       thumbnailWidthPx = thumbWidthPx,
                       thumbnailHeightPx = thumbHeightPx,
                       showSubtitleIndicator = showSubtitleIndicator,
-                      allowThumbnailGeneration = !archiveFolder,
+                      allowThumbnailGeneration = !archiveFolder && !gridState.isScrollInProgress,
                       allowThumbnailLoading = !archiveFolder,
                       uiConfig = videoCardUiConfig,
                   )
@@ -1285,7 +1285,7 @@ internal fun VideoListContent(
                       isGridMode = false,
                       onSwipeAction = swipeActions.video.takeUnless { archiveFolder || selectionManager.isInSelectionMode },
                       showSubtitleIndicator = showSubtitleIndicator,
-                      allowThumbnailGeneration = !archiveFolder,
+                      allowThumbnailGeneration = !archiveFolder && !listState.isScrollInProgress,
                       allowThumbnailLoading = !archiveFolder,
                       uiConfig = videoCardUiConfig,
                       thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,

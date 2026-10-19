@@ -1535,7 +1535,7 @@ private fun GridContent(
             }
           },
           uiConfig = folderCardUiConfig,
-          allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails,
+          allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails && !gridState.isScrollInProgress,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {

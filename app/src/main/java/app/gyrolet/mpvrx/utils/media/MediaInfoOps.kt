@@ -352,6 +352,9 @@ object MediaInfoOps {
             contentResolver.openFileDescriptor(uri, "r")
               ?: return@runCatching VideoMetadata(0L, 0L, 0, 0, 0f, false)
 
+          // MediaInfo's JNI OpenFd closes the detached FD. Read statSize while the
+          // ParcelFileDescriptor still owns it; accessing it after detach causes EBADF.
+          val descriptorSize = pfd.statSize
           val fd = pfd.detachFd()
           val mi = MediaInfo()
 
@@ -431,7 +434,7 @@ object MediaInfoOps {
               sizeBytes =
                 fileSize.takeIf { it > 0L }
                   ?: retrieverFallback?.sizeBytes
-                  ?: pfd.statSize.takeIf { it > 0L }
+                  ?: descriptorSize.takeIf { it > 0L }
                   ?: 0L,
               durationMs = duration.takeIf { it > 0L } ?: retrieverFallback?.durationMs ?: 0L,
               width = width.takeIf { it > 0 } ?: retrieverFallback?.width ?: 0,

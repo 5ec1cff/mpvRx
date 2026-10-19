@@ -62,6 +62,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 private const val NETWORK_THUMBNAIL_FAILURE_RETRY_MS = 30_000L
+private const val LOCAL_THUMBNAIL_FAILURE_RETRY_MS = 60_000L
 
 class ThumbnailRepository(
   private val context: Context,
@@ -99,7 +100,7 @@ class ThumbnailRepository(
   private val localGenerationParallelism = resolveLocalGenerationParallelism()
   private val localGenerationSemaphore = Semaphore(localGenerationParallelism)
   private val networkGenerationSemaphore = Semaphore(1)
-  private val maxFolderBatchSize = 48
+  private val maxFolderBatchSize = 12
 
   private data class FolderState(
     val signature: String,
@@ -111,6 +112,8 @@ class ThumbnailRepository(
 
   // Throttle transient failures while still allowing remote files to recover during this process.
   private val networkThumbnailFailedAt = ConcurrentHashMap<String, Long>()
+  // Bounded, versioned negative cache: a broken local file must not be decoded on every scroll.
+  private val localThumbnailFailedAt = LruCache<String, Long>(256)
 
   private val _thumbnailReadyKeys =
     MutableSharedFlow<String>(
@@ -158,6 +161,13 @@ class ThumbnailRepository(
             return@async cached
           }
 
+          // Check disk first so a valid thumbnail remains usable even after an earlier failure.
+          // The key includes file identity and thumbnail settings, so edits/mode changes retry.
+          val localFailureKey = if (isNetworkUrl(video.path)) null else diskCacheKey(video)
+          if (localFailureKey != null && hasRecentLocalThumbnailFailure(localFailureKey)) {
+            return@async null
+          }
+
           val bitmap =
             when {
               isHttpUrl(video.path) ->
@@ -169,9 +179,21 @@ class ThumbnailRepository(
                 localGenerationSemaphore.withPermit {
                   generateLocalThumbnail(video, widthPx, heightPx)
                 }
-            } ?: return@async null
+            } ?: run {
+              // Cancellation is not a decoder failure and must never poison the cache.
+              currentCoroutineContext().ensureActive()
+              if (localFailureKey != null) {
+                synchronized(localThumbnailFailedAt) {
+                  localThumbnailFailedAt.put(localFailureKey, SystemClock.elapsedRealtime())
+                }
+              }
+              return@async null
+            }
 
           currentCoroutineContext().ensureActive()
+          if (localFailureKey != null) {
+            synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.remove(localFailureKey) }
+          }
           synchronized(memoryCache) {
             memoryCache.put(key, bitmap)
           }
@@ -191,6 +213,14 @@ class ThumbnailRepository(
         }
 
       operation.await()
+    }
+
+  private fun hasRecentLocalThumbnailFailure(key: String): Boolean =
+    synchronized(localThumbnailFailedAt) {
+      val failedAt = localThumbnailFailedAt.get(key) ?: return@synchronized false
+      val recent = SystemClock.elapsedRealtime() - failedAt < LOCAL_THUMBNAIL_FAILURE_RETRY_MS
+      if (!recent) localThumbnailFailedAt.remove(key)
+      recent
     }
 
   suspend fun getCachedThumbnail(
@@ -258,6 +288,7 @@ class ThumbnailRepository(
     diskVideoBaseKeyCache.clear()
     localMetadataCache.clear()
     networkThumbnailFailedAt.clear()
+    synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.evictAll() }
 
     synchronized(memoryCache) {
       memoryCache.evictAll()
