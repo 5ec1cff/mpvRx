@@ -1664,6 +1664,11 @@
   <string name="ui_check_on_startup">Check on startup</string>
   <string name="ui_check_for_updates_now">Check for Updates Now</string>
   <string name="ui_update_channel">Update Channel</string>
+  <string name="ui_update_channel_stable_short" translatable="false">Stable</string>
+  <string name="ui_update_channel_preview_short" translatable="false">Nightly</string>
+  <string name="ui_update_channel_experimental_short" translatable="false">Exp.</string>
+  <string name="ui_update_channels_summary">Stable releases, nightly previews, or experimental CI builds.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
   <string name="ui_stable_releases">Stable</string>
   <string name="ui_preview_builds">Preview (Nightly)</string>
   <string name="ui_preview_builds_summary">Preview builds are signed test versions published from the latest mpvRx changes and may be unstable.</string>

@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 enum class AppUpdateChannel {
   STABLE,
   PREVIEW,
+  EXPERIMENTAL,
   ;
 
   companion object {
@@ -33,6 +34,7 @@ data class Release(
   @SerialName("channel") val channel: String? = null,
   @SerialName("commit_count") val commitCount: Int? = null,
   @SerialName("commit_sha") val commitSha: String? = null,
+  @SerialName("updated_at") val updatedAt: String? = null,
 ) {
   val isPreview: Boolean
     get() = channel.equals("preview", ignoreCase = true) || tagName.startsWith("preview-r")
@@ -45,8 +47,35 @@ data class Release(
         null
       }
 
+  val isExperimental: Boolean
+    get() = channel.equals("experimental", ignoreCase = true) || tagName.equals("experimental", ignoreCase = true)
+
+  val experimentalBuildNumber: Int?
+    get() =
+      if (isExperimental) {
+        commitCount ?: BUILD_NUMBER_REGEX.find(name)?.groupValues?.getOrNull(1)?.toIntOrNull()
+      } else {
+        null
+      }
+
+  // The experimental release tag is rolling; ignoring one build must not ignore all future ones.
+  val updateKey: String
+    get() = experimentalBuildNumber?.let { "experimental-r$it" } ?: tagName
+
+  // Old assets stay available during publication. Never select one from a different build.
+  val updateAssets: List<Asset>
+    get() =
+      if (isExperimental) {
+        val buildNumber = experimentalBuildNumber
+        if (buildNumber == null) emptyList()
+        else assets.filter { it.name.startsWith("mpvRx-experimental-r$buildNumber-", ignoreCase = true) }
+      } else {
+        assets
+      }
+
   companion object {
     private val PREVIEW_TAG_REGEX = Regex("""(?:preview-)?r(\d+)""", RegexOption.IGNORE_CASE)
+    private val BUILD_NUMBER_REGEX = Regex("""\br(\d+)\b""", RegexOption.IGNORE_CASE)
   }
 }
 

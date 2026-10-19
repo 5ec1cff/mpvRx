@@ -579,10 +579,10 @@ open class MainActivity : AppCompatActivity() {
 
     val context = LocalContext.current
     val currentVersion =
-      if (BuildConfig.IS_PREVIEW_BUILD) {
-        stringResource(R.string.update_beta_build_format, BuildConfig.GIT_COUNT)
-      } else {
-        BuildConfig.VERSION_NAME.substringBefore('-')
+      when {
+        BuildConfig.IS_EXPERIMENTAL_BUILD -> stringResource(R.string.update_experimental_build_format, BuildConfig.GIT_COUNT)
+        BuildConfig.IS_PREVIEW_BUILD -> stringResource(R.string.update_beta_build_format, BuildConfig.GIT_COUNT)
+        else -> BuildConfig.VERSION_NAME.substringBefore('-')
       }
 
     // Conditionally initialize update feature based on build config
@@ -738,7 +738,7 @@ open class MainActivity : AppCompatActivity() {
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
               onAction = { updateViewModel.downloadUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName) },
+              onIgnore = { updateViewModel.ignoreVersion(release.updateKey) },
             )
           }
           is UpdateViewModel.UpdateState.ReadyToInstall -> {
@@ -751,7 +751,7 @@ open class MainActivity : AppCompatActivity() {
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
               onAction = { updateViewModel.installUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.tagName) },
+              onIgnore = { updateViewModel.ignoreVersion(release.updateKey) },
             )
           }
           else -> {}

@@ -49,9 +49,11 @@ class UpdateManager(
         when (channel) {
           AppUpdateChannel.STABLE -> STABLE_RELEASE_URL
           AppUpdateChannel.PREVIEW -> PREVIEW_RELEASE_URL
+          AppUpdateChannel.EXPERIMENTAL -> EXPERIMENTAL_RELEASE_URL
         },
-      )
-    if (selectBestApkAsset(release.assets) == null) {
+        allowMissing = channel == AppUpdateChannel.EXPERIMENTAL,
+      ) ?: return null
+    if (selectBestApkAsset(release.updateAssets) == null) {
       return null
     }
     val prefs = context.getSharedPreferences("mpvrx_prefs", Context.MODE_PRIVATE)
@@ -61,7 +63,7 @@ class UpdateManager(
 
     // If this version was ignored, don't show it unless forced (manual check)
     val isIgnored =
-      ignoredVersion == release.tagName ||
+      ignoredVersion == release.updateKey ||
         (channel == AppUpdateChannel.STABLE && ignoredVersion == release.tagName.removePrefix("v"))
     if (!forceShow && isIgnored) {
       return null
@@ -73,9 +75,15 @@ class UpdateManager(
           val currentVersion = BuildConfig.VERSION_NAME.substringBefore('-')
           isNewerVersion(release.tagName.removePrefix("v"), currentVersion)
         }
-        AppUpdateChannel.PREVIEW -> {
-          val remoteCommitCount = release.commitCount ?: parsePreviewCommitCount(release.tagName)
-          remoteCommitCount != null && remoteCommitCount > BuildConfig.GIT_COUNT
+        AppUpdateChannel.PREVIEW, AppUpdateChannel.EXPERIMENTAL -> {
+          val isPreview = channel == AppUpdateChannel.PREVIEW
+          val remoteCommitCount =
+            if (isPreview) release.commitCount ?: parsePreviewCommitCount(release.tagName)
+            else release.experimentalBuildNumber
+          val alreadyOnChannel = if (isPreview) BuildConfig.IS_PREVIEW_BUILD else BuildConfig.IS_EXPERIMENTAL_BUILD
+          remoteCommitCount != null &&
+            (remoteCommitCount > BuildConfig.GIT_COUNT ||
+              (remoteCommitCount == BuildConfig.GIT_COUNT && !alreadyOnChannel))
         }
       }
 
@@ -102,10 +110,12 @@ class UpdateManager(
       .apply()
   }
 
-  private suspend fun getLatestRelease(url: String): Release =
+  private suspend fun getLatestRelease(url: String, allowMissing: Boolean = false): Release? =
     withContext(Dispatchers.IO) {
       val request = Request.Builder().url(url).header("Cache-Control", "no-cache").build()
       client.newCall(request).execute().use { response ->
+        // The channel becomes available after the first successful signed CI publication.
+        if (allowMissing && response.code == 404) return@withContext null
         if (!response.isSuccessful) throw IOException("Unexpected code $response")
         val responseBody = response.body.string()
         json.decodeFromString<Release>(responseBody)
@@ -141,7 +151,7 @@ class UpdateManager(
     }
 
     val asset =
-      selectBestApkAsset(release.assets)
+      selectBestApkAsset(release.updateAssets)
         ?: throw Exception("No compatible APK asset found")
 
     val destination = File(context.externalCacheDir, asset.name)
@@ -315,7 +325,7 @@ class UpdateManager(
    */
   suspend fun getResumableProgress(release: Release): Float? {
     if (!BuildConfig.ENABLE_UPDATE_FEATURE) return null
-    val asset = selectBestApkAsset(release.assets) ?: return null
+    val asset = selectBestApkAsset(release.updateAssets) ?: return null
     val partial = File(File(context.externalCacheDir, asset.name).absolutePath + PART_SUFFIX)
     val downloaded = partial.takeIf { it.isFile }?.takeIf { it.length() > 0L }?.length() ?: return null
     val total = resolveAssetLength(asset) ?: return null
@@ -341,7 +351,7 @@ class UpdateManager(
       return null
     }
 
-    val asset = selectBestApkAsset(release.assets) ?: return null
+    val asset = selectBestApkAsset(release.updateAssets) ?: return null
     val file = File(context.externalCacheDir, asset.name)
     return if (file.exists()) file else null
   }
@@ -360,6 +370,7 @@ class UpdateManager(
   private companion object {
     const val STABLE_RELEASE_URL = "https://api.github.com/repos/Riteshp2001/mpvRx/releases/latest"
     const val PREVIEW_RELEASE_URL = "https://riteshp2001.github.io/mpvRx/latest.json"
+    const val EXPERIMENTAL_RELEASE_URL = "https://api.github.com/repos/Riteshp2001/mpvRx/releases/tags/experimental"
     const val LEGACY_IGNORED_VERSION_KEY = "ignored_version"
     const val PART_SUFFIX = ".part"
     const val HTTP_PARTIAL_CONTENT = 206

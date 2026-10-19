@@ -91,7 +91,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew "assemble${GRADLE_FLAVOR}Release" --stacktrace --no-daemon --max-workers=2
+          extra_args=()
+          if [[ "$DISTRIBUTION" != "playstore" ]]; then
+            extra_args+=(-PexperimentalBuild=true)
+          fi
+          ./gradlew "assemble${GRADLE_FLAVOR}Release" "${extra_args[@]}" --stacktrace --no-daemon --max-workers=2
 
       - name: Build release bundle
         if: ${{ matrix.distribution.package == 'aab' }}
@@ -344,3 +348,53 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+  publish-experimental:
+    name: Publish experimental updates
+    needs: build
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    concurrency:
+      group: mpvrx-experimental-release
+      cancel-in-progress: false
+
+    steps:
+      - name: Check signing availability
+        id: signing
+        shell: bash
+        env:
+          SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [[ -n "$SIGNING_KEYSTORE" && -n "$SIGNING_KEY_ALIAS" && -n "$SIGNING_STORE_PASSWORD" && -n "$KEY_PASSWORD" ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Signing secrets unavailable; keeping experimental APKs as Actions artifacts only."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout experimental source
+        if: steps.signing.outputs.publish == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download signed CI APKs
+        if: steps.signing.outputs.publish == 'true'
+        uses: actions/download-artifact@v7
+        with:
+          pattern: app-*-release-*
+          merge-multiple: true
+          path: ci-apks
+
+      - name: Publish rolling experimental release
+        if: steps.signing.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 .github/scripts/publish-experimental.py

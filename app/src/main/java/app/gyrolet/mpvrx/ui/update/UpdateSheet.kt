@@ -73,10 +73,12 @@ fun UpdateSheet(
       enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
     )
   val latestVersion =
-    release.previewBuildNumber?.let { buildNumber ->
+    release.experimentalBuildNumber?.let { buildNumber ->
+      stringResource(R.string.update_experimental_build_format, buildNumber)
+    } ?: release.previewBuildNumber?.let { buildNumber ->
       stringResource(R.string.update_beta_build_format, buildNumber)
     } ?: release.tagName.removePrefix("v")
-  val downloadSize = release.assets.find { it.name.endsWith(".apk") }?.size ?: 0L
+  val downloadSize = release.updateAssets.find { it.name.endsWith(".apk") }?.size ?: 0L
 
   ModalBottomSheet(
     onDismissRequest = { if (!isDownloading) onDismiss() },
@@ -104,7 +106,10 @@ fun UpdateSheet(
       ) {
         VersionTransitionRow(currentVersion = currentVersion, latestVersion = latestVersion)
         Spacer(modifier = Modifier.height(8.dp))
-        ReleaseMetaRow(publishedAt = release.publishedAt, sizeBytes = downloadSize)
+        ReleaseMetaRow(
+          publishedAt = if (release.isExperimental) release.updatedAt ?: release.publishedAt else release.publishedAt,
+          sizeBytes = downloadSize,
+        )
 
         HorizontalDivider(
           modifier = Modifier.padding(vertical = 16.dp),

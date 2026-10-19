@@ -26,6 +26,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
@@ -98,7 +100,9 @@ object AboutScreen : Screen {
     val packageInfo = packageManager.getPackageInfo(context.packageName, 0)
     val versionName =
       packageInfo.versionName
-        ?.let { value -> if (BuildConfig.IS_PREVIEW_BUILD) value else value.substringBefore('-') }
+        ?.let { value ->
+          if (BuildConfig.IS_PREVIEW_BUILD || BuildConfig.IS_EXPERIMENTAL_BUILD) value else value.substringBefore('-')
+        }
         ?: BuildConfig.VERSION_NAME
     val buildType = BuildConfig.BUILD_TYPE
     val githubRepoUrl = stringResource(R.string.github_repo_url)
@@ -566,25 +570,32 @@ object AboutScreen : Screen {
                   color = cs.onSurface,
                 )
                 Text(
-                  text = stringResource(R.string.ui_preview_builds_summary),
+                  text = stringResource(R.string.ui_update_channels_summary),
                   style = MaterialTheme.typography.bodyMedium,
                   color = cs.outline,
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                   AppUpdateChannel.entries.forEachIndexed { index, channel ->
                     SegmentedButton(
+                      modifier = Modifier.weight(1f),
                       selected = updateChannel == channel,
                       onClick = { updateViewModel.setUpdateChannel(channel) },
                       shape = SegmentedButtonDefaults.itemShape(index, AppUpdateChannel.entries.size),
                       colors = themedSegmentedButtonColors(),
+                      contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                      icon = {},
                       label = {
                         Text(
                           stringResource(
                             when (channel) {
-                              AppUpdateChannel.STABLE -> R.string.ui_stable_releases
-                              AppUpdateChannel.PREVIEW -> R.string.ui_preview_builds
+                              AppUpdateChannel.STABLE -> R.string.ui_update_channel_stable_short
+                              AppUpdateChannel.PREVIEW -> R.string.ui_update_channel_preview_short
+                              AppUpdateChannel.EXPERIMENTAL -> R.string.ui_update_channel_experimental_short
                             },
                           ),
+                          maxLines = 1,
+                          overflow = TextOverflow.Ellipsis,
+                          style = MaterialTheme.typography.labelMedium,
                         )
                       },
                     )
