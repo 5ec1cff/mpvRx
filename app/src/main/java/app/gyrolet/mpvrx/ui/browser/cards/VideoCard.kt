@@ -381,10 +381,10 @@ fun VideoCard(
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (!deferThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
+            if (!deferThumbnailLoading && allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
-                  if (allowThumbnailGeneration && allowThumbnailLoading) {
+                  if (allowThumbnailGeneration) {
                     thumbnailRepository.getThumbnail(video, resolvedThumbWidthPx, resolvedThumbHeightPx)
                   } else {
                     thumbnailRepository.getCachedThumbnail(video, resolvedThumbWidthPx, resolvedThumbHeightPx)
@@ -724,10 +724,10 @@ fun VideoCard(
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (!deferThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
+            if (!deferThumbnailLoading && allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
-                  if (allowThumbnailGeneration && allowThumbnailLoading) {
+                  if (allowThumbnailGeneration) {
                     thumbnailRepository.getThumbnail(video, thumbWidthPx, thumbHeightPx)
                   } else {
                     thumbnailRepository.getCachedThumbnail(video, thumbWidthPx, thumbHeightPx)

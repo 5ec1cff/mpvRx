@@ -19,12 +19,22 @@ internal fun calculateThumbnailSampleSize(
   width: Int,
   height: Int,
   maxSize: Int = MAX_THUMBNAIL_SIZE,
+  targetWidth: Int = 0,
+  targetHeight: Int = 0,
 ): Int {
-  if (width <= maxSize && height <= maxSize) return 1
   var inSampleSize = 1
   val maxDimension = maxOf(width, height)
   while (maxDimension / (inSampleSize * 2) >= maxSize) {
     inSampleSize *= 2
+  }
+  // A disk thumbnail may have been created for a much larger grid cell. Decode only enough
+  // pixels to cover this request, preserving both axes so portrait/square crops stay sharp.
+  if (targetWidth > 0 && targetHeight > 0) {
+    while (width / (inSampleSize * 2) >= targetWidth &&
+      height / (inSampleSize * 2) >= targetHeight
+    ) {
+      inSampleSize *= 2
+    }
   }
   return inSampleSize
 }

@@ -99,6 +99,8 @@ class ThumbnailRepository(
   private val maxConcurrentFolders = 3
   private val localGenerationParallelism = resolveLocalGenerationParallelism()
   private val localGenerationSemaphore = Semaphore(localGenerationParallelism)
+  // Cached JPEG decoding is CPU/memory work too; Dispatchers.IO alone allows dozens at once.
+  private val cachedReadSemaphore = Semaphore(localGenerationParallelism)
   private val networkGenerationSemaphore = Semaphore(1)
   private val maxFolderBatchSize = 12
 
@@ -194,6 +196,7 @@ class ThumbnailRepository(
           if (localFailureKey != null) {
             synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.remove(localFailureKey) }
           }
+          bitmap.prepareToDraw()
           synchronized(memoryCache) {
             memoryCache.put(key, bitmap)
           }
@@ -229,35 +232,40 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
-        return@withContext null
-      }
+      cachedReadSemaphore.withPermit {
+        if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
+          return@withPermit null
+        }
 
-      val key = thumbnailKey(video, widthPx, heightPx)
-      synchronized(memoryCache) {
-        memoryCache.get(key)
-      }?.let { return@withContext it }
+        // Recheck after acquiring a permit: another request may have populated memory meanwhile.
+        val key = thumbnailKey(video, widthPx, heightPx)
+        synchronized(memoryCache) {
+          memoryCache.get(key)
+        }?.let { return@withPermit it }
 
-      val isNetwork = isNetworkUrl(video.path)
-      var decoded = readBitmapFromDisk(diskCacheKey(video), isNetwork)
-      if (decoded == null && !isNetwork) {
-        if (video.duration > 0L) {
-          decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L)), false)
-        } else {
-          val canonical = canonicalLocalPath(video)
-          val resolvedDur = resolveLocalMetadata(video, canonical).duration
-          if (resolvedDur > 0L) {
-            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur)), false)
+        val isNetwork = isNetworkUrl(video.path)
+        var decoded = readBitmapFromDisk(diskCacheKey(video), isNetwork, widthPx, heightPx)
+        if (decoded == null && !isNetwork) {
+          if (video.duration > 0L) {
+            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L)), false, widthPx, heightPx)
+          } else {
+            val canonical = canonicalLocalPath(video)
+            val resolvedDur = resolveLocalMetadata(video, canonical).duration
+            if (resolvedDur > 0L) {
+              decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur)), false, widthPx, heightPx)
+            }
           }
         }
-      }
-      if (decoded == null) return@withContext null
+        if (decoded == null) return@withPermit null
 
-      val scaled = scaleBitmap(decoded, widthPx, heightPx)
-      synchronized(memoryCache) {
-        memoryCache.put(key, scaled)
+        val scaled = scaleBitmap(decoded, widthPx, heightPx)
+        currentCoroutineContext().ensureActive()
+        scaled.prepareToDraw()
+        synchronized(memoryCache) {
+          memoryCache.put(key, scaled)
+        }
+        scaled
       }
-      return@withContext scaled
     }
 
   /** Cheap cold-start gate for Folder/Tree roots: do not enumerate folder contents
@@ -790,6 +798,8 @@ class ThumbnailRepository(
   private fun readBitmapFromDisk(
     key: String,
     network: Boolean,
+    widthPx: Int = 0,
+    heightPx: Int = 0,
   ): Bitmap? =
     diskCacheLock.read {
       val file = File(if (network) networkDiskDir else localDiskDir, keyToFileName(key))
@@ -801,7 +811,7 @@ class ThumbnailRepository(
         BitmapFactory.decodeFile(
           file.absolutePath,
           BitmapFactory.Options().apply {
-            inSampleSize = calculateThumbnailSampleSize(bounds.outWidth, bounds.outHeight, thumbnailMaxSize())
+            inSampleSize = calculateThumbnailSampleSize(bounds.outWidth, bounds.outHeight, thumbnailMaxSize(), widthPx, heightPx)
             inPreferredConfig = Bitmap.Config.RGB_565
           },
         )
@@ -1417,13 +1427,12 @@ class ThumbnailRepository(
 
   private fun resolveLocalGenerationParallelism(): Int {
     val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
-    val processorCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
-    return when {
-      activityManager?.isLowRamDevice == true || android.os.Build.VERSION.SDK_INT <= 29 || processorCount <= 2 -> 1
-      // Bound decode pressure on larger mobile SoCs so returning to the library cannot launch
-      // four simultaneous thumbnail decoders beside UI image work.
-      else -> 2
-    }
+    return thumbnailParallelism(
+      lowRam = activityManager?.isLowRamDevice == true,
+      memoryClassMb = activityManager?.memoryClass ?: 0,
+      processorCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
+      sdkInt = Build.VERSION.SDK_INT,
+    )
   }
 
   private suspend fun generateFastNetworkThumbnail(

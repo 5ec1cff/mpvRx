@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.ui.browser.components.rememberThumbnailLoadingDeferred
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
@@ -1409,6 +1410,7 @@ private fun FileSystemBrowserContent(
       val isListScrolling by remember(listState, gridState, isGridMode) {
         derivedStateOf { if (isGridMode) gridState.isScrollInProgress else listState.isScrollInProgress }
       }
+      val deferThumbnailLoading = rememberThumbnailLoadingDeferred(isListScrolling)
       val latestVideos by rememberUpdatedState(videos)
       // Root displays folders/cached art only; new thumbnails begin after opening a directory.
       LaunchedEffect(folderId, isOpenedFolder, showVideoThumbnails, thumbWidthPx,
@@ -1533,7 +1535,7 @@ private fun FileSystemBrowserContent(
                     newVideoCount = folder.newCount,
                     isGridMode = true,
                     allowThumbnailGeneration = false,
-                    deferThumbnailLoading = isListScrolling,
+                    deferThumbnailLoading = deferThumbnailLoading,
                   )
                 }
 
@@ -1572,7 +1574,7 @@ private fun FileSystemBrowserContent(
                       useFolderNameStyle = false,
                       allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                       allowThumbnailLoading = !archiveEntry,
-                      deferThumbnailLoading = isListScrolling,
+                      deferThumbnailLoading = deferThumbnailLoading,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1662,7 +1664,7 @@ private fun FileSystemBrowserContent(
                   newVideoCount = folder.newCount,
                   isGridMode = false,
                   allowThumbnailGeneration = false,
-                  deferThumbnailLoading = isListScrolling,
+                  deferThumbnailLoading = deferThumbnailLoading,
                   customIcon = if (ZipArchiveMedia.isArchiveRoot(folder.path)) Icons.RoundedFilled.FolderZip else null,
                   onSwipeAction =
                     swipeActions.folder.takeUnless { archiveFolder || selectionManager.isInSelectionMode || isInSelectionMode },
@@ -1705,7 +1707,7 @@ private fun FileSystemBrowserContent(
                     useFolderNameStyle = false,
                     allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                     allowThumbnailLoading = !archiveEntry,
-                    deferThumbnailLoading = isListScrolling,
+                    deferThumbnailLoading = deferThumbnailLoading,
                     uiConfig = videoCardUiConfig,
                 )
               }

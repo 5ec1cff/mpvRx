@@ -88,6 +88,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.ui.browser.components.rememberThumbnailLoadingDeferred
 import app.gyrolet.mpvrx.preferences.VideoSwipeAction
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
@@ -1483,6 +1484,7 @@ private fun GridContent(
     val measuredFolderHeights = remember(folders, computedColumns, folderCardUiConfig) {
       mutableStateMapOf<String, Int>()
     }
+    val deferThumbnailLoading = rememberThumbnailLoadingDeferred(gridState.isScrollInProgress)
 
     LazyVerticalGrid(
       columns = GridCells.Fixed(computedColumns),
@@ -1535,7 +1537,8 @@ private fun GridContent(
             }
           },
           uiConfig = folderCardUiConfig,
-          allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails && !gridState.isScrollInProgress,
+          allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails,
+          deferThumbnailLoading = deferThumbnailLoading,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
