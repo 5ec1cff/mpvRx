@@ -37,8 +37,11 @@ internal class LrcLibProvider(
         val exact =
           api.getLyrics(trackName = ref.title, artistName = ref.artist, duration = duration)
             ?: api.getLyrics(trackName = ref.title, artistName = ref.artist)
-        synced(exact?.syncedLyrics)?.let { return it }
-        if (plainFallback == null) plainFallback = plain(exact?.plainLyrics)
+        val verified = exact?.takeIf {
+          LyricsTrackMatcher.matches(ref, it.name, it.artistName, duration, it.duration)
+        }
+        synced(verified?.syncedLyrics)?.let { return it }
+        if (plainFallback == null) plainFallback = plain(verified?.plainLyrics)
       }
 
       if (attempts < MAX_ATTEMPTS) {
@@ -49,7 +52,7 @@ internal class LrcLibProvider(
           } else {
             api.searchLyrics(query = ref.title)
           }
-        val best = bestHit(hits, duration)
+        val best = bestHit(hits, matchingRef(ref, query), duration)
         synced(best)?.let { return it }
         if (plainFallback == null) plainFallback = plain(best)
       }
@@ -57,7 +60,7 @@ internal class LrcLibProvider(
       if (ref.artist.isNotBlank() && attempts < MAX_ATTEMPTS) {
         attempts++
         val hits = api.searchLyrics(query = "${ref.artist} ${ref.title}")
-        val best = bestHit(hits, duration)
+        val best = bestHit(hits, matchingRef(ref, query), duration)
         synced(best)?.let { return it }
         if (plainFallback == null) plainFallback = plain(best)
       }
@@ -65,6 +68,14 @@ internal class LrcLibProvider(
 
     return plainFallback
   }
+
+  // A title-only fallback must still respect a known artist to avoid covers.
+  private fun matchingRef(ref: TrackRef, query: LyricsFetchQuery): TrackRef =
+    if (ref.artist.isBlank() && query.primary.artist.isNotBlank()) {
+      ref.copy(artist = query.primary.artist)
+    } else {
+      ref
+    }
 
   /** Synced lyrics only — a plain answer here is a miss for this provider. */
   private fun synced(raw: String?): Lyrics? =
@@ -83,10 +94,12 @@ internal class LrcLibProvider(
    */
   private fun bestHit(
     hits: List<LrcLibResponse>,
+    ref: TrackRef,
     seconds: Int,
   ): String? {
-    val syncedHits = hits.filter { !it.syncedLyrics.isNullOrBlank() }
-    val ordered = syncedHits.ifEmpty { hits.filter { !it.plainLyrics.isNullOrBlank() } }
+    val matched = hits.filter { LyricsTrackMatcher.matches(ref, it.name, it.artistName, seconds, it.duration) }
+    val syncedHits = matched.filter { !it.syncedLyrics.isNullOrBlank() }
+    val ordered = syncedHits.ifEmpty { matched.filter { !it.plainLyrics.isNullOrBlank() } }
     if (ordered.isEmpty()) return null
     val best =
       if (seconds > 0) {

@@ -45,7 +45,7 @@ internal object BiniLyricsProvider : LyricsProviderClient {
   private suspend fun identify(query: LyricsFetchQuery): Hit? {
     val isrc = query.isrc?.takeIf { it.isNotBlank() }
     if (isrc != null) {
-      return load(buildUrl(BASE, "isrc" to isrc))
+      return load(buildUrl(BASE, "isrc" to isrc)).firstOrNull()
     }
     for (ref in query.candidates()) {
       val seconds = (query.durationMs / 1000).takeIf { it > 0 }?.toString()
@@ -57,17 +57,19 @@ internal object BiniLyricsProvider : LyricsProviderClient {
           "album" to query.album,
           "duration" to seconds,
         ) ?: continue
-      load(url)?.let { return it }
+      load(url).firstOrNull { hit ->
+        LyricsTrackMatcher.matches(ref, hit.trackName, hit.artistName, query.durationMs / 1000, hit.duration?.toDouble() ?: 0.0)
+      }?.let { return it }
     }
     return null
   }
 
-  private suspend fun load(url: String?): Hit? {
-    val body = url?.let { lyricsGet(it) } ?: return null
+  private suspend fun load(url: String?): List<Hit> {
+    val body = url?.let { lyricsGet(it) } ?: return emptyList()
     return runCatching { lyricsJson.decodeFromString<Response>(body) }
       .getOrNull()
       ?.results
-      ?.firstOrNull()
+      .orEmpty()
   }
 
   private suspend fun fetchDocument(hit: Hit): Lyrics? {

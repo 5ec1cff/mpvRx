@@ -166,7 +166,7 @@ class LyricsRepository(
     CacheKey(mediaPath, allowOnline, audioPreferences.lyricsAutoFetchOnline.get())
 
   private val cache = LruCache<CacheKey, LyricsResult>(64)
-  private val providerCache = LyricsProviderCache(File(context.cacheDir, "lyrics/providers-v2"))
+  private val providerCache = LyricsProviderCache(File(context.cacheDir, "lyrics/providers-v3"))
 
   /**
    * The recording behind a track, once something has worked it out.
