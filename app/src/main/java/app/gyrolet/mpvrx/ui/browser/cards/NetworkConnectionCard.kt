@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
@@ -176,13 +177,17 @@ fun NetworkConnectionCard(
         modifier =
           Modifier
             .fillMaxWidth()
+            .padding(top = 12.dp)
             .clip(MaterialTheme.shapes.medium)
             .toggleable(
               value = connection.autoConnect,
               role = Role.Checkbox,
               onValueChange = { onAutoConnectChange(connection, it) },
             )
-            .padding(top = 12.dp),
+            // Keep the checkbox outline inside the row's rounded ripple clip, including at
+            // the lower-left corner. The top gap belongs outside that clip.
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {

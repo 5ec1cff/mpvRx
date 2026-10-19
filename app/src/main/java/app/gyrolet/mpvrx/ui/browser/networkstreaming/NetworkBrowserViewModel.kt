@@ -40,6 +40,7 @@ import app.gyrolet.mpvrx.utils.media.M3UPlaylistItem
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -101,7 +102,8 @@ class NetworkBrowserViewModel(
    */
   fun loadFiles() {
     pendingListing?.cancel()
-    pendingListing = viewModelScope.launch {
+    // Assign ownership before Main.immediate can run even a synchronous failure to completion.
+    val request = viewModelScope.launch(start = CoroutineStart.LAZY) {
       _isLoading.value = true
       _error.value = null
 
@@ -125,6 +127,7 @@ class NetworkBrowserViewModel(
               )
           }.onFailure { e ->
             if (e is CancellationException) throw e
+            coroutineContext.ensureActive()
             // Do not keep presenting old folder contents after a failed refresh.
             _files.value = emptyList()
             _error.value = e.message ?: "Unknown error"
@@ -132,6 +135,7 @@ class NetworkBrowserViewModel(
       } catch (cancellation: CancellationException) {
         throw cancellation
       } catch (e: Exception) {
+        coroutineContext.ensureActive()
         _files.value = emptyList()
         _error.value = e.message ?: "Unknown error"
       } finally {
@@ -139,6 +143,8 @@ class NetworkBrowserViewModel(
         if (pendingListing === coroutineContext[Job]) _isLoading.value = false
       }
     }
+    pendingListing = request
+    request.start()
   }
 
   /**
