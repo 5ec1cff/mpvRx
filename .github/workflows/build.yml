@@ -397,4 +397,84 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-        run: python3 .github/scripts/publish-experimental.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=experimental
+          build=$(git rev-list --count HEAD)
+          title="mpvRx Experimental r${build}"
+
+          existing=$(gh release view "$tag" --json name,assets 2>/dev/null || true)
+          if [[ -n "$existing" ]]; then
+            latest=$(jq -r '.name' <<<"$existing" | grep -oiE '\br[0-9]+\b' | head -1 | tr -d 'rR' || true)
+            if [[ -n "$latest" && "$latest" -gt "$build" ]]; then
+              echo "A newer experimental build is already published; leaving it in place."
+              exit 0
+            fi
+          fi
+
+          mkdir -p experimental-apks
+          declare -A sources=(
+            [universal]=app-standard-universal-release.apk
+            [arm64-v8a]=app-standard-arm64-v8a-release.apk
+            [armeabi-v7a]=app-standard-armeabi-v7a-release.apk
+            [x86]=app-standard-x86-release.apk
+            [x86_64]=app-standard-x86_64-release.apk
+            [fongmi]=app-fongmi-universal-release.apk
+            [no-vulkan]=app-noVulkan-universal-release.apk
+          )
+          : > checksums.txt
+          for variant in "${!sources[@]}"; do
+            src=$(find ci-apks -name "${sources[$variant]}")
+            [[ $(wc -l <<<"$src") -eq 1 && -n "$src" ]] || { echo "Expected one APK for $variant"; exit 1; }
+            dest="experimental-apks/mpvRx-experimental-r${build}-${variant}.apk"
+            cp "$src" "$dest"
+            (cd experimental-apks && sha256sum "$(basename "$dest")") >> checksums.txt
+          done
+
+          {
+            echo "Experimental CI build r${build}. These builds may be unstable."
+            echo
+            echo "Source: [${GITHUB_SHA::7}](https://github.com/${GH_REPO}/commit/${GITHUB_SHA})"
+            echo
+            echo "[CI build](https://github.com/${GH_REPO}/actions/runs/${GITHUB_RUN_ID})"
+            echo
+            git log -6 --format='- %s'
+            echo
+            echo '### SHA-256'
+            echo
+            echo '```text'
+            cat checksums.txt
+            echo '```'
+          } > experimental-notes.md
+
+          if [[ -z "$existing" ]]; then
+            # A first publication stays private until every asset has uploaded.
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --latest=false \
+              --title "$title" --notes-file experimental-notes.md
+          fi
+
+          # Unique build names keep the previous build downloadable while new assets upload.
+          gh release upload "$tag" experimental-apks/*.apk --clobber
+          if gh api "repos/${GH_REPO}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${GH_REPO}/git/refs/tags/${tag}" -f sha="$GITHUB_SHA" -F force=true
+          else
+            gh api --method POST "repos/${GH_REPO}/git/refs" -f ref="refs/tags/${tag}" -f sha="$GITHUB_SHA"
+          fi
+
+          # The app reads the build number from the title; update it last.
+          gh release edit "$tag" --target "$GITHUB_SHA" --draft=false --prerelease --latest=false \
+            --title "$title" --notes-file experimental-notes.md
+
+          # Keep only the three newest builds' assets.
+          if [[ -n "$existing" ]]; then
+            keep=$( { echo "$build"; jq -r '.assets[].name' <<<"$existing" \
+              | sed -nE 's/^mpvRx-experimental-r([0-9]+)-.*\.apk$/\1/p'; } | sort -rnu | head -3)
+            jq -r '.assets[].name' <<<"$existing" | while read -r name; do
+              n=$(sed -nE 's/^mpvRx-experimental-r([0-9]+)-.*\.apk$/\1/p' <<<"$name")
+              if [[ -n "$n" ]] && ! grep -qx "$n" <<<"$keep"; then
+                gh release delete-asset "$tag" "$name" --yes || true
+              fi
+            done
+          fi
+          echo "Published $title"
