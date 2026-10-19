@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.data.network.client
 
 import android.net.Uri
+import android.os.SystemClock
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
 import app.gyrolet.mpvrx.domain.network.NetworkFile
 import app.gyrolet.mpvrx.domain.network.SmbSharePath
@@ -19,7 +20,9 @@ import app.gyrolet.mpvrx.domain.network.NetworkPath
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.msfscc.fileinformation.FileIdFullDirectoryInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
+import com.hierynomus.mssmb2.SMB2Packet
 import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.mssmb2.messages.SMB2Echo
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -62,6 +65,12 @@ class SmbClient(
     private val LOGON_FAILURE_CODES = setOf(0xC000006DL, 0xC000006AL, 0xC0000064L, 0xC0000072L, 0xC0000234L)
     private val AUTH_FAILURE_CODES = LOGON_FAILURE_CODES + 0xC0000022L
 
+    // With no socket read timeout, a socket that died silently (Wi-Fi change, device sleep) is only
+    // noticed when a request times out. After idling, a short ECHO finds that out before the real
+    // request would wait out the full transaction timeout.
+    private const val IDLE_LIVENESS_CHECK_MS = 30_000L
+    private const val ECHO_TIMEOUT_MS = 3_000L
+
     private fun newClient(): SMBClient =
       SMBClient(
         SmbConfig
@@ -97,7 +106,32 @@ class SmbClient(
   @Volatile private var smbClient: SMBClient? = null
   @Volatile private var smbConnection: Connection? = null
   @Volatile private var session: Session? = null
+  @Volatile private var lastActivityAt = 0L
   private val connectionMutex = Mutex()
+
+  private fun markActive() {
+    lastActivityAt = SystemClock.elapsedRealtime()
+  }
+
+  /** Returns false when an idle transport no longer answers, so it is replaced right away. */
+  private suspend fun isResponsiveAfterIdle(): Boolean {
+    if (SystemClock.elapsedRealtime() - lastActivityAt < IDLE_LIVENESS_CHECK_MS) return true
+    val activeConnection = smbConnection ?: return false
+    return try {
+      runInterruptible(Dispatchers.IO) {
+        activeConnection
+          .send<SMB2Packet>(SMB2Echo(activeConnection.negotiatedProtocol.dialect))
+          .get(ECHO_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+      }
+      markActive()
+      true
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (_: Exception) {
+      android.util.Log.w("SmbClient", "SMB transport did not answer after idling; reconnecting")
+      false
+    }
+  }
 
   /**
    * Recursively traverses the exception chain to detect underlying network transport or timeout failures.
@@ -126,10 +160,10 @@ class SmbClient(
     val sessionAtStart = session
 
     return try {
-      if (!isConnected()) {
+      if (!isConnected() || !isResponsiveAfterIdle()) {
         throw java.net.SocketException("SMB transport is disconnected")
       }
-      block()
+      block().also { markActive() }
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
@@ -142,8 +176,10 @@ class SmbClient(
           }
         }
 
-        block()
+        block().also { markActive() }
       } else {
+        // A protocol-level error (missing file, access denied) still proves the session answers.
+        markActive()
         throw e
       }
     }
@@ -200,7 +236,7 @@ class SmbClient(
                 } else {
                   val diskShare = newSession.connectDiskShare(configuredShare)
                   // Validate browse permission without enumerating the entire folder twice.
-                  diskShare.openListingDirectory(sharePath.directory.relative).use { }
+                  diskShare.openListingDirectory(sharePath.directory.relative).closeNoWait()
                 }
                 break
               } catch (error: SMBApiException) {
@@ -220,6 +256,7 @@ class SmbClient(
         smbClient = candidateClient
         smbConnection = candidateConnection
         session = candidateSession
+        markActive()
         candidateClient = null
         candidateConnection = null
         candidateSession = null
@@ -264,16 +301,22 @@ class SmbClient(
       null,
     )
 
-  private fun listDirectory(share: DiskShare, path: String): List<FileIdFullDirectoryInformation> =
-    share.openListingDirectory(path).use { directory ->
+  private fun listDirectory(share: DiskShare, path: String): List<FileIdFullDirectoryInformation> {
+    val directory = share.openListingDirectory(path)
+    try {
       val files = mutableListOf<FileIdFullDirectoryInformation>()
       val iterator = directory.iterator(FileIdFullDirectoryInformation::class.java)
       while (iterator.hasNext()) {
         if (Thread.currentThread().isInterrupted) throw InterruptedException("SMB listing cancelled")
         files += iterator.next()
       }
-      files
+      return files
+    } finally {
+      // Not waiting for the CLOSE reply saves a round trip per folder, and unlike close() it still
+      // releases the server handle when cancellation has interrupted this thread.
+      runCatching { directory.closeNoWait() }
     }
+  }
 
   override suspend fun listFiles(path: String): Result<List<NetworkFile>> =
     withContext(Dispatchers.IO) {
@@ -333,10 +376,15 @@ class SmbClient(
           }
         Result.success(result)
       } catch (_: TimeoutCancellationException) {
+        // A caller's deadline (e.g. an availability probe) arrives as the same exception type; it
+        // only cancels that caller and must not discard the shared session.
+        coroutineContext.ensureActive()
+        // Both attempts ran out of time: the transport cannot be trusted for the next request.
         withContext(NonCancellable) { disconnect() }
         Result.failure(IOException("SMB directory listing timed out"))
       } catch (cancellation: CancellationException) {
-        withContext(NonCancellable) { disconnect() }
+        // A superseded or abandoned listing leaves the session healthy. Its outstanding replies are
+        // matched by message id, so keep the connection warm for the next folder.
         throw cancellation
       } catch (error: Exception) {
         Result.failure(connectionError(error))

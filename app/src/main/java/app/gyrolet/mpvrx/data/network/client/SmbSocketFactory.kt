@@ -25,6 +25,9 @@ internal class SmbSocketFactory(private val connectTimeoutMillis: Int) : SocketF
   private fun connect(remote: InetSocketAddress, local: InetSocketAddress? = null): Socket {
     val socket = Socket()
     try {
+      // SMB is strictly request/response; do not let Nagle hold back a request queued behind
+      // another in-flight one (concurrent range reads, listings, CLOSE without waiting).
+      socket.tcpNoDelay = true
       if (local != null) socket.bind(local)
       socket.connect(remote, connectTimeoutMillis)
       return socket
