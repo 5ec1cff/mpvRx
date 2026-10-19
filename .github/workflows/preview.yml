@@ -11,8 +11,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: mpvrx-preview-pages
-  cancel-in-progress: true
+  group: mpvrx-pages
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -365,6 +365,21 @@ jobs:
 
           python3 -m json.tool site/latest.json >/dev/null
           find site -maxdepth 2 -type f -printf '%p %k KB\n' | sort
+
+      - name: Preserve experimental feed
+        env:
+          SITE_BASE_URL: https://riteshp2001.github.io/mpvRx
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Pages deploys replace the whole site, so carry over the live experimental CI feed.
+          if curl -fsSL --retry 3 "$SITE_BASE_URL/experimental.json" -o /tmp/exp.json; then
+            mkdir -p site/experimental
+            jq -r '.assets[].name' /tmp/exp.json | while read -r n; do
+              curl -fsSL --retry 3 "$SITE_BASE_URL/experimental/$n" -o "site/experimental/$n"
+            done
+            cp /tmp/exp.json site/experimental.json
+          fi
 
       - name: Upload preview manifest as Actions artifact
         uses: actions/upload-artifact@v7

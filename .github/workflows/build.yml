@@ -356,9 +356,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: write
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     concurrency:
-      group: mpvrx-experimental-release
+      group: mpvrx-pages
       cancel-in-progress: false
 
     steps:
@@ -392,28 +397,43 @@ jobs:
           merge-multiple: true
           path: ci-apks
 
-      - name: Publish rolling experimental release
+      - name: Stage experimental feed on GitHub Pages
+        id: stage
         if: steps.signing.outputs.publish == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          tag=experimental
+          base=https://riteshp2001.github.io/mpvRx
           build=$(git rev-list --count HEAD)
-          title="mpvRx Experimental r${build}"
+          published_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          mkdir -p site/experimental
 
-          existing=$(gh release view "$tag" --json name,assets 2>/dev/null || true)
-          if [[ -n "$existing" ]]; then
-            latest=$(jq -r '.name' <<<"$existing" | grep -oiE '\br[0-9]+\b' | head -1 | tr -d 'rR' || true)
-            if [[ -n "$latest" && "$latest" -gt "$build" ]]; then
+          # Pages deploys replace the whole site, so carry over the live preview feed.
+          cp fastlane/metadata/android/preview-site/index.html site/index.html
+          cp fastlane/metadata/android/en-US/images/icon.png site/icon.png
+          cp fastlane/metadata/android/preview-site/site.webmanifest site/site.webmanifest
+          touch site/.nojekyll
+          if curl -fsSL --retry 3 "$base/latest.json" -o site/latest.json; then
+            mkdir -p site/downloads
+            jq -r '.assets[].name' site/latest.json | while read -r n; do
+              curl -fsSL --retry 3 "$base/downloads/$n" -o "site/downloads/$n"
+            done
+          else
+            rm -f site/latest.json
+          fi
+
+          # Never replace a newer experimental build with an older one.
+          if curl -fsSL --retry 3 "$base/experimental.json" -o /tmp/exp.json; then
+            live=$(jq -r '.commit_count // 0' /tmp/exp.json)
+            if [[ "$live" -gt "$build" ]]; then
               echo "A newer experimental build is already published; leaving it in place."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
           fi
 
-          mkdir -p experimental-apks
           declare -A sources=(
             [universal]=app-standard-universal-release.apk
             [arm64-v8a]=app-standard-arm64-v8a-release.apk
@@ -423,58 +443,44 @@ jobs:
             [fongmi]=app-fongmi-universal-release.apk
             [no-vulkan]=app-noVulkan-universal-release.apk
           )
-          : > checksums.txt
+          : > assets.jsonl
           for variant in "${!sources[@]}"; do
             src=$(find ci-apks -name "${sources[$variant]}")
             [[ $(wc -l <<<"$src") -eq 1 && -n "$src" ]] || { echo "Expected one APK for $variant"; exit 1; }
-            dest="experimental-apks/mpvRx-experimental-r${build}-${variant}.apk"
+            dest="site/experimental/mpvRx-experimental-r${build}-${variant}.apk"
             cp "$src" "$dest"
-            (cd experimental-apks && sha256sum "$(basename "$dest")") >> checksums.txt
+            size=$(stat -c %s "$dest")
+            sha=$(sha256sum "$dest" | cut -d' ' -f1)
+            name=$(basename "$dest")
+            jq -n --arg abi "$variant" --arg name "$name" --arg url "$base/experimental/$name" \
+              --argjson size "$size" --arg sha "$sha" \
+              '{abi:$abi,name:$name,browser_download_url:$url,size:$size,content_type:"application/vnd.android.package-archive",sha256:$sha}' \
+              >> assets.jsonl
           done
 
-          {
-            echo "Experimental CI build r${build}. These builds may be unstable."
-            echo
-            echo "Source: [${GITHUB_SHA::7}](https://github.com/${GH_REPO}/commit/${GITHUB_SHA})"
-            echo
-            echo "[CI build](https://github.com/${GH_REPO}/actions/runs/${GITHUB_RUN_ID})"
-            echo
-            git log -6 --format='- %s'
-            echo
-            echo '### SHA-256'
-            echo
-            echo '```text'
-            cat checksums.txt
-            echo '```'
-          } > experimental-notes.md
+          jq -n --slurpfile assets assets.jsonl --argjson build "$build" \
+            --arg sha "$GITHUB_SHA" --arg at "$published_at" --arg base "$base" \
+            --arg run "https://github.com/${GH_REPO}/actions/runs/${GITHUB_RUN_ID}" \
+            --arg title "$(git log -1 --format=%s)" \
+            '{tag_name:"experimental",name:"mpvRx Experimental r\($build)",
+              body:"Experimental CI build r\($build). These builds may be unstable.\nCommit: \($title)\nSource: \($sha[0:7])",
+              published_at:$at,assets:$assets,channel:"experimental",commit_sha:$sha,
+              commit_title:$title,commit_count:$build,run_url:$run,pages_url:($base+"/")}' \
+            > site/experimental.json
+          jq . site/experimental.json >/dev/null
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
-          if [[ -z "$existing" ]]; then
-            # A first publication stays private until every asset has uploaded.
-            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease --latest=false \
-              --title "$title" --notes-file experimental-notes.md
-          fi
+      - name: Configure GitHub Pages
+        if: steps.signing.outputs.publish == 'true' && steps.stage.outputs.skip == 'false'
+        uses: actions/configure-pages@v6
 
-          # Unique build names keep the previous build downloadable while new assets upload.
-          gh release upload "$tag" experimental-apks/*.apk --clobber
-          if gh api "repos/${GH_REPO}/git/ref/tags/${tag}" >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GH_REPO}/git/refs/tags/${tag}" -f sha="$GITHUB_SHA" -F force=true
-          else
-            gh api --method POST "repos/${GH_REPO}/git/refs" -f ref="refs/tags/${tag}" -f sha="$GITHUB_SHA"
-          fi
+      - name: Upload GitHub Pages artifact
+        if: steps.signing.outputs.publish == 'true' && steps.stage.outputs.skip == 'false'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
 
-          # The app reads the build number from the title; update it last.
-          gh release edit "$tag" --target "$GITHUB_SHA" --draft=false --prerelease --latest=false \
-            --title "$title" --notes-file experimental-notes.md
-
-          # Keep only the three newest builds' assets.
-          if [[ -n "$existing" ]]; then
-            keep=$( { echo "$build"; jq -r '.assets[].name' <<<"$existing" \
-              | sed -nE 's/^mpvRx-experimental-r([0-9]+)-.*\.apk$/\1/p'; } | sort -rnu | head -3)
-            jq -r '.assets[].name' <<<"$existing" | while read -r name; do
-              n=$(sed -nE 's/^mpvRx-experimental-r([0-9]+)-.*\.apk$/\1/p' <<<"$name")
-              if [[ -n "$n" ]] && ! grep -qx "$n" <<<"$keep"; then
-                gh release delete-asset "$tag" "$name" --yes || true
-              fi
-            done
-          fi
-          echo "Published $title"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: steps.signing.outputs.publish == 'true' && steps.stage.outputs.skip == 'false'
+        uses: actions/deploy-pages@v5

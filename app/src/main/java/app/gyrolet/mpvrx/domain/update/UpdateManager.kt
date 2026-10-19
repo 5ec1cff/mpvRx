@@ -370,7 +370,7 @@ class UpdateManager(
   private companion object {
     const val STABLE_RELEASE_URL = "https://api.github.com/repos/Riteshp2001/mpvRx/releases/latest"
     const val PREVIEW_RELEASE_URL = "https://riteshp2001.github.io/mpvRx/latest.json"
-    const val EXPERIMENTAL_RELEASE_URL = "https://api.github.com/repos/Riteshp2001/mpvRx/releases/tags/experimental"
+    const val EXPERIMENTAL_RELEASE_URL = "https://riteshp2001.github.io/mpvRx/experimental.json"
     const val LEGACY_IGNORED_VERSION_KEY = "ignored_version"
     const val PART_SUFFIX = ".part"
     const val HTTP_PARTIAL_CONTENT = 206
