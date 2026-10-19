@@ -20,6 +20,10 @@ internal class AxisObservationTracker {
   private val observedItemSizesPx = mutableMapOf<Int, Float>()
   private var observedStrideSums = FloatArray(1)
   private var observedStrideCounts = IntArray(1)
+  private var sampledFirstIndex = -1
+  private var sampledLastIndex = -1
+  private var sampledFirstSize = -1
+  private var sampledLastSize = -1
 
   fun resetIfNeeded(
     totalItemsCount: Int,
@@ -39,6 +43,22 @@ internal class AxisObservationTracker {
     observedItemSizesPx.clear()
     observedStrideSums = FloatArray(totalItemsCount.coerceAtLeast(0) + 1)
     observedStrideCounts = IntArray(totalItemsCount.coerceAtLeast(0) + 1)
+    sampledFirstIndex = -1
+    sampledLastIndex = -1
+    sampledFirstSize = -1
+    sampledLastSize = -1
+  }
+
+  /** Visible-item offsets change every pixel, but item size/stride usually do not. */
+  fun shouldSampleWindow(firstIndex: Int, lastIndex: Int, firstSize: Int, lastSize: Int): Boolean {
+    if (sampledFirstIndex == firstIndex && sampledLastIndex == lastIndex &&
+      sampledFirstSize == firstSize && sampledLastSize == lastSize
+    ) return false
+    sampledFirstIndex = firstIndex
+    sampledLastIndex = lastIndex
+    sampledFirstSize = firstSize
+    sampledLastSize = lastSize
+    return true
   }
 
   fun observeRepresentativeSample(
@@ -89,7 +109,9 @@ internal class AxisObservationTracker {
     if (index !in 0 until trackedTotalItemsCount) return
 
     val normalizedStridePx = stridePx.coerceAtLeast(1f)
-    val previousStridePx = observedStridesPx.put(index, normalizedStridePx)
+    val previousStridePx = observedStridesPx[index]
+    if (previousStridePx == normalizedStridePx) return
+    observedStridesPx[index] = normalizedStridePx
     updateStrideSum(index, normalizedStridePx - (previousStridePx ?: 0f))
     if (previousStridePx == null) updateStrideCount(index, 1)
   }

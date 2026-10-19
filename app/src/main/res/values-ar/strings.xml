@@ -2353,6 +2353,10 @@
   <string name="onboarding_configuration_restore_failed">تعذر إكمال إعداد المجلد: %1$s</string>
   <string name="navbar_glow_title">توهج الزجاج</string>
   <string name="navbar_glow_summary">إظهار إضاءة حافة شريط التنقل وتوهج اللمس</string>
+  <string name="legacy_navigation_bar_title">شريط التنقل الكلاسيكي</string>
+  <string name="legacy_navigation_bar_summary">استخدم شريط تنقل كلاسيكيًا بعرض الشاشة بدلًا من الشريط العائم.</string>
+  <string name="progressive_navigation_blur_title">تمويه التنقل التدريجي</string>
+  <string name="progressive_navigation_blur_summary">استخدم تمويه Haze التدريجي خلف شريط التنقل العائم. يتم تعطيله تلقائيًا عند تفعيل شريط التنقل التقليدي.</string>
   <string name="pref_seekbar_preview_skip_markers">علامات التخطي</string>
   <string name="pref_liquid_glass_optics">البصريات</string>
   <string name="pref_liquid_glass_opacity">عتامة الخلفية</string>
@@ -2655,4 +2659,6 @@
   <string name="app_icon_shortcut_failed">تعذر حفظ الاختصار. يُرجى المحاولة مرة أخرى.</string>
   <string name="color_picker_wheel">عجلة الألوان</string>
   <string name="color_picker_brightness">السطوع</string>
+    <string name="only_for_video_list">لقائمة الفيديوهات فقط</string>
+    <string name="only_for_folder_list">لقائمة المجلدات فقط</string>
 </resources>

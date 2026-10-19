@@ -2235,6 +2235,10 @@
   <string name="onboarding_configuration_restore_failed">फ़ोल्डर सेटअप पूरा नहीं हुआ: %1$s</string>
   <string name="navbar_glow_title">ग्लास की चमक</string>
   <string name="navbar_glow_summary">नेविगेशन बार की किनारे की रोशनी और स्पर्श चमक दिखाएं</string>
+  <string name="legacy_navigation_bar_title">क्लासिक नेविगेशन बार</string>
+  <string name="legacy_navigation_bar_summary">फ़्लोटिंग पिल की जगह पूरी चौड़ाई वाला क्लासिक नेविगेशन बार इस्तेमाल करें।</string>
+  <string name="progressive_navigation_blur_title">क्रमिक नेविगेशन ब्लर</string>
+  <string name="progressive_navigation_blur_summary">फ़्लोटिंग नेविगेशन बार के पीछे Haze का क्रमिक ब्लर इस्तेमाल करें। क्लासिक नेविगेशन बार चालू होने पर यह अपने आप बंद हो जाता है।</string>
   <string name="pref_seekbar_preview_skip_markers">स्किप चिह्न</string>
   <string name="pref_liquid_glass_optics">प्रकाशिकी</string>
   <string name="pref_liquid_glass_opacity">पृष्ठभूमि की अपारदर्शिता</string>
@@ -2517,4 +2521,6 @@
   <string name="app_icon_shortcut_failed">शॉर्टकट सहेजा नहीं जा सका। फिर कोशिश करें।</string>
   <string name="color_picker_wheel">रंग चक्र</string>
   <string name="color_picker_brightness">चमक</string>
+    <string name="only_for_video_list">केवल वीडियो सूची के लिए</string>
+    <string name="only_for_folder_list">केवल फ़ोल्डर सूची के लिए</string>
 </resources>

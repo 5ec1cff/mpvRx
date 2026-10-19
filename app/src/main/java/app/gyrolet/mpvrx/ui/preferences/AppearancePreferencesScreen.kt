@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -450,18 +451,6 @@ object AppearancePreferencesScreen : Screen {
                   )
                   }
 
-                  PreferenceDivider()
-
-                  val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
-                  SwitchPreference(
-                    modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
-                    value = navigationBarGlow,
-                    onValueChange = preferences.navigationBarGlow::set,
-                    title = { Text(stringResource(R.string.navbar_glow_title)) },
-                    summary = {
-                      Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline)
-                    },
-                  )
                   }
                 }
               }
@@ -900,7 +889,7 @@ object AppearancePreferencesScreen : Screen {
                   )
                 },
                 groupIndex = 0,
-                groupSize = 2,
+                groupSize = 5,
               )
               val quickPlayFabDirect by preferences.quickPlayFabDirect.collectAsState()
               SwitchPreference(
@@ -916,7 +905,46 @@ object AppearancePreferencesScreen : Screen {
                   )
                 },
                 groupIndex = 1,
-                groupSize = 2,
+                groupSize = 5,
+              )
+              val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
+                value = navigationBarGlow,
+                onValueChange = preferences.navigationBarGlow::set,
+                title = { Text(stringResource(R.string.navbar_glow_title)) },
+                summary = { Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline) },
+                groupIndex = 2,
+                groupSize = 5,
+              )
+              val legacyNavigationBar by preferences.legacyNavigationBar.collectAsState()
+              val progressiveNavigationBlur by preferences.progressiveNavigationBlur.collectAsState()
+              LaunchedEffect(legacyNavigationBar, progressiveNavigationBlur) {
+                if (legacyNavigationBar && progressiveNavigationBlur) {
+                  preferences.progressiveNavigationBlur.set(false)
+                }
+              }
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.legacy_navigation_bar_title),
+                value = legacyNavigationBar,
+                onValueChange = { enabled ->
+                  preferences.legacyNavigationBar.set(enabled)
+                  if (enabled) preferences.progressiveNavigationBlur.set(false)
+                },
+                title = { Text(stringResource(R.string.legacy_navigation_bar_title)) },
+                summary = { Text(stringResource(R.string.legacy_navigation_bar_summary), color = MaterialTheme.colorScheme.outline) },
+                groupIndex = 3,
+                groupSize = 5,
+              )
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.progressive_navigation_blur_title),
+                value = progressiveNavigationBlur && !legacyNavigationBar,
+                onValueChange = preferences.progressiveNavigationBlur::set,
+                enabled = !legacyNavigationBar,
+                title = { Text(stringResource(R.string.progressive_navigation_blur_title)) },
+                summary = { Text(stringResource(R.string.progressive_navigation_blur_summary), color = MaterialTheme.colorScheme.outline) },
+                groupIndex = 4,
+                groupSize = 5,
               )
             }
           }

@@ -5,6 +5,7 @@
 package app.gyrolet.mpvrx.ui.browser.music
 
 import android.app.Application
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.text.format.DateUtils
@@ -552,7 +553,20 @@ fun MusicLibraryContent(
               },
               onRenameClick = null,
               isSingleSelection = activeSelectionManager.isSingleSelection,
-              onInfoClick = null,
+              onInfoClick = if (selectedTab == MusicTab.SONGS) {
+                {
+                  val song = activeSelectionManager.getSelectedItems().firstOrNull() as? MusicSong
+                  if (song != null) {
+                    val intent =
+                      Intent(context, app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity::class.java).apply {
+                        action = Intent.ACTION_VIEW
+                        data = song.uri
+                      }
+                    context.startActivity(intent)
+                    activeSelectionManager.clear()
+                  }
+                }
+              } else null,
               titleTrailing = {
                 MusicSourceDropdown()
               },

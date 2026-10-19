@@ -86,7 +86,6 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.cards.VideoCard
-import app.gyrolet.mpvrx.ui.browser.components.rememberThumbnailLoadingDeferred
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
@@ -1074,11 +1073,6 @@ internal fun VideoListContent(
             initialFirstVisibleItemIndex = initialScrollIndex,
           )
 
-        val deferThumbnailLoading = rememberThumbnailLoadingDeferred(
-          if (mediaLayoutMode == MediaLayoutMode.LIST) listState.isScrollInProgress
-          else gridState.isScrollInProgress,
-        )
-
         val latestVideosWithInfo by rememberUpdatedState(videosWithInfo)
         val thumbnailListKey =
           remember(videosWithInfo) {
@@ -1115,7 +1109,7 @@ internal fun VideoListContent(
                 else gridState.isScrollInProgress
               }.collectLatest { scrolling ->
                 // Visible cards have priority: bulk work resumes only after the scroll settles.
-                thumbnailRepository.cancelFolderThumbnailGeneration(generationId)
+                thumbnailRepository.pauseFolderThumbnailGeneration(generationId)
                 if (!scrolling) {
                   delay(1_500L)
                   thumbnailRepository.startFolderThumbnailGeneration(
@@ -1223,7 +1217,6 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
-                      deferThumbnailLoading = deferThumbnailLoading,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1294,10 +1287,9 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
-                      deferThumbnailLoading = deferThumbnailLoading,
                       uiConfig = videoCardUiConfig,
-                      thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
-                      thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
+                      thumbnailWidthPx = if (isAudio || videoWithInfo.video.isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
+                      thumbnailHeightPx = if (isAudio || videoWithInfo.video.isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
                   )
                 }
               }

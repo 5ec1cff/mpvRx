@@ -73,6 +73,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -80,7 +81,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.ui.browser.components.rememberThumbnailLoadingDeferred
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
@@ -1290,6 +1290,8 @@ private fun FileSystemBrowserContent(
   val appearancePreferences = koinInject<AppearancePreferences>()
   val thumbnailRepository = koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>()
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
+  val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
+  val audioCoverArtSizePx = with(LocalDensity.current) { musicCoverArtSize.dp.roundToPx() }
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
@@ -1407,10 +1409,6 @@ private fun FileSystemBrowserContent(
 
     else -> {
       val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
-      val isListScrolling by remember(listState, gridState, isGridMode) {
-        derivedStateOf { if (isGridMode) gridState.isScrollInProgress else listState.isScrollInProgress }
-      }
-      val deferThumbnailLoading = rememberThumbnailLoadingDeferred(isListScrolling)
       val latestVideos by rememberUpdatedState(videos)
       // Root displays folders/cached art only; new thumbnails begin after opening a directory.
       LaunchedEffect(folderId, isOpenedFolder, showVideoThumbnails, thumbWidthPx,
@@ -1535,7 +1533,6 @@ private fun FileSystemBrowserContent(
                     newVideoCount = folder.newCount,
                     isGridMode = true,
                     allowThumbnailGeneration = false,
-                    deferThumbnailLoading = deferThumbnailLoading,
                   )
                 }
 
@@ -1574,7 +1571,6 @@ private fun FileSystemBrowserContent(
                       useFolderNameStyle = false,
                       allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                       allowThumbnailLoading = !archiveEntry,
-                      deferThumbnailLoading = deferThumbnailLoading,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1664,7 +1660,6 @@ private fun FileSystemBrowserContent(
                   newVideoCount = folder.newCount,
                   isGridMode = false,
                   allowThumbnailGeneration = false,
-                  deferThumbnailLoading = deferThumbnailLoading,
                   customIcon = if (ZipArchiveMedia.isArchiveRoot(folder.path)) Icons.RoundedFilled.FolderZip else null,
                   onSwipeAction =
                     swipeActions.folder.takeUnless { archiveFolder || selectionManager.isInSelectionMode || isInSelectionMode },
@@ -1707,8 +1702,9 @@ private fun FileSystemBrowserContent(
                     useFolderNameStyle = false,
                     allowThumbnailGeneration = !archiveEntry && isOpenedFolder,
                     allowThumbnailLoading = !archiveEntry,
-                    deferThumbnailLoading = deferThumbnailLoading,
                     uiConfig = videoCardUiConfig,
+                    thumbnailWidthPx = if (videoFile.video.isAudio) audioCoverArtSizePx else null,
+                    thumbnailHeightPx = if (videoFile.video.isAudio) audioCoverArtSizePx else null,
                 )
               }
             }
@@ -1767,6 +1763,8 @@ private fun FileSystemSearchContent(
   val gesturePreferences = koinInject<GesturePreferences>()
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
+  val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
+  val audioCoverArtSizePx = with(LocalDensity.current) { musicCoverArtSize.dp.roundToPx() }
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
@@ -2089,6 +2087,8 @@ private fun FileSystemSearchContent(
                   allowThumbnailGeneration = !archiveEntry,
                   allowThumbnailLoading = !archiveEntry,
                   uiConfig = videoCardUiConfig,
+                  thumbnailWidthPx = if (videoFile.video.isAudio) audioCoverArtSizePx else null,
+                  thumbnailHeightPx = if (videoFile.video.isAudio) audioCoverArtSizePx else null,
                 )
               }
             }

@@ -1465,6 +1465,14 @@ object SearchablePreferences {
         SearchEntrySpec(R.string.pref_nav_music_title, listOf("music", "audio", "tab", "navigation")),
         SearchEntrySpec(R.string.pref_nav_profile_title, listOf("profile", "you", "library", "tab", "navigation")),
         SearchEntrySpec(R.string.navbar_glow_title, listOf("glass", "glow", "navbar", "rim", "highlight", "liquid glass")),
+        SearchEntrySpec(
+          R.string.legacy_navigation_bar_title,
+          listOf("legacy", "classic", "bottom", "navigation", "mpvex"),
+        ),
+        SearchEntrySpec(
+          R.string.progressive_navigation_blur_title,
+          listOf("haze", "blur", "progressive", "navigation", "navbar"),
+        ),
         SearchEntrySpec(R.string.pref_nav_network_title, listOf("network", "stream", "tab", "navigation")),
         SearchEntrySpec(R.string.pref_nav_jellyfin_title, listOf("jellyfin", "server", "tab", "navigation")),
         SearchEntrySpec(R.string.pref_quick_play_fab_title, listOf("quick play", "fab", "floating button", "random")),

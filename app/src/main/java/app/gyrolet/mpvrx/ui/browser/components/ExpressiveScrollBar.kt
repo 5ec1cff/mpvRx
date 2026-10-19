@@ -115,6 +115,10 @@ private fun observeListLayoutMetrics(
 
   val visibleItems = layoutInfo.visibleItemsInfo
   if (visibleItems.isEmpty()) return
+  if (!tracker.shouldSampleWindow(
+      visibleItems.first().index, visibleItems.last().index,
+      visibleItems.first().size, visibleItems.last().size,
+    )) return
 
   tracker.observeRepresentativeSample(
     strideSamplePx =
@@ -199,6 +203,10 @@ private fun observeGridLayoutMetrics(
 
   val visibleLines = buildVisibleGridLines(layoutInfo)
   if (visibleLines.isEmpty()) return visibleLines
+  if (!tracker.shouldSampleWindow(
+      visibleLines.first().index, visibleLines.last().index,
+      visibleLines.first().sizePx, visibleLines.last().sizePx,
+    )) return visibleLines
 
   tracker.observeRepresentativeSample(
     strideSamplePx =

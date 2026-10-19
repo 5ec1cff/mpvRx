@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -223,7 +224,6 @@ fun VideoCard(
   useFolderNameStyle: Boolean = false,
   allowThumbnailGeneration: Boolean = true,
   allowThumbnailLoading: Boolean = true,
-  deferThumbnailLoading: Boolean = false,
   uiConfig: VideoCardUiConfig? = null,
   onSwipeAction: ((Video, Boolean, VideoSwipeAction) -> Unit)? = null,
   /** Source badge shown ahead of the metadata chips, e.g. "Local". Null renders nothing. */
@@ -375,13 +375,16 @@ fun VideoCard(
           var thumbnail by remember(thumbnailRequestKey) {
             mutableStateOf<Bitmap?>(exactMemoryThumbnail ?: retainedThumbnail)
           }
+          var showingSoftPreview by remember(thumbnailRequestKey) {
+            mutableStateOf(exactMemoryThumbnail == null && retainedThumbnail != null)
+          }
 
           // Read cached thumbnail immediately from disk if not in memory, or generate if permitted
-          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails, deferThumbnailLoading) {
+          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails) {
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (!deferThumbnailLoading && allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
+            if (allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
                   if (allowThumbnailGeneration) {
@@ -393,6 +396,7 @@ fun VideoCard(
               if (loaded != null) {
                 thumbnail = loaded
                 retainedThumbnail = loaded
+                showingSoftPreview = false
               }
             }
           }
@@ -427,7 +431,7 @@ fun VideoCard(
                   contentDescription =
                     androidx.compose.ui.res
                       .stringResource(app.gyrolet.mpvrx.R.string.ui_thumbnail),
-                  modifier = Modifier.matchParentSize(),
+                  modifier = Modifier.matchParentSize().then(if (showingSoftPreview) Modifier.blur(2.dp) else Modifier),
                   contentScale = ContentScale.Crop,
                 )
               } ?: run {
@@ -718,13 +722,16 @@ fun VideoCard(
           var thumbnail by remember(thumbnailRequestKey) {
             mutableStateOf<Bitmap?>(exactMemoryThumbnail ?: retainedThumbnail)
           }
+          var showingSoftPreview by remember(thumbnailRequestKey) {
+            mutableStateOf(exactMemoryThumbnail == null && retainedThumbnail != null)
+          }
 
           // Read cached thumbnail immediately from disk if not in memory, or generate if permitted
-          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails, deferThumbnailLoading) {
+          LaunchedEffect(thumbnailRequestKey, allowThumbnailGeneration, allowThumbnailLoading, showThumbnails) {
             thumbnail?.let { retainedThumbnail = it }
             // A fallback frame from another size is displayed immediately; fetch the exact size
             // without clearing it. Memory hits require no disk read or decoding.
-            if (!deferThumbnailLoading && allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
+            if (allowThumbnailLoading && exactMemoryThumbnail == null && showThumbnails) {
               val loaded =
                 withContext(Dispatchers.IO) {
                   if (allowThumbnailGeneration) {
@@ -736,6 +743,7 @@ fun VideoCard(
               if (loaded != null) {
                 thumbnail = loaded
                 retainedThumbnail = loaded
+                showingSoftPreview = false
               }
             }
           }
@@ -769,7 +777,7 @@ fun VideoCard(
                   contentDescription =
                     androidx.compose.ui.res
                       .stringResource(app.gyrolet.mpvrx.R.string.ui_thumbnail),
-                  modifier = Modifier.matchParentSize(),
+                  modifier = Modifier.matchParentSize().then(if (showingSoftPreview) Modifier.blur(2.dp) else Modifier),
                   contentScale = ContentScale.Crop,
                 )
               } ?: run {

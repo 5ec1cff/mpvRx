@@ -2345,6 +2345,10 @@
   <string name="onboarding_configuration_restore_failed">Не вдалося завершити налаштування папки: %1$s</string>
   <string name="navbar_glow_title">Світіння скла</string>
   <string name="navbar_glow_summary">Підсвічування краю та дотиків панелі навігації</string>
+  <string name="legacy_navigation_bar_title">Класична панель навігації</string>
+  <string name="legacy_navigation_bar_summary">Використовувати класичну панель навігації на всю ширину замість плаваючої панелі.</string>
+  <string name="progressive_navigation_blur_title">Поступове розмиття панелі навігації</string>
+  <string name="progressive_navigation_blur_summary">Використовувати поступове розмиття Haze позаду плавучої панелі навігації. Автоматично вимикається за класичної панелі.</string>
   <string name="pref_seekbar_preview_skip_markers">Позначки пропуску</string>
   <string name="pref_liquid_glass_optics">Оптика</string>
   <string name="pref_liquid_glass_opacity">Непрозорість тла</string>
@@ -2575,4 +2579,6 @@
   <string name="app_icon_shortcut_failed">Не вдалося зберегти ярлик. Спробуйте ще раз.</string>
   <string name="color_picker_wheel">Колірне коло</string>
   <string name="color_picker_brightness">Яскравість</string>
+    <string name="only_for_video_list">Лише для списку відео</string>
+    <string name="only_for_folder_list">Лише для списку тек</string>
 </resources>

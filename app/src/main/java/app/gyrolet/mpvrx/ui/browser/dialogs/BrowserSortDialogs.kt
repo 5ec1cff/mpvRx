@@ -557,10 +557,11 @@ fun FolderSortDialog(
             browserPreferences.mediaLayoutMode.set(newLayout)
           }
         },
-        checkboxLabel = if (isAlbumView) "Only for folder list" else null,
+        checkboxLabel =
+          if (isAlbumView && activeLayoutMode == MediaLayoutMode.GRID) stringResource(R.string.only_for_folder_list) else null,
         isCheckboxChecked = separateFolderVideoLayout,
         onCheckboxChange =
-          if (isAlbumView) {
+          if (isAlbumView && activeLayoutMode == MediaLayoutMode.GRID) {
             { checked ->
               browserPreferences.separateFolderVideoLayout.set(checked)
               if (!checked) {
@@ -698,6 +699,7 @@ fun VideoSortDialog(
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
   val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
+  val includeAudioBrowser by browserPreferences.includeAudioBrowser.collectAsState()
   val showThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -909,10 +911,11 @@ fun VideoSortDialog(
               browserPreferences.mediaLayoutMode.set(newLayout)
             }
           },
-          checkboxLabel = if (isFolderView) "Only for video list" else null,
+          checkboxLabel =
+            if (isFolderView && activeLayoutMode == MediaLayoutMode.GRID) stringResource(R.string.only_for_video_list) else null,
           isCheckboxChecked = separateFolderVideoLayout,
           onCheckboxChange =
-            if (isFolderView) {
+            if (isFolderView && activeLayoutMode == MediaLayoutMode.GRID) {
               { checked ->
                 browserPreferences.separateFolderVideoLayout.set(checked)
                 if (!checked) {
@@ -1054,7 +1057,7 @@ fun VideoSortDialog(
       ),
     folderGridColumnSelector = folderGridColumnSelector.takeUnless { pickerMode },
     videoGridColumnSelector =
-      if (isAudio && activeLayoutMode == MediaLayoutMode.LIST) {
+      if ((isAudio || includeAudioBrowser) && activeLayoutMode == MediaLayoutMode.LIST) {
         coverArtSizeSelector(musicCoverArtSize) { browserPreferences.musicCoverArtSize.set(it) }
       } else {
         videoGridColumnSelector
@@ -1070,6 +1073,8 @@ fun FileSystemSortDialog(
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
+  val includeAudioBrowser by browserPreferences.includeAudioBrowser.collectAsState()
+  val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
   val folderViewMode by browserPreferences.folderViewMode.collectAsState()
   val folderSortType by browserPreferences.folderSortType.collectAsState()
   val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
@@ -1137,7 +1142,9 @@ fun FileSystemSortDialog(
     }
 
   val videoGridColumnSelector =
-    if (mediaLayoutMode == MediaLayoutMode.GRID && manualGridColumnsEnabled) {
+    if (includeAudioBrowser && mediaLayoutMode == MediaLayoutMode.LIST) {
+      coverArtSizeSelector(musicCoverArtSize) { browserPreferences.musicCoverArtSize.set(it) }
+    } else if (mediaLayoutMode == MediaLayoutMode.GRID && manualGridColumnsEnabled) {
       GridColumnSelector(
         label = "Video (${if (isLandscape) "Landscape" else "Portrait"})",
         currentValue = videoGridColumns.coerceIn(1, maxVideoColumns),
@@ -1806,5 +1813,4 @@ fun AudiobookSortDialog(
     showSortOptions = true,
   )
 }
-
 

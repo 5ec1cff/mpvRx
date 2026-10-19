@@ -88,7 +88,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.ui.browser.components.rememberThumbnailLoadingDeferred
 import app.gyrolet.mpvrx.preferences.VideoSwipeAction
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
@@ -1481,11 +1480,9 @@ private fun GridContent(
     val density = LocalDensity.current
     // Row height follows the tallest natural card in the row, and is recalculated
     // when folders, the column count, or display preferences change.
-    val measuredFolderHeights = remember(folders, computedColumns, folderCardUiConfig) {
-      mutableStateMapOf<String, Int>()
+    val measuredRowHeights = remember(folders, computedColumns, folderCardUiConfig) {
+      mutableStateMapOf<Int, Int>()
     }
-    val deferThumbnailLoading = rememberThumbnailLoadingDeferred(gridState.isScrollInProgress)
-
     LazyVerticalGrid(
       columns = GridCells.Fixed(computedColumns),
       state = gridState,
@@ -1500,16 +1497,19 @@ private fun GridContent(
       horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
       verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
     ) {
-      items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
+      items(
+        count = folders.size,
+        key = { index -> folders[index].bucketId },
+        contentType = { "folder_item" },
+      ) { index ->
         val folder = folders[index]
         val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
         val isRecentlyPlayed = recentlyPlayedParent == folder.path
         val newCount = newCountByBucketId[folder.bucketId] ?: 0
 
         val isActive = isDualPaneActive && folder.bucketId == selectedFolderBucketId
-        val firstInRow = index / computedColumns * computedColumns
-        val tallestContentInRow = (firstInRow until minOf(firstInRow + computedColumns, folders.size))
-          .maxOfOrNull { measuredFolderHeights[folders[it].bucketId] ?: 0 } ?: 0
+        val rowIndex = index / computedColumns
+        val tallestContentInRow = measuredRowHeights[rowIndex] ?: 0
 
         FolderCard(
           folder = folder,
@@ -1532,13 +1532,13 @@ private fun GridContent(
           isGridMode = true,
           gridRowMinHeight = with(density) { tallestContentInRow.toDp() },
           onGridContentHeightChanged = { contentHeight ->
-            if (measuredFolderHeights[folder.bucketId] != contentHeight) {
-              measuredFolderHeights[folder.bucketId] = contentHeight
+            // Keep each row height stable; other cards cannot shrink or remeasure it per fling.
+            if (contentHeight > (measuredRowHeights[rowIndex] ?: 0)) {
+              measuredRowHeights[rowIndex] = contentHeight
             }
           },
           uiConfig = folderCardUiConfig,
           allowThumbnailGeneration = folderCardUiConfig.showFolderThumbnails,
-          deferThumbnailLoading = deferThumbnailLoading,
           isPinned = folder.path in pinnedFolderPaths,
           onPinClick =
             if (!selectionManager.isInSelectionMode) {
@@ -1614,7 +1614,11 @@ private fun ListContent(
           bottom = navigationBarHeight,
         ),
     ) {
-      items(count = folders.size, key = { index -> folders[index].bucketId }) { index ->
+      items(
+        count = folders.size,
+        key = { index -> folders[index].bucketId },
+        contentType = { "folder_item" },
+      ) { index ->
         val folder = folders[index]
         val archiveFolder = ZipArchiveMedia.isBrowserPath(folder.path)
         val isRecentlyPlayed = recentlyPlayedParent == folder.path
@@ -1724,6 +1728,8 @@ private fun SearchResultsContent(
   val swipePlaybackInfo = rememberSwipePlaybackInfo(videos)
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
+  val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
+  val audioCoverArtSizePx = with(LocalDensity.current) { musicCoverArtSize.dp.roundToPx() }
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -1907,6 +1913,8 @@ private fun SearchResultsContent(
             allowThumbnailGeneration = !archiveEntry,
             allowThumbnailLoading = !archiveEntry,
             uiConfig = videoCardUiConfig,
+            thumbnailWidthPx = if (video.isAudio) audioCoverArtSizePx else null,
+            thumbnailHeightPx = if (video.isAudio) audioCoverArtSizePx else null,
           )
         }
       }

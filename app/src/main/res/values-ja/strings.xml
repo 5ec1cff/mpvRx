@@ -2320,6 +2320,10 @@
   <string name="onboarding_configuration_restore_failed">フォルダーの設定を完了できませんでした: %1$s</string>
   <string name="navbar_glow_title">ガラスの輝き</string>
   <string name="navbar_glow_summary">ナビゲーションバーの縁の光とタッチ時の輝きを表示</string>
+  <string name="legacy_navigation_bar_title">従来のナビゲーションバー</string>
+  <string name="legacy_navigation_bar_summary">フローティングピルの代わりに、画面幅いっぱいの従来型ナビゲーションバーを使用します。</string>
+  <string name="progressive_navigation_blur_title">ナビゲーションの段階的なぼかし</string>
+  <string name="progressive_navigation_blur_summary">フローティングナビゲーションバーの背後に Haze の段階的なぼかしを使用します。従来のナビゲーションバーを有効にすると自動的にオフになります。</string>
   <string name="pref_seekbar_preview_skip_markers">スキップマーカー</string>
   <string name="pref_liquid_glass_optics">光学</string>
   <string name="pref_liquid_glass_opacity">背景の不透明度</string>
@@ -2602,4 +2606,6 @@
   <string name="app_icon_shortcut_failed">ショートカットを保存できませんでした。もう一度お試しください。</string>
   <string name="color_picker_wheel">カラーホイール</string>
   <string name="color_picker_brightness">明るさ</string>
+    <string name="only_for_video_list">動画リストのみに適用</string>
+    <string name="only_for_folder_list">フォルダーリストのみに適用</string>
 </resources>

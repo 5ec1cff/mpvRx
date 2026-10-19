@@ -2327,6 +2327,10 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="onboarding_configuration_restore_failed">La configuration du dossier a échoué : %1$s</string>
   <string name="navbar_glow_title">Éclat du verre</string>
   <string name="navbar_glow_summary">Afficher l’éclairage du bord et l’éclat au toucher de la barre de navigation</string>
+  <string name="legacy_navigation_bar_title">Barre de navigation classique</string>
+  <string name="legacy_navigation_bar_summary">Utiliser une barre de navigation classique sur toute la largeur au lieu de la barre flottante.</string>
+  <string name="progressive_navigation_blur_title">Flou progressif de navigation</string>
+  <string name="progressive_navigation_blur_summary">Utiliser le flou progressif Haze derrière la barre de navigation flottante. Désactivé automatiquement avec la barre classique.</string>
   <string name="pref_seekbar_preview_skip_markers">Marqueurs de saut</string>
   <string name="pref_liquid_glass_optics">Optique</string>
   <string name="pref_liquid_glass_opacity">Opacité du fond</string>
@@ -2613,4 +2617,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="app_icon_shortcut_failed">Impossible d\'enregistrer le raccourci. Veuillez réessayer.</string>
   <string name="color_picker_wheel">Roue chromatique</string>
   <string name="color_picker_brightness">Luminosité</string>
+    <string name="only_for_video_list">Uniquement pour la liste des vidéos</string>
+    <string name="only_for_folder_list">Uniquement pour la liste des dossiers</string>
 </resources>

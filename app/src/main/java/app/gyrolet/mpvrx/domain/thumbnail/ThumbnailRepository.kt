@@ -400,8 +400,14 @@ class ThumbnailRepository(
     }
   }
 
-  fun cancelFolderThumbnailGeneration(folderId: String) {
+  /** Pause bulk generation during a fling without discarding completed batches. */
+  fun pauseFolderThumbnailGeneration(folderId: String) {
     folderJobs.remove(folderId)?.cancel()
+  }
+
+  /** Discard progress when the folder screen is disposed. */
+  fun cancelFolderThumbnailGeneration(folderId: String) {
+    pauseFolderThumbnailGeneration(folderId)
     folderStates.remove(folderId)
   }
 

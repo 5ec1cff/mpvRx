@@ -2327,6 +2327,10 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="onboarding_configuration_restore_failed">No se pudo completar la configuración de la carpeta: %1$s</string>
   <string name="navbar_glow_title">Brillo del cristal</string>
   <string name="navbar_glow_summary">Mostrar luz del borde y brillo al tocar la barra de navegación</string>
+  <string name="legacy_navigation_bar_title">Barra de navegación clásica</string>
+  <string name="legacy_navigation_bar_summary">Usar una barra de navegación clásica a todo lo ancho en lugar de la barra flotante.</string>
+  <string name="progressive_navigation_blur_title">Desenfoque progresivo de navegación</string>
+  <string name="progressive_navigation_blur_summary">Usar el desenfoque progresivo de Haze detrás de la barra de navegación flotante. Se desactiva automáticamente con la barra clásica.</string>
   <string name="pref_seekbar_preview_skip_markers">Marcadores de omisión</string>
   <string name="pref_liquid_glass_optics">Óptica</string>
   <string name="pref_liquid_glass_opacity">Opacidad del fondo</string>
@@ -2613,4 +2617,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="app_icon_shortcut_failed">No se pudo guardar el acceso directo. Vuelve a intentarlo.</string>
   <string name="color_picker_wheel">Rueda de colores</string>
   <string name="color_picker_brightness">Brillo</string>
+    <string name="only_for_video_list">Solo para la lista de vídeos</string>
+    <string name="only_for_folder_list">Solo para la lista de carpetas</string>
 </resources>

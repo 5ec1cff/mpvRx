@@ -2526,6 +2526,10 @@
   <string name="onboarding_configuration_restore_failed">Folder setup could not be completed: %1$s</string>
   <string name="navbar_glow_title">Glass Glow</string>
   <string name="navbar_glow_summary">Show navbar rim lighting and touch glow</string>
+  <string name="legacy_navigation_bar_title">Legacy navigation bar</string>
+  <string name="legacy_navigation_bar_summary">Use a classic full-width navigation bar instead of the floating pill.</string>
+  <string name="progressive_navigation_blur_title">Progressive navigation blur</string>
+  <string name="progressive_navigation_blur_summary">Use Haze progressive blur behind the floating navigation bar. Automatically disabled with legacy navigation.</string>
   <string name="pref_seekbar_preview_skip_markers">Skip markers</string>
   <string name="debug_logs_save_to_config">Save logs to config folder</string>
   <string name="debug_logs_config_required">Select a configuration folder in Advanced Settings first.</string>
@@ -2674,4 +2678,6 @@
     <string name="app_icon_shortcut_failed">Could not save the shortcut. Please try again.</string>
   <string name="color_picker_wheel">Wheel</string>
   <string name="color_picker_brightness">Brightness</string>
+    <string name="only_for_video_list">Only for video list</string>
+    <string name="only_for_folder_list">Only for folder list</string>
 </resources>

@@ -169,7 +169,6 @@ fun FolderCard(
   viewPreferences: BrowserPageViewPreferences? = null,
   uiConfig: FolderCardUiConfig? = null,
   allowThumbnailGeneration: Boolean = true,
-  deferThumbnailLoading: Boolean = false,
   selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val resolvedUiConfig = uiConfig ?: rememberFolderCardUiConfig(viewPreferences)
@@ -203,9 +202,8 @@ fun FolderCard(
     thumbnailSize,
     showPreviewCollage,
     allowThumbnailGeneration,
-    deferThumbnailLoading,
   ) {
-    if (!deferThumbnailLoading && folder.path.isNotBlank() && isGridMode && showFolderThumbnails && thumbnailSize.width > 0 && thumbnailSize.height > 0) {
+    if (folder.path.isNotBlank() && isGridMode && showFolderThumbnails && thumbnailSize.width > 0 && thumbnailSize.height > 0) {
       delay(350L)
       withContext(Dispatchers.IO) {
         // On a fresh install there is nothing to reuse. Avoid querying every folder

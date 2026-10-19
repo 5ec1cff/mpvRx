@@ -233,7 +233,7 @@ fun SortDialog(
                 }
               }
             }
-            val showSeparateLayout = layoutModeSelector.checkboxLabel != null && layoutModeSelector.onCheckboxChange != null
+            val showSeparateLayout = !isFirstSelected && layoutModeSelector.checkboxLabel != null && layoutModeSelector.onCheckboxChange != null
             val showManualGrid = manualGridToggle != null && !isFirstSelected
             if (showSeparateLayout || showManualGrid) {
               Spacer(modifier = Modifier.height(4.dp))

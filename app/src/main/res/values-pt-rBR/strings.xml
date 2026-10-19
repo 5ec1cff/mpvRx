@@ -2327,6 +2327,10 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="onboarding_configuration_restore_failed">Não foi possível concluir a configuração da pasta: %1$s</string>
   <string name="navbar_glow_title">Brilho do vidro</string>
   <string name="navbar_glow_summary">Mostrar iluminação da borda e brilho ao tocar na barra de navegação</string>
+  <string name="legacy_navigation_bar_title">Barra de navegação clássica</string>
+  <string name="legacy_navigation_bar_summary">Usar uma barra de navegação clássica em toda a largura em vez da barra flutuante.</string>
+  <string name="progressive_navigation_blur_title">Desfoque progressivo da navegação</string>
+  <string name="progressive_navigation_blur_summary">Usar o desfoque progressivo do Haze atrás da barra de navegação flutuante. Desativado automaticamente com a barra clássica.</string>
   <string name="pref_seekbar_preview_skip_markers">Marcadores de salto</string>
   <string name="pref_liquid_glass_optics">Óptica</string>
   <string name="pref_liquid_glass_opacity">Opacidade do fundo</string>
@@ -2613,4 +2617,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="app_icon_shortcut_failed">Não foi possível salvar o atalho. Tente novamente.</string>
   <string name="color_picker_wheel">Círculo cromático</string>
   <string name="color_picker_brightness">Brilho</string>
+    <string name="only_for_video_list">Somente para a lista de vídeos</string>
+    <string name="only_for_folder_list">Somente para a lista de pastas</string>
 </resources>

@@ -2341,6 +2341,10 @@
   <string name="onboarding_configuration_restore_failed">Не удалось завершить настройку папки: %1$s</string>
   <string name="navbar_glow_title">Свечение стекла</string>
   <string name="navbar_glow_summary">Подсветка края и касаний панели навигации</string>
+  <string name="legacy_navigation_bar_title">Классическая панель навигации</string>
+  <string name="legacy_navigation_bar_summary">Использовать классическую панель навигации на всю ширину вместо плавающей панели.</string>
+  <string name="progressive_navigation_blur_title">Постепенное размытие панели навигации</string>
+  <string name="progressive_navigation_blur_summary">Использовать прогрессивное размытие Haze за плавающей панелью навигации. Автоматически отключается при включении классической панели.</string>
   <string name="pref_seekbar_preview_skip_markers">Метки пропуска</string>
   <string name="pref_liquid_glass_optics">Оптика</string>
   <string name="pref_liquid_glass_opacity">Непрозрачность фона</string>
@@ -2635,4 +2639,6 @@
   <string name="app_icon_shortcut_failed">Не удалось сохранить ярлык. Попробуйте ещё раз.</string>
   <string name="color_picker_wheel">Цветовой круг</string>
   <string name="color_picker_brightness">Яркость</string>
+    <string name="only_for_video_list">Только для списка видео</string>
+    <string name="only_for_folder_list">Только для списка папок</string>
 </resources>

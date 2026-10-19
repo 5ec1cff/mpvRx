@@ -2327,6 +2327,10 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="onboarding_configuration_restore_failed">Ordnereinrichtung konnte nicht abgeschlossen werden: %1$s</string>
   <string name="navbar_glow_title">Glasleuchten</string>
   <string name="navbar_glow_summary">Randlicht und Berührungsleuchten der Navigationsleiste anzeigen</string>
+  <string name="legacy_navigation_bar_title">Klassische Navigationsleiste</string>
+  <string name="legacy_navigation_bar_summary">Eine klassische Navigationsleiste über die gesamte Breite statt der schwebenden Leiste verwenden.</string>
+  <string name="progressive_navigation_blur_title">Progressive Navigationsunschärfe</string>
+  <string name="progressive_navigation_blur_summary">Haze-Weichzeichnung hinter der schwebenden Navigationsleiste verwenden. Wird bei der klassischen Navigationsleiste automatisch deaktiviert.</string>
   <string name="pref_seekbar_preview_skip_markers">Sprungmarkierungen</string>
   <string name="pref_liquid_glass_optics">Optik</string>
   <string name="pref_liquid_glass_opacity">Deckkraft des Hintergrunds</string>
@@ -2613,4 +2617,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="app_icon_shortcut_failed">Verknüpfung konnte nicht gespeichert werden. Bitte erneut versuchen.</string>
   <string name="color_picker_wheel">Farbrad</string>
   <string name="color_picker_brightness">Helligkeit</string>
+    <string name="only_for_video_list">Nur für die Videoliste</string>
+    <string name="only_for_folder_list">Nur für die Ordnerliste</string>
 </resources>

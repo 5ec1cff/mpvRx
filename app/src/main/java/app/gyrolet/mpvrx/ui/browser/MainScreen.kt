@@ -50,7 +50,10 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -217,6 +220,8 @@ object MainScreen : Screen {
     val showNetworkTab by appearancePreferences.showNetworkTab.collectAsState()
     val showJellyfinTab by appearancePreferences.showJellyfinTab.collectAsState()
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
+    val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
+    val progressiveNavigationBlur by appearancePreferences.progressiveNavigationBlur.collectAsState()
     val liquidLayerBackdrop = rememberLayerBackdrop()
     val hideNavigationBar = NavigationBarState.shouldHideNavigationBar
     val isPermissionDenied = NavigationBarState.isPermissionDenied
@@ -384,16 +389,25 @@ object MainScreen : Screen {
     val navigationBackdrop = rememberHazeState()
 
     val mainNavBar = @Composable { modifier: Modifier ->
-      ExpressivePillNavigationBar(
-        visibleTabs = navigationTabs,
-        selectedTab = selectedTab,
-        onTabSelected = onTabSelected,
-        pagerState = pagerState,
-        hazeBackdrop = navigationBackdrop,
-        kyantBackdrop = liquidLayerBackdrop,
-        liquidGlassEnabled = liquidGlassEnabled,
-        modifier = modifier,
-      )
+      if (legacyNavigationBar) {
+        LegacyMaterialNavigationBar(
+          visibleTabs = navigationTabs,
+          selectedTab = selectedTab,
+          onTabSelected = onTabSelected,
+          modifier = modifier,
+        )
+      } else {
+        ExpressivePillNavigationBar(
+          visibleTabs = navigationTabs,
+          selectedTab = selectedTab,
+          onTabSelected = onTabSelected,
+          pagerState = pagerState,
+          hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
+          kyantBackdrop = liquidLayerBackdrop,
+          liquidGlassEnabled = liquidGlassEnabled,
+          modifier = modifier,
+        )
+      }
     }
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -432,8 +446,13 @@ object MainScreen : Screen {
             modifier =
               Modifier
                 .fillMaxSize()
-                .layerBackdrop(liquidLayerBackdrop)
-                .hazeSource(navigationBackdrop),
+                .then(
+                    when {
+                      liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
+                      !legacyNavigationBar && progressiveNavigationBlur -> Modifier.hazeSource(navigationBackdrop)
+                      else -> Modifier
+                    },
+                  ),
           ) {
             CompositionLocalProvider(
               LocalNavigationBarHeight provides contentBottomPadding,
@@ -457,8 +476,13 @@ object MainScreen : Screen {
                   .clipToBounds()
                   .graphicsLayer { alpha = tabContentAlpha.value }
                   .nestedScroll(NavigationBarState.navScrollConnection)
-                  .layerBackdrop(liquidLayerBackdrop)
-                  .hazeSource(navigationBackdrop),
+                  .then(
+                    when {
+                      liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
+                      !legacyNavigationBar && progressiveNavigationBlur -> Modifier.hazeSource(navigationBackdrop)
+                      else -> Modifier
+                    },
+                  ),
               key = { page -> visibleTabs[page].name },
               beyondViewportPageCount = 1,
               userScrollEnabled = !isPermissionDenied && !isDirectTabJumpInProgress,
@@ -683,68 +707,85 @@ object MainScreen : Screen {
           ) {
             Box(Modifier.fillMaxWidth()) {
               Box(Modifier.matchParentSize()) {
-                ProgressiveNavigationBackdrop(
-                  state = navigationBackdrop,
-                  modifier =
-                    Modifier
-                      .fillMaxHeight()
-                      .fillMaxWidth(if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) 0.4f else 1f)
-                      .align(Alignment.BottomStart),
-                )
+                // Haze only runs while its navigation surface is visible.
+                if (!liquidGlassEnabled && progressiveNavigationBlur && !legacyNavigationBar) {
+                  ProgressiveNavigationBackdrop(
+                    state = navigationBackdrop,
+                    modifier =
+                      Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) 0.4f else 1f)
+                        .align(Alignment.BottomStart),
+                  )
+                }
               }
               BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 24.dp, bottom = 8.dp),
-              ) {
-                val horizontalMargin by animateDpAsState(
-                  targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
-                  animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
-                  label = "navigation_margin",
-                )
-                val centerFraction = animateFloatAsState(
-                  targetValue = when {
-                    isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
-                    isMiniPlayerVisible && (isLandscape || isTablet) -> 0f
-                    else -> 0.5f
+                modifier =
+                  if (legacyNavigationBar) {
+                    Modifier.fillMaxWidth()
+                  } else {
+                    Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 24.dp, bottom = 8.dp)
                   },
-                  animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(duration, easing = FastOutSlowInEasing),
-                  label = "pill_alignment",
-                )
+              ) {
+                if (legacyNavigationBar) {
+                  LegacyMaterialNavigationBar(
+                    visibleTabs = navigationTabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected,
+                    modifier = Modifier.fillMaxWidth(),
+                  )
+                } else {
+                  val horizontalMargin by animateDpAsState(
+                    targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
+                    animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
+                    label = "navigation_margin",
+                  )
+                  val centerFraction = animateFloatAsState(
+                    targetValue = when {
+                      isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
+                      isMiniPlayerVisible && (isLandscape || isTablet) -> 0f
+                      else -> 0.5f
+                    },
+                    animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(duration, easing = FastOutSlowInEasing),
+                    label = "pill_alignment",
+                  )
 
-                val navModifier = Modifier
-                  .layout { measurable, constraints ->
-                    val margin = horizontalMargin.roundToPx()
-                    val paneWidth =
-                      if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) {
-                        (constraints.maxWidth * 0.4f).roundToInt()
-                      } else {
-                        constraints.maxWidth
+                  val navModifier = Modifier
+                    .layout { measurable, constraints ->
+                      val margin = horizontalMargin.roundToPx()
+                      val paneWidth =
+                        if (isDualPaneFolderSelected && selectedTab == MainTab.HOME) {
+                          (constraints.maxWidth * 0.4f).roundToInt()
+                        } else {
+                          constraints.maxWidth
+                        }
+                      val availableWidth = (paneWidth - margin * 2).coerceAtLeast(0)
+                      val maxNuvioWidth = minOf(400.dp.roundToPx(), availableWidth)
+                      val placeable =
+                        measurable.measure(
+                          constraints.copy(minWidth = 0, maxWidth = maxNuvioWidth),
+                        )
+                      layout(constraints.maxWidth, placeable.height) {
+                        val desired =
+                          (constraints.maxWidth * centerFraction.value - placeable.width / 2f)
+                            .roundToInt()
+                        val maxStart = (paneWidth - margin - placeable.width).coerceAtLeast(margin)
+                        val start = desired.coerceIn(margin, maxStart)
+                        placeable.placeRelative(start, 0)
                       }
-                    val availableWidth = (paneWidth - margin * 2).coerceAtLeast(0)
-                    val maxNuvioWidth = minOf(400.dp.roundToPx(), availableWidth)
-                    val placeable =
-                      measurable.measure(
-                        constraints.copy(minWidth = 0, maxWidth = maxNuvioWidth),
-                      )
-                    layout(constraints.maxWidth, placeable.height) {
-                      val desired =
-                        (constraints.maxWidth * centerFraction.value - placeable.width / 2f)
-                          .roundToInt()
-                      val maxStart = (paneWidth - margin - placeable.width).coerceAtLeast(margin)
-                      val start = desired.coerceIn(margin, maxStart)
-                      placeable.placeRelative(start, 0)
                     }
-                  }
 
-                ExpressivePillNavigationBar(
-                  visibleTabs = navigationTabs,
-                  selectedTab = selectedTab,
-                  onTabSelected = onTabSelected,
-                  pagerState = pagerState,
-                  hazeBackdrop = navigationBackdrop,
-                  kyantBackdrop = liquidLayerBackdrop,
-                  liquidGlassEnabled = liquidGlassEnabled,
-                  modifier = navModifier,
-                )
+                  ExpressivePillNavigationBar(
+                    visibleTabs = navigationTabs,
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected,
+                    pagerState = pagerState,
+                    hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
+                    kyantBackdrop = liquidLayerBackdrop,
+                    liquidGlassEnabled = liquidGlassEnabled,
+                    modifier = navModifier,
+                  )
+                }
               }
             }
           }
@@ -1055,6 +1096,39 @@ private fun mainNavigationLabel(tab: MainScreen.MainTab): String =
     MainScreen.MainTab.JELLYFIN -> R.string.ui_jellyfin
     MainScreen.MainTab.PROFILE -> R.string.ui_profile
   })
+
+@Composable
+private fun LegacyMaterialNavigationBar(
+  visibleTabs: List<MainScreen.MainTab>,
+  selectedTab: MainScreen.MainTab,
+  onTabSelected: (MainScreen.MainTab) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val density = LocalDensity.current
+  NavigationBar(
+    modifier =
+      modifier.onGloballyPositioned { coordinates ->
+        NavigationBarState.navbarWidth = with(density) { coordinates.size.width.toDp() }
+        NavigationBarState.navigationPillHeight = with(density) { coordinates.size.height.toDp() }
+        NavigationBarState.navbarLeftOffset = with(density) { coordinates.positionInRoot().x.toDp() }
+      },
+  ) {
+    visibleTabs.forEach { tab ->
+      NavigationBarItem(
+        selected = tab == selectedTab,
+        onClick = { onTabSelected(tab) },
+        icon = {
+          MainTabIcon(
+            tab = tab,
+            tint = LocalContentColor.current,
+            contentDescription = null,
+          )
+        },
+        label = { Text(mainNavigationLabel(tab)) },
+      )
+    }
+  }
+}
 
 @Composable
 private fun MainTabIcon(
