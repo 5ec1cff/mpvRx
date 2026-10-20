@@ -132,6 +132,9 @@ class BrowserPreferences(
   val thumbnailMode = preferenceStore.getEnum("thumbnail_mode", ThumbnailMode.Smart)
   val thumbnailQuality = preferenceStore.getEnum("thumbnail_quality", ThumbnailQuality.High)
   val thumbnailFramePosition = preferenceStore.getFloat("thumbnail_frame_position", 33f)
+
+  /** Thumbnails generated at the same time; 0 means Auto (a safe value for this device). */
+  val thumbnailParallelism = preferenceStore.getInt("thumbnail_parallelism", 0)
   val showSizeChip = preferenceStore.getBoolean("show_size_chip", true)
 
   // Metadata-dependent chips (disabled by default for better performance)

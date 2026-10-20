@@ -440,7 +440,7 @@ object NetworkStreamingScreen : Screen {
                   stringResource(R.string.ui_add_connection),
                 )
               },
-              modifier = Modifier.padding(bottom = bottomOverlayClearance),
+              modifier = Modifier.padding(bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp)),
             )
           }
           NetworkTab.MEDIA.ordinal -> {
@@ -448,7 +448,7 @@ object NetworkStreamingScreen : Screen {
               onClick = { showAddMediaDialog = true },
               icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },
               text = { Text("Add Media") },
-              modifier = Modifier.padding(bottom = bottomOverlayClearance),
+              modifier = Modifier.padding(bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp)),
             )
           }
         }
@@ -784,7 +784,7 @@ private fun LocalNetworkContent(
   onOpenBookmark: (ResolvedNetworkFolderBookmark) -> Unit,
   onManageBookmarks: () -> Unit,
 ) {
-  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
   val bottomOverlayClearance = maxOf(navBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
   LazyColumn(
     modifier = Modifier.fillMaxSize(),
@@ -863,7 +863,7 @@ private fun MediaContent(
     }
 
   var selectedDetailGroup by remember { mutableStateOf<MediaStreamGroup?>(null) }
-  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
   val bottomOverlayClearance = maxOf(navBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
 
   val heroGroups =

@@ -107,6 +107,7 @@ class App :
   @OptIn(ExperimentalComposeUiApi::class)
   override fun onCreate() {
     super.onCreate()
+    app.gyrolet.mpvrx.utils.device.DevicePerformance.init(this)
 
     // Material3 alpha29 brings Compose UI 1.13.0-alpha01, which re-enables out-of-frame
     // IME dispatch. Batch StopInput/StartInput on the next frame so focus transfers don't

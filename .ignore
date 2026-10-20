@@ -1,5 +1,8 @@
-# graft's cards are gitignored but should stay greppable: ripgrep reads
+# Trail's current and legacy graph cards stay greppable: ripgrep reads
 # .ignore before .gitignore, so this re-admits the tree to search only.
+!.trail/cache/
+.trail/cache/.cache/
+.trail/cache/.graph/
 !graft/
 graft/.cache/
 graft/.graph/

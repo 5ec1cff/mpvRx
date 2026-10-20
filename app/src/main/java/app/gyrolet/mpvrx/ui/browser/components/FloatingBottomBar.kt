@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -39,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -50,6 +53,7 @@ import app.gyrolet.mpvrx.presentation.components.LiquidGlassBackdrop
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassEditingBarSurface
 import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.icons.AppIcon
+import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
@@ -113,6 +117,7 @@ fun BrowserBottomBar(
   val isTablet = configuration.smallestScreenWidthDp >= 600
   val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
   val reducedMotion = AppMotion.shouldReduceMotion()
+  val density = LocalDensity.current
   val haptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
   val entranceOffset = with(LocalDensity.current) { 12.dp.roundToPx() }
 
@@ -279,17 +284,13 @@ fun BrowserBottomBar(
       Box(
         modifier =
           Modifier
-            .windowInsetsPadding(WindowInsets.systemBars)
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
             .align(Alignment.BottomCenter)
             .padding(
               start = layoutParams.surfacePaddingHorizontal,
               top = layoutParams.surfacePaddingVertical,
               end = layoutParams.surfacePaddingHorizontal,
-              bottom = when {
-                isTablet -> 16.dp
-                isLandscape -> 6.dp
-                else -> 12.dp
-              },
+              bottom = NavigationBarState.floatingBarSpacing,
             ),
       ) {
         LiquidGlassEditingBarSurface(
@@ -298,6 +299,11 @@ fun BrowserBottomBar(
           Row(
             modifier =
               Modifier
+                .onSizeChanged { size ->
+                  if (isSelectionMode) {
+                    NavigationBarState.selectionBarHeight = with(density) { size.height.toDp() }
+                  }
+                }
                 .horizontalScroll(rememberScrollState())
                 .padding(
                   horizontal = layoutParams.rowPaddingHorizontal,

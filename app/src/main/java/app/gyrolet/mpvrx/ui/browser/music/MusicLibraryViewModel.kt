@@ -34,6 +34,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.concurrent.atomic.AtomicBoolean
 
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.MediaUtils
@@ -94,8 +95,14 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   private val _selectedArtist = MutableStateFlow<MusicArtist?>(null)
   val selectedArtist: StateFlow<MusicArtist?> = _selectedArtist.asStateFlow()
 
-  private val _isLoading = MutableStateFlow(false)
+  // Starts true: the library is only read once the Music page shows it, and until then that page
+  // must show its loading state rather than an empty library.
+  private val _isLoading = MutableStateFlow(true)
   val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+  // MainScreen creates this ViewModel on every launch, also for users who never open Music, so the
+  // first MediaStore scan (and album-tag probing) waits until the library is actually requested.
+  private val libraryLoadRequested = AtomicBoolean(false)
 
   val recentlyPlayedFilePath: StateFlow<String?> =
     RecentlyPlayedOps.observeLastPlayedPath()
@@ -123,12 +130,16 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
     }
     viewModelScope.launch {
       MediaLibraryEvents.changes.collectLatest {
-        refreshLibrary(context)
+        // An unread library has nothing stale to refresh; it is read in full when first shown.
+        if (libraryLoadRequested.get()) refreshLibrary(context)
       }
     }
-    viewModelScope.launch {
-      refreshLibrary(context)
-    }
+  }
+
+  /** Reads the library the first time a screen needs it. Later calls are no-ops. */
+  fun ensureLibraryLoaded() {
+    if (!libraryLoadRequested.compareAndSet(false, true)) return
+    viewModelScope.launch { refreshLibrary(context) }
   }
 
   val filteredSongs: StateFlow<List<MusicSong>> = combine(
@@ -192,7 +203,12 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   }.flowOn(Dispatchers.Default)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-  suspend fun refreshLibrary(context: Context) = refreshMutex.withLock {
+  suspend fun refreshLibrary(context: Context) {
+    libraryLoadRequested.set(true)
+    refreshMutex.withLock { refreshLibraryLocked(context) }
+  }
+
+  private suspend fun refreshLibraryLocked(context: Context) {
     _isLoading.value = true
     try {
       withContext(Dispatchers.IO) {
@@ -234,7 +250,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
           song.path.equals(folderPath, ignoreCase = true) ||
             song.path.startsWith(if (folderPath.endsWith("/")) folderPath else "$folderPath/", ignoreCase = true)
         }
-        val isNotAudiobook = !app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(song.path)
+        val isNotAudiobook = !app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookMediaFile(song.path)
         meetsDuration && isNotBlacklisted && isNotAudiobook
       }
       Triple(visible, buildAlbums(visible), buildArtists(visible))

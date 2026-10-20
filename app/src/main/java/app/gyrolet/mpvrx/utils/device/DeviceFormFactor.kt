@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.utils.device
 
-import android.app.UiModeManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -18,8 +17,11 @@ object DeviceFormFactor {
   @Volatile private var cachedTelevisionFeature: Boolean? = null
 
   fun isTelevision(context: Context): Boolean {
-    val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
-    if (uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) return true
+    // Configuration.uiMode carries the same mode type as UiModeManager.currentModeType, but as a
+    // local field read. The manager call is a binder IPC, and this runs while composing every list
+    // card and on every player seekbar update.
+    val modeType = context.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+    if (modeType == Configuration.UI_MODE_TYPE_TELEVISION) return true
 
     cachedTelevisionFeature?.let { return it }
     return synchronized(this) {

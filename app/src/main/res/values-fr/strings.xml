@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">Résolution maximale des miniatures : %1$d px. Une qualité supérieure utilise plus de stockage et peut prendre plus de temps à générer.</string>
   <string name="pref_appearance_thumbnail_position_title">Position de l’image de la miniature</string>
   <string name="pref_appearance_thumbnail_position_summary">Capturer l’image à %1$d%% de la vidéo</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">Cœurs pour les miniatures</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">Automatique (%1$d sur %2$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d sur %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Nombre de miniatures créées en même temps. Plus est plus rapide, mais consomme plus de mémoire et de batterie et peut saccader le défilement. Automatique choisit une valeur sûre pour cet appareil.</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">Supérieur aux %1$d recommandés pour cet appareil. Réduisez-le si les listes ralentissent ou si l’application est fermée en arrière-plan.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Afficher les miniatures réseau (expérimental)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Générer des miniatures pour les flux réseau (peut augmenter l’utilisation des données mobiles)</string>
   <string name="pref_nav_network_title">Afficher l’onglet Réseau</string>

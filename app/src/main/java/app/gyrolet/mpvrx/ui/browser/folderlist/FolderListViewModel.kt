@@ -22,7 +22,7 @@ import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.preferences.HiddenScanScope
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
-import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
+import app.gyrolet.mpvrx.database.entities.PlaybackStateEntity
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
@@ -221,6 +221,9 @@ class FolderListViewModel(
     viewModelScope.launch(Dispatchers.IO) {
       val folderVideos = mutableMapOf<VideoFolder, List<Video>>()
       var cachedRevision = -1L
+      // Built by each complete count. A playback save then recounts only the folders holding that
+      // item: the full pass hashed every video's identities and ran every few seconds in playback.
+      var identityIndex: FolderIdentityIndex? = null
       val badgeInputs =
         combine(
           _videoFolders,
@@ -228,15 +231,31 @@ class FolderListViewModel(
           appearancePreferences.unplayedOldVideoDays.changes(),
           browserPreferences.watchedThreshold.changes(),
           folderContentRevision,
-        ) { _, _, _, _, revision -> revision }
+        ) { _, _, _, _, revision -> Pair<Long, String?>(revision, null) }
+      val playbackChanges =
+        PlaybackStateEvents.changes.map { identifier ->
+          Pair<Long, String?>(folderContentRevision.value, identifier.takeIf(String::isNotBlank))
+        }
 
-      merge(badgeInputs, PlaybackStateEvents.changes.map { folderContentRevision.value }).collectLatest { revision ->
+      merge(badgeInputs, playbackChanges).collectLatest { (revision, mediaIdentifier) ->
         if (cachedRevision != revision) {
           folderVideos.clear()
           cachedRevision = revision
+          identityIndex = null
         }
+        val index = identityIndex
+        if (mediaIdentifier != null && index != null) {
+          // Saves for anything outside the library (network streams, music) change no badge.
+          val affectedFolders = index.foldersFor(mediaIdentifier)
+          if (affectedFolders.isEmpty()) return@collectLatest
+          delay(400)
+          recountNewVideos(affectedFolders, folderVideos)
+          return@collectLatest
+        }
+        // A cancelled pass leaves no index, so the next request counts everything again.
+        identityIndex = null
         delay(400)
-        calculateNewVideoCounts(_videoFolders.value, folderVideos)
+        identityIndex = calculateNewVideoCounts(_videoFolders.value, folderVideos)
       }
     }
   }
@@ -328,26 +347,27 @@ class FolderListViewModel(
       emptyList()
     }
 
+  /** Counts every folder and returns the index that lets playback saves recount just one. */
   private suspend fun calculateNewVideoCounts(
     folders: List<VideoFolder>,
     folderVideos: MutableMap<VideoFolder, List<Video>>,
-  ) {
+  ): FolderIdentityIndex? {
     folderVideos.keys.retainAll(folders.toSet())
     try {
-      val showLabel = appearancePreferences.showUnplayedOldVideoLabel.get()
-      if (!showLabel) {
+      val parameters = newBadgeParameters()
+      if (parameters == null) {
         folderVideos.clear()
         _foldersWithNewCount.value = folders.map { FolderWithNewCount(it, 0) }
-        return
+        // Badges are off, so playback saves have nothing to update.
+        return FolderIdentityIndex.EMPTY
       }
-
-      val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
-      val thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L
-      val watchedThreshold = browserPreferences.watchedThreshold.get()
-      val currentTime = System.currentTimeMillis()
+      // One snapshot per pass: per-video lookups issued up to four Room queries for every video in
+      // every folder, which mostly miss because most videos were never played.
+      val playbackByIdentifier = playbackStateRepository.getAllPlaybackStates().associateBy { it.mediaTitle }
+      val indexBuilder = FolderIdentityIndex.Builder(folders)
 
       val foldersWithCounts =
-        folders.map { folder ->
+        folders.mapIndexed { folderIndex, folder ->
           try {
             val videos = folderVideos[folder] ?: MediaFileRepository.getVideosInFolder(
               context = getApplication(),
@@ -359,34 +379,9 @@ class FolderListViewModel(
             }
 
             val newCount =
-              videos.count { video ->
-                val videoAge = currentTime - (video.dateModified * 1000)
-                val isRecent = videoAge <= thresholdMillis
-
-                if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
-                  val state = app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(video)
-                    .firstNotNullOfOrNull { playbackStateRepository.getVideoDataByTitle(it) }
-                  return@count app.gyrolet.mpvrx.ui.browser.videolist.buildVideoWithPlaybackInfo(
-                    video, state, currentTime, appearancePreferences.unplayedOldVideoDays.get(), watchedThreshold,
-                  ).isOldAndUnplayed
-                }
-                val playbackState = playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forLocalPath(video.path))
-                  ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.uri.toString()))
-                  ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri(video.path))
-                  ?: playbackStateRepository.getVideoDataByTitle(PlaybackIdentity.forUri("file://${video.path}"))
-                val isUnplayed =
-                  if (playbackState != null && video.duration > 0) {
-                    val durationSeconds = video.duration / 1000
-                    val watched = durationSeconds - playbackState.timeRemaining.toLong()
-                    val progressValue =
-                      (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
-                    watchedThreshold <= 0 || progressValue < (watchedThreshold / 100f)
-                  } else {
-                    playbackState == null
-                  }
-
-                playbackState?.hasBeenWatched != true &&
-                  (playbackState?.newLabelOverride ?: (isRecent && isUnplayed))
+              countNewVideos(videos, parameters) { identifiers ->
+                indexBuilder.add(identifiers, folderIndex)
+                identifiers.firstNotNullOfOrNull(playbackByIdentifier::get)
               }
 
             FolderWithNewCount(folder, newCount)
@@ -400,11 +395,130 @@ class FolderListViewModel(
 
       currentCoroutineContext().ensureActive()
       _foldersWithNewCount.value = foldersWithCounts
+      return indexBuilder.build()
     } catch (cancellation: CancellationException) {
       throw cancellation
     } catch (e: Exception) {
       Log.e(TAG, "Error calculating new video counts", e)
       _foldersWithNewCount.value = folders.map { FolderWithNewCount(it, 0) }
+      return null
+    }
+  }
+
+  /** Recounts the given folders from their cached video lists, leaving every other badge as is. */
+  private suspend fun recountNewVideos(
+    folders: List<VideoFolder>,
+    folderVideos: Map<VideoFolder, List<Video>>,
+  ) {
+    val parameters = newBadgeParameters() ?: return
+    val recounted =
+      folders.mapNotNull { folder ->
+        val videos = folderVideos[folder] ?: return@mapNotNull null
+        folder to
+          countNewVideos(videos, parameters) { identifiers ->
+            identifiers.firstNotNullOfOrNull { playbackStateRepository.getVideoDataByTitle(it) }
+          }
+      }.toMap()
+    if (recounted.isEmpty()) return
+    currentCoroutineContext().ensureActive()
+    _foldersWithNewCount.update { current ->
+      current.map { entry -> recounted[entry.folder]?.let { entry.copy(newVideoCount = it) } ?: entry }
+    }
+  }
+
+  private class NewBadgeParameters(
+    val currentTime: Long,
+    val thresholdMillis: Long,
+    val newLabelDays: Int,
+    val watchedThreshold: Int,
+  )
+
+  /** Null while the NEW label is turned off. */
+  private fun newBadgeParameters(): NewBadgeParameters? {
+    if (!appearancePreferences.showUnplayedOldVideoLabel.get()) return null
+    val thresholdDays = appearancePreferences.unplayedOldVideoDays.get()
+    return NewBadgeParameters(
+      currentTime = System.currentTimeMillis(),
+      thresholdMillis = thresholdDays * 24 * 60 * 60 * 1000L,
+      newLabelDays = thresholdDays,
+      watchedThreshold = browserPreferences.watchedThreshold.get(),
+    )
+  }
+
+  private suspend fun countNewVideos(
+    videos: List<Video>,
+    parameters: NewBadgeParameters,
+    playbackStateFor: suspend (identifiers: Set<String>) -> PlaybackStateEntity?,
+  ): Int =
+    videos.count { video ->
+      val videoAge = parameters.currentTime - (video.dateModified * 1000)
+      val isRecent = videoAge <= parameters.thresholdMillis
+      val playbackState =
+        playbackStateFor(app.gyrolet.mpvrx.ui.browser.videolist.videoPlaybackIdentifiers(video))
+
+      if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        return@count app.gyrolet.mpvrx.ui.browser.videolist.buildVideoWithPlaybackInfo(
+          video, playbackState, parameters.currentTime, parameters.newLabelDays, parameters.watchedThreshold,
+        ).isOldAndUnplayed
+      }
+      val isUnplayed =
+        if (playbackState != null && video.duration > 0) {
+          val durationSeconds = video.duration / 1000
+          val watched = durationSeconds - playbackState.timeRemaining.toLong()
+          val progressValue =
+            (watched.toFloat() / durationSeconds.toFloat()).coerceIn(0f, 1f)
+          parameters.watchedThreshold <= 0 || progressValue < (parameters.watchedThreshold / 100f)
+        } else {
+          playbackState == null
+        }
+
+      playbackState?.hasBeenWatched != true &&
+        (playbackState?.newLabelOverride ?: (isRecent && isUnplayed))
+    }
+
+  /**
+   * Which folders hold a video with a given playback identity. Stores identity hashes, since the
+   * identity strings would cost megabytes for a large library; a rare collision only recounts an
+   * extra folder.
+   */
+  private class FolderIdentityIndex private constructor(
+    private val folders: List<VideoFolder>,
+    // Sorted pairs packed as (identity hash shl 32) or folder index.
+    private val entries: LongArray,
+  ) {
+    fun foldersFor(identifier: String): List<VideoFolder> {
+      val hash = identifier.hashCode()
+      val lowestKey = hash.toLong() shl 32
+      var low = 0
+      var high = entries.size
+      while (low < high) {
+        val middle = (low + high) ushr 1
+        if (entries[middle] < lowestKey) low = middle + 1 else high = middle
+      }
+      val result = ArrayList<VideoFolder>(1)
+      while (low < entries.size && (entries[low] shr 32).toInt() == hash) {
+        folders.getOrNull(entries[low].toInt())?.let { if (it !in result) result.add(it) }
+        low++
+      }
+      return result
+    }
+
+    class Builder(private val folders: List<VideoFolder>) {
+      private var entries = LongArray(256)
+      private var size = 0
+
+      fun add(identifiers: Collection<String>, folderIndex: Int) {
+        for (identifier in identifiers) {
+          if (size == entries.size) entries = entries.copyOf(size * 2)
+          entries[size++] = (identifier.hashCode().toLong() shl 32) or (folderIndex.toLong() and 0xffffffffL)
+        }
+      }
+
+      fun build(): FolderIdentityIndex = FolderIdentityIndex(folders, entries.copyOf(size).apply { sort() })
+    }
+
+    companion object {
+      val EMPTY = FolderIdentityIndex(emptyList(), LongArray(0))
     }
   }
 

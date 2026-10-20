@@ -165,10 +165,12 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
+import app.gyrolet.mpvrx.utils.device.runAtLowThreadPriority
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.koin.compose.koinInject
@@ -226,6 +228,7 @@ fun MusicLibraryContent(
   val sortOrder by musicViewModel.sortOrder.collectAsState()
   val viewMode by musicViewModel.viewMode.collectAsState()
   val isLoading by musicViewModel.isLoading.collectAsState()
+  LaunchedEffect(musicViewModel) { musicViewModel.ensureLibraryLoaded() }
 
   val songs by musicViewModel.filteredSongs.collectAsState()
   val albums by musicViewModel.filteredAlbums.collectAsState()
@@ -730,7 +733,9 @@ fun MusicLibraryContent(
         onRefresh = { musicViewModel.refreshLibrary(context) },
         modifier = Modifier.fillMaxSize()
       ) {
-        if (isLoading && songs.isEmpty() && albums.isEmpty() && artists.isEmpty() && playlists.isEmpty()) {
+        // Playlists are not part of the condition: the Favorites playlist always exists, which kept
+        // the first scan from ever showing this and flashed "No songs found" instead.
+        if (isLoading && songs.isEmpty() && albums.isEmpty() && artists.isEmpty()) {
           Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -1310,55 +1315,45 @@ fun LocalAlbumArtImage(
   BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
     val widthPx = with(density) { if (maxWidth.value.isFinite()) maxWidth.roundToPx().coerceAtLeast(1) else 256 }
     val heightPx = with(density) { if (maxHeight.value.isFinite()) maxHeight.roundToPx().coerceAtLeast(1) else 256 }
+    val cacheKey = remember(uri, audioSong?.path, widthPx, heightPx) { "${uri ?: audioSong?.path}|$widthPx|$heightPx" }
     // Preserve the previous cover for the same track while higher-resolution art loads.
     var retainedBitmap by remember(audioSong?.path, uri) {
       mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
     }
     var bitmap by remember(uri, video, widthPx, heightPx) {
       mutableStateOf(
-        video?.let { thumbnailRepository.peekThumbnailFromMemory(it, widthPx, heightPx) }?.asImageBitmap()
+        LocalAlbumArtCache.get(cacheKey)
+          ?: video?.let { thumbnailRepository.peekThumbnailFromMemory(it, widthPx, heightPx) }?.asImageBitmap()
           ?: retainedBitmap,
       )
     }
 
     LaunchedEffect(uri, video, widthPx, heightPx) {
-      val loadedBitmap = withContext(Dispatchers.IO) {
-        try {
-          // MediaStore album art is normally the cheapest and most authoritative audio cover.
-          // Fall back to embedded/sidecar extraction for files whose indexed cover is unavailable.
-          val mediaStoreArtwork = uri?.let { source ->
-            // MediaStore/embedded cover art can be several megapixels even in a 48dp song row.
-            // Decode at the requested UI size instead of allocating a full-size JPEG on every
-            // navigation/scroll, while preserving the repository fallback for missing artwork.
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(source)?.use { stream ->
-              BitmapFactory.decodeStream(stream, null, bounds)
+      // This exact cover is already on screen; rebinding a row must not decode it again.
+      if (LocalAlbumArtCache.get(cacheKey) != null) return@LaunchedEffect
+      val artUri = uri?.toString()
+      // A provider that just failed for this cover would fail again; the result is the same as below.
+      if (artUri != null && LocalAlbumArtCache.isArtMissing(artUri)) return@LaunchedEffect
+      val loadedBitmap = LocalAlbumArtCache.decodePermits.withPermit {
+        withContext(Dispatchers.IO) {
+          try {
+            // MediaStore album art is normally the cheapest and most authoritative audio cover.
+            // Fall back to embedded/sidecar extraction for files whose indexed cover is unavailable.
+            val mediaStoreArtwork = uri?.let { source ->
+              runAtLowThreadPriority { decodeSampledAlbumArt(context, source, widthPx, heightPx) }
             }
-            if (bounds.outWidth > 0 && bounds.outHeight > 0) {
-              var sampleSize = 1
-              while (
-                bounds.outWidth / sampleSize > widthPx * 2 ||
-                bounds.outHeight / sampleSize > heightPx * 2
-              ) {
-                sampleSize *= 2
-              }
-              val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-              context.contentResolver.openInputStream(source)?.use { stream ->
-                BitmapFactory.decodeStream(stream, null, options)
-              }
-            } else {
-              null
-            }
+            (mediaStoreArtwork ?: video?.let { thumbnailRepository.getThumbnail(it, widthPx, heightPx) })?.asImageBitmap()
+          } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+          } catch (_: Exception) {
+            if (artUri != null) LocalAlbumArtCache.markArtMissing(artUri)
+            null
           }
-          (mediaStoreArtwork ?: video?.let { thumbnailRepository.getThumbnail(it, widthPx, heightPx) })?.asImageBitmap()
-        } catch (error: kotlinx.coroutines.CancellationException) {
-          throw error
-        } catch (_: Exception) {
-          null
         }
       }
       // Do not blank an already-rendered cover if a transient rescan/reload fails.
       if (loadedBitmap != null) {
+        LocalAlbumArtCache.put(cacheKey, loadedBitmap)
         bitmap = loadedBitmap
         retainedBitmap = loadedBitmap
       }
@@ -1381,6 +1376,34 @@ fun LocalAlbumArtImage(
       )
     }
   }
+}
+
+/**
+ * MediaStore/embedded cover art can be several megapixels even in a 48dp song row. Decode at the
+ * requested UI size instead of allocating a full-size JPEG on every navigation/scroll.
+ */
+private fun decodeSampledAlbumArt(
+  context: android.content.Context,
+  source: Uri,
+  widthPx: Int,
+  heightPx: Int,
+): android.graphics.Bitmap? {
+  val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+  context.contentResolver.openInputStream(source)?.use { stream ->
+    BitmapFactory.decodeStream(stream, null, bounds)
+  }
+  if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+  var sampleSize = 1
+  while (
+    bounds.outWidth / sampleSize > widthPx * 2 ||
+    bounds.outHeight / sampleSize > heightPx * 2
+  ) {
+    sampleSize *= 2
+  }
+  val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+  return context.contentResolver.openInputStream(source)?.use { stream ->
+    BitmapFactory.decodeStream(stream, null, options)
+  }?.also { it.prepareToDraw() }
 }
 
 @Composable
@@ -1485,7 +1508,7 @@ private fun SongsTabContent(
   val gridColumns by remember(gridState) {
     derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
   }
-  val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = LocalNavigationBarHeight.current
   Box(modifier = Modifier.fillMaxSize()) {
     if (viewMode == MusicViewMode.GRID) {
       LazyVerticalGrid(
@@ -1512,7 +1535,11 @@ private fun SongsTabContent(
         }
       }
     } else {
-      val swipeVideos = remember(songs) { songs.map { it.toVideo() } }
+      // Built off the main thread: converting a whole library in composition stalled a frame each
+      // time the list was published, which happens twice during a scan.
+      val swipeVideos by produceState(initialValue = emptyList<Video>(), songs) {
+        value = withContext(Dispatchers.Default) { songs.map { it.toVideo() } }
+      }
       val swipePlaybackInfo = rememberSwipePlaybackInfo(swipeVideos)
       val swipeActions = rememberVideoSwipeActions(audioOnly = true, onChanged = onSongsChanged)
       LazyColumn(
@@ -1720,7 +1747,7 @@ private fun AlbumsTabContent(
   val gridColumns by remember(gridState) {
     derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
   }
-  val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = LocalNavigationBarHeight.current
   Box(modifier = Modifier.fillMaxSize()) {
     if (viewMode == MusicViewMode.GRID) {
       LazyVerticalGrid(
@@ -1965,7 +1992,7 @@ private fun ArtistsTabContent(
   val gridColumns by remember(gridState) {
     derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
   }
-  val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = LocalNavigationBarHeight.current
   Box(modifier = Modifier.fillMaxSize()) {
     if (viewMode == MusicViewMode.GRID) {
       LazyVerticalGrid(
@@ -2508,7 +2535,7 @@ private fun PlaylistsTabContent(
       val gridColumns by remember(gridState) {
         derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
       }
-      val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+      val navBarHeight = LocalNavigationBarHeight.current
       Box(modifier = Modifier.fillMaxSize()) {
         if (viewMode == MusicViewMode.GRID) {
           LazyVerticalGrid(

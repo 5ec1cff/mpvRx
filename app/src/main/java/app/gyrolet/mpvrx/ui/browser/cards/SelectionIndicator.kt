@@ -1,7 +1,5 @@
 package app.gyrolet.mpvrx.ui.browser.cards
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.LocalIndication
@@ -14,8 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -110,30 +110,34 @@ internal fun rememberMediaSelectionShape(
   val outer = if (grid) 18.dp else 18.dp
   val inner = 5.dp
   val regular = 16.dp
-  val topStart by androidx.compose.animation.core.animateDpAsState(
+  val spec = AppMotion.spatial(AppMotion.Spatial.SnappyDp, snap())
+  val scope = rememberCoroutineScope()
+  val topStart by animateDpWhenChanged(
     targetValue = if (!selected) regular else if (neighbors.top || neighbors.start) inner else outer,
-    animationSpec = AppMotion.spatial(AppMotion.Spatial.SnappyDp, snap()),
-    label = "mediaTopStart",
+    animationSpec = spec,
+    scope = scope,
   )
-  val topEnd by androidx.compose.animation.core.animateDpAsState(
+  val topEnd by animateDpWhenChanged(
     targetValue = if (!selected) regular else if (neighbors.top || neighbors.end) inner else outer,
-    animationSpec = AppMotion.spatial(AppMotion.Spatial.SnappyDp, snap()),
-    label = "mediaTopEnd",
+    animationSpec = spec,
+    scope = scope,
   )
-  val bottomStart by androidx.compose.animation.core.animateDpAsState(
+  val bottomStart by animateDpWhenChanged(
     targetValue = if (!selected) regular else if (neighbors.bottom || neighbors.start) inner else outer,
-    animationSpec = AppMotion.spatial(AppMotion.Spatial.SnappyDp, snap()),
-    label = "mediaBottomStart",
+    animationSpec = spec,
+    scope = scope,
   )
-  val bottomEnd by androidx.compose.animation.core.animateDpAsState(
+  val bottomEnd by animateDpWhenChanged(
     targetValue = if (!selected) regular else if (neighbors.bottom || neighbors.end) inner else outer,
-    animationSpec = AppMotion.spatial(AppMotion.Spatial.SnappyDp, snap()),
-    label = "mediaBottomEnd",
+    animationSpec = spec,
+    scope = scope,
   )
-  return RoundedCornerShape(
-    topStart = topStart, topEnd = topEnd,
-    bottomStart = bottomStart, bottomEnd = bottomEnd,
-  )
+  return remember(topStart, topEnd, bottomStart, bottomEnd) {
+    RoundedCornerShape(
+      topStart = topStart, topEnd = topEnd,
+      bottomStart = bottomStart, bottomEnd = bottomEnd,
+    )
+  }
 }
 
 internal val mediaSelectionColor: Color
@@ -145,10 +149,9 @@ internal fun animatedSelectionColor(
   unselectedColor: Color = mediaSelectionColor.copy(alpha = 0f),
 ): Color {
   val selectedColor = mediaSelectionColor
-  val color by animateColorAsState(
+  val color by animateColorWhenChanged(
     targetValue = if (selected) selectedColor else unselectedColor,
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
-    label = "selectionTint",
   )
   return color
 }
@@ -158,21 +161,29 @@ internal fun SelectionIndicator(
   selected: Boolean,
   modifier: Modifier = Modifier,
 ) {
-  val opacity by animateFloatAsState(
+  val scope = rememberCoroutineScope()
+  val opacityState = animateFloatWhenChanged(
     targetValue = if (selected) 1f else 0f,
     animationSpec = AppMotion.spatial(AppMotion.Effect.Alpha, snap()),
-    label = "selectionIndicatorAlpha",
+    scope = scope,
   )
-  val scale by animateFloatAsState(
+  val scaleState = animateFloatWhenChanged(
     targetValue = if (selected) 1f else 0.88f,
     animationSpec = AppMotion.spatial(AppMotion.Spatial.ExpressiveFast, snap()),
-    label = "selectionIndicatorScale",
+    scope = scope,
   )
+  val fadedOut by remember { derivedStateOf { opacityState.value <= 0f } }
+  // Unselected cards keep only the badge's footprint; its circle and icon are composed while visible.
+  if (!selected && fadedOut) {
+    Box(modifier = modifier.size(24.dp))
+    return
+  }
   Box(
     modifier =
       modifier.size(24.dp).clearAndSetSemantics { }
         .graphicsLayer {
-          alpha = opacity
+          alpha = opacityState.value
+          val scale = scaleState.value
           scaleX = scale
           scaleY = scale
         }.background(MaterialTheme.colorScheme.tertiary, CircleShape)

@@ -76,6 +76,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">अधिकतम थंबनेल रिज़ॉल्यूशन: %1$d px। ज्यादा क्वालिटी से स्टोरेज ज्यादा इस्तेमाल होगी और जनरेशन धीमा हो सकता है।</string>
   <string name="pref_appearance_thumbnail_position_title">थंबनेल फ्रेम पोजीशन</string>
   <string name="pref_appearance_thumbnail_position_summary">वीडियो के %1$d%% पर फ्रेम कैप्चर करें</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">थंबनेल प्रोसेसिंग कोर</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">स्वचालित (%2$d में से %1$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%2$d में से %1$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">एक साथ कितने थंबनेल बनाए जाते हैं। ज़्यादा होने पर तेज़ होता है, लेकिन ज़्यादा मेमोरी और बैटरी लगती है और स्क्रॉल अटक सकता है। स्वचालित इस डिवाइस के लिए सुरक्षित मान चुनता है।</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">इस डिवाइस के लिए सुझाए गए %1$d से ज़्यादा है। अगर सूचियाँ अटकें या ऐप बैकग्राउंड में बंद हो जाए, तो इसे कम करें।</string>
   <string name="pref_appearance_show_network_thumbnails_title">नेटवर्क थंबनेल दिखाएं (प्रायोगिक)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">नेटवर्क स्ट्रीम्स के लिए थंबनेल जनरेट करें (मोबाइल नेटवर्क पर डेटा उपयोग बढ़ सकता है)</string>
   <string name="pref_nav_network_title">नेटवर्क टैब दिखाएं</string>

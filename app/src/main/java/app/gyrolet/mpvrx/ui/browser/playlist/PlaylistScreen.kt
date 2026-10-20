@@ -333,12 +333,7 @@ object PlaylistScreen : Screen {
             text = { Text(stringResource(R.string.ui_create_playlist)) },
             modifier =
               Modifier.padding(
-                bottom =
-                  if (NavigationBarState.isMiniPlayerVisible) {
-                    bottomOverlayClearance
-                  } else {
-                    (navigationBarHeight - 16.dp).coerceAtLeast(0.dp)
-                  },
+                bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp),
               ),
           )
         }
@@ -571,7 +566,12 @@ object PlaylistScreen : Screen {
     val bottomOverlayClearance = maxOf(navigationBarHeight, NavigationBarState.miniPlayerClearance)
     val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
     val hasEnoughItems = playlistsWithCount.size > 20
-    val bottomPadding = if (isInSelectionMode) 88.dp else bottomOverlayClearance + 72.dp
+    val bottomPadding =
+      if (isInSelectionMode) {
+        maxOf(bottomOverlayClearance, NavigationBarState.selectionBarClearance)
+      } else {
+        bottomOverlayClearance + 72.dp
+      }
 
     val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
       targetValue = if (hasEnoughItems) 1f else 0f,

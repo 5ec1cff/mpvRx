@@ -23,13 +23,18 @@ object AudiobookMarkerUtils {
   private val knownAudiobookPaths = ConcurrentHashMap.newKeySet<String>()
   private val knownAudiobookDirectories = ConcurrentHashMap.newKeySet<String>()
 
+  // Keyed by the plain absolute path. Library scans ask about the same few directories once per
+  // media row, and resolving a canonical path costs several filesystem calls on every lookup.
+  private val rawDirectoryCache = ConcurrentHashMap<String, Boolean>()
+
   fun clearCache() {
     directoryCache.clear()
+    rawDirectoryCache.clear()
   }
 
   fun registerAudiobookPath(pathOrUri: String?) {
     if (pathOrUri.isNullOrBlank()) return
-    knownAudiobookPaths.add(pathOrUri)
+    var added = knownAudiobookPaths.add(pathOrUri)
     val dirPath = when {
       pathOrUri.startsWith("content://") -> null
       else -> {
@@ -38,12 +43,22 @@ object AudiobookMarkerUtils {
       }
     }
     if (dirPath != null) {
-      knownAudiobookDirectories.add(dirPath.trimEnd('/'))
+      added = knownAudiobookDirectories.add(dirPath.trimEnd('/')) || added
     }
+    // A newly known audiobook can turn earlier negative answers positive.
+    if (added) rawDirectoryCache.clear()
   }
 
   fun isAudiobookDirectory(directory: File?): Boolean {
     if (directory == null) return false
+    val rawKey = directory.absolutePath
+    rawDirectoryCache[rawKey]?.let { return it }
+    val result = resolveAudiobookDirectory(directory)
+    rawDirectoryCache[rawKey] = result
+    return result
+  }
+
+  private fun resolveAudiobookDirectory(directory: File): Boolean {
     val path = runCatching { directory.canonicalPath }.getOrElse { directory.absolutePath }
     val normPath = path.trimEnd('/')
 
@@ -60,6 +75,29 @@ object AudiobookMarkerUtils {
 
     directoryCache[path] = result
     return result
+  }
+
+  /**
+   * [isAudiobookPath] for a path known to be a media file (a MediaStore row). Its parent is derived
+   * from the string, so a library scan costs no filesystem call per file, only one per directory.
+   */
+  fun isAudiobookMediaFile(path: String?): Boolean {
+    if (path.isNullOrBlank()) return false
+    val parent = path.trimEnd('/').substringBeforeLast('/', "")
+    if (parent.isEmpty() || path.contains("://")) return isAudiobookPath(path)
+    if (knownAudiobookPaths.contains(path)) return true
+    if (knownAudiobookDirectories.any { parent == it || parent.startsWith("$it/") }) return true
+    return isAudiobookDirectory(File(parent))
+  }
+
+  /** [isAudiobookPath] for a path known to be a directory, without a per-call filesystem check. */
+  fun isAudiobookDirectoryPath(path: String?): Boolean {
+    if (path.isNullOrBlank()) return false
+    if (path.contains("://")) return isAudiobookPath(path)
+    if (knownAudiobookPaths.contains(path)) return true
+    val cleanPath = path.trimEnd('/')
+    if (knownAudiobookDirectories.any { cleanPath == it || cleanPath.startsWith("$it/") }) return true
+    return isAudiobookDirectory(File(path))
   }
 
   fun isAudiobookPath(path: String?): Boolean {

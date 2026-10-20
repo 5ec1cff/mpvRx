@@ -289,7 +289,7 @@ fun AudiobookLibraryContent(
   LaunchedEffect(search) {
     if (search) searchFocusRequester.requestFocus()
   }
-  val navBarHeight = LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = LocalNavigationBarHeight.current
 
   val filters = listOf(
     R.string.audiobook_all,

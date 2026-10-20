@@ -644,7 +644,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
           FloatingActionButtonMenu(
             modifier =
               Modifier.padding(
-                bottom = (navigationBarHeight - 16.dp).coerceAtLeast(0.dp) + miniPlayerClearance,
+                bottom = (maxOf(navigationBarHeight, miniPlayerClearance) - 16.dp).coerceAtLeast(0.dp),
               ),
             expanded = isFabExpanded.value && !quickPlayFabDirect,
             button = {

@@ -24,6 +24,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -58,6 +59,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -214,13 +216,19 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
 
   // Keep the mini player alive while browser selection mode is active. Its outer
   // placement is lifted above the selection actions instead of hiding/overlapping.
+  val visibilityState = remember { MutableTransitionState(false) }
+  visibilityState.targetState = isMediaActive
+  val isMiniPlayerVisible = visibilityState.currentState || visibilityState.targetState
   SideEffect {
-    NavigationBarState.isMiniPlayerVisible = isMediaActive
+    NavigationBarState.isMiniPlayerVisible = isMiniPlayerVisible
+  }
+  DisposableEffect(Unit) {
+    onDispose { NavigationBarState.isMiniPlayerVisible = false }
   }
 
   val reduceMotion = AppMotion.shouldReduceMotion()
   AnimatedVisibility(
-    visible = isMediaActive,
+    visibleState = visibilityState,
     enter = if (collapseHoldId != null || sheetMotion != null) {
       EnterTransition.None
     } else if (reduceMotion) {
@@ -293,10 +301,14 @@ private fun MiniPlayerContent(
   val isAudiobook = currentItem?.audiobook != null
 
   val bookOffsetSec = currentItem?.audiobook?.let { audiobook?.positionInBook(it.trackId, 0) }?.div(1000f) ?: 0f
-  val currentPosSec = positionState.value?.toFloat() ?: 0f
-  val totalPosSec = if (audiobook != null) (bookOffsetSec + currentPosSec).coerceIn(0f, audiobook.durationMs / 1000f) else currentPosSec
   val totalDurSec = if (audiobook != null && audiobook.durationMs > 0) audiobook.durationMs / 1000f else (duration?.toFloat() ?: 0f)
-  val progressFraction = if (totalDurSec > 0f) (totalPosSec / totalDurSec).coerceIn(0f, 1f) else 0f
+  // Position ticks every second. Read it only where it is shown (the progress fill draws it, and
+  // audiobooks print it) so playback does not recompose the whole mini player each second.
+  fun totalPosSec(): Float {
+    val currentPosSec = positionState.value?.toFloat() ?: 0f
+    return if (audiobook != null) (bookOffsetSec + currentPosSec).coerceIn(0f, audiobook.durationMs / 1000f) else currentPosSec
+  }
+  fun progressFraction(): Float = if (totalDurSec > 0f) (totalPosSec() / totalDurSec).coerceIn(0f, 1f) else 0f
 
   val title =
     audiobook?.book?.title
@@ -453,6 +465,7 @@ private fun MiniPlayerContent(
   LiquidGlassSurface(
     modifier = Modifier
       .onGloballyPositioned { coordinates ->
+        NavigationBarState.miniPlayerHeight = with(density) { coordinates.size.height.toDp() }
         // Measured before the toss offset, so these stay the card's resting bounds.
         val bounds = coordinates.boundsInRoot()
         restBounds[0] = bounds.left
@@ -629,6 +642,7 @@ private fun MiniPlayerContent(
         modifier = Modifier
           .fillMaxWidth()
           .drawBehind {
+            val progressFraction = progressFraction()
             if (progressFraction > 0f) {
               val playedWidth = size.width * progressFraction
               drawRect(
@@ -707,7 +721,7 @@ private fun MiniPlayerContent(
             audiobook != null -> {
               val author = audiobook.book.author.takeIf { it.isNotBlank() }
               val durText = DateUtils.formatElapsedTime(audiobook.durationMs / 1000)
-              val posText = DateUtils.formatElapsedTime(totalPosSec.toLong())
+              val posText = DateUtils.formatElapsedTime(totalPosSec().toLong())
               val timeInfo = "$posText / $durText"
               if (author != null) "$author • $timeInfo" else timeInfo
             }

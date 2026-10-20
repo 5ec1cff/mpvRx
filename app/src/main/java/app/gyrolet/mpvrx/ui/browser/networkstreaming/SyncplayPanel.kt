@@ -66,7 +66,7 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
   var password by remember(syncplayManager) { mutableStateOf(savedCredentials.password) }
   var serversExpanded by remember { mutableStateOf(false) }
 
-  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
   LazyColumn(
     modifier = Modifier.fillMaxSize(),
     contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = navBarHeight + 16.dp),

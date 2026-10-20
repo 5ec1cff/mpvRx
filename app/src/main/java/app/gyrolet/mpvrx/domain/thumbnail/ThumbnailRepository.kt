@@ -64,6 +64,20 @@ import kotlin.math.roundToInt
 private const val NETWORK_THUMBNAIL_FAILURE_RETRY_MS = 30_000L
 private const val LOCAL_THUMBNAIL_FAILURE_RETRY_MS = 60_000L
 
+private val LOWER_HEX_DIGITS = "0123456789abcdef".toCharArray()
+
+// Same text as joinToString { "%02x".format(it) } (cache file names depend on it), without a
+// Formatter per byte on every disk-cache lookup.
+private fun ByteArray.toLowerHex(): String {
+  val chars = CharArray(size * 2)
+  for (index in indices) {
+    val value = this[index].toInt() and 0xff
+    chars[index * 2] = LOWER_HEX_DIGITS[value ushr 4]
+    chars[index * 2 + 1] = LOWER_HEX_DIGITS[value and 0x0f]
+  }
+  return String(chars)
+}
+
 class ThumbnailRepository(
   private val context: Context,
 ) {
@@ -97,10 +111,26 @@ class ThumbnailRepository(
   private val localMetadataCache = ConcurrentHashMap<String, ResolvedMetadata>()
   private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val maxConcurrentFolders = 3
-  private val localGenerationParallelism = resolveLocalGenerationParallelism()
-  private val localGenerationSemaphore = Semaphore(localGenerationParallelism)
-  // Cached JPEG decoding is CPU/memory work too; Dispatchers.IO alone allows dozens at once.
-  private val cachedReadSemaphore = Semaphore(localGenerationParallelism)
+
+  /** Device default used when the setting is Auto: 1 on low-end devices, otherwise 2. */
+  internal val automaticParallelism: Int by lazy { resolveLocalGenerationParallelism() }
+
+  // Permits cannot be resized, so a changed setting swaps in new semaphores. Work already holding a
+  // permit finishes on the old ones, and new requests follow the new limit.
+  private class WorkLimits(val parallelism: Int) {
+    val generation = Semaphore(parallelism)
+    // Cached JPEG decoding is CPU/memory work too; Dispatchers.IO alone allows dozens at once.
+    val cachedReads = Semaphore(parallelism)
+  }
+
+  @Volatile private var workLimits: WorkLimits? = null
+
+  private fun currentWorkLimits(): WorkLimits {
+    val wanted = effectiveThumbnailParallelism(browserPreferences.thumbnailParallelism.get(), automaticParallelism)
+    workLimits?.takeIf { it.parallelism == wanted }?.let { return it }
+    return WorkLimits(wanted).also { workLimits = it }
+  }
+
   private val networkGenerationSemaphore = Semaphore(1)
   private val maxFolderBatchSize = 12
 
@@ -178,7 +208,7 @@ class ThumbnailRepository(
                 }
               isNetworkUrl(video.path) -> null
               else ->
-                localGenerationSemaphore.withPermit {
+                currentWorkLimits().generation.withPermit {
                   generateLocalThumbnail(video, widthPx, heightPx)
                 }
             } ?: run {
@@ -232,7 +262,7 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      cachedReadSemaphore.withPermit {
+      currentWorkLimits().cachedReads.withPermit {
         if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
           return@withPermit null
         }
@@ -383,7 +413,7 @@ class ThumbnailRepository(
         repositoryScope.launch {
           var i = state.nextIndex
           while (i < filteredVideos.size) {
-            val batchEnd = (i + localGenerationParallelism).coerceAtMost(filteredVideos.size)
+            val batchEnd = (i + currentWorkLimits().parallelism).coerceAtMost(filteredVideos.size)
             coroutineScope {
               (i until batchEnd)
                 .map { index ->
@@ -854,7 +884,7 @@ class ThumbnailRepository(
     MessageDigest
       .getInstance("SHA-256")
       .digest(key.toByteArray())
-      .joinToString("") { byte -> "%02x".format(byte) } + ".jpg"
+      .toLowerHex() + ".jpg"
 
   private fun scaleBitmap(
     bitmap: Bitmap,
@@ -1421,7 +1451,7 @@ class ThumbnailRepository(
       md.update(video.dateModified.toString().toByteArray())
       md.update(";".toByteArray())
     }
-    return md.digest().joinToString("") { byte -> "%02x".format(byte) }
+    return md.digest().toLowerHex()
   }
 
   private fun thumbnailModeKey(): String =

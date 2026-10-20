@@ -63,6 +63,9 @@ import app.gyrolet.mpvrx.ui.player.VideoOpenAnimation
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.preferences.components.RestartRequiredDialog
 import app.gyrolet.mpvrx.ui.preferences.components.ThemePicker
+import app.gyrolet.mpvrx.ui.preferences.components.ThumbnailParallelismDialog
+import app.gyrolet.mpvrx.ui.preferences.components.thumbnailParallelismLabel
+import app.gyrolet.mpvrx.domain.thumbnail.maxThumbnailParallelism
 import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.ui.theme.CustomThemeDefinition
 import app.gyrolet.mpvrx.ui.theme.WallpaperDerivedThemeName
@@ -113,6 +116,10 @@ object AppearancePreferencesScreen : Screen {
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
     val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
     val thumbnailFramePosition by browserPreferences.thumbnailFramePosition.collectAsState()
+    val thumbnailParallelism by browserPreferences.thumbnailParallelism.collectAsState()
+    val automaticThumbnailParallelism = remember { thumbnailRepository.automaticParallelism }
+    val maximumThumbnailParallelism = remember { maxThumbnailParallelism() }
+    var isThumbnailParallelismDialogOpen by rememberSaveable { mutableStateOf(false) }
     val dualPaneForTablet by browserPreferences.dualPaneForTablet.collectAsState()
     val treeFlattenDepth by browserPreferences.treeFlattenDepth.collectAsState()
     val thumbnailCacheClearedMessage = stringResource(R.string.pref_thumbnail_cache_cleared)
@@ -199,6 +206,19 @@ object AppearancePreferencesScreen : Screen {
       GoogleFontsSheet(
         preferences = preferences,
         onDismiss = { isAppFontSheetOpen = false },
+      )
+    }
+
+    if (isThumbnailParallelismDialogOpen) {
+      ThumbnailParallelismDialog(
+        initialValue = thumbnailParallelism,
+        automatic = automaticThumbnailParallelism,
+        maximum = maximumThumbnailParallelism,
+        onConfirm = { selected ->
+          browserPreferences.thumbnailParallelism.set(selected)
+          isThumbnailParallelismDialogOpen = false
+        },
+        onDismiss = { isThumbnailParallelismDialogOpen = false },
       )
     }
 
@@ -648,7 +668,7 @@ object AppearancePreferencesScreen : Screen {
 
           item {
             ExpressivePreferenceGroup {
-              val itemCount = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 6 else 5
+              val itemCount = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 7 else 6
               val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_show_video_thumbnails_title),
@@ -738,8 +758,30 @@ object AppearancePreferencesScreen : Screen {
                 )
               }
 
+              ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
+                Preference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_parallelism_title),
+                  title = {
+                    Text(text = stringResource(id = R.string.pref_appearance_thumbnail_parallelism_title))
+                  },
+                  summary = {
+                    Text(
+                      text =
+                        thumbnailParallelismLabel(
+                          thumbnailParallelism,
+                          automaticThumbnailParallelism,
+                          maximumThumbnailParallelism,
+                        ),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = { isThumbnailParallelismDialogOpen = true },
+                  enabled = showVideoThumbnails,
+                )
+              }
+
               if (thumbnailMode == ThumbnailMode.FrameAtPosition) {
-                ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
+                ExpressivePreferenceTile(index = 4, itemCount = itemCount) {
                   SliderPreference(
                     value = thumbnailFramePosition,
                     onValueChange = { browserPreferences.thumbnailFramePosition.set(it) },
@@ -787,7 +829,7 @@ object AppearancePreferencesScreen : Screen {
                   )
                 },
                 enabled = showVideoThumbnails,
-                groupIndex = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 4 else 3,
+                groupIndex = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 5 else 4,
                 groupSize = itemCount,
               )
 
