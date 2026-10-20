@@ -129,6 +129,7 @@ class BrowserPreferences(
 
   // Visibility preferences for video card chips
   val showVideoThumbnails = preferenceStore.getBoolean("show_video_thumbnails", true)
+  val thumbnailGenerator = preferenceStore.getEnum("thumbnail_generator", ThumbnailGenerator.Native)
   val thumbnailMode = preferenceStore.getEnum("thumbnail_mode", ThumbnailMode.Smart)
   val thumbnailQuality = preferenceStore.getEnum("thumbnail_quality", ThumbnailQuality.High)
   val thumbnailFramePosition = preferenceStore.getFloat("thumbnail_frame_position", 33f)
@@ -432,6 +433,11 @@ enum class MediaLayoutMode {
 enum class MediaLibraryType {
   Video,
   Audio,
+}
+
+enum class ThumbnailGenerator {
+  Native,
+  MediaStore,
 }
 
 enum class ThumbnailMode {

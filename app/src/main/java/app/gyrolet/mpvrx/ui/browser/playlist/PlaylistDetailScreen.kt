@@ -925,6 +925,7 @@ private fun PlaylistVideoListContent(
   val centerGridTitles by viewPreferences.centerGridTitles.collectAsState()
   val musicCoverArtSize by viewPreferences.audioCoverArtSize.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val density = LocalDensity.current
@@ -945,6 +946,7 @@ private fun PlaylistVideoListContent(
       showDurationField,
       centerGridTitles,
       thumbnailQuality,
+      thumbnailGenerator,
       swipeLeft,
       swipeRight,
     ) {
@@ -963,6 +965,7 @@ private fun PlaylistVideoListContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        thumbnailGenerator = thumbnailGenerator,
         swipeLeft = swipeLeft,
         swipeRight = swipeRight,
       )

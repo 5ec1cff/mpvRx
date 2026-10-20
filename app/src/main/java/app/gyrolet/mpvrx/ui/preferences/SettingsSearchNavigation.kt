@@ -69,6 +69,7 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_auto_scroll_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_video_thumbnails_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_generator_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_generation_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_quality_title, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_gesture_tap_thumbnail_to_select_title, itemIndex = 5),

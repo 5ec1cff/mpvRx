@@ -99,6 +99,12 @@
   <string name="pref_appearance_unplayed_old_video_days_summary">Videos added within the last %d days without playback history will be marked as new</string>
   <string name="pref_appearance_show_video_thumbnails_title">Show video thumbnails</string>
   <string name="pref_appearance_show_video_thumbnails_summary">Display generated thumbnails in video lists and folders</string>
+  <string name="pref_appearance_thumbnail_generator_title">Thumbnail generator</string>
+  <string name="pref_appearance_thumbnail_generator_summary">Choose Native or MediaStore for local video thumbnails</string>
+  <string name="pref_thumbnail_generator_native">Native</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Use Native generation with embedded artwork and frame selection</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails for local videos. Android chooses the frame; Native handles unsupported files and network videos.</string>
   <string name="pref_appearance_thumbnail_generation_title">Thumbnail generation strategy</string>
   <string name="pref_appearance_thumbnail_generation_summary">Choose how thumbnails are generated, including embedded artwork or a specific frame position</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Change thumbnail strategy?</string>

@@ -1751,6 +1751,7 @@ private fun SearchResultsContent(
   val showDurationField by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val videoCardUiConfig =
@@ -1769,6 +1770,7 @@ private fun SearchResultsContent(
       showDurationField,
       centerGridTitles,
       thumbnailQuality,
+      thumbnailGenerator,
       swipeLeft,
       swipeRight,
     ) {
@@ -1787,6 +1789,7 @@ private fun SearchResultsContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        thumbnailGenerator = thumbnailGenerator,
         swipeLeft = swipeLeft,
         swipeRight = swipeRight,
       )

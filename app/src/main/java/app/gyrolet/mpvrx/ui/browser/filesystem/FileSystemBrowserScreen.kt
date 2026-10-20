@@ -1303,6 +1303,7 @@ private fun FileSystemBrowserContent(
   val showDurationField by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val videoCardUiConfig =
@@ -1321,6 +1322,7 @@ private fun FileSystemBrowserContent(
       centerGridTitles,
       showCodecSupportIndicator,
       thumbnailQuality,
+      thumbnailGenerator,
       swipeLeft,
       swipeRight,
     ) {
@@ -1339,6 +1341,7 @@ private fun FileSystemBrowserContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        thumbnailGenerator = thumbnailGenerator,
         swipeLeft = swipeLeft,
         swipeRight = swipeRight,
       )
@@ -1407,7 +1410,7 @@ private fun FileSystemBrowserContent(
       val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
       val latestVideos by rememberUpdatedState(videos)
       // Root displays folders/cached art only; new thumbnails begin after opening a directory.
-      LaunchedEffect(folderId, isOpenedFolder, showVideoThumbnails, thumbWidthPx,
+      LaunchedEffect(folderId, isOpenedFolder, showVideoThumbnails, thumbnailGenerator, thumbWidthPx,
         thumbHeightPx, mediaLayoutMode, videos.size, listState, gridState) {
         val generationId = "tree:$folderId:${mediaLayoutMode.name}"
         try {
@@ -1776,6 +1779,7 @@ private fun FileSystemSearchContent(
   val showDurationField by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val videoCardUiConfig =
@@ -1794,6 +1798,7 @@ private fun FileSystemSearchContent(
       centerGridTitles,
       showCodecSupportIndicator,
       thumbnailQuality,
+      thumbnailGenerator,
       swipeLeft,
       swipeRight,
     ) {
@@ -1812,6 +1817,7 @@ private fun FileSystemSearchContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        thumbnailGenerator = thumbnailGenerator,
         swipeLeft = swipeLeft,
         swipeRight = swipeRight,
       )

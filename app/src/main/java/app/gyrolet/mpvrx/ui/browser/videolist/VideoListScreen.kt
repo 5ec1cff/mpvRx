@@ -928,6 +928,7 @@ internal fun VideoListContent(
   val showDurationField by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
   val manualGridColumnsEnabled by browserPreferences.manualGridColumnsEnabled.collectAsState()
@@ -953,6 +954,7 @@ internal fun VideoListContent(
       showDurationField,
       centerGridTitles,
       thumbnailQuality,
+      thumbnailGenerator,
       swipeLeft,
       swipeRight,
     ) {
@@ -971,6 +973,7 @@ internal fun VideoListContent(
         showDurationField = showDurationField,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
+        thumbnailGenerator = thumbnailGenerator,
         swipeLeft = swipeLeft,
         swipeRight = swipeRight,
       )
@@ -1095,7 +1098,7 @@ internal fun VideoListContent(
           }
 
         LaunchedEffect(
-          folderId, showVideoThumbnails, thumbWidthPx, thumbHeightPx,
+          folderId, showVideoThumbnails, thumbnailGenerator, thumbWidthPx, thumbHeightPx,
           mediaLayoutMode, thumbnailListKey, listState, gridState,
         ) {
           val generationId = "$folderId:${mediaLayoutMode.name}"

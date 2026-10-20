@@ -25,6 +25,7 @@ import app.gyrolet.mpvrx.data.network.proxy.NetworkStreamingProxy
 import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.network.NetworkConnection
+import app.gyrolet.mpvrx.preferences.ThumbnailGenerator
 import app.gyrolet.mpvrx.preferences.ThumbnailMode
 import app.gyrolet.mpvrx.repository.NetworkRepository
 import app.gyrolet.mpvrx.ui.player.resolveLocalPath
@@ -171,7 +172,8 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      val key = thumbnailKey(video, widthPx, heightPx)
+      val generator = browserPreferences.thumbnailGenerator.get()
+      val key = thumbnailKey(video, widthPx, heightPx, generator)
 
       if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
         return@withContext null
@@ -185,7 +187,7 @@ class ThumbnailRepository(
 
       val candidate =
         async(start = CoroutineStart.LAZY) {
-          getCachedThumbnail(video, widthPx, heightPx)?.let { cached ->
+          getCachedThumbnail(video, widthPx, heightPx, generator)?.let { cached ->
             synchronized(memoryCache) {
               memoryCache.put(key, cached)
             }
@@ -195,7 +197,8 @@ class ThumbnailRepository(
 
           // Check disk first so a valid thumbnail remains usable even after an earlier failure.
           // The key includes file identity and thumbnail settings, so edits/mode changes retry.
-          val localFailureKey = if (isNetworkUrl(video.path)) null else diskCacheKey(video)
+          val diskKey = diskCacheKey(video, generator)
+          val localFailureKey = if (isNetworkUrl(video.path)) null else diskKey
           if (localFailureKey != null && hasRecentLocalThumbnailFailure(localFailureKey)) {
             return@async null
           }
@@ -209,7 +212,7 @@ class ThumbnailRepository(
               isNetworkUrl(video.path) -> null
               else ->
                 currentWorkLimits().generation.withPermit {
-                  generateLocalThumbnail(video, widthPx, heightPx)
+                  generateLocalThumbnail(video, widthPx, heightPx, generator)
                 }
             } ?: run {
               // Cancellation is not a decoder failure and must never poison the cache.
@@ -230,7 +233,7 @@ class ThumbnailRepository(
           synchronized(memoryCache) {
             memoryCache.put(key, bitmap)
           }
-          writeBitmapToDisk(diskCacheKey(video), bitmap, isNetworkUrl(video.path))
+          writeBitmapToDisk(diskKey, bitmap, isNetworkUrl(video.path))
           _thumbnailReadyKeys.tryEmit(key)
           bitmap
         }
@@ -260,6 +263,7 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
   ): Bitmap? =
     withContext(Dispatchers.IO) {
       currentWorkLimits().cachedReads.withPermit {
@@ -268,21 +272,21 @@ class ThumbnailRepository(
         }
 
         // Recheck after acquiring a permit: another request may have populated memory meanwhile.
-        val key = thumbnailKey(video, widthPx, heightPx)
+        val key = thumbnailKey(video, widthPx, heightPx, generator)
         synchronized(memoryCache) {
           memoryCache.get(key)
         }?.let { return@withPermit it }
 
         val isNetwork = isNetworkUrl(video.path)
-        var decoded = readBitmapFromDisk(diskCacheKey(video), isNetwork, widthPx, heightPx)
+        var decoded = readBitmapFromDisk(diskCacheKey(video, generator), isNetwork, widthPx, heightPx)
         if (decoded == null && !isNetwork) {
           if (video.duration > 0L) {
-            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L)), false, widthPx, heightPx)
+            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L), generator), false, widthPx, heightPx)
           } else {
             val canonical = canonicalLocalPath(video)
             val resolvedDur = resolveLocalMetadata(video, canonical).duration
             if (resolvedDur > 0L) {
-              decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur)), false, widthPx, heightPx)
+              decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur), generator), false, widthPx, heightPx)
             }
           }
         }
@@ -445,9 +449,11 @@ class ThumbnailRepository(
     video: Video,
     width: Int,
     height: Int,
+    generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
   ): String =
-    "${videoBaseKey(video)}|$width|$height|${thumbnailModeKey()}|${thumbnailQualityKey()}".also { key ->
-      resolvedThumbnailKeys.put(peekIdentity(video, width, height), key)
+    ("${videoBaseKey(video)}|$width|$height|${thumbnailModeKey()}|${thumbnailQualityKey()}" +
+      thumbnailGeneratorCacheKey(video, generator)).also { key ->
+      resolvedThumbnailKeys.put(peekIdentity(video, width, height, generator), key)
     }
 
   /**
@@ -469,14 +475,28 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
   ): String =
     "${video.path}|${video.uri}|${video.size}|${video.dateModified}|${video.duration}" +
-      "|$widthPx|$heightPx|${thumbnailModeKey()}|${thumbnailQualityKey()}"
+      "|$widthPx|$heightPx|${thumbnailModeKey()}|${thumbnailQualityKey()}" +
+      thumbnailGeneratorCacheKey(video, generator)
 
   // Keep extraction-quality changes from reusing smaller legacy images that were
   // cached without their requested dimensions in the key.
-  fun diskCacheKey(video: Video): String =
-    "video-thumb-v2|${diskVideoBaseKey(video)}|${thumbnailModeKey()}|${thumbnailQualityKey()}"
+  fun diskCacheKey(
+    video: Video,
+    generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
+  ): String =
+    "video-thumb-v2|${diskVideoBaseKey(video)}|${thumbnailModeKey()}|${thumbnailQualityKey()}" +
+      thumbnailGeneratorCacheKey(video, generator)
+
+  private fun thumbnailGeneratorCacheKey(video: Video, generator: ThumbnailGenerator): String =
+    if (generator == ThumbnailGenerator.MediaStore && !video.isAudio && !isNetworkUrl(video.path)) {
+      "|generator:MediaStore_v1"
+    } else {
+      // Preserve native cache compatibility, including network previews and audio artwork.
+      ""
+    }
 
   private fun canonicalLocalPath(video: Video): String {
     if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && video.uri.scheme == "content") {
@@ -617,14 +637,23 @@ class ThumbnailRepository(
     video: Video,
     widthPx: Int,
     heightPx: Int,
+    generator: ThumbnailGenerator,
   ): Bitmap? {
     if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return null
     val mode = browserPreferences.thumbnailMode.get()
     val dimension = maxOf(widthPx, heightPx, MAX_THUMBNAIL_SIZE).coerceAtMost(thumbnailMaxSize())
     // Entries saved without media metadata (e.g. songs added to a playlist) arrive flagged as video.
+    val canonicalPath = canonicalLocalPath(video)
     val isAudio =
       video.isAudio ||
-        app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalLocalPath(video)))
+        app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalPath))
+
+    if (!isAudio && generator == ThumbnailGenerator.MediaStore) {
+      MediaStoreVideoThumbnailLoader.load(context, video, canonicalPath, dimension)?.let {
+        return scaleBitmap(it, widthPx, heightPx)
+      }
+      currentCoroutineContext().ensureActive()
+    }
 
     if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {
       generateEmbeddedArtwork(video)?.let { return scaleBitmap(it, widthPx, heightPx) }
@@ -1442,7 +1471,7 @@ class ThumbnailRepository(
     heightPx: Int,
   ): String {
     val md = MessageDigest.getInstance("MD5")
-    md.update("$widthPx|$heightPx|${thumbnailModeKey()}|${thumbnailQualityKey()}|".toByteArray())
+    md.update("$widthPx|$heightPx|${thumbnailModeKey()}|${thumbnailQualityKey()}|${browserPreferences.thumbnailGenerator.get().name}|".toByteArray())
     for (video in videos) {
       md.update(video.path.toByteArray())
       md.update("|".toByteArray())

@@ -197,6 +197,15 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_appearance_thumbnail_generator_title,
+          summaryRes = R.string.pref_appearance_thumbnail_generator_summary,
+          keywords = listOf("thumbnail", "generator", "native", "mediastore", "android", "system", "preview"),
+          category = "Appearance",
+          screen = AppearancePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_appearance_thumbnail_generation_title,
           summaryRes = R.string.pref_appearance_thumbnail_generation_summary,
           keywords =
