@@ -10,7 +10,6 @@
 package app.gyrolet.mpvrx.ui.browser
 
 import android.annotation.SuppressLint
-import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -40,7 +39,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -143,6 +146,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
@@ -246,11 +250,14 @@ object MainScreen : Screen {
     DisposableEffect(Unit) {
       onDispose {
         NavigationBarState.isNavBarVisible = false
+        NavigationBarState.isDualPaneLayout = false
       }
     }
     SideEffect {
       NavigationBarState.isNavBarVisible =
         backStack.lastOrNull() == MainScreen && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied
+      NavigationBarState.navigationBarBottomSpacing =
+        if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing
     }
 
     val coroutineScope = rememberCoroutineScope()
@@ -268,6 +275,21 @@ object MainScreen : Screen {
     var tabNavigationJob by remember { mutableStateOf<Job?>(null) }
     val tabContentAlpha = remember { Animatable(1f) }
     var isDirectTabJumpInProgress by remember { mutableStateOf(false) }
+
+    // Adjacent tabs are pre-composed for instant swipes, but not during startup: composing Music
+    // beside Home doubled first-frame work and started its library scan and cover decoding while
+    // Home was being scrolled. Pre-compose once the lists have been idle for a moment.
+    var adjacentTabsWarm by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+      if (adjacentTabsWarm) return@LaunchedEffect
+      delay(ADJACENT_TAB_WARMUP_DELAY_MS)
+      while (true) {
+        val idleFor = android.os.SystemClock.uptimeMillis() - NavigationBarState.lastContentScrollUptimeMs
+        if (idleFor >= ADJACENT_TAB_IDLE_MS) break
+        delay(ADJACENT_TAB_IDLE_MS - idleFor)
+      }
+      adjacentTabsWarm = true
+    }
 
     LaunchedEffect(pagerState, visibleTabs) {
       tabNavigationJob?.cancelAndJoin()
@@ -410,16 +432,13 @@ object MainScreen : Screen {
       }
     }
 
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-
-    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    val isTablet = configuration.smallestScreenWidthDp >= 600
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-    // On portrait phones the edge-to-edge mini player sits above the pill nav bar,
-    // so screens/FABs must clear it.
-    val miniPlayerNavClearance = if (isMiniPlayerVisible && isPortrait && !isTablet) 96.dp else 0.dp
-    val contentBottomPadding = (if (navigationTabs.isEmpty()) 0.dp else NavigationBarState.navigationBarClearance) + miniPlayerNavClearance
+    val isDualPaneLayout = !legacyNavigationBar && !isPermissionDenied &&
+      isDualPaneFolderSelected && selectedTab == MainTab.HOME
+    SideEffect {
+      NavigationBarState.isDualPaneLayout = backStack.lastOrNull() == MainScreen && isDualPaneLayout
+    }
+    val contentBottomPadding =
+      if (isDualPaneLayout) NavigationBarState.bottomBarClearance else NavigationBarState.bottomOverlayClearance
     val context = androidx.compose.ui.platform.LocalContext.current
     val jellyfinViewModel: app.gyrolet.mpvrx.ui.browser.jellyfin.JellyfinViewModel =
       androidx.lifecycle.viewmodel.compose.viewModel(
@@ -484,7 +503,7 @@ object MainScreen : Screen {
                     },
                   ),
               key = { page -> visibleTabs[page].name },
-              beyondViewportPageCount = 1,
+              beyondViewportPageCount = if (adjacentTabsWarm) 1 else 0,
               userScrollEnabled = !isPermissionDenied && !isDirectTabJumpInProgress,
             ) { page ->
               val tab = visibleTabs.getOrNull(page) ?: return@NavigationPager
@@ -721,11 +740,13 @@ object MainScreen : Screen {
               }
               BoxWithConstraints(
                 modifier =
-                  if (legacyNavigationBar) {
-                    Modifier.fillMaxWidth()
-                  } else {
-                    Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 24.dp, bottom = 8.dp)
-                  },
+                  Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                    .padding(
+                      top = 24.dp,
+                      bottom = if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing,
+                    ),
               ) {
                 if (legacyNavigationBar) {
                   LegacyMaterialNavigationBar(
@@ -736,14 +757,14 @@ object MainScreen : Screen {
                   )
                 } else {
                   val horizontalMargin by animateDpAsState(
-                    targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
+                    targetValue = NavigationBarState.navigationPillMaxMargin - 30.dp * NavigationBarState.navLabelVisibility,
                     animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
                     label = "navigation_margin",
                   )
                   val centerFraction = animateFloatAsState(
                     targetValue = when {
                       isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
-                      isMiniPlayerVisible && (isLandscape || isTablet) -> 0f
+                      isMiniPlayerVisible && NavigationBarState.canPlaceMiniPlayerBesideNavigation(maxWidth) -> 0f
                       else -> 0.5f
                     },
                     animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(duration, easing = FastOutSlowInEasing),
@@ -760,7 +781,7 @@ object MainScreen : Screen {
                           constraints.maxWidth
                         }
                       val availableWidth = (paneWidth - margin * 2).coerceAtLeast(0)
-                      val maxNuvioWidth = minOf(400.dp.roundToPx(), availableWidth)
+                      val maxNuvioWidth = minOf(NavigationBarState.navigationPillMaxWidth.roundToPx(), availableWidth)
                       val placeable =
                         measurable.measure(
                           constraints.copy(minWidth = 0, maxWidth = maxNuvioWidth),
@@ -944,7 +965,7 @@ internal fun ExpressivePillNavigationBar(
 
   val baseModifier =
     modifier
-      .widthIn(max = 400.dp)
+      .widthIn(max = NavigationBarState.navigationPillMaxWidth)
       .fillMaxWidth()
       .height(48.dp + labelHeight * labelFraction)
       .onSizeChanged { motion.resize(it.width / density.density, it.height / density.density) }
@@ -1106,6 +1127,7 @@ private fun LegacyMaterialNavigationBar(
 ) {
   val density = LocalDensity.current
   NavigationBar(
+    windowInsets = WindowInsets(0),
     modifier =
       modifier.onGloballyPositioned { coordinates ->
         NavigationBarState.navbarWidth = with(density) { coordinates.size.width.toDp() }
@@ -1171,6 +1193,8 @@ private fun MainTabIcon(
 
 private val MainNavigationIconSize = 28.dp
 private val NavigationBarEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+private const val ADJACENT_TAB_WARMUP_DELAY_MS = 2_500L
+private const val ADJACENT_TAB_IDLE_MS = 1_200L
 
 /**
  * Bottom-navigation tab order. Home is the permanent root so Back never exits directly from another
@@ -1197,6 +1221,7 @@ internal fun mainNavigationTabs(
       .filterNot { it == MainScreen.MainTab.HOME }
 }
 
+// Content clearance above the visible app bars, excluding system insets.
 val LocalNavigationBarHeight = compositionLocalOf { 0.dp }
 
 // True for a screen hosted as a bottom-navigation page; false when the same screen is pushed on the back stack.

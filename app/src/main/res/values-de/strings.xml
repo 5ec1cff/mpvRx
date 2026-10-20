@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">Maximale Vorschaubildauflösung: %1$d px. Eine höhere Qualität benötigt mehr Speicher und kann langsamer erstellt werden.</string>
   <string name="pref_appearance_thumbnail_position_title">Bildposition des Vorschaubilds</string>
   <string name="pref_appearance_thumbnail_position_summary">Bild bei %1$d%% des Videos erfassen</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">Prozessorkerne für Vorschaubilder</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">Automatisch (%1$d von %2$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d von %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Wie viele Vorschaubilder gleichzeitig erstellt werden. Mehr ist schneller, braucht aber mehr Speicher und Akku und kann das Scrollen ruckeln lassen. Automatisch wählt einen sicheren Wert für dieses Gerät.</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">Höher als die für dieses Gerät empfohlenen %1$d. Verringere den Wert, wenn Listen ruckeln oder die App im Hintergrund beendet wird.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Netzwerk-Vorschaubilder anzeigen (experimentell)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Vorschaubilder für Netzwerkstreams erstellen (kann den Datenverbrauch in Mobilfunknetzen erhöhen)</string>
   <string name="pref_nav_network_title">Netzwerk-Tab anzeigen</string>

@@ -288,9 +288,23 @@ fun VideoCard(
   var retainedThumbnail by remember(video.path, video.dateModified, video.size) { mutableStateOf<Bitmap?>(null) }
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
+  // A grid tile needs room for its thumbnail, title and visible badges, not an
+  // oversized fixed footer. Reserve two title lines for a stable row baseline;
+  // additional lines and wrapped badges are allowed to increase the natural height.
   val gridFooterHeight = with(LocalDensity.current) {
-    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 +
-      MaterialTheme.typography.labelSmall.lineHeight.toDp() * 3 + 64.dp
+    val titleLines = if (resolvedUiConfig.unlimitedNameLines) 1 else 2
+    val titleHeight = MaterialTheme.typography.titleMedium.lineHeight.toDp() * titleLines
+    val subtitleHeight =
+      if (!sourceSubtitle.isNullOrBlank()) MaterialTheme.typography.bodySmall.lineHeight.toDp() else 0.dp
+    val chipHeight =
+      if (hasMetadataChips) {
+        val chipSpacing = if (sourceLabel != null) 6.dp else 4.dp
+        MaterialTheme.typography.labelSmall.lineHeight.toDp() + 8.dp + chipSpacing
+      } else {
+        0.dp
+      }
+    // Column padding (6 dp on each edge) and the thumbnail/title gap (4 dp).
+    16.dp + titleHeight + subtitleHeight + chipHeight
   }
 
   VideoSwipeSurface(

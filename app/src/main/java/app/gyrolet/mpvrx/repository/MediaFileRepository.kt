@@ -258,7 +258,7 @@ object MediaFileRepository : KoinComponent {
               // On Android 10+ the file may not be directly accessible via the file system
               // even though it exists in MediaStore. Only skip if the path is invalid.
               val parentPath = file.parent ?: continue
-              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(parentPath)) continue
+              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookDirectoryPath(parentPath)) continue
               val durationMs = cursor.getLong(durationColumn)
               if (minimumAudioDurationSeconds > 0 && durationMs > 0L && durationMs / 1000 < minimumAudioDurationSeconds) continue
               val key = normalizeAudioFolderKey(parentPath)
@@ -348,7 +348,7 @@ object MediaFileRepository : KoinComponent {
               val path = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
               val file = File(path)
               if (!BuildConfig.SCOPED_STORAGE_ONLY && !file.exists()) continue
-              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(path)) continue
+              if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookMediaFile(path)) continue
               val durationMs = cursor.getLong(durationColumn)
               val title = cursor.getString(titleColumn) ?: file.nameWithoutExtension
               val displayName = cursor.getString(displayColumn) ?: file.name

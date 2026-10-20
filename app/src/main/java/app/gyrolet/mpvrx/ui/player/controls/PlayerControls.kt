@@ -247,7 +247,6 @@ fun PlayerControls(
   val scopeAudioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
   val mediaScopesState by viewModel.mediaScopesUiState.collectAsState()
   val currentQueueItem = playbackSessionState.currentItem ?: playbackQueue.currentItem
-  val demuxerCacheTime by PlaybackSession.propDouble["demuxer-cache-time"].collectAsState()
   val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsState()
   val seekbarDuration =
     if (preciseDuration > 0) {
@@ -265,12 +264,15 @@ fun PlayerControls(
   val showSeekbarDuringHorizontalSeeking by gesturePreferences.showSeekbarDuringHorizontalSeeking.collectAsState()
   val showBufferedRange by playerPreferences.showBufferedRange.collectAsState()
   val showChapterIndicators by playerPreferences.showChapterIndicators.collectAsState()
-  val torrentState by viewModel.torrentState.collectAsState()
+  // Streaming stats update continuously. Only the connection phase is read at this level; the
+  // buffering pill reads the details itself, so stats ticks do not re-run the whole controls tree.
+  val torrentStateHolder = viewModel.torrentState.collectAsState()
   val videoOpenAnimState by viewModel.videoOpenAnimationState.collectAsState()
   val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
 
-  val isTorrentConnecting = torrentState is TorrentStreamingState.Connecting
-  val isTorrentStreaming = torrentState is TorrentStreamingState.Streaming
+  val isTorrentConnecting by remember {
+    derivedStateOf { torrentStateHolder.value is TorrentStreamingState.Connecting }
+  }
   val bufferingState =
     rememberBufferingState(
       enabled = showLoadingCircle,
@@ -300,20 +302,6 @@ fun PlayerControls(
     bufferingState.visible &&
       (controlsShown || playbackSessionState.phase == PlaybackPhase.LOADING) &&
       !isPlayerSeeking
-  var stableDemuxerCacheTime by remember { mutableFloatStateOf(0f) }
-  val currentDemuxerCacheTime =
-    demuxerCacheTime
-      ?.toFloat()
-      ?.takeIf { it > 0f && !it.isNaN() && !it.isInfinite() && seekbarDuration > 0f }
-      ?.coerceIn(0f, seekbarDuration)
-
-  LaunchedEffect(showBufferedRange, seekbarDuration, currentDemuxerCacheTime, isPlayerSeeking) {
-    when {
-      !showBufferedRange || seekbarDuration <= 0f -> stableDemuxerCacheTime = 0f
-      currentDemuxerCacheTime != null -> stableDemuxerCacheTime = currentDemuxerCacheTime
-      !isPlayerSeeking -> stableDemuxerCacheTime = 0f
-    }
-  }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
   val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
   val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
@@ -387,12 +375,19 @@ fun PlayerControls(
     }
   if (useAudioPlayer) {
     val audioBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsState()
-    val audioPosition by viewModel.precisePosition.collectAsState()
-    val audioTimelinePosition = currentPlaybackItem?.audiobook?.let { info ->
-      audioBook?.takeIf { it.book.id == info.bookId }?.positionInBook(info.trackId, (audioPosition * 1000).toLong())?.div(1000f)
-    } ?: audioPosition
-    val audioChapterIndex = chapters.indexOfLast {
-      it.start <= audioTimelinePosition
+    val audioPositionState = viewModel.precisePosition.collectAsState()
+    // Only the chapter index is needed here. Reading the position clock directly re-ran this whole
+    // branch every polling tick; a derived index recomposes only when the chapter changes.
+    val audioChapterIndex by remember(chapters, currentPlaybackItem, audioBook) {
+      derivedStateOf {
+        val audioPosition = audioPositionState.value
+        val audioTimelinePosition = currentPlaybackItem?.audiobook?.let { info ->
+          audioBook?.takeIf { it.book.id == info.bookId }?.positionInBook(info.trackId, (audioPosition * 1000).toLong())?.div(1000f)
+        } ?: audioPosition
+        chapters.indexOfLast {
+          it.start <= audioTimelinePosition
+        }
+      }
     }
     val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsState()
     val queuedTitle =
@@ -407,7 +402,6 @@ fun PlayerControls(
     val sheetShown by viewModel.sheetShown.collectAsState()
     val subtitles by viewModel.subtitleTracks.collectAsState(persistentListOf())
     val audioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
-    val sleepTimerTimeRemaining by viewModel.remainingTime.collectAsState()
     val speedPresets by playerPreferences.speedPresets.collectAsState()
     val sortedSpeedPresets = remember(speedPresets) { speedPresets.map { it.toFloat() }.sorted() }
 
@@ -460,7 +454,6 @@ fun PlayerControls(
           if (currentPlaybackItem?.audiobook != null) app.gyrolet.mpvrx.ui.player.AudiobookPlayback.setSpeed(speed)
           else PlaybackSession.setPropertyFloat("speed", speed)
         },
-        sleepTimerTimeRemaining = sleepTimerTimeRemaining,
         onStartSleepTimer = viewModel::startTimer,
         onOpenPanel = onOpenPanel,
         onShowSheet = onOpenSheet,
@@ -1471,13 +1464,14 @@ is PlayerUpdates.FrameInfo -> {
               )
               val cachePercent = bufferingState.cachePercent
               val cacheSeconds = bufferingState.cacheSeconds
+              val currentTorrentState = torrentStateHolder.value
               val bufferText =
                 when {
-                  isTorrentConnecting -> {
-                    (torrentState as TorrentStreamingState.Connecting).phase
+                  currentTorrentState is TorrentStreamingState.Connecting -> {
+                    currentTorrentState.phase
                   }
-                  isTorrentStreaming -> {
-                    val streamState = torrentState as TorrentStreamingState.Streaming
+                  currentTorrentState is TorrentStreamingState.Streaming -> {
+                    val streamState = currentTorrentState
                     val speed = app.gyrolet.mpvrx.domain.torrent.formatTorrentSpeed(streamState.downloadSpeed)
                     val peers = "${streamState.peers} peers"
                     val progress = "${(streamState.bufferProgress * 100).toInt()}%"
@@ -1772,6 +1766,25 @@ is PlayerUpdates.FrameInfo -> {
               }
             val skipSegmentsImmutable = remember(skipSegments) { skipSegments.toImmutableList() }
 
+            // mpv republishes the cache endpoint several times per second during playback. Reading
+            // it at the top of PlayerControls re-ran the whole controls tree (and re-solved its
+            // ConstraintLayout) on every update, even with the controls hidden; keep it here.
+            val demuxerCacheTimeFlow = remember { PlaybackSession.propDouble["demuxer-cache-time"] }
+            val demuxerCacheTime = if (showBufferedRange) demuxerCacheTimeFlow.collectAsState().value else null
+            val currentDemuxerCacheTime =
+              demuxerCacheTime
+                ?.toFloat()
+                ?.takeIf { it > 0f && !it.isNaN() && !it.isInfinite() && seekbarDuration > 0f }
+                ?.coerceIn(0f, seekbarDuration)
+            var stableDemuxerCacheTime by remember { mutableFloatStateOf(currentDemuxerCacheTime ?: 0f) }
+            LaunchedEffect(showBufferedRange, seekbarDuration, currentDemuxerCacheTime, isPlayerSeeking) {
+              when {
+                !showBufferedRange || seekbarDuration <= 0f -> stableDemuxerCacheTime = 0f
+                currentDemuxerCacheTime != null -> stableDemuxerCacheTime = currentDemuxerCacheTime
+                !isPlayerSeeking -> stableDemuxerCacheTime = 0f
+              }
+            }
+
             val effectiveRemaining =
               (remaining ?: 0f).takeIf { it > 0f }
                 ?: (seekbarDuration - displayedSeekbarPosition).coerceAtLeast(0f)
@@ -2057,7 +2070,6 @@ is PlayerUpdates.FrameInfo -> {
     val sheetShown by viewModel.sheetShown.collectAsState()
     val subtitles by viewModel.subtitleTracks.collectAsState(persistentListOf())
     val audioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
-    val sleepTimerTimeRemaining by viewModel.remainingTime.collectAsState()
     val speedPresets by playerPreferences.speedPresets.collectAsState()
     val sortedSpeedPresets =
       androidx.compose.runtime.remember(
@@ -2093,7 +2105,6 @@ is PlayerUpdates.FrameInfo -> {
       onResetDefaultSpeed = {
         PlaybackSession.setPropertyFloat("speed", playerPreferences.defaultSpeed.deleteAndGet().toFixed(2))
       },
-      sleepTimerTimeRemaining = sleepTimerTimeRemaining,
       onStartSleepTimer = viewModel::startTimer,
       onOpenPanel = onOpenPanel,
       onShowSheet = onOpenSheet,

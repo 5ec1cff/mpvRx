@@ -1110,7 +1110,12 @@ object FolderListScreen : Screen {
         Box(modifier = Modifier.weight(0.6f)) {
           key(selectedFolderBucketId) {
             CompositionLocalProvider(
-              app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight provides 0.dp,
+              LocalNavigationBarHeight provides
+                if (app.gyrolet.mpvrx.ui.browser.NavigationBarState.isDualPaneLayout) {
+                  app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
+                } else {
+                  LocalNavigationBarHeight.current
+                },
             ) {
               VideoListScreen(
                 bucketId = selectedFolderBucketId!!,

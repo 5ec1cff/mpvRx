@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">Максимальное разрешение миниатюры: %1$d пкс. Более высокое качество требует больше места и может создаваться медленнее.</string>
   <string name="pref_appearance_thumbnail_position_title">Позиция кадра миниатюры</string>
   <string name="pref_appearance_thumbnail_position_summary">Захватывать кадр на отметке %1$d%% видео</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">Ядра для миниатюр</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">Авто (%1$d из %2$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d из %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Сколько миниатюр создаётся одновременно. Чем больше, тем быстрее, но тем выше расход памяти и батареи, а прокрутка может подтормаживать. Авто выбирает безопасное значение для этого устройства.</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">Больше рекомендованного для этого устройства (%1$d). Уменьшите, если списки тормозят или приложение закрывается в фоне.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Показывать сетевые миниатюры (экспериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Создавать миниатюры для сетевых потоков (может увеличить расход мобильного трафика)</string>
   <string name="pref_nav_network_title">Показывать вкладку «Сеть»</string>

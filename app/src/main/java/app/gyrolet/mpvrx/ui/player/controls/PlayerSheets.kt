@@ -97,7 +97,6 @@ fun PlayerSheets(
   onMakeDefaultSpeed: (Float) -> Unit,
   onResetDefaultSpeed: () -> Unit,
   // More sheet
-  sleepTimerTimeRemaining: Int,
   onStartSleepTimer: (Int) -> Unit,
   onOpenPanel: (Panels) -> Unit,
   onShowSheet: (Sheets) -> Unit,
@@ -446,6 +445,9 @@ fun PlayerSheets(
 
     Sheets.More -> {
       val anime4KUiState by viewModel.anime4KUiState.composeCollectAsState()
+      // Read here: an active sleep timer ticks every second, and collecting it in PlayerControls
+      // re-ran the entire controls tree on each tick even while this sheet was closed.
+      val sleepTimerTimeRemaining by viewModel.remainingTime.composeCollectAsState()
       MoreSheet(
         remainingTime = sleepTimerTimeRemaining,
         onStartTimer = onStartSleepTimer,

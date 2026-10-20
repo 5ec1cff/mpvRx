@@ -86,6 +86,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">Максимальна роздільність мініатюр: %1$d пікс. Вища якість займає більше місця і може створюватися повільніше.</string>
   <string name="pref_appearance_thumbnail_position_title">Позиція кадру мініатюри</string>
   <string name="pref_appearance_thumbnail_position_summary">Захоплювати кадр на позначці %1$d%% тривалості відео</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">Ядра для мініатюр</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">Авто (%1$d з %2$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d з %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Скільки мініатюр створюється одночасно. Що більше, то швидше, але більше витрачається пам’яті й заряду, а прокручування може підгальмовувати. Авто вибирає безпечне значення для цього пристрою.</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">Більше за рекомендоване для цього пристрою (%1$d). Зменште, якщо списки гальмують або застосунок закривається у фоні.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Мініатюри для мережевих потоків (експериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Створювати мініатюри для мережевих потоків (може збільшити витрати мобільного трафіку)</string>
   <string name="pref_nav_music_title">Вкладка «Музика»</string>

@@ -22,13 +22,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -471,8 +468,7 @@ data class VideoListScreen(
             FloatingActionButton(
               modifier =
                 Modifier
-                  .windowInsetsPadding(WindowInsets.systemBars)
-                  .padding(bottom = navigationBarHeight + miniPlayerClearance)
+                  .padding(bottom = (maxOf(navigationBarHeight, miniPlayerClearance) - 16.dp).coerceAtLeast(0.dp))
                   .animateFloatingActionButton(
                     visible = isFabShouldBeVisible,
                     alignment = Alignment.BottomEnd,
@@ -905,16 +901,15 @@ internal fun VideoListContent(
   val appearancePreferences = koinInject<AppearancePreferences>()
   val musicGridCoverArtSize by browserPreferences.musicGridCoverArtSize.collectAsState()
   val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-  val isTablet = configuration.smallestScreenWidthDp >= 600
   val density = LocalDensity.current
   val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
   val miniPlayerClearance = app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
   val bottomPadding =
-    if (showFloatingBottomBar) {
-      if (isTablet) 108.dp else 88.dp
-    } else {
-      navigationBarHeight + miniPlayerClearance
-    }
+    maxOf(
+      navigationBarHeight,
+      miniPlayerClearance,
+      if (showFloatingBottomBar) app.gyrolet.mpvrx.ui.browser.NavigationBarState.selectionBarClearance else 0.dp,
+    )
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
@@ -1231,7 +1226,7 @@ internal fun VideoListContent(
                   modifier =
                     Modifier
                       .align(Alignment.CenterEnd)
-                      .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + miniPlayerClearance + 6.dp)
+                      .padding(end = 2.dp, top = 6.dp, bottom = bottomPadding + 6.dp)
                       .graphicsLayer { alpha = scrollbarAlpha },
                 )
               }
@@ -1303,7 +1298,7 @@ internal fun VideoListContent(
                   modifier =
                     Modifier
                       .align(Alignment.CenterEnd)
-                      .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + miniPlayerClearance + 6.dp)
+                      .padding(end = 2.dp, top = 6.dp, bottom = bottomPadding + 6.dp)
                       .graphicsLayer { alpha = scrollbarAlpha },
                 )
               }

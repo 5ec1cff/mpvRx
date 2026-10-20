@@ -47,29 +47,66 @@ object NavigationBarState {
   // browser layout can adapt when the mini player is on screen).
   var isMiniPlayerVisible: Boolean by mutableStateOf(false)
 
-  // True while the floating pill nav bar is actually on screen (MainScreen on top
-  // and not hidden). Lets the mini player drop to the very bottom when there is no
-  // nav bar below it (e.g. pushed video list screens).
+  // Includes both navigation styles, but not bars belonging to a covered screen.
   var isNavBarVisible: Boolean by mutableStateOf(false)
+
+  var isDualPaneLayout: Boolean by mutableStateOf(false)
+    internal set
+
+  var isMiniPlayerBesideNavigation: Boolean by mutableStateOf(false)
+    internal set
 
   var navbarLeftOffset: Dp by mutableStateOf(0.dp)
 
   var navbarWidth: Dp by mutableStateOf(320.dp)
 
-  // Shared portrait clearances for the floating browser layers.
-  // The capsule height changes when labels collapse/expand and with font scaling.
-  // Measure the real pill so the mini-player never touches its glass/glow.
+  val floatingBarSpacing: Dp = 12.dp
+  internal val navigationPillMaxWidth: Dp = 400.dp
+  internal val navigationPillMaxMargin: Dp = 58.dp
+  internal val miniPlayerMinWidth: Dp = 320.dp
+
+  // Heights exclude system insets and outer margins.
   var navigationPillHeight: Dp by mutableStateOf(68.dp)
     internal set
 
-  val navigationBarClearance: Dp
-    get() = maxOf(88.dp, navigationPillHeight + 20.dp)
-  val selectionBarClearance: Dp = 100.dp
+  var navigationBarBottomSpacing: Dp by mutableStateOf(floatingBarSpacing)
+    internal set
 
-  // Vertical space the mini player needs to clear from the bottom of the screen in
-  // screens that sit below it without a nav bar (FABs/list content).
+  var selectionBarHeight: Dp by mutableStateOf(72.dp)
+    internal set
+
+  var miniPlayerHeight: Dp by mutableStateOf(64.dp)
+    internal set
+
+  val navigationBarClearance: Dp
+    get() = navigationPillHeight + navigationBarBottomSpacing + floatingBarSpacing
+
+  val selectionBarClearance: Dp
+    get() = selectionBarHeight + floatingBarSpacing * 2
+
+  val bottomBarClearance: Dp
+    get() = when {
+      isInSelectionMode -> selectionBarClearance
+      isNavBarVisible -> navigationBarClearance
+      else -> 0.dp
+    }
+
+  val miniPlayerBottomSpacing: Dp
+    get() = when {
+      isInSelectionMode -> selectionBarClearance
+      isNavBarVisible && !isMiniPlayerBesideNavigation && !isDualPaneLayout -> navigationBarClearance
+      else -> floatingBarSpacing
+    }
+
+  // Includes the complete stack below the player, but never system insets.
   val miniPlayerClearance: Dp
-    get() = if (isMiniPlayerVisible) 96.dp else 0.dp
+    get() = if (isMiniPlayerVisible) miniPlayerBottomSpacing + miniPlayerHeight + floatingBarSpacing else 0.dp
+
+  val bottomOverlayClearance: Dp
+    get() = maxOf(bottomBarClearance, miniPlayerClearance)
+
+  internal fun canPlaceMiniPlayerBesideNavigation(availableWidth: Dp): Boolean =
+    availableWidth >= navigationPillMaxMargin + navigationPillMaxWidth + floatingBarSpacing + miniPlayerMinWidth + floatingBarSpacing
 
   var shouldHideNavigationBar: Boolean by mutableStateOf(false)
     private set
@@ -111,6 +148,10 @@ object NavigationBarState {
 
   private var accumulatedScroll = 0f
 
+  /** Uptime of the latest content scroll delta; plain field so scrolling never recomposes. */
+  @Volatile var lastContentScrollUptimeMs = 0L
+    private set
+
   /** Attach once around the tab content; vertical deltas bubble up from the inner lists. */
   val navScrollConnection: NestedScrollConnection =
     object : NestedScrollConnection {
@@ -118,6 +159,7 @@ object NavigationBarState {
         available: Offset,
         source: NestedScrollSource,
       ): Offset {
+        lastContentScrollUptimeMs = android.os.SystemClock.uptimeMillis()
         val delta = available.y
         // Reversing direction restarts the run so a small bounce does not toggle the labels.
         if ((delta < 0f && accumulatedScroll > 0f) || (delta > 0f && accumulatedScroll < 0f)) {

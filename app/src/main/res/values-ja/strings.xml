@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">サムネイルの最大解像度：%1$d px。高品質にするとストレージ使用量が増え、生成に時間がかかる場合があります。</string>
   <string name="pref_appearance_thumbnail_position_title">サムネイルのフレーム位置</string>
   <string name="pref_appearance_thumbnail_position_summary">動画の%1$d%%の位置のフレームを取得します</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">サムネイル処理コア数</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">自動（%2$d中%1$d）</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%2$d中%1$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">同時に作成するサムネイルの数です。多いほど速くなりますが、メモリとバッテリーの消費が増え、スクロールがカクつくことがあります。自動ではこの端末に安全な値を選びます。</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">この端末の推奨値（%1$d）を超えています。リストが重い場合やアプリがバックグラウンドで終了する場合は下げてください。</string>
   <string name="pref_appearance_show_network_thumbnails_title">ネットワークのサムネイルを表示（試験的）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">ネットワークストリームのサムネイルを生成します（モバイルネットワークでのデータ使用量が増える場合があります）</string>
   <string name="pref_nav_network_title">ネットワークタブを表示</string>

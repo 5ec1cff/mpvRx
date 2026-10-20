@@ -51,6 +51,10 @@ class WatchStatsRepository(context: Context) {
   private val _revision = MutableStateFlow(0L)
   val revision = _revision.asStateFlow()
 
+  // Only this repository writes the file, so the decoded copy stays current. Playback records every
+  // 15 s; re-reading and decoding the whole file each time was steady garbage during playback.
+  private var cached: WatchStatsSnapshot? = null
+
   suspend fun recordSession(item: PlaybackItem) = update { current ->
     val key = item.stableId.ifBlank { item.originalUri }
     val existing = current.media[key]
@@ -83,17 +87,20 @@ class WatchStatsRepository(context: Context) {
     }
   }
 
-  suspend fun snapshot(): WatchStatsSnapshot = mutex.withLock { withContext(Dispatchers.IO) { read() } }
+  suspend fun snapshot(): WatchStatsSnapshot = mutex.withLock { withContext(Dispatchers.IO) { readCached() } }
 
   suspend fun clear() = mutex.withLock {
     withContext(Dispatchers.IO) { file.delete() }
+    cached = WatchStatsSnapshot()
     _resetVersion.value++
     _revision.value++
   }
 
   private suspend fun update(transform: (WatchStatsSnapshot) -> WatchStatsSnapshot) = mutex.withLock {
     withContext(Dispatchers.IO) {
-      val updated = transform(read())
+      val updated = transform(readCached())
+      // Kept even if the write fails, so the next update persists it instead of losing it.
+      cached = updated
       val output = file.startWrite()
       try {
         output.write(json.encodeToString(updated).toByteArray(Charsets.UTF_8))
@@ -108,6 +115,8 @@ class WatchStatsRepository(context: Context) {
       }
     }
   }
+
+  private fun readCached(): WatchStatsSnapshot = cached ?: read().also { cached = it }
 
   private fun read(): WatchStatsSnapshot =
     if (!file.baseFile.exists() && !File("${file.baseFile.path}.bak").exists()) {

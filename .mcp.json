@@ -1,12 +1,19 @@
 {
-  "mcpServers": {
-    "graft": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@nanonets/graft",
-        "mcp"
-      ]
-    }
-  }
+	"mcpServers": {
+		"trail": {
+			"type": "local",
+			"command": "trail",
+			"args": [
+				"mcp"
+			],
+			"env": {
+				"DO_NOT_TRACK": "1",
+				"TRAIL_NO_FETCH": "1",
+				"GRAFT_NO_REFRESH": "1"
+			},
+			"tools": [
+				"*"
+			]
+		}
+	}
 }

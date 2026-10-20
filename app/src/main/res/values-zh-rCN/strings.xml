@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">缩略图最高分辨率：%1$d px。更高的质量会占用更多存储空间，生成速度也可能更慢。</string>
   <string name="pref_appearance_thumbnail_position_title">缩略图帧位置</string>
   <string name="pref_appearance_thumbnail_position_summary">截取视频 %1$d%% 位置的画面</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">缩略图处理核心数</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">自动（%1$d / %2$d）</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d / %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">同时生成的缩略图数量。数值越大越快，但会占用更多内存和电量，滚动也可能卡顿。自动会为此设备选择安全的数值。</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">高于此设备推荐的 %1$d。如果列表卡顿或应用在后台被关闭，请调低此值。</string>
   <string name="pref_appearance_show_network_thumbnails_title">显示网络缩略图（实验性）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">为网络流生成缩略图（可能会增加移动网络的数据用量）</string>
   <string name="pref_nav_network_title">显示“网络”标签页</string>

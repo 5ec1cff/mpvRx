@@ -819,7 +819,10 @@ private fun RecentItemsContent(
     modifier = modifier.fillMaxSize(),
   ) {
     if (isGridMode) {
-      val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
+      val bottomClearance = maxOf(
+        app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current,
+        if (isInSelectionMode) app.gyrolet.mpvrx.ui.browser.NavigationBarState.selectionBarClearance else 0.dp,
+      )
       BoxWithConstraints(
         modifier =
           Modifier
@@ -838,7 +841,7 @@ private fun RecentItemsContent(
             PaddingValues(
               start = 8.dp,
               end = 8.dp,
-              bottom = if (isInSelectionMode) 88.dp else navigationBarHeight,
+              bottom = bottomClearance,
             ),
           horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
           verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
@@ -955,13 +958,16 @@ private fun RecentItemsContent(
             modifier =
               Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + 6.dp)
+                .padding(end = 2.dp, top = 6.dp, bottom = bottomClearance + 6.dp)
                 .graphicsLayer { alpha = scrollbarAlpha },
           )
         }
       }
     } else {
-      val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
+      val bottomClearance = maxOf(
+        app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current,
+        if (isInSelectionMode) app.gyrolet.mpvrx.ui.browser.NavigationBarState.selectionBarClearance else 0.dp,
+      )
       Box(
         modifier =
           Modifier
@@ -975,7 +981,7 @@ private fun RecentItemsContent(
             PaddingValues(
               start = 8.dp,
               end = 8.dp,
-              bottom = if (isInSelectionMode) 88.dp else navigationBarHeight,
+              bottom = bottomClearance,
             ),
         ) {
           items(
@@ -1093,7 +1099,7 @@ private fun RecentItemsContent(
             modifier =
               Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + 6.dp)
+                .padding(end = 2.dp, top = 6.dp, bottom = bottomClearance + 6.dp)
                 .graphicsLayer { alpha = scrollbarAlpha },
           )
         }

@@ -182,10 +182,27 @@ class JellyfinViewModel(
   init {
     loadServers()
     viewModelScope.launch(Dispatchers.IO) {
-      PlaybackStateEvents.changes.collectLatest {
-        refreshPlaybackStateSilently()
+      var lastServerPlaybackAt = 0L
+      PlaybackStateEvents.changes.collectLatest { mediaIdentifier ->
+        // Every playback saves its position every few seconds. Only this server's items can move
+        // its resume rows, so local playback no longer triggers a network refresh on each save.
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (isServerItemPlaying()) lastServerPlaybackAt = now
+        val serverPlaybackRecent = lastServerPlaybackAt > 0L && now - lastServerPlaybackAt < SERVER_PLAYBACK_REFRESH_WINDOW_MS
+        if (mediaIdentifier.isBlank() || serverPlaybackRecent) {
+          refreshPlaybackStateSilently()
+        }
       }
     }
+  }
+
+  private fun isServerItemPlaying(): Boolean {
+    val serverUrl = _uiState.value.activeServer?.serverUrl?.trimEnd('/')?.takeIf { it.isNotBlank() } ?: return false
+    val item = app.gyrolet.mpvrx.ui.player.PlaybackSession.queue.value.currentItem
+      ?: app.gyrolet.mpvrx.ui.player.PlaybackSession.state.value.currentItem
+      ?: return false
+    return item.originalUri.startsWith(serverUrl, ignoreCase = true) ||
+      item.playableUri.startsWith(serverUrl, ignoreCase = true)
   }
 
   fun refreshPlaybackStateSilently() {
@@ -2200,6 +2217,9 @@ class JellyfinViewModel(
   }
 
   companion object {
+    // Keeps refreshing briefly after server playback ends, so the final stop save still lands.
+    private const val SERVER_PLAYBACK_REFRESH_WINDOW_MS = 60_000L
+
     fun isMusicLibrary(item: JellyfinItem): Boolean {
       val col = item.collectionType?.lowercase()?.trim() ?: ""
       val type = item.type.lowercase().trim()

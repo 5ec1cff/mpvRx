@@ -58,8 +58,6 @@ internal fun rememberBufferingState(
   val pausedForCache by PlaybackSession.propBoolean["paused-for-cache"].collectAsState()
   val eofReached by PlaybackSession.propBoolean["eof-reached"].collectAsState()
   val idleActive by PlaybackSession.propBoolean["idle-active"].collectAsState()
-  val cacheBufferingState by PlaybackSession.propInt["cache-buffering-state"].collectAsState()
-  val demuxerCacheDuration by PlaybackSession.propDouble["demuxer-cache-duration"].collectAsState()
 
   val isCacheStall = pausedForCache == true
   val stalled =
@@ -80,6 +78,15 @@ internal fun rememberBufferingState(
     delay(if (stalled) BUFFERING_SHOW_DELAY_MS else BUFFERING_HIDE_DELAY_MS)
     visible = stalled
   }
+
+  // mpv republishes the cache fill properties several times per second during normal playback.
+  // They only label the spinner, so observe them only while a stall is pending or shown; reading
+  // them unconditionally recomposed the caller (the whole player controls tree) on every update.
+  val cacheDetailsNeeded = stalled || visible
+  val cacheBufferingState =
+    if (cacheDetailsNeeded) PlaybackSession.propInt["cache-buffering-state"].collectAsState().value else null
+  val demuxerCacheDuration =
+    if (cacheDetailsNeeded) PlaybackSession.propDouble["demuxer-cache-duration"].collectAsState().value else null
 
   return BufferingState(
     visible = visible,

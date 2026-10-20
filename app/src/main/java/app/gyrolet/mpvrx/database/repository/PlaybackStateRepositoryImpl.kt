@@ -34,6 +34,9 @@ class PlaybackStateRepositoryImpl(
 
   override suspend fun getVideoDataByTitle(mediaTitle: String): PlaybackStateEntity? {
     stateCache[mediaTitle]?.let { return it }
+    // Every write goes through this repository, so once the full table is cached a miss is
+    // authoritative. Never-played media would otherwise cost one Room query per lookup.
+    if (allStatesLoaded.get()) return null
     return database.videoDataDao().getVideoDataByTitle(mediaTitle)?.also { state ->
       stateCache[state.mediaTitle] = state
     }

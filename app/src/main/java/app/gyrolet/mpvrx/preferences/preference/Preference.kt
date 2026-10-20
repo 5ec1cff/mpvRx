@@ -50,6 +50,7 @@ operator fun <T> Preference<Set<T>>.minusAssign(item: T) {
 
 @Composable
 fun <T> Preference<T>.collectAsState(): State<T> {
+  if (this is AndroidPreference) return remember(this) { composeState() }
   val flow = remember(this) { changes() }
   return flow.collectAsState(initial = get())
 }

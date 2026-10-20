@@ -34,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -181,6 +182,7 @@ class VideoListViewModel(
 
   private val tag = "VideoListViewModel"
   private var scopedMetadataJob: Job? = null
+  @Volatile private var loadVideosJob: Job? = null
   private val liveFolderWatcher = VisibleDirectoryWatcher { MediaLibraryEvents.notifyChanged() }
 
   fun startWatching() {
@@ -249,7 +251,10 @@ class VideoListViewModel(
   private fun loadVideos(forceFileSystemCheck: Boolean = false) {
     // Provider probing must never compete with listing; it restarts once the new list is shown.
     scopedMetadataJob?.cancel()
-    viewModelScope.launch(Dispatchers.IO) {
+    // A newer request supersedes an unfinished one: bursts of media events used to stack full
+    // MediaStore and filesystem passes for the same folder.
+    loadVideosJob?.cancel()
+    loadVideosJob = viewModelScope.launch(Dispatchers.IO) {
       try {
         // First attempt to load videos (basic info from MediaStore)
         var videoList =
@@ -346,12 +351,16 @@ class VideoListViewModel(
           VideoListCache.save(getApplication(), cacheKey, videoList)
           if (deferredMetadata) probeDeferredMetadataInBackground(videoList)
         }
+      } catch (e: kotlinx.coroutines.CancellationException) {
+        // Superseded by a newer load (or the screen closed): keep the visible list.
+        throw e
       } catch (e: Exception) {
         Log.e(tag, "Error loading videos for bucket $bucketId", e)
         _videos.value = emptyList()
         _videosWithPlaybackInfo.value = emptyList()
       } finally {
-        _isLoading.value = false
+        // A superseded load leaves the flag to the load that replaced it.
+        if (isActive) _isLoading.value = false
       }
     }
   }

@@ -1457,6 +1457,10 @@ object SearchablePreferences {
           listOf("thumbnail", "frame", "position", "percent", "preview"),
           R.string.pref_appearance_thumbnail_generation_title,
         ),
+        SearchEntrySpec(
+          R.string.pref_appearance_thumbnail_parallelism_title,
+          listOf("thumbnail", "cores", "threads", "parallel", "cpu", "speed", "performance"),
+        ),
       )
       addSearchEntries(
         category = "Appearance",

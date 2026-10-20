@@ -621,11 +621,7 @@ data class PlaylistDetailScreen(
           ExtendedFloatingActionButton(
             modifier =
               Modifier.padding(
-                bottom =
-                  maxOf(
-                    (navigationBarHeight - 16.dp).coerceAtLeast(0.dp),
-                    miniPlayerClearance,
-                  ),
+                bottom = (maxOf(navigationBarHeight, miniPlayerClearance) - 16.dp).coerceAtLeast(0.dp),
               ),
             onClick = { backStack.navigateTo(PlaylistAddVideosScreen(playlistId, isAudio = isAudioPlaylist)) },
             icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },

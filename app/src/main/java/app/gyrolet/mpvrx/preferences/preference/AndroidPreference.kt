@@ -11,6 +11,9 @@ package app.gyrolet.mpvrx.preferences.preference
 
 import android.content.SharedPreferences
 import android.content.SharedPreferences.Editor
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +75,25 @@ sealed class AndroidPreference<T>(
 
   override fun stateIn(scope: CoroutineScope): StateFlow<T> =
     changes().stateIn(scope, SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000), get())
+
+  private var sharedComposeState: MutableState<T>? = null
+
+  // SharedPreferences holds listeners weakly; this field keeps the listener alive with the preference.
+  private val composeStateListener =
+    SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+      if (changedKey == null || changedKey == key) sharedComposeState?.value = get()
+    }
+
+  /**
+   * One snapshot state shared by every composable observing this preference. Collecting [changes]
+   * per call site started two coroutines and a channel for each one, and list rows observe several
+   * preferences each. Called from composition; listener callbacks also arrive on the main thread.
+   */
+  internal fun composeState(): State<T> {
+    sharedComposeState?.let { return it }
+    preferences.registerOnSharedPreferenceChangeListener(composeStateListener)
+    return mutableStateOf(get()).also { sharedComposeState = it }
+  }
 
   class StringPrimitive(
     preferences: SharedPreferences,

@@ -74,20 +74,48 @@ internal fun rememberSwipePlaybackInfo(videos: List<Video>): Map<String, VideoWi
   val newDays by appearance.unplayedOldVideoDays.collectAsState()
   var playbackInfo by remember { mutableStateOf(emptyMap<String, VideoWithPlaybackInfo>()) }
   LaunchedEffect(videos, threshold, newDays) {
-    PlaybackStateEvents.changes.onStart { emit("") }.collectLatest {
-      playbackInfo = withContext(Dispatchers.IO) {
+    // Playback saves arrive every few seconds while anything plays and name a single item. Rebuilding
+    // the whole list for each one recomputed every song or video; only matching entries change.
+    var videosByIdentifier: Map<String, List<Video>>? = null
+    PlaybackStateEvents.changes.onStart { emit("") }.collectLatest { identifier ->
+      val index = videosByIdentifier
+      if (identifier.isNotBlank() && index != null) {
+        val affected = index[identifier] ?: return@collectLatest
+        val current = playbackInfo
+        playbackInfo = withContext(Dispatchers.IO) {
+          val now = System.currentTimeMillis()
+          current + affected.associate { video ->
+            video.path to buildVideoWithPlaybackInfo(
+              video = video,
+              playbackState = videoPlaybackIdentifiers(video).firstNotNullOfOrNull { repository.getVideoDataByTitle(it) },
+              currentTimeMillis = now,
+              newLabelDays = newDays,
+              watchedThreshold = threshold,
+            )
+          }
+        }
+        return@collectLatest
+      }
+      val (rebuiltInfo, rebuiltIndex) = withContext(Dispatchers.IO) {
         val states = repository.getAllPlaybackStates().associateBy { it.mediaTitle }
         val now = System.currentTimeMillis()
-        videos.associate { video ->
-          video.path to buildVideoWithPlaybackInfo(
-            video = video,
-            playbackState = videoPlaybackIdentifiers(video).firstNotNullOfOrNull(states::get),
-            currentTimeMillis = now,
-            newLabelDays = newDays,
-            watchedThreshold = threshold,
-          )
-        }
+        val byIdentifier = HashMap<String, MutableList<Video>>()
+        val info =
+          videos.associate { video ->
+            val identifiers = videoPlaybackIdentifiers(video)
+            identifiers.forEach { byIdentifier.getOrPut(it) { ArrayList(1) }.add(video) }
+            video.path to buildVideoWithPlaybackInfo(
+              video = video,
+              playbackState = identifiers.firstNotNullOfOrNull(states::get),
+              currentTimeMillis = now,
+              newLabelDays = newDays,
+              watchedThreshold = threshold,
+            )
+          }
+        info to byIdentifier
       }
+      videosByIdentifier = rebuiltIndex
+      playbackInfo = rebuiltInfo
     }
   }
   return playbackInfo

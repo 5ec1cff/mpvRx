@@ -77,6 +77,11 @@
   <string name="pref_appearance_thumbnail_quality_summary">Resolução máxima da miniatura: %1$d px. Uma qualidade maior usa mais armazenamento e pode levar mais tempo para ser gerada.</string>
   <string name="pref_appearance_thumbnail_position_title">Posição do quadro da miniatura</string>
   <string name="pref_appearance_thumbnail_position_summary">Capturar o quadro em %1$d%% do vídeo</string>
+  <string name="pref_appearance_thumbnail_parallelism_title">Núcleos para miniaturas</string>
+  <string name="pref_appearance_thumbnail_parallelism_auto">Automático (%1$d de %2$d)</string>
+  <string name="pref_appearance_thumbnail_parallelism_value">%1$d de %2$d</string>
+  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Quantas miniaturas são criadas ao mesmo tempo. Mais é mais rápido, mas usa mais memória e bateria e pode travar a rolagem. Automático escolhe um valor seguro para este dispositivo.</string>
+  <string name="pref_appearance_thumbnail_parallelism_warning">Acima dos %1$d recomendados para este dispositivo. Diminua se as listas travarem ou o app for fechado em segundo plano.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Mostrar miniaturas de rede (experimental)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Gerar miniaturas para transmissões de rede (pode aumentar o uso de dados em redes móveis)</string>
   <string name="pref_nav_network_title">Mostrar aba Rede</string>
