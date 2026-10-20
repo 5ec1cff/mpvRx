@@ -467,7 +467,10 @@ data class VideoListScreen(
             FloatingActionButton(
               modifier =
                 Modifier
-                  .padding(bottom = FabPlacement.scaffoldBottomPadding())
+                  .padding(
+                    end = FabPlacement.StandaloneEndPadding,
+                    bottom = FabPlacement.scaffoldBottomPadding(),
+                  )
                   .animateFloatingActionButton(
                     visible = isFabShouldBeVisible,
                     alignment = Alignment.BottomEnd,

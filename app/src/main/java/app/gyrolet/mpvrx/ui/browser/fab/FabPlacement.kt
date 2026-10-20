@@ -36,6 +36,9 @@ object FabPlacement {
   /** Material 3 Scaffold adds this spacing, plus the system bar inset, below its FAB slot. */
   val ScaffoldFabSpacing: Dp = 16.dp
 
+  /** Match the horizontal padding built into Material 3 FloatingActionButtonMenu on Home. */
+  val StandaloneEndPadding: Dp = 16.dp
+
   /** Expanded home pill (68.dp), its bottom margin and the gap above it (12.dp each). */
   val RestingBottomClearance: Dp = 92.dp
 
