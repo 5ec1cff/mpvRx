@@ -129,7 +129,7 @@ class BrowserPreferences(
 
   // Visibility preferences for video card chips
   val showVideoThumbnails = preferenceStore.getBoolean("show_video_thumbnails", true)
-  val thumbnailGenerator = preferenceStore.getEnum("thumbnail_generator", ThumbnailGenerator.Native)
+  val thumbnailGenerator = preferenceStore.getEnum("thumbnail_generator", ThumbnailGenerator.MediaStore)
   val thumbnailMode = preferenceStore.getEnum("thumbnail_mode", ThumbnailMode.Smart)
   val thumbnailQuality = preferenceStore.getEnum("thumbnail_quality", ThumbnailQuality.High)
   val thumbnailFramePosition = preferenceStore.getFloat("thumbnail_frame_position", 33f)

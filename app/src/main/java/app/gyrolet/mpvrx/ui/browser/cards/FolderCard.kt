@@ -90,7 +90,7 @@ data class FolderCardUiConfig(
   val includeAudio: Boolean = false,
   val swipeLeft: VideoSwipeAction = VideoSwipeAction.AddToPlaylist,
   val swipeRight: VideoSwipeAction = VideoSwipeAction.ToggleWatched,
-  val thumbnailGenerator: app.gyrolet.mpvrx.preferences.ThumbnailGenerator = app.gyrolet.mpvrx.preferences.ThumbnailGenerator.Native,
+  val thumbnailGenerator: app.gyrolet.mpvrx.preferences.ThumbnailGenerator = app.gyrolet.mpvrx.preferences.ThumbnailGenerator.MediaStore,
 )
 
 /** Hoist this once per screen and pass the result to every card rather than collecting per item. */
