@@ -60,6 +60,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
@@ -280,7 +281,14 @@ open class MainActivity : AppCompatActivity() {
       } else {
         MpvrxTheme(transitionState = themeTransitionState) {
           AppWallpaperHost {
-            Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+            // Reserve the system button area once for every destination and overlay.
+            // Consuming it here lets nested Scaffolds/sheets avoid adding it twice.
+            Surface(
+              modifier = Modifier.fillMaxSize().windowInsetsPadding(
+                WindowInsets.tappableElement.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+              ),
+              color = Color.Transparent,
+            ) {
               Navigator()
             }
             if (showRendererBuildNotice) {

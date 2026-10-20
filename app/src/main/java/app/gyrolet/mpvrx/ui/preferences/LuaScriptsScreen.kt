@@ -181,6 +181,7 @@ object LuaScriptsScreen : Screen {
         FloatingActionButton(
           onClick = { backStack.navigateTo(LuaScriptEditorScreen(scriptName = null)) },
           containerColor = MaterialTheme.colorScheme.primaryContainer,
+          modifier = Modifier.padding(bottom = app.gyrolet.mpvrx.ui.browser.fab.FabPlacement.scaffoldBottomPadding()),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Add,

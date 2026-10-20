@@ -30,16 +30,22 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
  * region, excluding system insets: the navigation pill on the main tabs, selection actions, and the
  * mini player, whether it sits above the pill, beside it on wide screens, alone at the bottom of a
  * pushed screen such as a folder, or over only the right pane in dual-pane mode. FABs float one
- * spacing above that stack and glide with it as the mini player or navigation comes and goes.
+ * spacing above that stack. Keep the home-screen resting position even when a folder has no bar.
  */
 object FabPlacement {
   /** Material 3 Scaffold adds this spacing, plus the system bar inset, below its FAB slot. */
   val ScaffoldFabSpacing: Dp = 16.dp
 
+  /** Expanded home pill (68.dp), its bottom margin and the gap above it (12.dp each). */
+  val RestingBottomClearance: Dp = 92.dp
+
+  @Composable
+  private fun bottomClearance(): Dp = maxOf(RestingBottomClearance, LocalNavigationBarHeight.current)
+
   /** Bottom padding for a FAB hosted in a Scaffold `floatingActionButton` slot. */
   @Composable
   fun scaffoldBottomPadding(): Dp =
-    animatedPadding((LocalNavigationBarHeight.current - ScaffoldFabSpacing).coerceAtLeast(0.dp))
+    animatedPadding(bottomClearance() - ScaffoldFabSpacing)
 
   /**
    * Bottom padding for a FAB drawn as an overlay at the bottom of a full-height region rather than
@@ -47,7 +53,7 @@ object FabPlacement {
    */
   @Composable
   fun overlayBottomPadding(): Dp =
-    animatedPadding(maxOf(LocalNavigationBarHeight.current, ScaffoldFabSpacing))
+    animatedPadding(bottomClearance())
 
   /** The system bars Scaffold keeps its FAB clear of. */
   val overlayInsets: WindowInsets

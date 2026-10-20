@@ -337,7 +337,10 @@ internal fun DebugLogsScreen(onNavigateBack: () -> Unit) {
       )
     },
     floatingActionButton = {
-      AnimatedVisibility(visible = showJumpToLatest) {
+      AnimatedVisibility(
+        visible = showJumpToLatest,
+        modifier = Modifier.padding(bottom = app.gyrolet.mpvrx.ui.browser.fab.FabPlacement.scaffoldBottomPadding()),
+      ) {
         SmallFloatingActionButton(
           onClick = {
             autoScrollEnabled = true

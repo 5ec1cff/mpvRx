@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.areNavigationBarsVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -200,6 +201,7 @@ fun <T> playerControlsEnterAnimationSpec(durationMillis: Int = 100): FiniteAnima
   ExperimentalMaterial3Api::class,
   ExperimentalMaterial3ExpressiveApi::class,
   ExperimentalFoundationApi::class,
+  androidx.compose.foundation.layout.ExperimentalLayoutApi::class,
 )
 @Composable
 @Suppress("CyclomaticComplexMethod", "ViewModelForwarding")
@@ -227,7 +229,9 @@ fun PlayerControls(
   val reduceMotion by playerPreferences.reduceMotion.collectAsState()
   val audioPreferences = koinInject<AudioPreferences>()
   val showSystemStatusBar by playerPreferences.showSystemStatusBar.collectAsState()
-  val showSystemNavigationBar by playerPreferences.showSystemNavigationBar.collectAsState()
+  // Insets follow the actual system UI, including bars revealed temporarily in immersive mode.
+  val navigationBarRequested by playerPreferences.showSystemNavigationBar.collectAsState()
+  val showSystemNavigationBar = navigationBarRequested || WindowInsets.areNavigationBarsVisible
   val showControlsDrawer by playerPreferences.showControlsDrawer.collectAsState()
   var seekRippleRequest by remember { mutableStateOf<SeekRippleRequest?>(null) }
   val controlsShown by viewModel.controlsShown.collectAsState()
@@ -819,7 +823,7 @@ fun PlayerControls(
           }
 
           val navigationBarsPadding =
-            if (showSystemNavigationBar) {
+            if (showSystemNavigationBar && !safeAreaWindow) {
               WindowInsets.navigationBars.asPaddingValues()
             } else {
               null
@@ -843,9 +847,8 @@ fun PlayerControls(
                 end = navBarPadding.calculateRightPadding(LayoutDirection.Ltr),
               )
             } ?: Modifier
-          val skipSegmentChipBottomOffset =
-            (if (isPortrait) 104.dp else 88.dp) +
-              (navigationBarsPadding?.calculateBottomPadding() ?: 0.dp)
+          // The parent already consumes the bottom navigation inset.
+          val skipSegmentChipBottomOffset = if (isPortrait) 104.dp else 88.dp
 
           AnimatedVisibility(
             isBrightnessSliderShown && showBrightnessGestureOverlay,
@@ -1342,7 +1345,7 @@ is PlayerUpdates.FrameInfo -> {
                     Modifier
                   },
                 ).then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(LayoutDirection.Ltr),
@@ -1728,7 +1731,7 @@ is PlayerUpdates.FrameInfo -> {
             modifier =
               Modifier
                 .then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
@@ -1851,7 +1854,7 @@ is PlayerUpdates.FrameInfo -> {
                     Modifier
                   },
                 ).then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
@@ -1918,7 +1921,7 @@ is PlayerUpdates.FrameInfo -> {
                     Modifier
                   },
                 ).then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
@@ -1958,7 +1961,7 @@ is PlayerUpdates.FrameInfo -> {
             modifier =
               Modifier
                 .then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),
@@ -2029,7 +2032,7 @@ is PlayerUpdates.FrameInfo -> {
             modifier =
               Modifier
                 .then(
-                  if (showSystemNavigationBar) {
+                  if (showSystemNavigationBar && !safeAreaWindow) {
                     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
                     Modifier.padding(
                       start = navBarPadding.calculateLeftPadding(androidx.compose.ui.unit.LayoutDirection.Ltr),

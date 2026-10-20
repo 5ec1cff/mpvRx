@@ -23,6 +23,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -97,7 +100,7 @@ internal fun PlayerControlDrawer(
   val closePanel = { onPanelVisibilityChanged(false) }
   BackHandler(enabled = panelVisible, onBack = closePanel)
 
-  Box(Modifier.fillMaxSize()) {
+  Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
     AnimatedVisibility(
       visible = controlsVisible && buttons.isNotEmpty() && !panelVisible,
       modifier = Modifier.align(AbsoluteAlignment.CenterRight),
