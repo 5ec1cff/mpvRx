@@ -59,6 +59,8 @@ data class PlaybackSessionState(
   val paused: Boolean = true,
   val currentItem: PlaybackItem? = null,
   val error: String? = null,
+  /** The current network media is waiting for its cache, rather than merely loading or restarting. */
+  val isBuffering: Boolean = false,
 )
 
 data class PlaybackPositionRestoreOverride(
@@ -142,6 +144,7 @@ object PlaybackSession : MPVLib.EventObserver {
     MPVLib.removeObserver(observer)
   }
 
+  private val BUFFERING_STATUS_PROPERTIES = setOf("pause", "paused-for-cache", "demuxer-via-network", "eof-reached")
   private const val SEEK_AUDIO_RESTORE_DELAY_MS = 60L
   private const val SEEK_AUDIO_FALLBACK_RESTORE_MS = 750L
   private const val PLAYBACK_TRANSITION_AUDIO_RESTORE_DELAY_MS = 180L
@@ -1255,6 +1258,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       }
       publishTimelinePropertiesLocked()
       propBoolean.emit("pause", desiredPaused)
+      refreshBufferingState()
     }
   }
 
@@ -1499,6 +1503,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         }
         updateState { it.copy(paused = value) }
         propBoolean.emit(property, value)
+        refreshBufferingState()
       } else if (
         property == "mute" &&
         (playbackTransitionAudioGuardPreviousMute != null || seekAudioGuardPreviousMute != null)
@@ -1588,6 +1593,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       }
       updateState { it.copy(paused = nextPaused) }
       propBoolean.emit("pause", nextPaused)
+      refreshBufferingState()
       nextPaused
     }
 
@@ -1712,6 +1718,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     propLong.emit(property, null)
     propInt.emit(property, null)
     propNode.emit(property, null)
+    if (property in BUFFERING_STATUS_PROPERTIES) refreshBufferingState()
     observerSnapshot().forEach { observer -> runCatching { observer.eventProperty(property) } }
   }
 
@@ -1737,6 +1744,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       if (property == "pause" && _state.value.phase == PlaybackPhase.LOADING) _state.value.paused else value
     if (property == "pause") updateState { it.copy(paused = effectiveValue) }
     propBoolean.emit(property, effectiveValue)
+    if (property in BUFFERING_STATUS_PROPERTIES) refreshBufferingState()
     observerSnapshot().forEach { observer -> runCatching { observer.eventProperty(property, effectiveValue) } }
   }
 
@@ -1840,6 +1848,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             propBoolean.emit("pause", appliedPaused)
             restoreSuspendedVideoTrackLocked()
             applyDeferredVideoSelectionLocked()
+            refreshBufferingState()
             true
           }
           MPVLib.MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
@@ -1856,6 +1865,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             if (_state.value.phase != PlaybackPhase.STOPPING) {
               schedulePlaybackTransitionAudioGuardRestoreLocked(PLAYBACK_TRANSITION_AUDIO_RESTORE_DELAY_MS)
             }
+            refreshBufferingState()
             true
           }
           MPVLib.MpvEvent.MPV_EVENT_END_FILE -> {
@@ -1956,6 +1966,48 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     if (shouldForward) {
       observerSnapshot().forEach { observer -> runCatching { observer.event(eventId, data) } }
     }
+  }
+
+  /**
+   * Sample the active native file under the session lock instead of combining cached properties
+   * from different loads in Compose. core-idle/seeking also cover decoder and renderer restarts;
+   * only paused-for-cache establishes that playback is actually waiting for buffered media.
+   */
+  private fun refreshBufferingState() {
+    nativeLock.withLock {
+      val current = _state.value
+      val loadedItem = loadedPlaybackItem
+      val canBuffer =
+        initialized &&
+          current.phase in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND) &&
+          current.activeGeneration == current.generation &&
+          loadedGeneration == current.generation &&
+          loadedItem != null &&
+          loadedItem.stableId == current.currentItem?.stableId &&
+          loadedItem.playableUri == current.currentItem?.playableUri &&
+          !current.paused
+      val buffering =
+        canBuffer &&
+          MPVLib.getPropertyBoolean("paused-for-cache") == true &&
+          MPVLib.getPropertyBoolean("eof-reached") != true &&
+          activeFileUsesNetworkLocked()
+      if (buffering) {
+        // Never label a new stall with a previous file's cached fill values.
+        propInt.emit("cache-buffering-state", MPVLib.getPropertyInt("cache-buffering-state"))
+        propDouble.emit("demuxer-cache-duration", MPVLib.getPropertyDouble("demuxer-cache-duration"))
+      }
+      updateState { it.copy(isBuffering = buffering) }
+    }
+  }
+
+  private fun activeFileUsesNetworkLocked(): Boolean {
+    // Inspect the source mpv is actually playing: a downloaded URL is local, while SMB, HLS and
+    // torrent streams can arrive through an HTTP loopback proxy. Do not infer this from the
+    // original URL, the torrent engine's global state, or an external network subtitle/audio track.
+    val path = MPVLib.getPropertyString("path") ?: return false
+    val scheme = path.substringBefore("://", missingDelimiterValue = "").lowercase()
+    if (scheme.isEmpty() || scheme in setOf("file", "content", "fd", "archive", "memory", "hex")) return false
+    return path.requiresStreamingOptions() || MPVLib.getPropertyBoolean("demuxer-via-network") == true
   }
 
   private fun shouldSuppressTimelineUpdate(property: String): Boolean =
@@ -2474,6 +2526,20 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     }
 
   private inline fun updateState(transform: (PlaybackSessionState) -> PlaybackSessionState) {
-    _state.update(transform)
+    _state.update { previous ->
+      val next = transform(previous)
+      // Every pause, stop, error, shutdown and source/generation change invalidates the old stall
+      // synchronously, including transitions that do not produce another cache-property event.
+      if (next.isBuffering &&
+        (next.paused || next.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND) ||
+          next.activeGeneration != next.generation || next.generation != previous.generation ||
+          next.currentItem?.stableId != previous.currentItem?.stableId ||
+          next.currentItem?.playableUri != previous.currentItem?.playableUri)
+      ) {
+        next.copy(isBuffering = false)
+      } else {
+        next
+      }
+    }
   }
 }

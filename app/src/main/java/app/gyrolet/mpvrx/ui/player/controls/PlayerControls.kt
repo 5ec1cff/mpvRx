@@ -10,7 +10,6 @@
 package app.gyrolet.mpvrx.ui.player.controls
 
 import app.gyrolet.mpvrx.ui.player.DeclaredPlaybackMediaKind
-import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
 import app.gyrolet.mpvrx.domain.torrent.TorrentStreamingState
@@ -268,21 +267,16 @@ fun PlayerControls(
   val showSeekbarDuringHorizontalSeeking by gesturePreferences.showSeekbarDuringHorizontalSeeking.collectAsState()
   val showBufferedRange by playerPreferences.showBufferedRange.collectAsState()
   val showChapterIndicators by playerPreferences.showChapterIndicators.collectAsState()
-  // Streaming stats update continuously. Only the connection phase is read at this level; the
-  // buffering pill reads the details itself, so stats ticks do not re-run the whole controls tree.
+  // The buffering pill reads torrent details itself, so stats ticks do not re-run the controls tree.
   val torrentStateHolder = viewModel.torrentState.collectAsState()
   val videoOpenAnimState by viewModel.videoOpenAnimationState.collectAsState()
   val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
 
-  val isTorrentConnecting by remember {
-    derivedStateOf { torrentStateHolder.value is TorrentStreamingState.Connecting }
-  }
+  var isSeeking by remember { mutableStateOf(false) }
   val bufferingState =
     rememberBufferingState(
-      enabled = showLoadingCircle,
-      // A torrent that has not produced a playable range yet never reaches mpv, so the engine's own
-      // connecting phase has to drive the spinner directly.
-      forceVisible = isTorrentConnecting || playbackSessionState.phase == PlaybackPhase.LOADING,
+      enabled = showLoadingCircle && !isSeeking,
+      sessionState = playbackSessionState,
     )
   val isMpvBuffering = bufferingState.isCacheStall
   val safeAreaWindow by playerPreferences.safeAreaWindow.collectAsState()
@@ -298,14 +292,12 @@ fun PlayerControls(
     } else {
       Modifier
     }
-  var isSeeking by remember { mutableStateOf(false) }
   var wasPlayerAlreadyPaused by remember { mutableStateOf(false) }
   val mpvSeeking by PlaybackSession.propBoolean["seeking"].collectAsState()
   val isPlayerSeeking = isSeeking || (mpvSeeking ?: false)
-  val showBufferingIndicator =
-    bufferingState.visible &&
-      (controlsShown || playbackSessionState.phase == PlaybackPhase.LOADING) &&
-      !isPlayerSeeking
+  // mpv can remain "seeking" until its cache refills. Only active scrubbing suppresses the spinner;
+  // a real cache wait stays visible even when the controls have faded out.
+  val showBufferingIndicator = bufferingState.visible
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
   val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
   val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
@@ -1445,7 +1437,7 @@ is PlayerUpdates.FrameInfo -> {
           AnimatedVisibility(
             visible = showBufferingIndicator,
             enter = fadeIn(),
-            exit = fadeOut(),
+            exit = fadeOut(animationSpec = tween(0)),
             modifier =
               Modifier.constrainAs(bufferingIndicator) {
                 start.linkTo(parent.absoluteLeft)
@@ -1470,10 +1462,8 @@ is PlayerUpdates.FrameInfo -> {
               val currentTorrentState = torrentStateHolder.value
               val bufferText =
                 when {
-                  currentTorrentState is TorrentStreamingState.Connecting -> {
-                    currentTorrentState.phase
-                  }
-                  currentTorrentState is TorrentStreamingState.Streaming -> {
+                  currentTorrentState is TorrentStreamingState.Streaming &&
+                    currentQueueItem?.playableUri == currentTorrentState.localUrl -> {
                     val streamState = currentTorrentState
                     val speed = app.gyrolet.mpvrx.domain.torrent.formatTorrentSpeed(streamState.downloadSpeed)
                     val peers = "${streamState.peers} peers"
