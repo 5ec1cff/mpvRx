@@ -752,29 +752,31 @@ open class MainActivity : AppCompatActivity() {
       if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null) {
         when (updateState) {
           is UpdateViewModel.UpdateState.Available -> {
-            val release = (updateState as UpdateViewModel.UpdateState.Available).release
+            val update = updateState as UpdateViewModel.UpdateState.Available
             UpdateSheet(
-              release = release,
+              release = update.release,
+              asset = update.asset,
               isDownloading = isDownloading,
               progress = downloadProgress,
               isInstallReady = false,
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.downloadUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.updateKey) },
+              onAction = { updateViewModel.downloadUpdate(update.release, update.asset) },
+              onIgnore = { updateViewModel.ignoreVersion(update.release.updateKey) },
             )
           }
           is UpdateViewModel.UpdateState.ReadyToInstall -> {
-            val release = (updateState as UpdateViewModel.UpdateState.ReadyToInstall).release
+            val update = updateState as UpdateViewModel.UpdateState.ReadyToInstall
             UpdateSheet(
-              release = release,
+              release = update.release,
+              asset = update.asset,
               isDownloading = isDownloading,
               progress = downloadProgress,
               isInstallReady = true,
               currentVersion = currentVersion,
               onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.installUpdate(release) },
-              onIgnore = { updateViewModel.ignoreVersion(release.updateKey) },
+              onAction = { updateViewModel.installUpdate(update.release) },
+              onIgnore = { updateViewModel.ignoreVersion(update.release.updateKey) },
             )
           }
           else -> {}

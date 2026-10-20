@@ -1898,6 +1898,7 @@
   <string name="update_version_format">الإصدار %1$s</string>
   <string name="update_release_date">تاريخ الإصدار</string>
   <string name="update_size">الحجم</string>
+  <string name="update_package">الحزمة</string>
   <string name="update_unknown_size">حجم غير معروف</string>
   <string name="update_beta_build_format">تجريبي r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(تجريبي)</string>

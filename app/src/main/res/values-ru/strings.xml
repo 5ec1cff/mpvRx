@@ -1886,6 +1886,7 @@
   <string name="update_version_format">Версия %1$s</string>
   <string name="update_release_date">Дата выпуска</string>
   <string name="update_size">Размер</string>
+  <string name="update_package">Пакет</string>
   <string name="update_unknown_size">Размер неизвестен</string>
   <string name="update_beta_build_format">Бета r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(Бета)</string>

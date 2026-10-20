@@ -1890,6 +1890,7 @@
   <string name="update_version_format">版本 %1$s</string>
   <string name="update_release_date">发布日期</string>
   <string name="update_size">大小</string>
+  <string name="update_package">安装包</string>
   <string name="update_unknown_size">大小未知</string>
   <string name="update_beta_build_format">测试版 r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020（测试版）</string>

@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.domain.update.Asset
 import app.gyrolet.mpvrx.domain.update.Release
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -59,6 +60,7 @@ import java.util.TimeZone
 @Composable
 fun UpdateSheet(
   release: Release,
+  asset: Asset,
   isDownloading: Boolean,
   progress: Float,
   isInstallReady: Boolean,
@@ -78,7 +80,6 @@ fun UpdateSheet(
     } ?: release.previewBuildNumber?.let { buildNumber ->
       stringResource(R.string.update_beta_build_format, buildNumber)
     } ?: release.tagName.removePrefix("v")
-  val downloadSize = release.updateAssets.find { it.name.endsWith(".apk") }?.size ?: 0L
 
   ModalBottomSheet(
     onDismissRequest = { if (!isDownloading) onDismiss() },
@@ -108,8 +109,10 @@ fun UpdateSheet(
         Spacer(modifier = Modifier.height(8.dp))
         ReleaseMetaRow(
           publishedAt = if (release.isExperimental) release.updatedAt ?: release.publishedAt else release.publishedAt,
-          sizeBytes = downloadSize,
+          sizeBytes = asset.size,
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        MetaItem(label = stringResource(R.string.update_package), value = asset.variantLabel)
 
         HorizontalDivider(
           modifier = Modifier.padding(vertical = 16.dp),

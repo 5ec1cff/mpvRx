@@ -1872,6 +1872,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="update_version_format">Version %1$s</string>
   <string name="update_release_date">Veröffentlichungsdatum</string>
   <string name="update_size">Größe</string>
+  <string name="update_package">Paket</string>
   <string name="update_unknown_size">Unbekannte Größe</string>
   <string name="update_beta_build_format">Beta r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(Beta)</string>

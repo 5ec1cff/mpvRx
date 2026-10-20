@@ -17,6 +17,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.update.AppUpdateChannel
+import app.gyrolet.mpvrx.domain.update.Asset
 import app.gyrolet.mpvrx.domain.update.Release
 import app.gyrolet.mpvrx.domain.update.UpdateManager
 import kotlinx.coroutines.CancellationException
@@ -118,6 +119,7 @@ class UpdateViewModel(
 
     data class Available(
       val release: Release,
+      val asset: Asset,
     ) : UpdateState()
 
     object NoUpdate : UpdateState()
@@ -126,6 +128,7 @@ class UpdateViewModel(
 
     data class ReadyToInstall(
       val release: Release,
+      val asset: Asset,
     ) : UpdateState()
   }
 
@@ -144,12 +147,13 @@ class UpdateViewModel(
       _updateState.value = UpdateState.Loading
       try {
         val release = updateManager.checkForUpdate(channel = _updateChannel.value, forceShow = manual)
-        if (release != null) {
+        val asset = release?.let(updateManager::selectUpdateAsset)
+        if (release != null && asset != null) {
           val existingFile = updateManager.getApkFile(release)
           if (existingFile != null) {
-            _updateState.value = UpdateState.ReadyToInstall(release)
+            _updateState.value = UpdateState.ReadyToInstall(release, asset)
           } else {
-            _updateState.value = UpdateState.Available(release)
+            _updateState.value = UpdateState.Available(release, asset)
           }
         } else {
           if (manual) {
@@ -171,7 +175,10 @@ class UpdateViewModel(
     }
   }
 
-  fun downloadUpdate(release: Release) {
+  fun downloadUpdate(
+    release: Release,
+    asset: Asset,
+  ) {
     // No-op if update feature is disabled
     if (!BuildConfig.ENABLE_UPDATE_FEATURE) {
       return
@@ -187,7 +194,7 @@ class UpdateViewModel(
           _downloadProgress.value = progress
         }
         _isDownloading.value = false
-        _updateState.value = UpdateState.ReadyToInstall(release)
+        _updateState.value = UpdateState.ReadyToInstall(release, asset)
       } catch (e: Exception) {
         e.printStackTrace()
         _isDownloading.value = false

@@ -1573,6 +1573,7 @@
   <string name="update_version_format">Версія %1$s</string>
   <string name="update_release_date">Дата випуску</string>
   <string name="update_size">Розмір</string>
+  <string name="update_package">Пакет</string>
   <string name="update_unknown_size">Невідомий розмір</string>
   <string name="update_beta_build_format">Бета r%1$d</string>
   <string name="ui_beta_badge_suffix"> (Бета)</string>

@@ -357,6 +357,8 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+      actions: read
+      deployments: read
       pages: write
       id-token: write
     environment:
@@ -402,37 +404,44 @@ jobs:
         if: steps.signing.outputs.publish == 'true'
         env:
           GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          SITE_BASE_URL: https://riteshp2001.github.io/mpvRx
         shell: bash
         run: |
           set -euo pipefail
-          base=https://riteshp2001.github.io/mpvRx
+          base="$SITE_BASE_URL"
           build=$(git rev-list --count HEAD)
           published_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          mkdir -p site/experimental
 
-          # Pages deploys replace the whole site, so carry over the live preview feed.
+          # Experimental tracks the master tip. An amended or force-pushed commit is replaced by the
+          # run for the new tip, even when that tip has the same or a lower commit count.
+          git fetch --no-tags --quiet origin "+refs/heads/master:refs/remotes/origin/master"
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "$GITHUB_SHA is no longer on master; the run for the current tip publishes instead."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Pages deploys replace the whole site, so carry over exactly what is live (including the preview feed).
+          bash scripts/fetch-live-pages-site.sh site
+
+          # A run that finishes late must not replace a build of a later master commit.
+          live_sha=$(jq -r '.commit_sha // empty' site/experimental.json 2>/dev/null || true)
+          if [[ -n "$live_sha" && "$live_sha" != "$GITHUB_SHA" ]] &&
+            git cat-file -e "${live_sha}^{commit}" 2>/dev/null &&
+            git merge-base --is-ancestor "$live_sha" origin/master &&
+            git merge-base --is-ancestor "$GITHUB_SHA" "$live_sha"; then
+            echo "Experimental build of later master commit ${live_sha:0:7} is already published; leaving it in place."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          rm -rf site/experimental site/experimental.json
+          mkdir -p site/experimental
           cp fastlane/metadata/android/preview-site/index.html site/index.html
           cp fastlane/metadata/android/en-US/images/icon.png site/icon.png
           cp fastlane/metadata/android/preview-site/site.webmanifest site/site.webmanifest
           touch site/.nojekyll
-          if curl -fsSL --retry 3 "$base/latest.json" -o site/latest.json; then
-            mkdir -p site/downloads
-            jq -r '.assets[].name' site/latest.json | while read -r n; do
-              curl -fsSL --retry 3 "$base/downloads/$n" -o "site/downloads/$n"
-            done
-          else
-            rm -f site/latest.json
-          fi
-
-          # Never replace a newer experimental build with an older one.
-          if curl -fsSL --retry 3 "$base/experimental.json" -o /tmp/exp.json; then
-            live=$(jq -r '.commit_count // 0' /tmp/exp.json)
-            if [[ "$live" -gt "$build" ]]; then
-              echo "A newer experimental build is already published; leaving it in place."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          fi
 
           declare -A sources=(
             [universal]=app-standard-universal-release.apk

@@ -1872,6 +1872,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="update_version_format">Versión %1$s</string>
   <string name="update_release_date">Fecha de lanzamiento</string>
   <string name="update_size">Tamaño</string>
+  <string name="update_package">Paquete</string>
   <string name="update_unknown_size">Tamaño desconocido</string>
   <string name="update_beta_build_format">Beta r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(Beta)</string>

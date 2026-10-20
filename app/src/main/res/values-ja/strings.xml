@@ -1865,6 +1865,7 @@
   <string name="update_version_format">バージョン %1$s</string>
   <string name="update_release_date">リリース日</string>
   <string name="update_size">サイズ</string>
+  <string name="update_package">パッケージ</string>
   <string name="update_unknown_size">サイズ不明</string>
   <string name="update_beta_build_format">ベータ r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(ベータ)</string>

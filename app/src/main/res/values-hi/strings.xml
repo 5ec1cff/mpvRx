@@ -1780,6 +1780,7 @@
   <string name="update_version_format">संस्करण %1$s</string>
   <string name="update_release_date">रिलीज़ दिनांक</string>
   <string name="update_size">आकार</string>
+  <string name="update_package">पैकेज</string>
   <string name="update_unknown_size">अज्ञात आकार</string>
   <string name="update_beta_build_format">बीटा r%1$d</string>
   <string name="ui_beta_badge_suffix">\u0020(बीटा)</string>
