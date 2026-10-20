@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -111,6 +112,7 @@ import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
 import app.gyrolet.mpvrx.ui.browser.dialogs.JellyfinSortDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.MusicSortDialog
 import app.gyrolet.mpvrx.ui.browser.music.MusicSortField
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
@@ -1218,12 +1220,14 @@ fun JellyfinContent(
           uiState.activeServer != null &&
           (uiState.currentItems.isNotEmpty() || uiState.resumeItems.isNotEmpty() || uiState.heroItems.isNotEmpty())
 
-      // Expressive Floating Action Button Menu
+      // Expressive Floating Action Button Menu. It overlays the tab instead of using a Scaffold slot,
+      // so it applies the system bar inset itself to line up with every other browser FAB.
       FloatingActionButtonMenu(
         modifier =
           Modifier
             .align(Alignment.BottomEnd)
-            .padding(end = 16.dp, bottom = navigationBarHeight + 16.dp),
+            .windowInsetsPadding(FabPlacement.overlayInsets)
+            .padding(end = FabPlacement.ScaffoldFabSpacing, bottom = FabPlacement.overlayBottomPadding()),
         expanded = isFabExpanded && !quickPlayFabDirect,
         button = {
           ToggleFloatingActionButton(

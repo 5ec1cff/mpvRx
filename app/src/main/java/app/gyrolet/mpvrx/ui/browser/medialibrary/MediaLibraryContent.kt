@@ -21,6 +21,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
@@ -495,7 +496,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
           !MainScreen.getPermissionDeniedState()
 
       FloatingActionButtonMenu(
-        modifier = Modifier.padding(bottom = (navigationBarHeight - 16.dp).coerceAtLeast(0.dp)),
+        modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
         expanded = isFabExpanded.value && !quickPlayFabDirect,
         button = {
           TooltipBox(

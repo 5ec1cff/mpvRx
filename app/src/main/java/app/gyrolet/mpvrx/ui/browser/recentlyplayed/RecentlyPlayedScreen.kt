@@ -14,6 +14,7 @@ import android.widget.Toast
 import app.gyrolet.mpvrx.ui.utils.NavigationBackHandler as BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.components.themedSegmentedButtonColors
 import androidx.compose.foundation.layout.Arrangement
@@ -298,9 +299,7 @@ object RecentlyPlayedScreen : Screen {
           showQuickPlayFab && !selectionManager.isInSelectionMode && isFabVisible.value && filteredRecentItems.isNotEmpty()
 
         FloatingActionButtonMenu(
-          modifier =
-            Modifier
-              .padding(bottom = (navigationBarHeight - 16.dp).coerceAtLeast(0.dp)),
+          modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
           expanded = isFabExpanded.value && !quickPlayFabDirect,
           button = {
             TooltipBox(

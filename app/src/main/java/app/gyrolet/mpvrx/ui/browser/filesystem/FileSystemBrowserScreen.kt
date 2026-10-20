@@ -19,6 +19,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -631,8 +632,6 @@ fun FileSystemBrowserScreen(path: String? = null) {
         }
       },
       floatingActionButton = {
-        val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
-        val miniPlayerClearance = app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
         if (isAppRoot) {
           val isFabShouldBeVisible =
             showQuickPlayFab &&
@@ -642,10 +641,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 .getPermissionDeniedState()
 
           FloatingActionButtonMenu(
-            modifier =
-              Modifier.padding(
-                bottom = (maxOf(navigationBarHeight, miniPlayerClearance) - 16.dp).coerceAtLeast(0.dp),
-              ),
+            modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
             expanded = isFabExpanded.value && !quickPlayFabDirect,
             button = {
               TooltipBox(

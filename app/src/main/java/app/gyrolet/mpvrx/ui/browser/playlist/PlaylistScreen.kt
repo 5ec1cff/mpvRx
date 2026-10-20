@@ -85,6 +85,7 @@ import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
 import app.gyrolet.mpvrx.ui.browser.dialogs.DeleteConfirmationDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.PlaylistSortDialog
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.selection.SelectionManager
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
@@ -320,10 +321,6 @@ object PlaylistScreen : Screen {
         }
       },
       floatingActionButton = {
-        val navigationBarHeight = LocalNavigationBarHeight.current
-        // Profile -> Playlists is a pushed screen with no main navigation bar, but the
-        // mini player still overlays the bottom edge. Clear whichever overlay is taller.
-        val bottomOverlayClearance = maxOf(navigationBarHeight, NavigationBarState.miniPlayerClearance)
         if (!selectionManager.isInSelectionMode && isFabVisible.value) {
           ExtendedFloatingActionButton(
             onClick = {
@@ -331,10 +328,7 @@ object PlaylistScreen : Screen {
             },
             icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },
             text = { Text(stringResource(R.string.ui_create_playlist)) },
-            modifier =
-              Modifier.padding(
-                bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp),
-              ),
+            modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
           )
         }
       },

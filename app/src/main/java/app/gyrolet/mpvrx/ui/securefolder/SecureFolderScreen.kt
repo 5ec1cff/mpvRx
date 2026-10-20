@@ -272,10 +272,12 @@ data object SecureFolderScreen : Screen {
       },
       floatingActionButton = {
         if (!isInSelectionMode) {
+          // The mini player stays on screen here, so the FAB must clear it like the browser FABs do.
           ExtendedFloatingActionButton(
             onClick = { backstack.navigateTo(SecureFolderAddFilesScreen) },
             icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },
             text = { Text(stringResource(R.string.secure_folder_add_files)) },
+            modifier = Modifier.padding(bottom = app.gyrolet.mpvrx.ui.browser.fab.FabPlacement.scaffoldBottomPadding()),
           )
         }
       },

@@ -137,6 +137,7 @@ import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddToPlaylistDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.toPlaylistCandidates
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.dialogs.DeleteConfirmationDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderSortDialog
@@ -640,7 +641,7 @@ fun MusicLibraryContent(
         // FolderListScreen.MediaStoreFolderListContent renders its own FAB, skip ours.
       } else if (isPlaylistsTab) {
         FloatingActionButtonMenu(
-          modifier = Modifier.padding(bottom = (navigationBarHeight - 16.dp).coerceAtLeast(0.dp)),
+          modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
           expanded = false,
           button = {
             ToggleFloatingActionButton(
@@ -661,7 +662,7 @@ fun MusicLibraryContent(
         ) { }
       } else if (songs.isNotEmpty()) {
         FloatingActionButtonMenu(
-          modifier = Modifier.padding(bottom = (navigationBarHeight - 16.dp).coerceAtLeast(0.dp)),
+          modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
           expanded = isFabExpanded.value && !quickPlayFabDirect,
           button = {
             TooltipBox(

@@ -118,6 +118,7 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.dialogs.AudiobookSortDialog
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
@@ -493,7 +494,7 @@ fun AudiobookLibraryContent(
       floatingActionButton = {
         if (!isAbsSource && importing == null) {
           FloatingActionButtonMenu(
-            modifier = Modifier.padding(bottom = (navBarHeight - 16.dp).coerceAtLeast(0.dp)),
+            modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
             expanded = importMenu,
             button = {
               TooltipBox(

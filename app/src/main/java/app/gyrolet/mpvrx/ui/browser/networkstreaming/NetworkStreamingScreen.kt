@@ -161,10 +161,6 @@ object NetworkStreamingScreen : Screen {
     var showAddMediaDialog by remember { mutableStateOf(false) }
     var editingConnection by remember { mutableStateOf<NetworkConnection?>(null) }
     var showTorrentPicker by remember { mutableStateOf(false) }
-    val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
-    // Main tabs already include mini-player clearance in their navigation height. Pushed
-    // screens (such as Profile -> Network) have no navigation bar, so reserve it here.
-    val bottomOverlayClearance = maxOf(navigationBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
     val coroutineScope = rememberCoroutineScope()
     val navigationHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
 
@@ -440,7 +436,7 @@ object NetworkStreamingScreen : Screen {
                   stringResource(R.string.ui_add_connection),
                 )
               },
-              modifier = Modifier.padding(bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp)),
+              modifier = Modifier.padding(bottom = app.gyrolet.mpvrx.ui.browser.fab.FabPlacement.scaffoldBottomPadding()),
             )
           }
           NetworkTab.MEDIA.ordinal -> {
@@ -448,7 +444,7 @@ object NetworkStreamingScreen : Screen {
               onClick = { showAddMediaDialog = true },
               icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },
               text = { Text("Add Media") },
-              modifier = Modifier.padding(bottom = (bottomOverlayClearance - 16.dp).coerceAtLeast(0.dp)),
+              modifier = Modifier.padding(bottom = app.gyrolet.mpvrx.ui.browser.fab.FabPlacement.scaffoldBottomPadding()),
             )
           }
         }

@@ -104,6 +104,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.LoadingDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoCompressorOverlay
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoSortDialog
+import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
 import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.selection.SelectionManager
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
@@ -446,8 +447,6 @@ data class VideoListScreen(
         }
       },
       floatingActionButton = {
-        val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
-        val miniPlayerClearance = app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
         if (sortedVideosWithInfo.isNotEmpty()) {
           val isFabShouldBeVisible =
             showQuickPlayFab && !selectionManager.isInSelectionMode && isFabVisible.value
@@ -468,7 +467,7 @@ data class VideoListScreen(
             FloatingActionButton(
               modifier =
                 Modifier
-                  .padding(bottom = (maxOf(navigationBarHeight, miniPlayerClearance) - 16.dp).coerceAtLeast(0.dp))
+                  .padding(bottom = FabPlacement.scaffoldBottomPadding())
                   .animateFloatingActionButton(
                     visible = isFabShouldBeVisible,
                     alignment = Alignment.BottomEnd,
