@@ -117,6 +117,7 @@ import app.gyrolet.mpvrx.preferences.MusicSourceProvider
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gyrolet.mpvrx.presentation.Screen
@@ -149,6 +150,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.LocalAppBackgroundBackdrop
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -226,7 +228,21 @@ object MainScreen : Screen {
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
     val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
     val progressiveNavigationBlur by appearancePreferences.progressiveNavigationBlur.collectAsState()
-    val liquidLayerBackdrop = rememberLayerBackdrop()
+    val appBackgroundBackdrop = LocalAppBackgroundBackdrop.current
+    val backdropBackgroundColor = MaterialTheme.colorScheme.background
+    val liquidLayerBackdrop = rememberLayerBackdrop {
+      // Previews or other hosts without a background capture still need an opaque source.
+      if (appBackgroundBackdrop == null) drawRect(backdropBackgroundColor)
+      drawContent()
+    }
+    // Transparent pages contain text without the wallpaper behind it. Composite the real
+    // background before blur/refraction so the original sharp text cannot show through.
+    val liquidNavigationBackdrop =
+      if (appBackgroundBackdrop != null) {
+        rememberCombinedBackdrop(appBackgroundBackdrop, liquidLayerBackdrop)
+      } else {
+        liquidLayerBackdrop
+      }
     val hideNavigationBar = NavigationBarState.shouldHideNavigationBar
     val isPermissionDenied = NavigationBarState.isPermissionDenied
     val isDualPaneFolderSelected = NavigationBarState.isDualPaneFolderSelected
@@ -425,7 +441,7 @@ object MainScreen : Screen {
           onTabSelected = onTabSelected,
           pagerState = pagerState,
           hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
-          kyantBackdrop = liquidLayerBackdrop,
+          kyantBackdrop = liquidNavigationBackdrop,
           liquidGlassEnabled = liquidGlassEnabled,
           modifier = modifier,
         )
@@ -802,7 +818,7 @@ object MainScreen : Screen {
                     onTabSelected = onTabSelected,
                     pagerState = pagerState,
                     hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
-                    kyantBackdrop = liquidLayerBackdrop,
+                    kyantBackdrop = liquidNavigationBackdrop,
                     liquidGlassEnabled = liquidGlassEnabled,
                     modifier = navModifier,
                   )

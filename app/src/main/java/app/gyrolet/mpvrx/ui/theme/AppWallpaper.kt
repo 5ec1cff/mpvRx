@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
@@ -48,11 +49,17 @@ import app.gyrolet.mpvrx.ui.background.AnimatedBackground
 import app.gyrolet.mpvrx.ui.background.BackdropGate
 import app.gyrolet.mpvrx.ui.background.BackgroundType
 import app.gyrolet.mpvrx.ui.background.rememberActiveBackground
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 val LocalAppWallpaperActive = compositionLocalOf { false }
+
+// Only the background is captured here; content and glass consumers remain outside this layer.
+internal val LocalAppBackgroundBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 /** True when the light theme is showing a dark wallpaper, so text placed directly on it must be light. */
 val LocalLightTextOnWallpaper = compositionLocalOf { false }
@@ -81,6 +88,10 @@ fun AppWallpaperHost(content: @Composable () -> Unit) {
   val wallpaperScaleMode by preferences.customWallpaperScaleMode.collectAsState()
   val wallpaperBlur by preferences.customWallpaperBlur.collectAsState()
   val wallpaperAlpha by preferences.customWallpaperAlpha.collectAsState()
+  val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val legacyNavigationBar by preferences.legacyNavigationBar.collectAsState()
+  val backgroundBackdrop =
+    if (liquidGlassEnabled && !legacyNavigationBar) rememberLayerBackdrop() else null
   // Hold the UI back until the first wallpaper load finishes, so the app doesn't flash a plain
   // background and then pop the wallpaper in on launch.
   var initialWallpaperResolved by remember { mutableStateOf(wallpaperUri.isBlank()) }
@@ -131,38 +142,47 @@ fun AppWallpaperHost(content: @Composable () -> Unit) {
   val lightTextOnWallpaper = wallpaperActive && isLightTheme && wallpaperLuminance < LIGHT_TEXT_LUMINANCE_THRESHOLD
 
   Box(
-    modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+    modifier = Modifier.fillMaxSize(),
   ) {
-    wallpaper?.let { bitmap ->
-      // Fade the wallpaper in together with the content so the launch hands off from the splash
-      // as one crossfade instead of the wallpaper hard-cutting in before the content.
-      Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
-        WallpaperImage(
-          bitmap = bitmap,
-          zoom = wallpaperZoom,
-          offsetX = wallpaperOffsetX,
-          offsetY = wallpaperOffsetY,
-          scaleMode = wallpaperScaleMode,
-          blurRadius = wallpaperBlur,
-          imageAlpha = wallpaperAlpha,
-          modifier = Modifier.fillMaxSize(),
-        )
-        Box(
-          modifier = Modifier.fillMaxSize().background(rememberWallpaperScrimColor(bitmap)),
-        )
+    Box(
+      modifier =
+        Modifier
+          .matchParentSize()
+          .then(if (backgroundBackdrop != null) Modifier.layerBackdrop(backgroundBackdrop) else Modifier)
+          .background(MaterialTheme.colorScheme.background),
+    ) {
+      wallpaper?.let { bitmap ->
+        // Fade the wallpaper in together with the content so the launch hands off from the splash
+        // as one crossfade instead of the wallpaper hard-cutting in before the content.
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
+          WallpaperImage(
+            bitmap = bitmap,
+            zoom = wallpaperZoom,
+            offsetX = wallpaperOffsetX,
+            offsetY = wallpaperOffsetY,
+            scaleMode = wallpaperScaleMode,
+            blurRadius = wallpaperBlur,
+            imageAlpha = wallpaperAlpha,
+            modifier = Modifier.fillMaxSize(),
+          )
+          Box(
+            modifier = Modifier.fillMaxSize().background(rememberWallpaperScrimColor(bitmap)),
+          )
+        }
       }
-    }
-    if (animationShown) {
-      Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
-        AnimatedBackground(
-          type = activeBackground.type,
-          parallax = activeBackground.parallax,
-          paused = BackdropGate.covers > 0,
-        )
+      if (animationShown) {
+        Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
+          AnimatedBackground(
+            type = activeBackground.type,
+            parallax = activeBackground.parallax,
+            paused = BackdropGate.covers > 0,
+          )
+        }
       }
     }
     CompositionLocalProvider(
       LocalAppWallpaperActive provides (wallpaperActive || animationShown),
+      LocalAppBackgroundBackdrop provides backgroundBackdrop,
       LocalLightTextOnWallpaper provides lightTextOnWallpaper,
     ) {
       Box(modifier = Modifier.fillMaxSize().graphicsLayer { alpha = contentAlpha }) {
