@@ -118,6 +118,8 @@ import app.gyrolet.mpvrx.repository.NavidromeRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddToPlaylistDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.toPlaylistCandidates
+import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import com.kyant.backdrop.Backdrop
 import app.gyrolet.mpvrx.ui.player.resolveUri
 import app.gyrolet.mpvrx.ui.player.controls.components.MiniAudioVisualizer
 import app.gyrolet.mpvrx.ui.player.controls.components.stableNumericWidth
@@ -648,6 +650,7 @@ fun AudioPlayerControls(
   onOpenSheet: (Sheets) -> Unit,
   onOpenPanel: (Panels) -> Unit,
   modifier: Modifier = Modifier,
+  sheetBackdrop: Backdrop? = null,
 ) {
   // The queue can move on while the app is in the background; catch the lyrics up on return.
   val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -970,8 +973,9 @@ fun AudioPlayerControls(
   val shuffleEnabled by viewModel.shuffleEnabled.collectAsState()
   val playlistModeEnabled = viewModel.hasPlaylistSupport()
   val showVisualizer by viewModel.showVisualizerInAudioPlayer.collectAsState()
+  var addToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
   val sheetShown by viewModel.sheetShown.collectAsState()
-  val isSheetOpen = sheetShown != Sheets.None
+  val isSheetOpen = sheetShown != Sheets.None || (addToPlaylistDialogOpen && !mediaPath.isNullOrBlank())
 
   AudioSpectrumCaptureEffect(
     enabled =
@@ -985,8 +989,6 @@ fun AudioPlayerControls(
   val abLoop by viewModel.abLoopState.collectAsState()
   val abLoopA = abLoop.a
   val abLoopB = abLoop.b
-
-  var addToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
 
   val playerPreferences = koinInject<PlayerPreferences>()
   val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
@@ -2684,51 +2686,55 @@ fun AudioPlayerControls(
         }
       }
     }
+  }
 
-    if (addToPlaylistDialogOpen && !mediaPath.isNullOrBlank()) {
-      val displayTitle = remember(lastValidTitle, displayArtist) {
-        cleanSongTitle(lastValidTitle, displayArtist)
-      }
-      val videoForPlaylist =
-        remember(mediaPath, displayTitle) {
-          Video(
-            id = mediaPath.hashCode().toLong(),
-            title = displayTitle,
-            displayName = displayTitle,
-            path = mediaPath,
-            uri = Uri.parse(mediaPath),
-            duration = duration?.toLong() ?: currentItem?.durationSeconds?.toLong() ?: 0L,
-            durationFormatted = "",
-            size = 0L,
-            sizeFormatted = "",
-            dateModified = 0L,
-            dateAdded = 0L,
-            mimeType = "audio/*",
-            bucketId = "",
-            bucketDisplayName = "",
-            width = 0,
-            height = 0,
-            fps = 0f,
-            resolution = "",
-            isAudio = true,
-          )
-        }
-
-      val isJellyfinMedia = remember(mediaPath) {
-        !mediaPath.isNullOrBlank() &&
-          (mediaPath.contains("api_key=", ignoreCase = true) ||
-            mediaPath.contains("/Items/", ignoreCase = true) ||
-            mediaPath.contains("/Audio/", ignoreCase = true) ||
-            mediaPath.contains("jellyfin", ignoreCase = true) ||
-            mediaPath.contains("/rest/stream", ignoreCase = true))
+  // A sibling of the captured controls: the sheet must never sample its own glass surface.
+  if (addToPlaylistDialogOpen && !mediaPath.isNullOrBlank()) {
+    val displayTitle = remember(lastValidTitle, displayArtist) {
+      cleanSongTitle(lastValidTitle, displayArtist)
+    }
+    val videoForPlaylist =
+      remember(mediaPath, displayTitle) {
+        Video(
+          id = mediaPath.hashCode().toLong(),
+          title = displayTitle,
+          displayName = displayTitle,
+          path = mediaPath,
+          uri = Uri.parse(mediaPath),
+          duration = duration?.toLong() ?: currentItem?.durationSeconds?.toLong() ?: 0L,
+          durationFormatted = "",
+          size = 0L,
+          sizeFormatted = "",
+          dateModified = 0L,
+          dateAdded = 0L,
+          mimeType = "audio/*",
+          bucketId = "",
+          bucketDisplayName = "",
+          width = 0,
+          height = 0,
+          fps = 0f,
+          resolution = "",
+          isAudio = true,
+        )
       }
 
+    val isJellyfinMedia = remember(mediaPath) {
+      !mediaPath.isNullOrBlank() &&
+        (mediaPath.contains("api_key=", ignoreCase = true) ||
+          mediaPath.contains("/Items/", ignoreCase = true) ||
+          mediaPath.contains("/Audio/", ignoreCase = true) ||
+          mediaPath.contains("jellyfin", ignoreCase = true) ||
+          mediaPath.contains("/rest/stream", ignoreCase = true))
+    }
+
+    CompositionLocalProvider(LocalKyantPlayerBackdrop provides sheetBackdrop) {
       AddToPlaylistDialog(
         isOpen = true,
         candidates = listOf(videoForPlaylist).toPlaylistCandidates(),
         onDismiss = { addToPlaylistDialogOpen = false },
         onSuccess = { addToPlaylistDialogOpen = false },
         isJellyfin = isJellyfinMedia,
+        usePlayerSheet = true,
       )
     }
   }

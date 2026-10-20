@@ -57,6 +57,8 @@ import app.gyrolet.mpvrx.ui.theme.MotionPolicy
  * that is much smaller in landscape — where the height is the scarce axis and
  * a half-screen body would leave nothing for the actions.
  *
+ * Player callers can opt into [PlayerSheet] to share its glass material and backdrop window.
+ *
  * Only ever fully open or gone: a half-expanded detent is a second thing to
  * get past on a phone and meaningless on a short landscape screen.
  */
@@ -72,6 +74,7 @@ fun AppPickerSheet(
   scrollContent: Boolean = true,
   headerActions: @Composable RowScope.() -> Unit = {},
   actions: @Composable RowScope.() -> Unit = {},
+  usePlayerSheet: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val configuration = LocalConfiguration.current
@@ -82,31 +85,15 @@ fun AppPickerSheet(
       .coerceAtLeast(160.dp)
       .coerceAtMost(if (isLandscape) 460.dp else 600.dp)
 
-  val sheetState =
-    rememberBottomSheetState(
-      initialValue = if (reducedMotion) SheetValue.Expanded else SheetValue.Hidden,
-      enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-    )
-
-  ModalBottomSheet(
-    onDismissRequest = onDismissRequest,
-    sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.surface,
-    scrimColor = BottomSheetDefaults.ScrimColor,
-    // Keeps the sheet a centred panel on a tablet instead of a band across a 1600dp screen.
-    sheetMaxWidth = 640.dp,
-    dragHandle = { PlayerSheetDragHandle() },
-    modifier = modifier,
-  ) {
+  val sheetContent: @Composable () -> Unit = {
     CompositionLocalProvider(LocalMotionPolicy provides MotionPolicy(reduceMotion = reducedMotion)) {
       Column(
         modifier =
           Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .imePadding()
+            .then(if (usePlayerSheet) Modifier else Modifier.navigationBarsPadding().imePadding())
             .padding(horizontal = 20.dp)
-            .padding(bottom = 12.dp),
+            .padding(bottom = if (usePlayerSheet) 0.dp else 12.dp),
       ) {
         Row(
           modifier = Modifier.fillMaxWidth(),
@@ -177,5 +164,34 @@ fun AppPickerSheet(
         )
       }
     }
+  }
+
+  if (usePlayerSheet) {
+    // Keep player pickers in the same window and use the shared glass, drag and inset handling.
+    PlayerSheet(
+      onDismissRequest = onDismissRequest,
+      modifier = modifier,
+      content = sheetContent,
+    )
+    return
+  }
+
+  val sheetState =
+    rememberBottomSheetState(
+      initialValue = if (reducedMotion) SheetValue.Expanded else SheetValue.Hidden,
+      enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+    )
+
+  ModalBottomSheet(
+    onDismissRequest = onDismissRequest,
+    sheetState = sheetState,
+    containerColor = MaterialTheme.colorScheme.surface,
+    scrimColor = BottomSheetDefaults.ScrimColor,
+    // Keeps the sheet a centred panel on a tablet instead of a band across a 1600dp screen.
+    sheetMaxWidth = 640.dp,
+    dragHandle = { PlayerSheetDragHandle() },
+    modifier = modifier,
+  ) {
+    sheetContent()
   }
 }

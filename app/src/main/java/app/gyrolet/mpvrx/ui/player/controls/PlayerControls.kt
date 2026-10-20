@@ -411,6 +411,7 @@ fun PlayerControls(
         onOpenSheet = onOpenSheet,
         onOpenPanel = onOpenPanel,
         modifier = if (enableLiquidGlass) Modifier.layerBackdrop(audioBackdrop) else Modifier,
+        sheetBackdrop = audioBackdrop.takeIf { enableLiquidGlass },
       )
 
       CompositionLocalProvider(

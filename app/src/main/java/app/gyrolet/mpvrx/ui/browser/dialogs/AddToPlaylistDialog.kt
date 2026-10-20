@@ -59,6 +59,8 @@ import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
+import app.gyrolet.mpvrx.ui.player.controls.components.sheets.playerSheetSelectionColor
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -76,6 +78,7 @@ fun AddToPlaylistDialog(
   modifier: Modifier = Modifier,
   onItemsAdded: () -> Unit = {},
   videos: List<Video> = emptyList(),
+  usePlayerSheet: Boolean = false,
 ) {
   val viewModel: AddToPlaylistViewModel = viewModel()
   val playlistOptions by viewModel.playlistOptions.collectAsState()
@@ -153,6 +156,7 @@ fun AddToPlaylistDialog(
       null
     },
     scrollContent = false,
+    usePlayerSheet = usePlayerSheet,
     actions = {
       TextButton(onClick = onDismiss, enabled = submittingId == null) {
         Text(
@@ -276,7 +280,12 @@ private fun PlaylistItemCard(
     shape = AppShapeScale.medium,
     colors =
       CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        containerColor =
+          if (LocalPlayerGlassSurfaceActive.current) {
+            playerSheetSelectionColor(isWorking)
+          } else {
+            MaterialTheme.colorScheme.surfaceVariant
+          },
       ),
   ) {
     Row(
@@ -329,7 +338,12 @@ private fun EmptyPlaylistsMessage(
     shape = AppShapeScale.medium,
     colors =
       CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        containerColor =
+          if (LocalPlayerGlassSurfaceActive.current) {
+            playerSheetSelectionColor(false)
+          } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+          },
       ),
   ) {
     Column(
