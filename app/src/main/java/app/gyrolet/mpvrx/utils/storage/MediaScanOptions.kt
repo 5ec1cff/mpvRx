@@ -54,7 +54,8 @@ data class MediaScanOptions(
   val pathFilter: NoMediaPathFilter by lazy { NoMediaPathFilter(this) }
 
   fun includesAudioDuration(durationMs: Long): Boolean =
-    minimumAudioDurationSeconds == 0 || durationMs >= minimumAudioDurationSeconds * 1000L
+    durationMs <= 0L || minimumAudioDurationSeconds == 0 ||
+      durationMs >= minimumAudioDurationSeconds * 1000L
 }
 
 class NoMediaPathFilter(

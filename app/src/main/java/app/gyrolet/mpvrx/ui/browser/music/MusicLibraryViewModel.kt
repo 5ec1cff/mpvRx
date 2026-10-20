@@ -229,7 +229,7 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
     val (visibleSongs, albums, artists) = withContext(Dispatchers.Default) {
       val minimumMs = minimumSeconds.coerceAtLeast(0).toLong() * 1000L
       val visible = allSongs.filter { song ->
-        val meetsDuration = (minimumMs == 0L || song.durationMs >= minimumMs)
+        val meetsDuration = (song.durationMs <= 0L || minimumMs == 0L || song.durationMs >= minimumMs)
         val isNotBlacklisted = blacklist.none { folderPath ->
           song.path.equals(folderPath, ignoreCase = true) ||
             song.path.startsWith(if (folderPath.endsWith("/")) folderPath else "$folderPath/", ignoreCase = true)

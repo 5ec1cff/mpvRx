@@ -260,7 +260,7 @@ object MediaFileRepository : KoinComponent {
               val parentPath = file.parent ?: continue
               if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookPath(parentPath)) continue
               val durationMs = cursor.getLong(durationColumn)
-              if (minimumAudioDurationSeconds > 0 && durationMs / 1000 < minimumAudioDurationSeconds) continue
+              if (minimumAudioDurationSeconds > 0 && durationMs > 0L && durationMs / 1000 < minimumAudioDurationSeconds) continue
               val key = normalizeAudioFolderKey(parentPath)
               val aggregate = aggregates.getOrPut(key) { AudioFolderAggregate(path = parentPath) }
               aggregate.size += cursor.getLong(sizeColumn)

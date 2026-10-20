@@ -6120,6 +6120,10 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
                 mimeType = resolvedMimeType,
                 headers = requestedHeaders,
                 networkSource = networkSource,
+                durationSeconds = sourceIntent
+                  .takeIf { it.getBooleanExtra("internal_launch", false) }
+                  ?.getIntExtra("duration", 0)
+                  ?.takeIf { it > 0 },
                 torrentFileIndex = torrentResult?.selectedFile?.index,
               )
 

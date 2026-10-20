@@ -158,6 +158,21 @@ object PlaybackSession : MPVLib.EventObserver {
     )
   private val AUDIO_SUBTITLE_TRACK_PROPERTIES = setOf("aid", "sid", "secondary-sid")
 
+  /**
+   * Stronger libavformat probing only for local audio/video items whose library duration is
+   * missing. This check never reads files or metadata and is therefore safe on the load path.
+   * Network streams, archive entries, torrents and audiobooks keep their normal startup settings.
+   */
+  private fun shouldProbeMissingDuration(item: PlaybackItem, playableUri: String): Boolean {
+    if ((item.durationSeconds ?: 0) > 0 || item.audiobook != null || item.torrentFileIndex != null) return false
+    if (item.networkSource != null || item.declaredMediaKind() == DeclaredPlaybackMediaKind.UNKNOWN) return false
+    if (app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia.isPlaybackUri(item.originalUri)) return false
+    return playableUri.startsWith("/") ||
+      playableUri.startsWith("file://", ignoreCase = true) ||
+      playableUri.startsWith("content://", ignoreCase = true) ||
+      playableUri.startsWith("fd://", ignoreCase = true)
+  }
+
   /** URI schemes whose playback goes through a network protocol in libmpv. */
   private val STREAMING_OPTION_SCHEMES =
     setOf(
@@ -1164,6 +1179,13 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           add("pause=yes")
           add(if (selectVideoForNewFile && (!deferVideoSelectionUntilSurface || ytdlVideoRequiresSelection)) "vid=auto" else "vid=no")
           initialPosition?.let { add("start=$it") }
+          // Keep ordinary files on mpv's fast path. Only files with no indexed duration need
+          // bounded stream probing; loadfile scopes these options to the current file.
+          if (shouldProbeMissingDuration(resolvedItem, playableUri)) {
+            add("demuxer-lavf-probe-info=yes")
+            add("demuxer-lavf-probesize=4MiB")
+            add("demuxer-lavf-analyzeduration=5")
+          }
           if (flattenEditions && !MpvConfigOverridePolicy.isOwnedByMpvConf("flatten-editions")) {
             add("flatten-editions=yes")
           }
