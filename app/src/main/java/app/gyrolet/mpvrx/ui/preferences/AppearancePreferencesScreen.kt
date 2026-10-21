@@ -56,7 +56,6 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.background.BackgroundPickerDialog
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.ControlsAnimationStyle
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
@@ -112,7 +111,6 @@ object AppearancePreferencesScreen : Screen {
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
     var isAppFontSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var isBackgroundPickerOpen by rememberSaveable { mutableStateOf(false) }
     val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
     val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
@@ -382,11 +380,9 @@ object AppearancePreferencesScreen : Screen {
                           color = MaterialTheme.colorScheme.outline,
                         )
                       },
-                      onClick = { isBackgroundPickerOpen = true },
+                      modifier = Modifier.settingsSearchTarget(R.string.bg_pref_title),
+                      onClick = { backstack.navigateTo(BackgroundAnimationPreferencesScreen) },
                     )
-                  }
-                  if (isBackgroundPickerOpen) {
-                    BackgroundPickerDialog(onDismiss = { isBackgroundPickerOpen = false })
                   }
 
                   PreferenceDivider()
@@ -907,7 +903,11 @@ object AppearancePreferencesScreen : Screen {
             val showJellyfinTab by preferences.showJellyfinTab.collectAsState()
             val savedOrder by preferences.bottomNavigationOrder.collectAsState()
             val names = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE")
-            val ordered = (savedOrder.filter { it in names } + names).distinct()
+            val ordered =
+              listOf("HOME") +
+                (savedOrder.filter { it in names } + names)
+                  .distinct()
+                  .filterNot { it == "HOME" }
             val tabItems = ordered.map { id ->
               when (id) {
                 "HOME" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_home_title), stringResource(R.string.pref_nav_home_summary), true, required = true)

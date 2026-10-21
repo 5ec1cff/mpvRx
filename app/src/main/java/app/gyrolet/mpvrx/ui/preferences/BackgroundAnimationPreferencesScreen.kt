@@ -1,4 +1,4 @@
-package app.gyrolet.mpvrx.ui.background
+package app.gyrolet.mpvrx.ui.preferences
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
@@ -13,29 +13,25 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -59,24 +55,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.background.*
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
-import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
-import app.gyrolet.mpvrx.ui.preferences.SettingsTopAppBar
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.utils.LocalBackStack
+import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.roundedfilled.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 
 private val GeometricBackgrounds = listOf(
@@ -92,185 +89,183 @@ private val SkyBackgrounds = listOf(
 )
 
 /** One live preview, static illustrated choices, and the same connected controls as Settings. */
-@Composable
-fun BackgroundPickerDialog(onDismiss: () -> Unit) {
-  val prefs = koinInject<AppearancePreferences>()
-  val picked by prefs.backgroundType.collectAsState()
-  val interval by prefs.randomBackgroundInterval.collectAsState()
-  val parallax by prefs.backgroundParallax.collectAsState()
-  val overWallpaper by prefs.backgroundOverWallpaper.collectAsState()
-  val seasonal by prefs.seasonalThemes.collectAsState()
-  val active = rememberActiveBackground()
-  val listState = rememberLazyListState()
-  val previewVisible by remember {
-    derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.key == "preview" } }
-  }
-  val haptics = rememberAppHaptics()
-  val scope = rememberCoroutineScope()
-  val choose: (BackgroundType) -> Unit = { type ->
-    if (type != picked || type == BackgroundType.RANDOM) {
-      // Invalidate the shared random pick before publishing the mode change.
-      if (type == BackgroundType.RANDOM) RandomBackground.reroll(prefs)
-      prefs.backgroundType.set(type)
-      haptics.selection(true)
-      // Bring the live preview back into view after selecting a thumbnail further down the list.
-      scope.launch { listState.animateScrollToItem(0) }
+@Serializable
+object BackgroundAnimationPreferencesScreen : Screen {
+  @Composable
+  override fun Content() {
+    val backstack = LocalBackStack.current
+    val prefs = koinInject<AppearancePreferences>()
+    val picked by prefs.backgroundType.collectAsState()
+    val interval by prefs.randomBackgroundInterval.collectAsState()
+    val parallax by prefs.backgroundParallax.collectAsState()
+    val overWallpaper by prefs.backgroundOverWallpaper.collectAsState()
+    val seasonal by prefs.seasonalThemes.collectAsState()
+    val active = rememberActiveBackground()
+    val (listState, searchHighlight) =
+      rememberSettingsSearchList(BackgroundAnimationPreferencesScreen, MaterialTheme.colorScheme.primary)
+    val previewVisible by remember {
+      derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.key == "preview" } }
     }
-  }
+    val haptics = rememberAppHaptics()
+    val scope = rememberCoroutineScope()
+    val choose: (BackgroundType) -> Unit = { type ->
+      if (type != picked || type == BackgroundType.RANDOM) {
+        // Invalidate the shared random pick before publishing the mode change.
+        if (type == BackgroundType.RANDOM) RandomBackground.reroll(prefs)
+        prefs.backgroundType.set(type)
+        haptics.selection(true)
+        // Bring the live preview back into view after selecting a thumbnail further down the list.
+        scope.launch { listState.animateScrollToItem(0) }
+      }
+    }
 
-  DisposableEffect(Unit) {
-    BackdropGate.covers++
-    onDispose { BackdropGate.covers-- }
-  }
+    DisposableEffect(Unit) {
+      BackdropGate.covers++
+      onDispose { BackdropGate.covers-- }
+    }
 
-  Dialog(
-    onDismissRequest = onDismiss,
-    properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
-  ) {
-    Box(
-      modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-      contentAlignment = Alignment.TopCenter,
-    ) {
-      Column(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.systemBars).widthIn(max = 760.dp).fillMaxSize(),
-      ) {
-        // Use the exact same header component as the Change Icon settings screen.
-        // System-bar padding is already handled by the fullscreen dialog's parent.
+    Scaffold(
+      topBar = {
         SettingsTopAppBar(
-          title = stringResource(R.string.bg_picker_title),
-          onBack = onDismiss,
-          onClose = onDismiss,
-          windowInsets = WindowInsets(0, 0, 0, 0),
+          title = stringResource(R.string.bg_pref_title),
+          onBack = { backstack.popSafely() },
         )
-        LazyColumn(
-          state = listState,
-          contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-          verticalArrangement = Arrangement.spacedBy(16.dp),
-          modifier = Modifier.weight(1f),
+      },
+    ) { padding ->
+      ProvideExpressivePreferenceLocals {
+        Box(
+          modifier = Modifier.fillMaxSize().padding(padding),
+          contentAlignment = Alignment.TopCenter,
         ) {
-          item(key = "preview") {
-            Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
-              Surface(
-                shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-              ) {
-                Box(Modifier.fillMaxWidth().height(192.dp)) {
-                  AnimatedBackground(type = active.type, parallax = parallax, paused = !previewVisible)
-                  if (active.type == BackgroundType.NONE) {
-                    Icon(
-                      MaterialSymbols.RoundedFilled.Visibility_off,
-                      contentDescription = null,
-                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                      modifier = Modifier.align(Alignment.Center).size(40.dp),
+          LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.widthIn(max = 760.dp).fillMaxSize().then(searchHighlight),
+          ) {
+            item(key = "preview") {
+              Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+                Surface(
+                  shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
+                  color = MaterialTheme.colorScheme.surfaceContainerLow,
+                ) {
+                  Box(Modifier.fillMaxWidth().height(192.dp)) {
+                    AnimatedBackground(type = active.type, parallax = parallax, paused = !previewVisible)
+                    if (active.type == BackgroundType.NONE) {
+                      Icon(
+                        MaterialSymbols.RoundedFilled.Visibility_off,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.Center).size(40.dp),
+                      )
+                    }
+                  }
+                }
+                Surface(
+                  shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
+                  color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                  Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+                    Text(
+                      stringResource(R.string.bg_preview, stringResource(active.type.labelRes)),
+                      style = MaterialTheme.typography.titleMedium,
+                      fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                      stringResource(R.string.bg_picker_description),
+                      style = MaterialTheme.typography.bodyMedium,
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                   }
                 }
               }
-              Surface(
-                shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-              ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            }
+            item(key = "mode") {
+              ChoiceGrid(items = listOf(BackgroundType.NONE, BackgroundType.RANDOM), maxColumns = 2) { type, index, count, columns, modifier ->
+                ChoiceTile(
+                  selected = picked == type,
+                  icon = iconFor(type),
+                  label = stringResource(type.labelRes),
+                  shape = rememberConnectedShape(index, count, ConnectedLayout.Grid, columns),
+                  modifier = modifier.settingsSearchTarget(type.labelRes),
+                  onClick = { choose(type) },
+                )
+              }
+            }
+            if (picked == BackgroundType.RANDOM) {
+              item(key = "interval") {
+                Column(modifier = backgroundItemMotion(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                  SectionTitle(R.string.bg_interval_title)
+                  ChoiceGrid(items = RandomInterval.entries, maxColumns = 3) { item, index, count, columns, modifier ->
+                    ChoiceTile(
+                      selected = interval == item,
+                      icon = iconFor(item),
+                      label = stringResource(item.labelRes),
+                      shape = rememberConnectedShape(index, count, ConnectedLayout.Grid, columns),
+                      modifier = modifier.settingsSearchTarget(item.labelRes),
+                      onClick = {
+                        if (interval != item) {
+                          RandomBackground.reroll(prefs)
+                          prefs.randomBackgroundInterval.set(item)
+                          haptics.selection(true)
+                          scope.launch { listState.animateScrollToItem(0) }
+                        }
+                      },
+                    )
+                  }
+                }
+              }
+            }
+            if (active.event != null && active.type.isSeasonal && picked != BackgroundType.NONE) {
+              item(key = "seasonal_notice") {
+                Surface(modifier = backgroundItemMotion(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
                   Text(
-                    stringResource(R.string.bg_preview, stringResource(active.type.labelRes)),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                  )
-                  Text(
-                    stringResource(R.string.bg_picker_description),
+                    stringResource(R.string.bg_seasonal_notice, stringResource(active.type.labelRes)),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                   )
                 }
               }
             }
-          }
-          item(key = "mode") {
-            ChoiceGrid(items = listOf(BackgroundType.NONE, BackgroundType.RANDOM), maxColumns = 2) { type, index, count, columns, modifier ->
-              ChoiceTile(
-                selected = picked == type,
-                icon = iconFor(type),
-                label = stringResource(type.labelRes),
-                shape = rememberConnectedShape(index, count, ConnectedLayout.Grid, columns),
-                modifier = modifier,
-                onClick = { choose(type) },
-              )
-            }
-          }
-          if (picked == BackgroundType.RANDOM) {
-            item(key = "interval") {
+            item(key = "geometric") { BackgroundSection(R.string.bg_geometric, GeometricBackgrounds, picked, choose, backgroundItemMotion()) }
+            item(key = "nature") { BackgroundSection(R.string.bg_nature, NatureBackgrounds, picked, choose, backgroundItemMotion()) }
+            item(key = "sky") { BackgroundSection(R.string.bg_sky, SkyBackgrounds, picked, choose, backgroundItemMotion()) }
+            item(key = "behavior") {
               Column(modifier = backgroundItemMotion(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionTitle(R.string.bg_interval_title)
-                ChoiceGrid(items = RandomInterval.entries, maxColumns = 3) { item, index, count, columns, modifier ->
-                  ChoiceTile(
-                    selected = interval == item,
-                    icon = iconFor(item),
-                    label = stringResource(item.labelRes),
-                    shape = rememberConnectedShape(index, count, ConnectedLayout.Grid, columns),
-                    modifier = modifier,
-                    onClick = {
-                      if (interval != item) {
-                        RandomBackground.reroll(prefs)
-                        prefs.randomBackgroundInterval.set(item)
-                        haptics.selection(true)
-                        scope.launch { listState.animateScrollToItem(0) }
-                      }
-                    },
-                  )
-                }
-              }
-            }
-          }
-          if (active.event != null && active.type.isSeasonal && picked != BackgroundType.NONE) {
-            item(key = "seasonal_notice") {
-              Surface(modifier = backgroundItemMotion(), shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
-                Text(
-                  stringResource(R.string.bg_seasonal_notice, stringResource(active.type.labelRes)),
-                  style = MaterialTheme.typography.bodyMedium,
-                  modifier = Modifier.fillMaxWidth().padding(16.dp),
-                )
-              }
-            }
-          }
-          item(key = "geometric") { BackgroundSection(R.string.bg_geometric, GeometricBackgrounds, picked, choose, backgroundItemMotion()) }
-          item(key = "nature") { BackgroundSection(R.string.bg_nature, NatureBackgrounds, picked, choose, backgroundItemMotion()) }
-          item(key = "sky") { BackgroundSection(R.string.bg_sky, SkyBackgrounds, picked, choose, backgroundItemMotion()) }
-          item(key = "behavior") {
-            Column(modifier = backgroundItemMotion(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-              SectionTitle(R.string.bg_behavior)
-              // A dialog opened from a PreferenceCard must not inherit the parent's
-              // transparent row styling: these three rows own their connected surfaces.
-              CompositionLocalProvider(LocalInsidePreferenceCard provides false) {
-                Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+                SectionTitle(R.string.bg_behavior)
+                ExpressivePreferenceGroup {
                   SwitchPreference(
-                  value = parallax,
-                  onValueChange = { prefs.backgroundParallax.set(it) },
-                  title = { Text(stringResource(R.string.bg_parallax_title)) },
-                  summary = { Text(stringResource(R.string.bg_parallax_summary)) },
-                  icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Screen_rotation) },
-                  enabled = picked != BackgroundType.NONE,
-                  groupIndex = 0,
-                  groupSize = 3,
-                )
-                SwitchPreference(
-                  value = overWallpaper,
-                  onValueChange = { prefs.backgroundOverWallpaper.set(it) },
-                  title = { Text(stringResource(R.string.bg_over_wallpaper_title)) },
-                  summary = { Text(stringResource(R.string.bg_over_wallpaper_summary)) },
-                  icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Image) },
-                  enabled = picked != BackgroundType.NONE,
-                  groupIndex = 1,
-                  groupSize = 3,
-                )
-                SwitchPreference(
-                  value = seasonal,
-                  onValueChange = { prefs.seasonalThemes.set(it) },
-                  title = { Text(stringResource(R.string.bg_seasonal_title)) },
-                  summary = { Text(stringResource(R.string.bg_seasonal_summary)) },
-                  icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Celebration) },
-                  groupIndex = 2,
-                  groupSize = 3,
-                )
+                    modifier = Modifier.settingsSearchTarget(R.string.bg_parallax_title),
+                    value = parallax,
+                    onValueChange = { prefs.backgroundParallax.set(it) },
+                    title = { Text(stringResource(R.string.bg_parallax_title)) },
+                    summary = { Text(stringResource(R.string.bg_parallax_summary)) },
+                    icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Screen_rotation) },
+                    enabled = picked != BackgroundType.NONE,
+                    groupIndex = 0,
+                    groupSize = 3,
+                  )
+                  SwitchPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.bg_over_wallpaper_title),
+                    value = overWallpaper,
+                    onValueChange = { prefs.backgroundOverWallpaper.set(it) },
+                    title = { Text(stringResource(R.string.bg_over_wallpaper_title)) },
+                    summary = { Text(stringResource(R.string.bg_over_wallpaper_summary)) },
+                    icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Image) },
+                    enabled = picked != BackgroundType.NONE,
+                    groupIndex = 1,
+                    groupSize = 3,
+                  )
+                  SwitchPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.bg_seasonal_title),
+                    value = seasonal,
+                    onValueChange = { prefs.seasonalThemes.set(it) },
+                    title = { Text(stringResource(R.string.bg_seasonal_title)) },
+                    summary = { Text(stringResource(R.string.bg_seasonal_summary)) },
+                    icon = { PreferenceIcon(MaterialSymbols.RoundedFilled.Celebration) },
+                    groupIndex = 2,
+                    groupSize = 3,
+                  )
                 }
               }
             }
@@ -321,7 +316,7 @@ private fun BackgroundSection(
         label = stringResource(type.labelRes),
         shape = rememberConnectedShape(index, count, ConnectedLayout.Grid, columns),
         artwork = type,
-        modifier = modifier,
+        modifier = modifier.settingsSearchTarget(type.labelRes),
         onClick = { choose(type) },
       )
     }

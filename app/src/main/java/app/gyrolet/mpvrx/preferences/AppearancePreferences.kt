@@ -119,7 +119,7 @@ class AppearancePreferences(
     deserializer = { stored ->
       val defaults = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE")
       val parsed = stored.split(",").map(String::trim).filter { it in defaults }.distinct()
-      parsed + defaults.filterNot { it in parsed }
+      listOf("HOME") + parsed.filterNot { it == "HOME" } + defaults.drop(1).filterNot { it in parsed }
     },
   )
   val showQuickPlayFab = preferenceStore.getBoolean("show_quick_play_fab", true)
