@@ -2721,4 +2721,10 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_thumbnail_generator_auto">Automatisch (Standard)</string>
   <string name="pref_thumbnail_generator_auto_summary">Zuerst MediaStore versuchen; wenn ein Vorschaubild oder Songcover fehlt, Native verwenden, auch in versteckten Ordnern. Ein Moduswechsel leert den Vorschaubild-Cache.</string>
   <string name="thumbnail_strategy_auto">Zuerst MediaStore, dann Native als Ausweichlösung</string>
+
+  <string name="update_download_failed">Download fehlgeschlagen. Zum Fortsetzen auf Erneut versuchen tippen.</string>
+  <string name="update_install_failed">Installationsprogramm konnte nicht geöffnet werden. Bitte erneut versuchen.</string>
+  <string name="update_install_permission">In den Android-Einstellungen die Installation von Updates durch diese App erlauben und erneut auf Installieren tippen.</string>
+  <string name="update_checking_download">Heruntergeladene APK wird geprüft…</string>
+  <string name="update_check_failed">Updates konnten nicht geprüft werden. Verbindung prüfen oder später erneut versuchen.</string>
 </resources>

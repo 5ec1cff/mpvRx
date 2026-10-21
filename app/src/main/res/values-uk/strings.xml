@@ -2691,4 +2691,10 @@
   <string name="pref_thumbnail_generator_auto">Авто (за замовчуванням)</string>
   <string name="pref_thumbnail_generator_auto_summary">Спочатку використовується MediaStore; якщо мініатюра або обкладинка пісні недоступна, використовується Native, зокрема у прихованих папках. Зміна режиму очищає кеш мініатюр.</string>
   <string name="thumbnail_strategy_auto">Спочатку MediaStore, потім Native у разі невдачі</string>
+
+  <string name="update_download_failed">Помилка завантаження. Натисніть «Повторити», щоб продовжити.</string>
+  <string name="update_install_failed">Не вдалося відкрити програму встановлення. Повторіть спробу.</string>
+  <string name="update_install_permission">Дозвольте цій програмі встановлювати оновлення в налаштуваннях Android, а потім знову натисніть «Установити».</string>
+  <string name="update_checking_download">Перевірка завантаженого APK…</string>
+  <string name="update_check_failed">Не вдалося перевірити оновлення. Перевірте з’єднання або повторіть спробу пізніше.</string>
 </resources>

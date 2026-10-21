@@ -26,11 +26,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,7 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.domain.update.Asset
 import app.gyrolet.mpvrx.domain.update.Release
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -53,122 +54,141 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Bottom sheet shown when a new release is available or downloaded. Release notes arrive as
- * GitHub-flavoured Markdown and are rendered by the Material 3 Markdown library.
+ * One sheet owns the complete update flow, including progress, errors and installation.
+ * Its composition and sheet state survive update checks and download completion.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateSheet(
-  release: Release,
-  asset: Asset,
-  isDownloading: Boolean,
-  progress: Float,
-  isInstallReady: Boolean,
+  state: UpdateUiState,
   currentVersion: String,
   onDismiss: () -> Unit,
-  onAction: () -> Unit,
+  onDownload: () -> Unit,
+  onInstall: () -> Unit,
   onIgnore: () -> Unit,
+  onRetryCheck: () -> Unit,
 ) {
-  val sheetState =
-    rememberBottomSheetState(
-      initialValue = SheetValue.Hidden,
-      enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-    )
-  val latestVersion =
-    release.experimentalBuildNumber?.let { buildNumber ->
-      stringResource(R.string.update_experimental_build_format, buildNumber)
-    } ?: release.previewBuildNumber?.let { buildNumber ->
-      stringResource(R.string.update_beta_build_format, buildNumber)
-    } ?: release.tagName.removePrefix("v")
+  val sheetState = rememberBottomSheetState(
+    initialValue = SheetValue.Hidden,
+    enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+  )
+  val release = state.release
+  val asset = state.asset
 
   ModalBottomSheet(
-    onDismissRequest = { if (!isDownloading) onDismiss() },
+    onDismissRequest = { if (!state.isDownloading) onDismiss() },
     sheetState = sheetState,
+    sheetGesturesEnabled = !state.isDownloading,
+    properties = ModalBottomSheetProperties(
+      shouldDismissOnBackPress = !state.isDownloading,
+      shouldDismissOnClickOutside = !state.isDownloading,
+    ),
   ) {
     Column(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .navigationBarsPadding()
-          .padding(horizontal = 24.dp),
+      modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp),
     ) {
       SheetHeader(
-        isInstallReady = isInstallReady,
-        latestVersion = latestVersion,
+        isInstallReady = state.readyToInstall,
+        latestVersion = release?.let { releaseVersion(it) }.orEmpty(),
       )
-
-      Spacer(modifier = Modifier.height(16.dp))
-
       Column(
-        modifier =
-          Modifier
-            .weight(1f, fill = false)
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
       ) {
-        VersionTransitionRow(currentVersion = currentVersion, latestVersion = latestVersion)
-        Spacer(modifier = Modifier.height(8.dp))
-        ReleaseMetaRow(
-          publishedAt = if (release.isExperimental) release.updatedAt ?: release.publishedAt else release.publishedAt,
-          sizeBytes = asset.size,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        MetaItem(label = stringResource(R.string.update_package), value = asset.variantLabel)
+        Spacer(Modifier.height(12.dp))
+        if (state.checking) {
+          Row(
+            modifier = Modifier.padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            Text(stringResource(R.string.ui_check_for_updates_now), style = MaterialTheme.typography.bodySmall)
+          }
+        }
+        if (state.checkError) {
+          Text(stringResource(R.string.update_check_failed), color = MaterialTheme.colorScheme.error)
+          TextButton(onClick = onRetryCheck, enabled = !state.isDownloading) {
+            Text(stringResource(R.string.ui_retry))
+          }
+        }
+        if (state.noUpdate) {
+          Text(stringResource(R.string.ui_already_using_latest_version))
+        }
 
-        HorizontalDivider(
-          modifier = Modifier.padding(vertical = 16.dp),
-          color = MaterialTheme.colorScheme.outlineVariant,
-        )
-
-        Text(
-          text = stringResource(R.string.update_whats_new),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.SemiBold,
-          color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Markdown(
-          content = release.body.ifBlank { stringResource(R.string.update_no_release_notes) },
-          modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        if (release != null && asset != null) {
+          Spacer(Modifier.height(8.dp))
+          VersionTransitionRow(currentVersion, releaseVersion(release))
+          Spacer(Modifier.height(8.dp))
+          ReleaseMetaRow(
+            publishedAt = if (release.isExperimental) release.updatedAt ?: release.publishedAt else release.publishedAt,
+            sizeBytes = asset.size,
+          )
+          Spacer(Modifier.height(8.dp))
+          MetaItem(stringResource(R.string.update_package), asset.variantLabel)
+          HorizontalDivider(Modifier.padding(vertical = 16.dp))
+          Text(
+            stringResource(R.string.update_whats_new),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+          )
+          Spacer(Modifier.height(8.dp))
+          Markdown(
+            content = release.body.ifBlank { stringResource(R.string.update_no_release_notes) },
+            modifier = Modifier.fillMaxWidth(),
+          )
+          Spacer(Modifier.height(16.dp))
+        }
       }
 
-      if (isDownloading) {
-        DownloadProgressSection(progress = progress)
+      if (state.downloadError) {
+        Text(stringResource(R.string.update_download_failed), color = MaterialTheme.colorScheme.error)
       }
-
+      if (state.installError) {
+        Text(stringResource(R.string.update_install_failed), color = MaterialTheme.colorScheme.error)
+      }
+      if (state.installPermissionRequired) {
+        Text(stringResource(R.string.update_install_permission), style = MaterialTheme.typography.bodySmall)
+      }
+      if (state.isDownloading) DownloadProgressSection(state.progress)
+      if (state.selecting) {
+        Text(stringResource(R.string.update_checking_download), style = MaterialTheme.typography.bodySmall)
+      }
       Row(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        if (!isDownloading && !isInstallReady) {
-          TextButton(onClick = onIgnore) {
-            Text(stringResource(R.string.ui_ignore))
-          }
+        if (!state.isDownloading && !state.readyToInstall && release != null) {
+          TextButton(onClick = onIgnore, enabled = !state.selecting) { Text(stringResource(R.string.ui_ignore)) }
         }
-        Spacer(modifier = Modifier.weight(1f))
-        if (!isDownloading) {
-          TextButton(onClick = onDismiss) {
-            Text(stringResource(R.string.generic_cancel))
-          }
-          Button(onClick = onAction) {
-            Text(
-              if (isInstallReady) {
-                stringResource(R.string.ui_install)
-              } else {
-                stringResource(R.string.ui_download)
-              },
-            )
+        Spacer(Modifier.weight(1f))
+        if (!state.isDownloading) {
+          TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }
+          if (release != null && asset != null) {
+            Button(
+              onClick = if (state.readyToInstall) onInstall else onDownload,
+              enabled = !state.selecting && !state.checking,
+            ) {
+              Text(stringResource(
+                when {
+                  state.readyToInstall -> R.string.ui_install
+                  state.downloadError -> R.string.ui_retry
+                  else -> R.string.ui_download
+                },
+              ))
+            }
           }
         }
       }
     }
   }
 }
+
+@Composable
+private fun releaseVersion(release: Release): String =
+  release.experimentalBuildNumber?.let { stringResource(R.string.update_experimental_build_format, it) }
+    ?: release.previewBuildNumber?.let { stringResource(R.string.update_beta_build_format, it) }
+    ?: release.tagName.removePrefix("v")
 
 @Composable
 private fun SheetHeader(
@@ -196,13 +216,17 @@ private fun SheetHeader(
       Text(
         text =
           stringResource(
-            if (isInstallReady) R.string.update_ready_to_install else R.string.update_available,
+            when {
+              isInstallReady -> R.string.update_ready_to_install
+              latestVersion.isBlank() -> R.string.pref_section_updates
+              else -> R.string.update_available
+            },
           ),
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.onSurface,
       )
       Text(
-        text = stringResource(R.string.update_version_format, latestVersion),
+        text = if (latestVersion.isBlank()) "" else stringResource(R.string.update_version_format, latestVersion),
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
       )
@@ -306,19 +330,25 @@ private fun DownloadProgressSection(progress: Float) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
-      Text(
-        text = stringResource(R.string.update_progress_percent, progress.toInt()),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.primary,
-      )
+      if (progress >= 0f) {
+        Text(
+          text = stringResource(R.string.update_progress_percent, progress.toInt().coerceIn(0, 100)),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.primary,
+        )
+      }
     }
     Spacer(modifier = Modifier.height(8.dp))
-    LinearProgressIndicator(
-      progress = { if (progress >= 0) progress / 100f else 0f },
-      modifier = Modifier.fillMaxWidth(),
-      color = MaterialTheme.colorScheme.primary,
-      trackColor = MaterialTheme.colorScheme.surfaceVariant,
-    )
+    if (progress < 0f) {
+      LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    } else {
+      LinearProgressIndicator(
+        progress = { (progress / 100f).coerceIn(0f, 1f) },
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+      )
+    }
     Spacer(modifier = Modifier.height(8.dp))
   }
 }
@@ -346,3 +376,4 @@ private fun formatDate(dateString: String): String {
     dateString
   }
 }
+

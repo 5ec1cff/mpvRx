@@ -2721,4 +2721,10 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_thumbnail_generator_auto">Automático (predeterminado)</string>
   <string name="pref_thumbnail_generator_auto_summary">Primero intenta MediaStore; usa Native si no hay miniatura o portada de la canción, también en carpetas ocultas. Cambiar de modo borra las miniaturas en caché.</string>
   <string name="thumbnail_strategy_auto">Primero MediaStore y después Native como alternativa</string>
+
+  <string name="update_download_failed">La descarga falló. Toca Reintentar para continuar.</string>
+  <string name="update_install_failed">No se pudo abrir el instalador. Puedes volver a intentarlo.</string>
+  <string name="update_install_permission">Permite que esta aplicación instale actualizaciones en los ajustes de Android y vuelve a tocar Instalar.</string>
+  <string name="update_checking_download">Comprobando el APK descargado…</string>
+  <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba la conexión o inténtalo más tarde.</string>
 </resources>

@@ -2721,4 +2721,10 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_thumbnail_generator_auto">Auto (par défaut)</string>
   <string name="pref_thumbnail_generator_auto_summary">Essayer MediaStore en premier, puis utiliser Native si la miniature ou la pochette est indisponible, y compris dans les dossiers masqués. Changer de mode efface les miniatures en cache.</string>
   <string name="thumbnail_strategy_auto">MediaStore en premier, puis Native en secours</string>
+
+  <string name="update_download_failed">Échec du téléchargement. Appuyez sur Réessayer pour reprendre.</string>
+  <string name="update_install_failed">Impossible d’ouvrir le programme d’installation. Vous pouvez réessayer.</string>
+  <string name="update_install_permission">Autorisez cette application à installer des mises à jour dans les paramètres Android, puis appuyez à nouveau sur Installer.</string>
+  <string name="update_checking_download">Vérification de l’APK téléchargé…</string>
+  <string name="update_check_failed">Impossible de rechercher des mises à jour. Vérifiez la connexion ou réessayez plus tard.</string>
 </resources>

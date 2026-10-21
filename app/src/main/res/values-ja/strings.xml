@@ -2706,4 +2706,10 @@
   <string name="pref_thumbnail_generator_auto">自動（デフォルト）</string>
   <string name="pref_thumbnail_generator_auto_summary">最初にMediaStoreを試し、サムネイルや曲のカバーを取得できない場合はNativeを使用します。隠しフォルダにも適用されます。モードを切り替えるとキャッシュ済みのサムネイルが消去されます。</string>
   <string name="thumbnail_strategy_auto">最初にMediaStore、取得できない場合はNative</string>
+
+  <string name="update_download_failed">ダウンロードに失敗しました。「再試行」をタップすると再開します。</string>
+  <string name="update_install_failed">インストーラーを開けませんでした。もう一度お試しください。</string>
+  <string name="update_install_permission">Android の設定でこのアプリによる更新のインストールを許可し、再度「インストール」をタップしてください。</string>
+  <string name="update_checking_download">ダウンロードした APK を確認中…</string>
+  <string name="update_check_failed">更新を確認できませんでした。接続を確認するか、後でもう一度お試しください。</string>
 </resources>
