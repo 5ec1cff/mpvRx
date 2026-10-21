@@ -2625,4 +2625,46 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="color_picker_brightness">Brilho</string>
     <string name="only_for_video_list">Somente para a lista de vídeos</string>
     <string name="only_for_folder_list">Somente para a lista de pastas</string>
+  <string name="selection_info_title">Detalhes da seleção</string>
+  <string name="selection_info_folders">Pastas</string>
+  <string name="selection_info_total_size">Tamanho total</string>
+  <string name="selection_info_total_duration">Duração total</string>
+  <string name="selection_info_average_duration">Duração média</string>
+  <string name="selection_info_average_size">Tamanho médio</string>
+  <string name="selection_info_resolutions">Resoluções</string>
+  <string name="selection_info_codecs">Codecs de vídeo</string>
+  <string name="selection_info_formats">Formatos</string>
+  <string name="selection_info_frame_rates">Taxas de quadros</string>
+  <string name="selection_info_subtitles">Legendas incorporadas</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Arquivo mais longo</string>
+  <string name="selection_info_largest">Maior arquivo</string>
+  <string name="selection_info_modified">Data de modificação</string>
+  <string name="selection_info_items">Itens selecionados</string>
+  <string name="selection_info_scanning">Verificando pastas (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Não foi possível carregar os detalhes da seleção. Verifique o acesso às pastas e tente novamente.</string>
+  <string name="selection_info_folder_unreadable">Não foi possível ler os arquivos de mídia em %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f quadros/s</string>
+  <string name="selection_info_metadata_note">O resumo usa os metadados disponíveis na biblioteca. Toque em um arquivo para ver todos os metadados.</string>
+  <string name="selection_info_missing_metadata">Metadados indisponíveis</string>
+  <string name="selection_info_missing_metadata_value">Arquivos com tamanho desconhecido: %1$d; duração desconhecida: %2$d. Os totais e as médias consideram apenas os valores conhecidos.</string>
+  <string name="selection_info_no_media">Nenhuma mídia reproduzível encontrada nas pastas selecionadas</string>
+  <string name="selection_info_copy_summary">Copiar resumo</string>
+  <string name="selection_info_open_media_info">Abrir informações completas da mídia</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d vídeo</item>
+    <item quantity="other">%1$d vídeos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d arquivo de áudio</item>
+    <item quantity="other">%1$d arquivos de áudio</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d arquivo</item>
+    <item quantity="other">%1$d arquivos</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d pasta</item>
+    <item quantity="other">%1$d pastas</item>
+  </plurals>
 </resources>

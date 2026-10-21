@@ -102,6 +102,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.FileOperationProgressDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderPickerDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.LoadingDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoCompressorOverlay
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoSortDialog
 import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
@@ -236,6 +237,10 @@ data class VideoListScreen(
         onOperationComplete = { viewModel.refresh() },
       )
     val selectedVideos = selectionManager.getSelectedItems()
+    val showSelectionInfo = rememberSelectionInfoAction(
+      videos = { selectionManager.getSelectedItems() },
+      onSingleOpened = { selectionManager.clear() },
+    )
     val watchedVideoIds = remember(sortedVideosWithInfo) {
       sortedVideosWithInfo.filter(VideoWithPlaybackInfo::isWatched).mapTo(hashSetOf()) { it.video.id }
     }
@@ -417,18 +422,7 @@ data class VideoListScreen(
           onTitleDoubleTap = { backstack.navigateTo(SecureFolderGateScreen) },
           onTitleLongPress = { backstack.navigateTo(SecureFolderGateScreen) },
           isSingleSelection = selectionManager.isSingleSelection,
-          onInfoClick = {
-            if (selectionManager.isSingleSelection) {
-              val video = selectionManager.getSelectedItems().firstOrNull()
-              if (video != null) {
-                val intent = Intent(context, app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity::class.java)
-                intent.action = Intent.ACTION_VIEW
-                intent.data = video.uri
-                context.startActivity(intent)
-                selectionManager.clear()
-              }
-            }
-          },
+          onInfoClick = showSelectionInfo,
           onShareClick = { selectionManager.shareSelected() },
           onPlayClick = { selectionManager.playSelected() },
           onSelectAll = { selectionManager.selectAll() },

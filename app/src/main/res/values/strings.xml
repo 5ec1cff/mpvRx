@@ -625,6 +625,49 @@
   <string name="sort">Sort</string>
   <string name="rename">Rename</string>
   <string name="info">Info</string>
+  <!-- Selection details sheet (Info on multi-selections) -->
+  <string name="selection_info_title">Selection details</string>
+  <string name="selection_info_folders">Folders</string>
+  <string name="selection_info_total_size">Total size</string>
+  <string name="selection_info_total_duration">Total duration</string>
+  <string name="selection_info_average_duration">Average length</string>
+  <string name="selection_info_average_size">Average size</string>
+  <string name="selection_info_resolutions">Resolutions</string>
+  <string name="selection_info_codecs">Video codecs</string>
+  <string name="selection_info_formats">Formats</string>
+  <string name="selection_info_frame_rates">Frame rates</string>
+  <string name="selection_info_subtitles">Embedded subtitles</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Longest</string>
+  <string name="selection_info_largest">Largest</string>
+  <string name="selection_info_modified">Date modified</string>
+  <string name="selection_info_items">Selected items</string>
+  <string name="selection_info_scanning">Scanning folders (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Could not load selection details. Check folder access and try again.</string>
+  <string name="selection_info_folder_unreadable">Could not read media in %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f FPS</string>
+  <string name="selection_info_metadata_note">Summary uses available library metadata. Tap a file for full metadata.</string>
+  <string name="selection_info_missing_metadata">Unavailable metadata</string>
+  <string name="selection_info_missing_metadata_value">Files with unknown size: %1$d; unknown duration: %2$d. Totals and averages use known values only.</string>
+  <string name="selection_info_no_media">No playable media found in the selected folders</string>
+  <string name="selection_info_copy_summary">Copy summary</string>
+  <string name="selection_info_open_media_info">Open full media info</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d video</item>
+    <item quantity="other">%1$d videos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d audio file</item>
+    <item quantity="other">%1$d audio files</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d file</item>
+    <item quantity="other">%1$d files</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d folder</item>
+    <item quantity="other">%1$d folders</item>
+  </plurals>
   <string name="delete">Delete</string>
   <string name="got_it">Got it</string>
   <string name="general">General</string>

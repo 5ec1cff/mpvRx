@@ -126,6 +126,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.FolderSortDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.BrowserSortDialogScope
 import app.gyrolet.mpvrx.ui.browser.dialogs.rememberBrowserSortDialogOpen
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction
 import app.gyrolet.mpvrx.ui.browser.filesystem.FileSystemBrowserRootScreen
 import app.gyrolet.mpvrx.ui.browser.medialibrary.MediaLibraryContent
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
@@ -487,6 +488,19 @@ object FolderListScreen : Screen {
         onOperationComplete = { viewModel.refresh() },
       )
 
+    val showSelectionInfo = rememberSelectionInfoAction(
+      videos = { emptyList() },
+      onSingleOpened = {},
+      folders = { selectionManager.getSelectedItems() },
+      loadFolderVideos = { folder ->
+        app.gyrolet.mpvrx.repository.MediaFileRepository.getVideosInFolder(
+          context,
+          folder.bucketId,
+          includeAudioOverride = if (audioOnly) true else null,
+        )
+      },
+    )
+
     fun moveSelectedFoldersToSecureFolder() {
       val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
       if (selectedIds.isEmpty()) return
@@ -712,7 +726,7 @@ object FolderListScreen : Screen {
               showBetaBadge = BuildConfig.IS_PREVIEW_BUILD,
               onRenameClick = null,
               isSingleSelection = selectionManager.isSingleSelection,
-              onInfoClick = null,
+              onInfoClick = showSelectionInfo,
               onShareClick = {
                 coroutineScope.launch {
                   val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()

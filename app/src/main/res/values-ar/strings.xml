@@ -2667,4 +2667,62 @@
   <string name="color_picker_brightness">السطوع</string>
     <string name="only_for_video_list">لقائمة الفيديوهات فقط</string>
     <string name="only_for_folder_list">لقائمة المجلدات فقط</string>
+  <string name="selection_info_title">تفاصيل العناصر المحددة</string>
+  <string name="selection_info_folders">المجلدات</string>
+  <string name="selection_info_total_size">الحجم الإجمالي</string>
+  <string name="selection_info_total_duration">المدة الإجمالية</string>
+  <string name="selection_info_average_duration">متوسط المدة</string>
+  <string name="selection_info_average_size">متوسط الحجم</string>
+  <string name="selection_info_resolutions">دقة العرض</string>
+  <string name="selection_info_codecs">ترميزات الفيديو</string>
+  <string name="selection_info_formats">التنسيقات</string>
+  <string name="selection_info_frame_rates">معدلات الإطارات</string>
+  <string name="selection_info_subtitles">الترجمات المضمنة</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">الملف الأطول</string>
+  <string name="selection_info_largest">الملف الأكبر</string>
+  <string name="selection_info_modified">تاريخ التعديل</string>
+  <string name="selection_info_items">العناصر المحددة</string>
+  <string name="selection_info_scanning">جارٍ فحص المجلدات (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">تعذّر تحميل تفاصيل العناصر المحددة. تحقّق من إذن الوصول إلى المجلدات وحاول مجددًا.</string>
+  <string name="selection_info_folder_unreadable">تعذّرت قراءة الوسائط في %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f إطار/ثانية</string>
+  <string name="selection_info_metadata_note">يستخدم الملخص البيانات الوصفية المتاحة في المكتبة. انقر على ملف لعرض بياناته الوصفية الكاملة.</string>
+  <string name="selection_info_missing_metadata">البيانات الوصفية غير المتاحة</string>
+  <string name="selection_info_missing_metadata_value">ملفات بحجم غير معروف: %1$d؛ بمدة غير معروفة: %2$d. تستخدم الإجماليات والمتوسطات القيم المعروفة فقط.</string>
+  <string name="selection_info_no_media">لم يتم العثور على وسائط قابلة للتشغيل في المجلدات المحددة</string>
+  <string name="selection_info_copy_summary">نسخ الملخص</string>
+  <string name="selection_info_open_media_info">فتح معلومات الوسائط الكاملة</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="zero">%1$d من مقاطع الفيديو</item>
+    <item quantity="one">مقطع فيديو واحد (%1$d)</item>
+    <item quantity="two">مقطعا فيديو (%1$d)</item>
+    <item quantity="few">%1$d مقاطع فيديو</item>
+    <item quantity="many">%1$d مقطع فيديو</item>
+    <item quantity="other">%1$d فيديو</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="zero">%1$d من الملفات الصوتية</item>
+    <item quantity="one">ملف صوتي واحد (%1$d)</item>
+    <item quantity="two">ملفان صوتيان (%1$d)</item>
+    <item quantity="few">%1$d ملفات صوتية</item>
+    <item quantity="many">%1$d ملفًا صوتيًا</item>
+    <item quantity="other">%1$d ملف صوتي</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="zero">%1$d من الملفات</item>
+    <item quantity="one">ملف واحد (%1$d)</item>
+    <item quantity="two">ملفان (%1$d)</item>
+    <item quantity="few">%1$d ملفات</item>
+    <item quantity="many">%1$d ملفًا</item>
+    <item quantity="other">%1$d ملف</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="zero">%1$d من المجلدات</item>
+    <item quantity="one">مجلد واحد (%1$d)</item>
+    <item quantity="two">مجلدان (%1$d)</item>
+    <item quantity="few">%1$d مجلدات</item>
+    <item quantity="many">%1$d مجلدًا</item>
+    <item quantity="other">%1$d مجلد</item>
+  </plurals>
 </resources>

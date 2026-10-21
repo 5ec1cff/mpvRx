@@ -2647,4 +2647,54 @@
   <string name="color_picker_brightness">Яркость</string>
     <string name="only_for_video_list">Только для списка видео</string>
     <string name="only_for_folder_list">Только для списка папок</string>
+  <string name="selection_info_title">Сведения о выбранном</string>
+  <string name="selection_info_folders">Папки</string>
+  <string name="selection_info_total_size">Общий размер</string>
+  <string name="selection_info_total_duration">Общая длительность</string>
+  <string name="selection_info_average_duration">Средняя длительность</string>
+  <string name="selection_info_average_size">Средний размер</string>
+  <string name="selection_info_resolutions">Разрешения</string>
+  <string name="selection_info_codecs">Видеокодеки</string>
+  <string name="selection_info_formats">Форматы</string>
+  <string name="selection_info_frame_rates">Частоты кадров</string>
+  <string name="selection_info_subtitles">Встроенные субтитры</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Самый длинный файл</string>
+  <string name="selection_info_largest">Самый большой файл</string>
+  <string name="selection_info_modified">Дата изменения</string>
+  <string name="selection_info_items">Выбранные элементы</string>
+  <string name="selection_info_scanning">Сканирование папок (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Не удалось загрузить сведения о выбранном. Проверьте доступ к папкам и повторите попытку.</string>
+  <string name="selection_info_folder_unreadable">Не удалось прочитать медиафайлы в %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f кадр/с</string>
+  <string name="selection_info_metadata_note">Сводка использует доступные метаданные библиотеки. Нажмите на файл, чтобы просмотреть все метаданные.</string>
+  <string name="selection_info_missing_metadata">Недоступные метаданные</string>
+  <string name="selection_info_missing_metadata_value">Файлов с неизвестным размером: %1$d; с неизвестной длительностью: %2$d. Итоги и средние значения учитывают только известные данные.</string>
+  <string name="selection_info_no_media">В выбранных папках не найдено воспроизводимых медиафайлов</string>
+  <string name="selection_info_copy_summary">Копировать сводку</string>
+  <string name="selection_info_open_media_info">Открыть полные сведения о медиафайле</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d видео</item>
+    <item quantity="few">%1$d видео</item>
+    <item quantity="many">%1$d видео</item>
+    <item quantity="other">%1$d видео</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d аудиофайл</item>
+    <item quantity="few">%1$d аудиофайла</item>
+    <item quantity="many">%1$d аудиофайлов</item>
+    <item quantity="other">%1$d аудиофайла</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d файл</item>
+    <item quantity="few">%1$d файла</item>
+    <item quantity="many">%1$d файлов</item>
+    <item quantity="other">%1$d файла</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d папка</item>
+    <item quantity="few">%1$d папки</item>
+    <item quantity="many">%1$d папок</item>
+    <item quantity="other">%1$d папки</item>
+  </plurals>
 </resources>

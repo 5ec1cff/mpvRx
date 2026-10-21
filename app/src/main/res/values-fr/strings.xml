@@ -2625,4 +2625,46 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="color_picker_brightness">Luminosité</string>
     <string name="only_for_video_list">Uniquement pour la liste des vidéos</string>
     <string name="only_for_folder_list">Uniquement pour la liste des dossiers</string>
+  <string name="selection_info_title">Détails de la sélection</string>
+  <string name="selection_info_folders">Dossiers</string>
+  <string name="selection_info_total_size">Taille totale</string>
+  <string name="selection_info_total_duration">Durée totale</string>
+  <string name="selection_info_average_duration">Durée moyenne</string>
+  <string name="selection_info_average_size">Taille moyenne</string>
+  <string name="selection_info_resolutions">Résolutions</string>
+  <string name="selection_info_codecs">Codecs vidéo</string>
+  <string name="selection_info_formats">Formats</string>
+  <string name="selection_info_frame_rates">Fréquences d\'images</string>
+  <string name="selection_info_subtitles">Sous-titres intégrés</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Fichier le plus long</string>
+  <string name="selection_info_largest">Fichier le plus volumineux</string>
+  <string name="selection_info_modified">Date de modification</string>
+  <string name="selection_info_items">Éléments sélectionnés</string>
+  <string name="selection_info_scanning">Analyse des dossiers (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Impossible de charger les détails de la sélection. Vérifiez l\'accès aux dossiers et réessayez.</string>
+  <string name="selection_info_folder_unreadable">Impossible de lire les médias dans %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f images/s</string>
+  <string name="selection_info_metadata_note">Le résumé utilise les métadonnées disponibles dans la bibliothèque. Appuyez sur un fichier pour afficher toutes ses métadonnées.</string>
+  <string name="selection_info_missing_metadata">Métadonnées indisponibles</string>
+  <string name="selection_info_missing_metadata_value">Fichiers de taille inconnue : %1$d ; de durée inconnue : %2$d. Les totaux et les moyennes ne prennent en compte que les valeurs connues.</string>
+  <string name="selection_info_no_media">Aucun média lisible trouvé dans les dossiers sélectionnés</string>
+  <string name="selection_info_copy_summary">Copier le résumé</string>
+  <string name="selection_info_open_media_info">Ouvrir les informations complètes du média</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d vidéo</item>
+    <item quantity="other">%1$d vidéos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d fichier audio</item>
+    <item quantity="other">%1$d fichiers audio</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d fichier</item>
+    <item quantity="other">%1$d fichiers</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d dossier</item>
+    <item quantity="other">%1$d dossiers</item>
+  </plurals>
 </resources>

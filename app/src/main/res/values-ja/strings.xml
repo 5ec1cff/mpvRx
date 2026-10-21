@@ -2614,4 +2614,42 @@
   <string name="color_picker_brightness">明るさ</string>
     <string name="only_for_video_list">動画リストのみに適用</string>
     <string name="only_for_folder_list">フォルダーリストのみに適用</string>
+  <string name="selection_info_title">選択項目の詳細</string>
+  <string name="selection_info_folders">フォルダー</string>
+  <string name="selection_info_total_size">合計サイズ</string>
+  <string name="selection_info_total_duration">合計再生時間</string>
+  <string name="selection_info_average_duration">平均再生時間</string>
+  <string name="selection_info_average_size">平均サイズ</string>
+  <string name="selection_info_resolutions">解像度</string>
+  <string name="selection_info_codecs">動画コーデック</string>
+  <string name="selection_info_formats">形式</string>
+  <string name="selection_info_frame_rates">フレームレート</string>
+  <string name="selection_info_subtitles">埋め込み字幕</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">最も長いファイル</string>
+  <string name="selection_info_largest">最も大きいファイル</string>
+  <string name="selection_info_modified">更新日時</string>
+  <string name="selection_info_items">選択した項目</string>
+  <string name="selection_info_scanning">フォルダーをスキャン中（%1$d/%2$d）…</string>
+  <string name="selection_info_scan_failed">選択項目の詳細を読み込めませんでした。フォルダーへのアクセス権を確認して、もう一度お試しください。</string>
+  <string name="selection_info_folder_unreadable">%1$s 内のメディアを読み込めませんでした</string>
+  <string name="selection_info_fps_value">%1$.2f フレーム/秒</string>
+  <string name="selection_info_metadata_note">概要にはライブラリで利用可能なメタデータを使用します。ファイルをタップすると、すべてのメタデータを表示できます。</string>
+  <string name="selection_info_missing_metadata">利用できないメタデータ</string>
+  <string name="selection_info_missing_metadata_value">サイズ不明のファイル：%1$d、再生時間不明のファイル：%2$d。合計と平均には既知の値のみを使用します。</string>
+  <string name="selection_info_no_media">選択したフォルダーに再生可能なメディアが見つかりませんでした</string>
+  <string name="selection_info_copy_summary">概要をコピー</string>
+  <string name="selection_info_open_media_info">メディア情報をすべて表示</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="other">動画 %1$d 本</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="other">音声ファイル %1$d 個</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="other">ファイル %1$d 個</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="other">フォルダー %1$d 個</item>
+  </plurals>
 </resources>

@@ -114,6 +114,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.rememberBrowserSortDialogOpen
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderPickerDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoCompressorOverlay
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.browser.sheets.PlayLinkSheet
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
@@ -323,6 +324,24 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val totalCount = items.size
   val onlyVideosSelected = selectedVideos.isNotEmpty() && selectedFolders.isEmpty()
   val foldersBlacklistedMessage = stringResource(app.gyrolet.mpvrx.R.string.pref_folders_blacklisted)
+  val showSelectionInfo = rememberSelectionInfoAction(
+    videos = { selectedVideos },
+    onSingleOpened = { selectionManager.clear() },
+    folders = {
+      selectedFolders.map { folder ->
+        app.gyrolet.mpvrx.domain.media.model.VideoFolder(
+          bucketId = folder.path,
+          name = folder.name,
+          path = folder.path,
+          videoCount = folder.videoCount,
+          totalSize = folder.totalSize,
+          totalDuration = folder.totalDuration,
+          lastModified = folder.lastModified / 1000,
+        )
+      }
+    },
+    loadFolderVideos = { folder -> collectVideosForSelectionInfo(context, folder.path) },
+  )
 
   suspend fun selectedPlayableVideos(): List<app.gyrolet.mpvrx.domain.media.model.Video> {
     val videosFromFolders =
@@ -576,21 +595,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               backstack.navigateTo(app.gyrolet.mpvrx.ui.preferences.PreferencesScreen)
             },
             isSingleSelection = selectionManager.isSingleSelection,
-            onInfoClick =
-              if (selectedVideos.size == 1 && selectedFolders.isEmpty()) {
-                {
-                  val video = selectedVideos.firstOrNull()
-                  if (video != null) {
-                    val intent = Intent(context, app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity::class.java)
-                    intent.action = Intent.ACTION_VIEW
-                    intent.data = video.uri
-                    context.startActivity(intent)
-                    selectionManager.clear()
-                  }
-                }
-              } else {
-                null
-              },
+            onInfoClick = showSelectionInfo,
             onShareClick = {
               coroutineScope.launch {
                 val videosToShare = selectedPlayableVideos()
@@ -1203,6 +1208,33 @@ private fun fileSystemSelectionId(item: FileSystemItem): String =
 /**
  * Recursively collects all videos from a folder and its subfolders
  */
+private suspend fun collectVideosForSelectionInfo(
+  context: Context,
+  folderPath: String,
+): List<app.gyrolet.mpvrx.domain.media.model.Video> {
+  val pending = ArrayDeque<String>()
+  val visited = mutableSetOf<String>()
+  val videos = mutableListOf<app.gyrolet.mpvrx.domain.media.model.Video>()
+  pending.add(folderPath)
+  while (pending.isNotEmpty()) {
+    kotlinx.coroutines.currentCoroutineContext().ensureActive()
+    val path = pending.removeFirst()
+    if (!visited.add(path)) continue
+    val items = if (ZipArchiveMedia.isBrowserPath(path)) {
+      ZipArchiveMedia.scan(context, path, includeAudio = false)
+    } else {
+      app.gyrolet.mpvrx.repository.MediaFileRepository.scanDirectory(context, path)
+    }.getOrThrow()
+    items.forEach { item ->
+      when (item) {
+        is FileSystemItem.VideoFile -> videos.add(item.video)
+        is FileSystemItem.Folder -> pending.add(item.path)
+      }
+    }
+  }
+  return videos
+}
+
 private suspend fun collectVideosRecursively(
   context: Context,
   folderPath: String,

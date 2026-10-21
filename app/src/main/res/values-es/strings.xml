@@ -2625,4 +2625,46 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="color_picker_brightness">Brillo</string>
     <string name="only_for_video_list">Solo para la lista de vídeos</string>
     <string name="only_for_folder_list">Solo para la lista de carpetas</string>
+  <string name="selection_info_title">Detalles de la selección</string>
+  <string name="selection_info_folders">Carpetas</string>
+  <string name="selection_info_total_size">Tamaño total</string>
+  <string name="selection_info_total_duration">Duración total</string>
+  <string name="selection_info_average_duration">Duración media</string>
+  <string name="selection_info_average_size">Tamaño medio</string>
+  <string name="selection_info_resolutions">Resoluciones</string>
+  <string name="selection_info_codecs">Códecs de vídeo</string>
+  <string name="selection_info_formats">Formatos</string>
+  <string name="selection_info_frame_rates">Tasas de fotogramas</string>
+  <string name="selection_info_subtitles">Subtítulos integrados</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Archivo más largo</string>
+  <string name="selection_info_largest">Archivo de mayor tamaño</string>
+  <string name="selection_info_modified">Fecha de modificación</string>
+  <string name="selection_info_items">Elementos seleccionados</string>
+  <string name="selection_info_scanning">Buscando en carpetas (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">No se pudieron cargar los detalles de la selección. Comprueba el acceso a las carpetas e inténtalo de nuevo.</string>
+  <string name="selection_info_folder_unreadable">No se pudieron leer los archivos multimedia de %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f fotogramas/s</string>
+  <string name="selection_info_metadata_note">El resumen utiliza los metadatos disponibles en la biblioteca. Toca un archivo para ver todos sus metadatos.</string>
+  <string name="selection_info_missing_metadata">Metadatos no disponibles</string>
+  <string name="selection_info_missing_metadata_value">Archivos con tamaño desconocido: %1$d; duración desconocida: %2$d. Los totales y las medias solo incluyen los valores conocidos.</string>
+  <string name="selection_info_no_media">No se encontraron archivos multimedia reproducibles en las carpetas seleccionadas</string>
+  <string name="selection_info_copy_summary">Copiar resumen</string>
+  <string name="selection_info_open_media_info">Abrir toda la información multimedia</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d vídeo</item>
+    <item quantity="other">%1$d vídeos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d archivo de audio</item>
+    <item quantity="other">%1$d archivos de audio</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d archivo</item>
+    <item quantity="other">%1$d archivos</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d carpeta</item>
+    <item quantity="other">%1$d carpetas</item>
+  </plurals>
 </resources>

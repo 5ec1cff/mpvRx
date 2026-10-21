@@ -2529,4 +2529,46 @@
   <string name="color_picker_brightness">चमक</string>
     <string name="only_for_video_list">केवल वीडियो सूची के लिए</string>
     <string name="only_for_folder_list">केवल फ़ोल्डर सूची के लिए</string>
+  <string name="selection_info_title">चयन का विवरण</string>
+  <string name="selection_info_folders">फ़ोल्डर</string>
+  <string name="selection_info_total_size">कुल आकार</string>
+  <string name="selection_info_total_duration">कुल अवधि</string>
+  <string name="selection_info_average_duration">औसत अवधि</string>
+  <string name="selection_info_average_size">औसत आकार</string>
+  <string name="selection_info_resolutions">रिज़ॉल्यूशन</string>
+  <string name="selection_info_codecs">वीडियो कोडेक</string>
+  <string name="selection_info_formats">फ़ॉर्मैट</string>
+  <string name="selection_info_frame_rates">फ़्रेम दर</string>
+  <string name="selection_info_subtitles">एम्बेड किए गए उपशीर्षक</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">सबसे लंबी फ़ाइल</string>
+  <string name="selection_info_largest">सबसे बड़ी फ़ाइल</string>
+  <string name="selection_info_modified">बदलाव की तारीख</string>
+  <string name="selection_info_items">चुने गए आइटम</string>
+  <string name="selection_info_scanning">फ़ोल्डर स्कैन हो रहे हैं (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">चयन का विवरण लोड नहीं हो सका। फ़ोल्डर की अनुमति जाँचें और फिर कोशिश करें।</string>
+  <string name="selection_info_folder_unreadable">%1$s में मीडिया पढ़ा नहीं जा सका</string>
+  <string name="selection_info_fps_value">%1$.2f फ़्रेम/सेकंड</string>
+  <string name="selection_info_metadata_note">सारांश में लाइब्रेरी में उपलब्ध मेटाडेटा का उपयोग किया जाता है। पूरा मेटाडेटा देखने के लिए किसी फ़ाइल पर टैप करें।</string>
+  <string name="selection_info_missing_metadata">अनुपलब्ध मेटाडेटा</string>
+  <string name="selection_info_missing_metadata_value">अज्ञात आकार वाली फ़ाइलें: %1$d; अज्ञात अवधि वाली फ़ाइलें: %2$d। कुल और औसत में केवल ज्ञात मान शामिल हैं।</string>
+  <string name="selection_info_no_media">चुने गए फ़ोल्डर में चलाने योग्य मीडिया नहीं मिला</string>
+  <string name="selection_info_copy_summary">सारांश कॉपी करें</string>
+  <string name="selection_info_open_media_info">मीडिया की पूरी जानकारी खोलें</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d वीडियो</item>
+    <item quantity="other">%1$d वीडियो</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d ऑडियो फ़ाइल</item>
+    <item quantity="other">%1$d ऑडियो फ़ाइलें</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d फ़ाइल</item>
+    <item quantity="other">%1$d फ़ाइलें</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d फ़ोल्डर</item>
+    <item quantity="other">%1$d फ़ोल्डर</item>
+  </plurals>
 </resources>

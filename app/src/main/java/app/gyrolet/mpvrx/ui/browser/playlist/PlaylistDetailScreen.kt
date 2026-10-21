@@ -281,7 +281,16 @@ data class PlaylistDetailScreen(
     val selectedItems = selectionManager.getSelectedItems()
     val isReadOnlySource = playlist?.isM3uPlaylist == true || playlist?.isZipPlaylist == true
 
+    val showSelectionInfo = app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction(
+      videos = { selectionManager.getSelectedItems().map { it.video } },
+      onSingleOpened = { selectionManager.clear() },
+    )
+
     fun openSelectedItemInfo() {
+      if (selectedItems.size > 1) {
+        showSelectionInfo()
+        return
+      }
       selectedItems.firstOrNull()?.let { item ->
         if (playlist?.isM3uPlaylist == true) {
           urlDialogContent = item.video.path
@@ -496,7 +505,7 @@ data class PlaylistDetailScreen(
             useRemoveIcon = true, // Remove from playlist, not delete the backing media.
             onInfoClick =
               if (
-                selectionManager.isSingleSelection &&
+                selectedItems.isNotEmpty() &&
                   playlist?.isXtreamPlaylist != true &&
                   playlist?.isZipPlaylist != true
               ) {

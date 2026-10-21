@@ -2625,4 +2625,46 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="color_picker_brightness">Helligkeit</string>
     <string name="only_for_video_list">Nur für die Videoliste</string>
     <string name="only_for_folder_list">Nur für die Ordnerliste</string>
+  <string name="selection_info_title">Auswahldetails</string>
+  <string name="selection_info_folders">Ordner</string>
+  <string name="selection_info_total_size">Gesamtgröße</string>
+  <string name="selection_info_total_duration">Gesamtdauer</string>
+  <string name="selection_info_average_duration">Durchschnittliche Dauer</string>
+  <string name="selection_info_average_size">Durchschnittliche Größe</string>
+  <string name="selection_info_resolutions">Auflösungen</string>
+  <string name="selection_info_codecs">Videocodecs</string>
+  <string name="selection_info_formats">Formate</string>
+  <string name="selection_info_frame_rates">Bildraten</string>
+  <string name="selection_info_subtitles">Eingebettete Untertitel</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Längste Datei</string>
+  <string name="selection_info_largest">Größte Datei</string>
+  <string name="selection_info_modified">Änderungsdatum</string>
+  <string name="selection_info_items">Ausgewählte Elemente</string>
+  <string name="selection_info_scanning">Ordner werden durchsucht (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Die Auswahldetails konnten nicht geladen werden. Prüfe den Ordnerzugriff und versuche es erneut.</string>
+  <string name="selection_info_folder_unreadable">Medien in %1$s konnten nicht gelesen werden</string>
+  <string name="selection_info_fps_value">%1$.2f Bilder/s</string>
+  <string name="selection_info_metadata_note">Die Zusammenfassung verwendet verfügbare Bibliotheksmetadaten. Tippe auf eine Datei, um alle Metadaten anzuzeigen.</string>
+  <string name="selection_info_missing_metadata">Nicht verfügbare Metadaten</string>
+  <string name="selection_info_missing_metadata_value">Dateien mit unbekannter Größe: %1$d; unbekannter Dauer: %2$d. Summen und Durchschnittswerte berücksichtigen nur bekannte Werte.</string>
+  <string name="selection_info_no_media">In den ausgewählten Ordnern wurden keine abspielbaren Medien gefunden</string>
+  <string name="selection_info_copy_summary">Zusammenfassung kopieren</string>
+  <string name="selection_info_open_media_info">Vollständige Medieninformationen öffnen</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d Video</item>
+    <item quantity="other">%1$d Videos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d Audiodatei</item>
+    <item quantity="other">%1$d Audiodateien</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d Datei</item>
+    <item quantity="other">%1$d Dateien</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d Ordner</item>
+    <item quantity="other">%1$d Ordner</item>
+  </plurals>
 </resources>

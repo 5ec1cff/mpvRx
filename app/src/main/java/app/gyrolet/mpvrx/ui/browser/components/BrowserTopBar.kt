@@ -498,7 +498,7 @@ private fun SelectionTopBar(
   val haptics = rememberAppHaptics()
   val reducedMotion = AppMotion.shouldReduceMotion()
   val selectionDropdownShape = RoundedCornerShape(16.dp)
-  val selectionActionCount = listOfNotNull(onSelectAll, onInvertSelection, onDeselectAll).size
+  val selectionActionCount = listOfNotNull(onSelectAll, onInvertSelection).size + 1
 
   TopAppBar(
     colors =
@@ -599,32 +599,22 @@ private fun SelectionTopBar(
               },
             )
           }
-          if (onDeselectAll != null) {
-            DropdownMenuItem(
-              text = { Text(stringResource(R.string.deselect_all)) },
-              index = (if (onSelectAll != null) 1 else 0) + (if (onInvertSelection != null) 1 else 0),
-              itemCount = selectionActionCount,
-              onClick = {
+          DropdownMenuItem(
+            text = { Text(stringResource(R.string.deselect_all)) },
+            index = (if (onSelectAll != null) 1 else 0) + (if (onInvertSelection != null) 1 else 0),
+            itemCount = selectionActionCount,
+            onClick = {
+              if (onDeselectAll != null) {
                 onDeselectAll()
                 if (selectedCount > 0) haptics.selection(false)
-                showDropdown = false
-              },
-            )
-          }
+              } else {
+                // onCancel already plays the deselect haptic.
+                onCancel()
+              }
+              showDropdown = false
+            },
+          )
         }
-      }
-    },
-    navigationIcon = {
-      IconButton(
-        onClick = onCancel,
-        modifier = Modifier.padding(horizontal = 2.dp).browserTopBarFocus(),
-      ) {
-        Icon(
-          Icons.RoundedFilled.Close,
-          contentDescription = stringResource(R.string.generic_cancel),
-          modifier = Modifier.size(28.dp),
-          tint = MaterialTheme.colorScheme.secondary.onWallpaper(),
-        )
       }
     },
     actions = {
@@ -680,20 +670,20 @@ private fun SelectionTopBar(
         }
       }
 
-      // Info icon
       if (onInfo != null) {
+        val infoEnabled = selectedCount > 0
         IconButton(
           onClick = onInfo,
-          enabled = isSingleSelection,
-          modifier = Modifier.padding(horizontal = 1.dp).browserTopBarFocus(enabled = isSingleSelection),
+          enabled = infoEnabled,
+          modifier = Modifier.padding(horizontal = 1.dp).browserTopBarFocus(enabled = infoEnabled),
         ) {
           Icon(
             Icons.RoundedFilled.Info,
             contentDescription = stringResource(R.string.info),
             modifier = Modifier.size(24.dp),
             tint =
-              if (isSingleSelection) {
-                MaterialTheme.colorScheme.secondary
+              if (infoEnabled) {
+                MaterialTheme.colorScheme.secondary.onWallpaper()
               } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
               },

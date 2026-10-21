@@ -5,7 +5,6 @@
 package app.gyrolet.mpvrx.ui.browser.music
 
 import android.app.Application
-import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.text.format.DateUtils
@@ -146,6 +145,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.MiniAudioVisualizer
 import app.gyrolet.mpvrx.ui.browser.folderlist.FolderListScreen
 import app.gyrolet.mpvrx.ui.browser.playlist.PlaylistDetailScreen
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction
 import app.gyrolet.mpvrx.ui.browser.cards.SelectionIndicator
 import app.gyrolet.mpvrx.ui.browser.cards.animatedSelectionColor
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
@@ -307,6 +307,10 @@ fun MusicLibraryContent(
     // Folders tab reuses FolderListScreen, which owns its own selection state.
     MusicTab.FOLDERS -> songSelectionManager
   }
+  val showSongSelectionInfo = rememberSelectionInfoAction(
+    videos = { songSelectionManager.getSelectedItems().map { it.toVideo() } },
+    onSingleOpened = { songSelectionManager.clear() },
+  )
 
   @Suppress("UNCHECKED_CAST")
   fun selectedMusicVideos(): List<Video> {
@@ -556,20 +560,7 @@ fun MusicLibraryContent(
               },
               onRenameClick = null,
               isSingleSelection = activeSelectionManager.isSingleSelection,
-              onInfoClick = if (selectedTab == MusicTab.SONGS) {
-                {
-                  val song = activeSelectionManager.getSelectedItems().firstOrNull() as? MusicSong
-                  if (song != null) {
-                    val intent =
-                      Intent(context, app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity::class.java).apply {
-                        action = Intent.ACTION_VIEW
-                        data = song.uri
-                      }
-                    context.startActivity(intent)
-                    activeSelectionManager.clear()
-                  }
-                }
-              } else null,
+              onInfoClick = if (selectedTab == MusicTab.SONGS) showSongSelectionInfo else null,
               titleTrailing = {
                 MusicSourceDropdown()
               },

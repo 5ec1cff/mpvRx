@@ -2,14 +2,16 @@
 // https://github.com/Lelonio/Square
 // https://github.com/Kyant0/AndroidLiquidGlass
 // Upstream catalog commit: b18eb0ff12c616546a68c72e7d0097f1ab286c87.
-// App changes: shared optics, enabled state, completion callbacks and reduced motion.
+// App changes: shared single/range-slider optics, enabled state, callbacks and reduced motion.
 
 package app.gyrolet.mpvrx.ui.liquidglass
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,24 +26,20 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
-import androidx.compose.ui.util.fastRoundToInt
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.interaction.DragInteraction
-import kotlin.math.abs
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.zIndex
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -56,6 +54,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import kotlinx.coroutines.flow.collectLatest
+import kotlin.math.abs
 
 @Composable
 fun LiquidSlider(
@@ -74,14 +73,12 @@ fun LiquidSlider(
   onInteractionChange: (Boolean) -> Unit = {},
 ) {
   val trackBackdrop = rememberLayerBackdrop()
-  val settings = rememberLiquidGlassSettings()
   val reduceMotion = AppMotion.shouldReduceMotion()
   val currentValue = rememberUpdatedState(value)
   val currentOnValueChange = rememberUpdatedState(onValueChange)
   val currentOnFinished = rememberUpdatedState(onValueChangeFinished)
   val currentOnInteractionChange = rememberUpdatedState(onInteractionChange)
   val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
-  val animationScope = rememberCoroutineScope()
   // Like the player seekbar, draw the complete track and clamp only the thumb center.
   val thumbWidth = 40.dp
   val density = LocalDensity.current
@@ -93,39 +90,22 @@ fun LiquidSlider(
     val sliderWidthPx = constraints.maxWidth.toFloat()
     val thumbWidthPx = with(density) { thumbWidth.toPx() }.coerceAtMost(sliderWidthPx)
     val span = valueRange.endInclusive - valueRange.start
+
     fun progress(): Float = ((currentValue.value() - valueRange.start) / span).coerceIn(0f, 1f)
-    val animation = remember(animationScope, valueRange, visibilityThreshold, reduceMotion) {
-      DampedDragAnimation(
-        animationScope = animationScope,
-        initialValue = currentValue.value(),
-        valueRange = valueRange,
-        visibilityThreshold = visibilityThreshold,
-        initialScale = 1f,
-        pressedScale = if (reduceMotion) 1f else 1.5f,
-        onDragStarted = {},
-        onDragStopped = {},
-        onDrag = { _, _ -> },
-      )
-    }
-    LaunchedEffect(animation, reduceMotion) {
-      snapshotFlow { currentValue.value() }.collectLatest { changedValue ->
-        if (animation.targetValue != changedValue) {
-          // The spring animates glass deformation, never the position under the finger.
-          animation.snapToValue(changedValue)
-        }
-      }
-    }
+    val animation = rememberLiquidSliderAnimation(value, valueRange, visibilityThreshold)
 
     if (enabled) {
       Box(
-        Modifier.matchParentSize()
+        Modifier
+          .matchParentSize()
           .pointerInput(animation, sliderWidthPx, thumbWidthPx, isLtr, enabled, interactionSource) {
             fun seekTo(horizontalPosition: Float) {
               if (sliderWidthPx <= 0f) return
               val fraction = (horizontalPosition / sliderWidthPx).coerceIn(0f, 1f)
               val delta = (valueRange.endInclusive - valueRange.start) * fraction
-              val target = (if (isLtr) valueRange.start + delta else valueRange.endInclusive - delta)
-                .coerceIn(valueRange)
+              val target =
+                (if (isLtr) valueRange.start + delta else valueRange.endInclusive - delta)
+                  .coerceIn(valueRange)
               currentOnValueChange.value(target)
             }
             if (sliderWidthPx <= 0f) return@pointerInput
@@ -138,9 +118,12 @@ fun LiquidSlider(
               val valueX = if (isLtr) logicalValueX else sliderWidthPx - logicalValueX
               // Preserve the grab offset when picking up the thumb, including at either endpoint.
               // Tapping elsewhere on the track still seeks directly to the tapped value.
-              val grabOffset = if (abs(down.position.x - centerX) <= thumbWidthPx / 2f) {
-                down.position.x - valueX
-              } else 0f
+              val grabOffset =
+                if (abs(down.position.x - centerX) <= thumbWidthPx / 2f) {
+                  down.position.x - valueX
+                } else {
+                  0f
+                }
               val press = PressInteraction.Press(down.position)
               var drag: DragInteraction.Start? = null
               var completed = false
@@ -175,7 +158,9 @@ fun LiquidSlider(
                   if (completed) currentOnFinished.value?.invoke()
                 } finally {
                   currentOnInteractionChange.value(false)
-                  interactionSource.tryEmit(if (completed) PressInteraction.Release(press) else PressInteraction.Cancel(press))
+                  interactionSource.tryEmit(
+                    if (completed) PressInteraction.Release(press) else PressInteraction.Cancel(press),
+                  )
                   drag?.let {
                     interactionSource.tryEmit(if (completed) DragInteraction.Stop(it) else DragInteraction.Cancel(it))
                   }
@@ -187,107 +172,214 @@ fun LiquidSlider(
       )
     }
 
-    Box(Modifier.fillMaxWidth().layerBackdrop(trackBackdrop)) {
-      Box(
-        Modifier.clip(Capsule())
-          .background(trackColor)
-          .height(6.dp)
-          .fillMaxWidth(),
+    LiquidSliderTrack(
+      endFraction = ::progress,
+      backdrop = backdrop,
+      accentColor = accentColor,
+      trackColor = trackColor,
+      steps = steps,
+      enabled = enabled,
+      modifier = Modifier.layerBackdrop(trackBackdrop),
+    )
+    LiquidSliderThumb(
+      animation = animation,
+      backdrop = backdrop,
+      trackBackdrop = trackBackdrop,
+      accentColor = accentColor,
+      enabled = enabled,
+      modifier =
+        Modifier.graphicsLayer {
+          val halfThumb = (thumbWidthPx / 2f).coerceAtMost(sliderWidthPx / 2f)
+          val safeCenterPx =
+            (sliderWidthPx * progress())
+              .coerceIn(halfThumb, sliderWidthPx - halfThumb)
+          translationX = (safeCenterPx - thumbWidthPx / 2f) * if (isLtr) 1f else -1f
+        },
+    )
+  }
+}
+
+@Composable
+internal fun rememberLiquidSliderAnimation(
+  value: () -> Float,
+  valueRange: ClosedFloatingPointRange<Float>,
+  visibilityThreshold: Float,
+): DampedDragAnimation {
+  val animationScope = rememberCoroutineScope()
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val currentValue = rememberUpdatedState(value)
+  val animation =
+    remember(animationScope, valueRange, visibilityThreshold, reduceMotion) {
+      DampedDragAnimation(
+        animationScope = animationScope,
+        initialValue = currentValue.value(),
+        valueRange = valueRange,
+        visibilityThreshold = visibilityThreshold,
+        initialScale = 1f,
+        pressedScale = if (reduceMotion) 1f else 1.5f,
+        onDragStarted = {},
+        onDragStopped = {},
+        onDrag = { _, _ -> },
       )
-      Box(
-        Modifier.clip(Capsule())
-          .background(accentColor)
-          .height(6.dp)
-          .layout { measurable, trackConstraints ->
-            val placeable = measurable.measure(trackConstraints)
-            val width = (trackConstraints.maxWidth * progress()).fastRoundToInt()
-            layout(width, placeable.height) { placeable.placeRelative(0, 0) }
-          },
+    }
+  LaunchedEffect(animation) {
+    snapshotFlow { currentValue.value() }.collectLatest { changedValue ->
+      if (animation.targetValue != changedValue) {
+        // The spring animates glass deformation, never the position under the finger.
+        animation.snapToValue(changedValue)
+      }
+    }
+  }
+  return animation
+}
+
+@Composable
+internal fun LiquidSliderTrack(
+  endFraction: () -> Float,
+  backdrop: Backdrop,
+  accentColor: Color,
+  trackColor: Color,
+  modifier: Modifier = Modifier,
+  startFraction: () -> Float = { 0f },
+  steps: Int = 0,
+  enabled: Boolean = true,
+) {
+  val settings = rememberLiquidGlassSettings()
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
+  val trackTint =
+    androidx.compose.ui.graphics
+      .lerp(trackColor, accentColor, 0.35f)
+      .copy(alpha = trackColor.alpha * 0.35f)
+  // Color pickers and the wavy seekbar deliberately supply an invisible track.
+  val glassModifier =
+    if (trackColor.alpha > 0f || accentColor.alpha > 0f) {
+      Modifier.drawBackdrop(
+        backdrop = backdrop,
+        shape = { Capsule() },
+        effects = {
+          liquidGlassEffects(
+            settings,
+            blurRadius = 4.dp.toPx(),
+            refractionHeight = 3.dp.toPx(),
+            refractionAmount = 4.dp.toPx(),
+            refractionEnabled = enabled && !reduceMotion,
+          )
+        },
+        highlight = { settings.highlight(Highlight.Ambient.copy(alpha = 0.3f)) },
+        innerShadow = { InnerShadow(radius = 2.dp, alpha = 0.18f) },
+        onDrawSurface = { drawRect(settings.surfaceColor(trackTint)) },
       )
-      if (steps > 0) {
-        Canvas(Modifier.fillMaxWidth().height(6.dp)) {
-          val intervalCount = steps.toLong() + 1L
-          val tickSpacing = size.width / intervalCount
-          if (tickSpacing >= 4.dp.toPx()) {
-            for (tickIndex in 0..intervalCount.toInt()) {
-              val fraction = tickIndex.toFloat() / intervalCount
-              val horizontalPosition = if (isLtr) size.width * fraction else size.width * (1f - fraction)
-              drawCircle(
-                color = if (fraction <= progress()) Color.White.copy(alpha = 0.7f) else accentColor.copy(alpha = 0.7f),
-                radius = 1.dp.toPx(),
-                center = androidx.compose.ui.geometry.Offset(horizontalPosition, size.height / 2f),
-              )
-            }
-          }
+    } else {
+      Modifier
+    }
+  Canvas(modifier.fillMaxWidth().height(6.dp).then(glassModifier)) {
+    val start = startFraction().coerceIn(0f, 1f)
+    val end = endFraction().coerceIn(start, 1f)
+    val left = if (isLtr) start else 1f - end
+    drawRoundRect(
+      color = accentColor,
+      topLeft = Offset(size.width * left, 0f),
+      size = Size(size.width * (end - start), size.height),
+      cornerRadius = CornerRadius(size.height / 2f),
+    )
+    if (steps > 0) {
+      val intervalCount = steps.toLong() + 1L
+      val tickSpacing = size.width / intervalCount
+      if (tickSpacing >= 4.dp.toPx()) {
+        for (tickIndex in 0..intervalCount.toInt()) {
+          val fraction = tickIndex.toFloat() / intervalCount
+          val horizontalPosition = size.width * if (isLtr) fraction else 1f - fraction
+          drawCircle(
+            color =
+              if (fraction in start..end) {
+                Color.White.copy(alpha = accentColor.alpha * 0.7f)
+              } else {
+                accentColor.copy(alpha = trackColor.alpha * 0.7f)
+              },
+            radius = 1.dp.toPx(),
+            center = Offset(horizontalPosition, size.height / 2f),
+          )
         }
       }
     }
+  }
+}
 
-    val combinedBackdrop = rememberCombinedBackdrop(
+@Composable
+internal fun LiquidSliderThumb(
+  animation: DampedDragAnimation,
+  backdrop: Backdrop,
+  trackBackdrop: Backdrop,
+  accentColor: Color,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+) {
+  val settings = rememberLiquidGlassSettings()
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val combinedBackdrop =
+    rememberCombinedBackdrop(
       backdrop,
       rememberBackdrop(trackBackdrop) { drawTrack ->
         val progress = animation.pressProgress
         scale(lerp(2f / 3f, 1f, progress), lerp(0f, 1f, progress)) { drawTrack() }
       },
     )
-    // A translucent themed film keeps both the accent and the refracted content visible.
-    val baseFilm = androidx.compose.ui.graphics.lerp(
+  // A translucent themed film keeps both the accent and the refracted content visible.
+  val baseFilm =
+    androidx.compose.ui.graphics.lerp(
       MaterialTheme.colorScheme.surfaceContainerHigh,
       accentColor,
       0.18f,
     )
-    val thumbShadow = remember { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) }
-    val thumbModifier = Modifier.drawBackdrop(
-          backdrop = combinedBackdrop,
-          shape = { Capsule() },
-          effects = {
-            val progress = animation.pressProgress
-            liquidGlassEffects(
-              settings,
-              8.dp.toPx() * (1f - progress),
-              10.dp.toPx() * progress,
-              14.dp.toPx() * progress,
-              refractionEnabled = enabled && !reduceMotion,
-            )
-          },
-          highlight = {
-            val progress = animation.pressProgress
-            settings.highlight(Highlight.Ambient.copy(
-              width = Highlight.Ambient.width / 1.5f,
-              blurRadius = Highlight.Ambient.blurRadius / 1.5f,
-              alpha = progress,
-            ))
-          },
-          shadow = { thumbShadow },
-          innerShadow = {
-            val progress = animation.pressProgress
-            InnerShadow(radius = 4.dp * progress, alpha = progress)
-          },
-          layerBlock = {
-            scaleX = animation.scaleX
-            scaleY = animation.scaleY
-            val velocity = animation.velocity / 10f
-            scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
-            scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
-          },
-          onDrawSurface = {
-            val progress = animation.pressProgress
-            val film = baseFilm.copy(alpha = if (enabled) 0.72f - 0.28f * progress else 0.32f)
-            val thumbFilm = androidx.compose.ui.graphics.lerp(
-              Color.White,
-              film,
-              progress.coerceIn(0f, 1f),
-            )
-            drawRect(settings.surfaceColor(thumbFilm))
-          },
+  val thumbShadow = remember { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) }
+  val thumbModifier =
+    Modifier.drawBackdrop(
+      backdrop = combinedBackdrop,
+      shape = { Capsule() },
+      effects = {
+        val progress = animation.pressProgress
+        liquidGlassEffects(
+          settings,
+          8.dp.toPx() * (1f - progress),
+          10.dp.toPx() * progress,
+          14.dp.toPx() * progress,
+          refractionEnabled = enabled && !reduceMotion,
         )
-    Box(
-      Modifier.graphicsLayer {
-        val halfThumb = (thumbWidthPx / 2f).coerceAtMost(sliderWidthPx / 2f)
-        val safeCenterPx = (sliderWidthPx * progress())
-          .coerceIn(halfThumb, sliderWidthPx - halfThumb)
-        translationX = (safeCenterPx - thumbWidthPx / 2f) * if (isLtr) 1f else -1f
-      }.then(thumbModifier).size(40.dp, 24.dp),
+      },
+      highlight = {
+        val progress = animation.pressProgress
+        settings.highlight(
+          Highlight.Ambient.copy(
+            width = Highlight.Ambient.width / 1.5f,
+            blurRadius = Highlight.Ambient.blurRadius / 1.5f,
+            alpha = progress,
+          ),
+        )
+      },
+      shadow = { thumbShadow },
+      innerShadow = {
+        val progress = animation.pressProgress
+        InnerShadow(radius = 4.dp * progress, alpha = progress)
+      },
+      layerBlock = {
+        scaleX = animation.scaleX
+        scaleY = animation.scaleY
+        val velocity = animation.velocity / 10f
+        scaleX /= 1f - (velocity * 0.75f).fastCoerceIn(-0.2f, 0.2f)
+        scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
+      },
+      onDrawSurface = {
+        val progress = animation.pressProgress
+        val film = baseFilm.copy(alpha = if (enabled) 0.72f - 0.28f * progress else 0.32f)
+        val thumbFilm =
+          androidx.compose.ui.graphics.lerp(
+            Color.White,
+            film,
+            progress.coerceIn(0f, 1f),
+          )
+        drawRect(settings.surfaceColor(thumbFilm))
+      },
     )
-  }
+  Box(modifier.then(thumbModifier).size(40.dp, 24.dp))
 }

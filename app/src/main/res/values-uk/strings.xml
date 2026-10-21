@@ -2587,4 +2587,54 @@
   <string name="color_picker_brightness">Яскравість</string>
     <string name="only_for_video_list">Лише для списку відео</string>
     <string name="only_for_folder_list">Лише для списку тек</string>
+  <string name="selection_info_title">Відомості про вибране</string>
+  <string name="selection_info_folders">Папки</string>
+  <string name="selection_info_total_size">Загальний розмір</string>
+  <string name="selection_info_total_duration">Загальна тривалість</string>
+  <string name="selection_info_average_duration">Середня тривалість</string>
+  <string name="selection_info_average_size">Середній розмір</string>
+  <string name="selection_info_resolutions">Роздільні здатності</string>
+  <string name="selection_info_codecs">Відеокодеки</string>
+  <string name="selection_info_formats">Формати</string>
+  <string name="selection_info_frame_rates">Частоти кадрів</string>
+  <string name="selection_info_subtitles">Вбудовані субтитри</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Найдовший файл</string>
+  <string name="selection_info_largest">Найбільший файл</string>
+  <string name="selection_info_modified">Дата зміни</string>
+  <string name="selection_info_items">Вибрані елементи</string>
+  <string name="selection_info_scanning">Сканування папок (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Не вдалося завантажити відомості про вибране. Перевірте доступ до папок і спробуйте ще раз.</string>
+  <string name="selection_info_folder_unreadable">Не вдалося прочитати медіафайли в %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f кадр/с</string>
+  <string name="selection_info_metadata_note">Зведення використовує доступні метадані бібліотеки. Натисніть на файл, щоб переглянути всі метадані.</string>
+  <string name="selection_info_missing_metadata">Недоступні метадані</string>
+  <string name="selection_info_missing_metadata_value">Файлів із невідомим розміром: %1$d; із невідомою тривалістю: %2$d. Підсумки й середні значення враховують лише відомі дані.</string>
+  <string name="selection_info_no_media">У вибраних папках не знайдено відтворюваних медіафайлів</string>
+  <string name="selection_info_copy_summary">Копіювати зведення</string>
+  <string name="selection_info_open_media_info">Відкрити повні відомості про медіафайл</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d відео</item>
+    <item quantity="few">%1$d відео</item>
+    <item quantity="many">%1$d відео</item>
+    <item quantity="other">%1$d відео</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d аудіофайл</item>
+    <item quantity="few">%1$d аудіофайли</item>
+    <item quantity="many">%1$d аудіофайлів</item>
+    <item quantity="other">%1$d аудіофайла</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d файл</item>
+    <item quantity="few">%1$d файли</item>
+    <item quantity="many">%1$d файлів</item>
+    <item quantity="other">%1$d файла</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d папка</item>
+    <item quantity="few">%1$d папки</item>
+    <item quantity="many">%1$d папок</item>
+    <item quantity="other">%1$d папки</item>
+  </plurals>
 </resources>
