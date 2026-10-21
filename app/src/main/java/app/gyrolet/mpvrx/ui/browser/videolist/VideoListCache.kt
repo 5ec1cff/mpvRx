@@ -22,6 +22,8 @@ internal object VideoListCache {
   private const val TAG = "VideoListCache"
   private const val DIR = "video_list_cache"
   private const val MAX_FOLDERS = 64
+  // Reject snapshots whose launch rotation was read from the old MediaStore column.
+  private const val HEADER_PREFIX = "orientation_v2|"
 
   fun load(context: Context, key: String): List<Video>? =
     runCatching {
@@ -29,7 +31,7 @@ internal object VideoListCache {
       if (!file.isFile) return null
       val lines = file.readText().split('\n', limit = 2)
       // The key is stored inside the file so a hash collision cannot show another folder's videos.
-      if (lines.size != 2 || lines[0] != key || lines[1].isEmpty()) return null
+      if (lines.size != 2 || lines[0] != HEADER_PREFIX + key || lines[1].isEmpty()) return null
       val records = lines[1].split(MediaLibraryCache.RECORD_SEPARATOR)
       records.mapNotNull { MediaLibraryCache.decode(it) }.takeIf { it.size == records.size }
     }.onFailure { error ->
@@ -44,7 +46,7 @@ internal object VideoListCache {
         return
       }
       val temp = File(file.parentFile, file.name + ".tmp")
-      temp.writeText(key.replace('\n', ' ') + "\n" +
+      temp.writeText(HEADER_PREFIX + key.replace('\n', ' ') + "\n" +
         videos.joinToString(MediaLibraryCache.RECORD_SEPARATOR) { MediaLibraryCache.encode(it) })
       if (!temp.renameTo(file)) {
         temp.delete()

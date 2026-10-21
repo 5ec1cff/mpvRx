@@ -27,9 +27,9 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 
-/** Android owns frame selection and rotation; null leaves the caller's placeholder visible. */
+/** Android owns video frame selection and indexed album art; missing art leaves a placeholder. */
 @Suppress("DEPRECATION")
-internal object MediaStoreVideoThumbnailLoader {
+internal object MediaStoreThumbnailLoader {
   private val requestSequence = AtomicLong()
 
   suspend fun load(
@@ -37,6 +37,7 @@ internal object MediaStoreVideoThumbnailLoader {
     video: Video,
     localPath: String,
     sizePx: Int,
+    isAudio: Boolean,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
       suspendCancellableCoroutine { continuation ->
@@ -51,13 +52,31 @@ internal object MediaStoreVideoThumbnailLoader {
         }
         try {
           signal.throwIfCanceled()
-          val uri = resolveVideoUri(context, video, localPath, signal)
+          val uri = resolveMediaUri(context, video, localPath, isAudio, signal)
           signal.throwIfCanceled()
           val bitmap =
             when {
               uri == null -> null
               Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
                 resolver.loadThumbnail(uri, Size(sizePx.coerceAtLeast(1), sizePx.coerceAtLeast(1)), signal)
+              isAudio -> {
+                val albumId = resolver.query(
+                  uri,
+                  arrayOf(MediaStore.Audio.Media.ALBUM_ID),
+                  null,
+                  null,
+                  null,
+                  signal,
+                )?.use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else null }
+                signal.throwIfCanceled()
+                albumId?.takeIf { it > 0L }?.let { id ->
+                  val volume = uri.pathSegments.firstOrNull() ?: "external"
+                  val coverUri = ContentUris.withAppendedId(Uri.parse("content://media/$volume/audio/albumart"), id)
+                  resolver.openInputStream(coverUri)?.use { stream ->
+                    android.graphics.BitmapFactory.decodeStream(stream)
+                  }
+                }
+              }
               // The legacy helper addresses the external collection only. Never interpret an
               // internal-volume row ID as an unrelated external video.
               uri.pathSegments.firstOrNull() == "external" -> {
@@ -91,15 +110,31 @@ internal object MediaStoreVideoThumbnailLoader {
       }
     }
 
-  private fun resolveVideoUri(
+  private fun resolveMediaUri(
     context: Context,
     video: Video,
     localPath: String,
+    isAudio: Boolean,
     signal: CancellationSignal,
   ): Uri? {
     val originalUri = video.uri
     if (originalUri.scheme == "content") {
-      if (originalUri.authority == MediaStore.AUTHORITY) return originalUri
+      if (originalUri.authority == MediaStore.AUTHORITY) {
+        // Album headers may supply only the legacy album-art URI. Resolve one indexed song so
+        // Android 10+ can use loadThumbnail on a media item, just like individual song rows.
+        if (isAudio && "albumart" in originalUri.pathSegments) {
+          val albumId = ContentUris.parseId(originalUri)
+          val volume = originalUri.pathSegments.firstOrNull() ?: "external"
+          val collection = MediaStore.Audio.Media.getContentUri(volume)
+          return context.contentResolver.query(
+            collection, arrayOf(MediaStore.Audio.Media._ID),
+            "${MediaStore.Audio.Media.ALBUM_ID}=?", arrayOf(albumId.toString()), null, signal,
+          )?.use { cursor ->
+            if (cursor.moveToFirst()) ContentUris.withAppendedId(collection, cursor.getLong(0)) else null
+          }
+        }
+        return originalUri
+      }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         val indexedUri =
           try {
@@ -113,9 +148,9 @@ internal object MediaStoreVideoThumbnailLoader {
       }
     }
     // Filesystem browsing supplies file:// URIs and filesystem IDs, not MediaStore row IDs.
-    // Resolve the actual indexed video by its path rather than trusting Video.id.
+    // Resolve the indexed media by its path rather than trusting filesystem/playlist IDs.
     if (!localPath.startsWith("/")) return null
-    val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    val collection = if (isAudio) MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else MediaStore.Video.Media.EXTERNAL_CONTENT_URI
     val projection =
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.VOLUME_NAME)
@@ -134,7 +169,7 @@ internal object MediaStoreVideoThumbnailLoader {
       val sourceCollection =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
           // Keep the physical volume: removable storage must not resolve to another volume's row.
-          MediaStore.Video.Media.getContentUri(cursor.getString(1))
+          if (isAudio) MediaStore.Audio.Media.getContentUri(cursor.getString(1)) else MediaStore.Video.Media.getContentUri(cursor.getString(1))
         } else {
           collection
         }
@@ -142,3 +177,4 @@ internal object MediaStoreVideoThumbnailLoader {
     }
   }
 }
+

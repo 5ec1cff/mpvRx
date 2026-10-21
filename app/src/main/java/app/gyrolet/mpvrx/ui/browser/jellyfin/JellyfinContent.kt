@@ -1387,6 +1387,9 @@ fun JellyfinContent(
       onSortOrderChange = { viewModel.setMusicSortOrder(it) },
       onViewModeChange = { viewModel.setMusicViewMode(it) },
       availableFields = availableFields,
+      trackCountLabel = if (uiState.musicActiveTab == JellyfinMusicTab.ARTISTS) {
+        stringResource(R.string.ui_albums)
+      } else MusicSortField.TRACK_COUNT.displayName,
     )
   } else {
     // Standard Material 3 Sort Dialog (matches Home and Network Browser)

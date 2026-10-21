@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.preferences.BrowserPageViewPreferences
 import app.gyrolet.mpvrx.preferences.AudiobookSortType
 import app.gyrolet.mpvrx.preferences.FolderSortType
 import app.gyrolet.mpvrx.preferences.FolderViewMode
@@ -140,6 +141,7 @@ fun PlaylistSortDialog(
             stringResource(R.string.playlist_extension), showExtension, viewPreferences.showExtensionField::set,
           ),
         )
+        addAll(mediaDetailsToggles(viewPreferences, isAudio))
       }
       if (isM3uPlaylist) {
         add(
@@ -287,6 +289,7 @@ fun RecentSortDialog(
       add(
         VisibilityToggle(stringResource(R.string.ui_duration), showDuration, viewPreferences.showDurationField::set),
       )
+      addAll(mediaDetailsToggles(viewPreferences, isAudioTab, includeDuration = false))
       add(
         VisibilityToggle(stringResource(R.string.playlist_item_count), showCount, viewPreferences.showItemCount::set),
       )
@@ -325,6 +328,37 @@ fun RecentSortDialog(
         else -> null
       },
   )
+}
+
+/** Uses the same page preferences consumed by the playlist and recent-media cards. */
+@Composable
+private fun mediaDetailsToggles(
+  preferences: BrowserPageViewPreferences,
+  isAudio: Boolean,
+  includeDuration: Boolean = true,
+): List<VisibilityToggle> {
+  val duration by preferences.showDurationField.collectAsState()
+  val size by preferences.showSizeChip.collectAsState()
+  val resolution by preferences.showResolutionChip.collectAsState()
+  val framerate by preferences.showFramerateInResolution.collectAsState()
+  val subtitles by preferences.showSubtitleIndicator.collectAsState()
+  val codecSupport by preferences.showCodecSupportIndicator.collectAsState()
+  val date by preferences.showDateChip.collectAsState()
+  val progress by preferences.showProgressBar.collectAsState()
+  return buildList {
+    if (includeDuration) {
+      add(VisibilityToggle(stringResource(R.string.ui_duration), duration, preferences.showDurationField::set))
+    }
+    add(VisibilityToggle("Size", size, preferences.showSizeChip::set))
+    if (!isAudio) {
+      add(VisibilityToggle("Resolution", resolution, preferences.showResolutionChip::set))
+      add(VisibilityToggle("Framerate", framerate, preferences.showFramerateInResolution::set))
+      add(VisibilityToggle("Subtitle Indicator", subtitles, preferences.showSubtitleIndicator::set))
+      add(VisibilityToggle("Codec support", codecSupport, preferences.showCodecSupportIndicator::set))
+    }
+    add(VisibilityToggle("Date", date, preferences.showDateChip::set))
+    add(VisibilityToggle("Progress Bar", progress, preferences.showProgressBar::set))
+  }
 }
 
 @Composable
@@ -695,6 +729,7 @@ fun VideoSortDialog(
   availableWidthDp: Int? = null,
   fixedLayoutMode: MediaLayoutMode? = null,
   isAudio: Boolean = false,
+  onMetadataFieldEnabled: (() -> Unit)? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
@@ -947,14 +982,21 @@ fun VideoSortDialog(
           VisibilityToggle(
             label = "Duration",
             checked = showDurationField,
-            onCheckedChange = { browserPreferences.showDurationField.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showDurationField.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
           VisibilityToggle(
             label = "Subtitle Indicator",
             checked = showSubtitleIndicator,
-            onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showSubtitleIndicator.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
+            enabled = !isAudio,
           ),
         )
         add(
@@ -975,21 +1017,33 @@ fun VideoSortDialog(
           VisibilityToggle(
             label = "Resolution",
             checked = showResolutionChip,
-            onCheckedChange = { browserPreferences.showResolutionChip.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showResolutionChip.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
+            enabled = !isAudio,
           ),
         )
         add(
           VisibilityToggle(
             label = "Framerate",
             checked = showFramerateInResolution,
-            onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showFramerateInResolution.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
+            enabled = !isAudio,
           ),
         )
         add(
           VisibilityToggle(
             label = "Codec support",
             checked = showCodecSupportIndicator,
-            onCheckedChange = { browserPreferences.showCodecSupportIndicator.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showCodecSupportIndicator.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
+            enabled = !isAudio,
           ),
         )
         add(
@@ -1070,6 +1124,7 @@ fun FileSystemSortDialog(
   isOpen: Boolean,
   onDismiss: () -> Unit,
   isAtRoot: Boolean = true,
+  onMetadataFieldEnabled: (() -> Unit)? = null,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
@@ -1080,7 +1135,11 @@ fun FileSystemSortDialog(
   val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
   val showTotalVideosChip by browserPreferences.showTotalVideosChip.collectAsState()
+  val showTotalDurationChip by browserPreferences.showTotalDurationChip.collectAsState()
   val showTotalSizeChip by browserPreferences.showTotalSizeChip.collectAsState()
+  val showDateChip by browserPreferences.showDateChip.collectAsState()
+  val showFolderThumbnails by browserPreferences.showFolderThumbnails.collectAsState()
+  val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -1250,7 +1309,7 @@ fun FileSystemSortDialog(
       buildList {
         add(
           VisibilityToggle(
-            label = "Video Thumbnails",
+            label = "Thumbnails",
             checked = showVideoThumbnails,
             onCheckedChange = { browserPreferences.showVideoThumbnails.set(it) },
           ),
@@ -1273,7 +1332,10 @@ fun FileSystemSortDialog(
           VisibilityToggle(
             label = "Duration",
             checked = showDurationField,
-            onCheckedChange = { browserPreferences.showDurationField.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showDurationField.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
@@ -1301,6 +1363,20 @@ fun FileSystemSortDialog(
         )
         add(
           VisibilityToggle(
+            label = "Total Duration",
+            checked = showTotalDurationChip,
+            onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
+          ),
+        )
+        add(
+          VisibilityToggle(
+            label = "Date",
+            checked = showDateChip,
+            onCheckedChange = { browserPreferences.showDateChip.set(it) },
+          ),
+        )
+        add(
+          VisibilityToggle(
             label = "Size",
             checked = showSizeChip,
             onCheckedChange = { browserPreferences.showSizeChip.set(it) },
@@ -1310,28 +1386,40 @@ fun FileSystemSortDialog(
           VisibilityToggle(
             label = "Resolution",
             checked = showResolutionChip,
-            onCheckedChange = { browserPreferences.showResolutionChip.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showResolutionChip.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
           VisibilityToggle(
             label = "Framerate",
             checked = showFramerateInResolution,
-            onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showFramerateInResolution.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
           VisibilityToggle(
             label = "Codec support",
             checked = showCodecSupportIndicator,
-            onCheckedChange = { browserPreferences.showCodecSupportIndicator.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showCodecSupportIndicator.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
           VisibilityToggle(
             label = "Subtitle",
             checked = showSubtitleIndicator,
-            onCheckedChange = { browserPreferences.showSubtitleIndicator.set(it) },
+            onCheckedChange = { enabled ->
+              browserPreferences.showSubtitleIndicator.set(enabled)
+              if (enabled) onMetadataFieldEnabled?.invoke()
+            },
           ),
         )
         add(
@@ -1342,7 +1430,20 @@ fun FileSystemSortDialog(
           ),
         )
         if (mediaLayoutMode == MediaLayoutMode.GRID) {
-          // Additional grid-specific fields if any
+          add(
+            VisibilityToggle(
+              label = "Folder Thumbnails",
+              checked = showFolderThumbnails,
+              onCheckedChange = { browserPreferences.showFolderThumbnails.set(it) },
+            ),
+          )
+          add(
+            VisibilityToggle(
+              label = "Center Titles",
+              checked = centerGridTitles,
+              onCheckedChange = { browserPreferences.centerGridTitles.set(it) },
+            ),
+          )
         }
       },
     manualGridToggle =
@@ -1385,6 +1486,7 @@ fun NetworkSortDialog(
   val networkSortOrder by browserPreferences.networkSortOrder.collectAsState()
   val networkLayoutMode by browserPreferences.networkLayoutMode.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
+  val showNetworkThumbnails by appearancePreferences.showNetworkThumbnails.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showDateChip by browserPreferences.showDateChip.collectAsState()
   val showExtensionField by browserPreferences.showExtensionField.collectAsState()
@@ -1504,8 +1606,11 @@ fun NetworkSortDialog(
         add(
           VisibilityToggle(
             label = "Thumbnails",
-            checked = showVideoThumbnails,
-            onCheckedChange = { browserPreferences.showVideoThumbnails.set(it) },
+            checked = showVideoThumbnails && showNetworkThumbnails,
+            onCheckedChange = {
+              browserPreferences.showVideoThumbnails.set(it)
+              appearancePreferences.showNetworkThumbnails.set(it)
+            },
           ),
         )
         add(
@@ -1595,10 +1700,15 @@ fun MusicSortDialog(
       MusicSortField.DURATION,
       MusicSortField.DATE_ADDED,
     ),
+  trackCountLabel: String = MusicSortField.TRACK_COUNT.displayName,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
   val musicGridCoverArtSize by browserPreferences.musicGridCoverArtSize.collectAsState()
+  val effectiveSortField = sortField.takeIf { it in availableFields } ?: availableFields.firstOrNull() ?: sortField
+  val fieldLabel = { field: MusicSortField ->
+    if (field == MusicSortField.TRACK_COUNT) trackCountLabel else field.displayName
+  }
 
   val fieldIcon = { field: MusicSortField ->
     when (field) {
@@ -1616,16 +1726,17 @@ fun MusicSortDialog(
     isOpen = isOpen,
     onDismiss = onDismiss,
     title = stringResource(R.string.sort_view_options),
-    sortType = sortField.displayName,
+    sortType = fieldLabel(effectiveSortField),
     onSortTypeChange = { typeName ->
-      availableFields.find { it.displayName == typeName }?.let(onSortFieldChange)
+      availableFields.find { fieldLabel(it) == typeName }?.let(onSortFieldChange)
     },
     sortOrderAsc = sortOrder == MusicSortOrder.ASCENDING,
     onSortOrderChange = { isAsc ->
       onSortOrderChange(if (isAsc) MusicSortOrder.ASCENDING else MusicSortOrder.DESCENDING)
     },
-    types = availableFields.map { it.displayName },
+    types = availableFields.map(fieldLabel),
     icons = availableFields.map(fieldIcon),
+    showSortOptions = availableFields.isNotEmpty(),
     getLabelForType = { type, _ ->
       when (type) {
         MusicSortField.TITLE.displayName,
@@ -1633,6 +1744,8 @@ fun MusicSortDialog(
         MusicSortField.ALBUM.displayName -> Pair("A-Z", "Z-A")
         MusicSortField.DURATION.displayName -> Pair("Shortest", "Longest")
         MusicSortField.DATE_ADDED.displayName -> Pair("Oldest", "Newest")
+        MusicSortField.YEAR.displayName -> Pair("Oldest", "Newest")
+        trackCountLabel -> Pair("Fewest", "Most")
         else -> Pair("Asc", "Desc")
       }
     },
@@ -1650,14 +1763,7 @@ fun MusicSortDialog(
       ),
     videoGridColumnSelector =
       if (viewMode == MusicViewMode.LIST) {
-        GridColumnSelector(
-          label = "Cover Art Size",
-          currentValue = musicCoverArtSize,
-          onValueChange = { browserPreferences.musicCoverArtSize.set(it) },
-          valueRange = 56f..126f,
-          steps = 40,
-          unitSuffix = "dp",
-        )
+        coverArtSizeSelector(musicCoverArtSize, browserPreferences.musicCoverArtSize::set)
       } else {
         GridColumnSelector(
           label = "Cover Art Size",

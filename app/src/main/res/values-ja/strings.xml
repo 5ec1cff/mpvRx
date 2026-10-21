@@ -2652,4 +2652,52 @@
   <plurals name="selection_info_folder_count">
     <item quantity="other">フォルダー %1$d 個</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">ハイレゾ・ロスレス</string>
+  <string name="audio_quality_lossless">ロスレス</string>
+  <string name="audio_quality_lossy">非可逆圧縮</string>
+  <string name="audio_quality_dsd">ダイレクトストリームデジタル</string>
+  <string name="audio_quality_audio">音声</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">計算中…</string>
+  <string name="delete_size_unknown">サイズ不明</string>
+  <string name="delete_size_description">合計サイズ: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">サムネイル</string>
+  <string name="thumbnail_preview_description">%1$s のキャッシュ済みサムネイル</string>
+  <string name="thumbnail_status_disk">ディスクにキャッシュ済み</string>
+  <string name="thumbnail_status_memory">メモリにキャッシュ済み</string>
+  <string name="thumbnail_status_unreadable">キャッシュされた画像をデコードできませんでした</string>
+  <string name="thumbnail_status_missing">キャッシュされたサムネイルはありません</string>
+  <string name="thumbnail_info_status">キャッシュの状態</string>
+  <string name="thumbnail_info_generator">生成ポリシー</string>
+  <string name="thumbnail_info_strategy">フレームまたはカバー画像の選択</string>
+  <string name="thumbnail_strategy_artwork">アルバムのカバー画像</string>
+  <string name="thumbnail_strategy_android">Android が選択したフレーム</string>
+  <string name="thumbnail_info_quality">設定された画質</string>
+  <string name="thumbnail_info_maximum">設定されたサイズ上限</string>
+  <string name="thumbnail_maximum_value">長辺が最大 %1$d ピクセル</string>
+  <string name="thumbnail_info_dimensions">実際の画像サイズ</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d ピクセル</string>
+  <string name="thumbnail_info_format">キャッシュされた画像の形式</string>
+  <string name="thumbnail_info_size">キャッシュファイルのサイズ</string>
+  <string name="thumbnail_info_memory">メディアブラウザのメモリキャッシュに存在</string>
+  <string name="thumbnail_info_preview_memory">プレビューのメモリ使用量</string>
+  <string name="thumbnail_info_frame">設定されたフレーム位置</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">アプリの JPEG エンコーダ設定</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">キャッシュファイルの更新日時</string>
+  <string name="thumbnail_info_cache_path">キャッシュファイルのパス</string>
+  <string name="thumbnail_info_source">ソース URI</string>
+  <string name="thumbnail_yes">はい</string>
+  <string name="thumbnail_no">いいえ</string>
+  <string name="thumbnail_refresh">情報を更新</string>
+  <string name="thumbnail_generate">サムネイルを生成</string>
+  <string name="thumbnail_quality_note">プレビューには、現在の設定で実際にキャッシュされた画像が表示されます。メディアブラウザのタイルには、設定されたサイズ上限より小さい画像がキャッシュされることがあります。このタブを開いても、新しいフレームは生成されません。</string>
+  <string name="thumbnail_inspection_failed">サムネイル情報を読み取れませんでした。更新してください。</string>
+  <string name="thumbnail_generation_unavailable">選択した生成方法では、このファイルのサムネイルを取得できませんでした。</string>
 </resources>

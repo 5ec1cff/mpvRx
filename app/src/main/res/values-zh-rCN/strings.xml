@@ -2650,4 +2650,52 @@
   <plurals name="selection_info_folder_count">
     <item quantity="other">%1$d 个文件夹</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">高解析度无损</string>
+  <string name="audio_quality_lossless">无损</string>
+  <string name="audio_quality_lossy">有损</string>
+  <string name="audio_quality_dsd">直接比特流数字音频</string>
+  <string name="audio_quality_audio">音频</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">正在计算…</string>
+  <string name="delete_size_unknown">大小未知</string>
+  <string name="delete_size_description">总大小：%1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">缩略图</string>
+  <string name="thumbnail_preview_description">%1$s 的缓存缩略图</string>
+  <string name="thumbnail_status_disk">已缓存在磁盘上</string>
+  <string name="thumbnail_status_memory">已缓存在内存中</string>
+  <string name="thumbnail_status_unreadable">无法解码缓存图片</string>
+  <string name="thumbnail_status_missing">没有缓存的缩略图</string>
+  <string name="thumbnail_info_status">缓存状态</string>
+  <string name="thumbnail_info_generator">生成策略</string>
+  <string name="thumbnail_info_strategy">帧或封面选择</string>
+  <string name="thumbnail_strategy_artwork">专辑封面</string>
+  <string name="thumbnail_strategy_android">Android 选择的帧</string>
+  <string name="thumbnail_info_quality">设置的质量</string>
+  <string name="thumbnail_info_maximum">设置的尺寸上限</string>
+  <string name="thumbnail_maximum_value">长边最多 %1$d 像素</string>
+  <string name="thumbnail_info_dimensions">实际图片尺寸</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d 像素</string>
+  <string name="thumbnail_info_format">缓存图片格式</string>
+  <string name="thumbnail_info_size">缓存文件大小</string>
+  <string name="thumbnail_info_memory">已存入媒体浏览器的内存缓存</string>
+  <string name="thumbnail_info_preview_memory">预览内存占用</string>
+  <string name="thumbnail_info_frame">设置的帧位置</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">应用 JPEG 编码器设置</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">缓存文件更新时间</string>
+  <string name="thumbnail_info_cache_path">缓存文件路径</string>
+  <string name="thumbnail_info_source">源 URI</string>
+  <string name="thumbnail_yes">是</string>
+  <string name="thumbnail_no">否</string>
+  <string name="thumbnail_refresh">刷新信息</string>
+  <string name="thumbnail_generate">生成缩略图</string>
+  <string name="thumbnail_quality_note">预览显示当前设置下实际缓存的图片。媒体浏览器中的图块可能会缓存小于所设尺寸上限的图片。打开此标签页不会生成新的帧。</string>
+  <string name="thumbnail_inspection_failed">无法读取缩略图信息，请尝试刷新。</string>
+  <string name="thumbnail_generation_unavailable">所选生成器未能为此文件返回缩略图。</string>
 </resources>

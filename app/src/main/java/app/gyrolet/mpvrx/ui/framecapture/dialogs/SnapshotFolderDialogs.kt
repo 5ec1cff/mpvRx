@@ -92,8 +92,10 @@ fun SnapshotDeleteFolderDialog(
   snapshotCount: Int,
   onConfirm: () -> Unit,
   onDismiss: () -> Unit,
+  paths: List<String> = emptyList(),
 ) {
   AlertDialog(
+    singleRowActions = true,
     onDismissRequest = onDismiss,
     title = {
       Text(
@@ -116,7 +118,7 @@ fun SnapshotDeleteFolderDialog(
       )
     },
     confirmButton = {
-      TextButton(onClick = onConfirm) { Text(stringResource(R.string.snapshot_delete)) }
+      app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(paths = paths, onClick = onConfirm)
     },
     dismissButton = {
       TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }
@@ -134,13 +136,15 @@ fun SnapshotDeleteConfirmDialog(
   count: Int,
   onConfirm: () -> Unit,
   onDismiss: () -> Unit,
+  paths: List<String> = emptyList(),
 ) {
   AlertDialog(
+    singleRowActions = true,
     onDismissRequest = onDismiss,
     title = { Text(stringResource(R.string.snapshot_delete_selected_title, count)) },
     text = { Text(stringResource(R.string.snapshot_delete_message)) },
     confirmButton = {
-      TextButton(onClick = onConfirm) { Text(stringResource(R.string.snapshot_delete)) }
+      app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(paths = paths, onClick = onConfirm)
     },
     dismissButton = {
       TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }

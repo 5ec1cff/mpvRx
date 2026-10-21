@@ -80,6 +80,8 @@ fun NetworkImageCard(
   val imageRepository = koinInject<NetworkImageRepository>()
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
+  val showThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
+  val showNetworkThumbnails by appearancePreferences.showNetworkThumbnails.collectAsState()
   val showExtensionField by browserPreferences.showExtensionField.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showDateChip by browserPreferences.showDateChip.collectAsState()
@@ -87,19 +89,21 @@ fun NetworkImageCard(
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
   val displayName = if (showExtensionField) file.name else file.name.substringBeforeLast('.', file.name)
+  val displayThumb = showThumbnails && showNetworkThumbnails
 
   // A grid card is as wide as its column, and the column count is a preference, so the thumbnail is
   // requested at the size the layout actually gave it. The fixed 160dp guess it replaces was smaller
   // than the box on a two-column phone and about ten times larger on an eight-column one. Null until
   // the first layout pass.
-  var thumbSizePx by remember(file.path) { mutableStateOf<IntSize?>(null) }
+  var thumbSizePx by remember(connection.id, file.path) { mutableStateOf<IntSize?>(null) }
 
-  var thumbnail by remember(file.path) { mutableStateOf<Bitmap?>(null) }
-  var isLoading by remember(file.path) { mutableStateOf(true) }
-  var hasFailed by remember(file.path) { mutableStateOf(false) }
-  var retryToken by remember(file.path) { mutableStateOf(0) }
+  var thumbnail by remember(connection.id, file.path, displayThumb) { mutableStateOf<Bitmap?>(null) }
+  var isLoading by remember(connection.id, file.path, displayThumb) { mutableStateOf(displayThumb) }
+  var hasFailed by remember(connection.id, file.path, displayThumb) { mutableStateOf(false) }
+  var retryToken by remember(connection.id, file.path) { mutableStateOf(0) }
 
-  LaunchedEffect(file.path, retryToken, thumbSizePx) {
+  LaunchedEffect(connection.id, file.path, retryToken, thumbSizePx, displayThumb) {
+    if (!displayThumb) return@LaunchedEffect
     val size = thumbSizePx ?: return@LaunchedEffect
     isLoading = true
     hasFailed = false

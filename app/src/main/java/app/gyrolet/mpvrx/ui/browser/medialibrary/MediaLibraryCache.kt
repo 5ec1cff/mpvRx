@@ -28,10 +28,11 @@ import app.gyrolet.mpvrx.utils.storage.MediaStoreGenerationGuard
 internal object MediaLibraryCache {
   private const val TAG = "MediaLibraryCache"
   private const val PREFS = "media_library_cache"
-  private const val KEY_VIDEOS = "videos_v2"
-  private const val KEY_SCAN_OPTIONS = "scan_options_v2"
-  private const val KEY_GENERATION = "generation_v2"
-  private const val KEY_METADATA = "metadata_v2"
+  // Rescan snapshots written before the standard MediaStore orientation column was used.
+  private const val KEY_VIDEOS = "videos_v3"
+  private const val KEY_SCAN_OPTIONS = "scan_options_v3"
+  private const val KEY_GENERATION = "generation_v3"
+  private const val KEY_METADATA = "metadata_v3"
 
   // ASCII unit/record separators, escaped rather than embedded as literal control characters
   // so the source stays readable. Both are pathological in a filename.

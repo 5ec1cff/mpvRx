@@ -43,7 +43,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -82,6 +84,7 @@ private fun ByteArray.toLowerHex(): String {
 class ThumbnailRepository(
   private val context: Context,
 ) {
+  internal val artworkContext: Context get() = context
   private val appearancePreferences by lazy {
     KoinJavaComponent.get<app.gyrolet.mpvrx.preferences.AppearancePreferences>(
       app.gyrolet.mpvrx.preferences.AppearancePreferences::class.java,
@@ -100,6 +103,8 @@ class ThumbnailRepository(
   private val localDiskDir = File(context.filesDir, "thumbnails/local").apply { mkdirs() }
   private val networkDiskDir = File(context.filesDir, "thumbnails/network").apply { mkdirs() }
   private val diskCacheLock = ReentrantReadWriteLock()
+  private val _cacheRevision = MutableStateFlow(0L)
+  val cacheRevision = _cacheRevision.asStateFlow()
   private val ongoingOperations = ConcurrentHashMap<String, Deferred<Bitmap?>>()
   private val diskVideoBaseKeyCache = ConcurrentHashMap<String, String>()
   // Lets composition reuse keys already computed on worker threads.
@@ -172,8 +177,9 @@ class ThumbnailRepository(
     heightPx: Int,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
-      val generator = browserPreferences.thumbnailGenerator.get()
+      val (revision, generator) = diskCacheLock.read { cacheRevision.value to browserPreferences.thumbnailGenerator.get() }
       val key = thumbnailKey(video, widthPx, heightPx, generator)
+      val operationKey = "$key|revision:$revision"
 
       if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
         return@withContext null
@@ -183,13 +189,15 @@ class ThumbnailRepository(
         memoryCache.get(key)
       }?.let { return@withContext it }
 
-      ongoingOperations[key]?.let { return@withContext it.await() }
+      ongoingOperations[operationKey]?.let { return@withContext it.await() }
 
       val candidate =
         async(start = CoroutineStart.LAZY) {
+          if (revision != cacheRevision.value) return@async null
           getCachedThumbnail(video, widthPx, heightPx, generator)?.let { cached ->
-            synchronized(memoryCache) {
-              memoryCache.put(key, cached)
+            diskCacheLock.read {
+              if (revision != cacheRevision.value) return@async null
+              synchronized(memoryCache) { memoryCache.put(key, cached) }
             }
             _thumbnailReadyKeys.tryEmit(key)
             return@async cached
@@ -230,20 +238,21 @@ class ThumbnailRepository(
             synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.remove(localFailureKey) }
           }
           bitmap.prepareToDraw()
-          synchronized(memoryCache) {
-            memoryCache.put(key, bitmap)
+          diskCacheLock.read {
+            if (revision != cacheRevision.value) return@async null
+            synchronized(memoryCache) { memoryCache.put(key, bitmap) }
           }
-          writeBitmapToDisk(diskKey, bitmap, isNetworkUrl(video.path))
+          writeBitmapToDisk(diskKey, bitmap, isNetworkUrl(video.path), revision)
           _thumbnailReadyKeys.tryEmit(key)
           bitmap
         }
 
       val operation =
-        ongoingOperations.putIfAbsent(key, candidate)?.also {
+        ongoingOperations.putIfAbsent(operationKey, candidate)?.also {
           candidate.cancel()
         } ?: candidate.also { owned ->
           owned.invokeOnCompletion {
-            ongoingOperations.remove(key, owned)
+            ongoingOperations.remove(operationKey, owned)
           }
           owned.start()
         }
@@ -266,6 +275,7 @@ class ThumbnailRepository(
     generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
   ): Bitmap? =
     withContext(Dispatchers.IO) {
+      val revision = diskCacheLock.read { cacheRevision.value }
       currentWorkLimits().cachedReads.withPermit {
         if (isNetworkUrl(video.path) && !isNetworkThumbnailAllowed(video.path)) {
           return@withPermit null
@@ -295,8 +305,9 @@ class ThumbnailRepository(
         val scaled = scaleBitmap(decoded, widthPx, heightPx)
         currentCoroutineContext().ensureActive()
         scaled.prepareToDraw()
-        synchronized(memoryCache) {
-          memoryCache.put(key, scaled)
+        diskCacheLock.read {
+          if (revision != cacheRevision.value) return@withPermit null
+          synchronized(memoryCache) { memoryCache.put(key, scaled) }
         }
         scaled
       }
@@ -305,6 +316,65 @@ class ThumbnailRepository(
   /** Cheap cold-start gate for Folder/Tree roots: do not enumerate folder contents
    * when there are no cached thumbnails to display. Call from a worker thread. */
   fun hasLocalCachedThumbnails(): Boolean = !localDiskDir.list().isNullOrEmpty()
+
+  /** Inspect the same cache identities used by the browser, without opening a media decoder. */
+  internal suspend fun inspectThumbnail(video: Video): ThumbnailInspection =
+    withContext(Dispatchers.IO) {
+      val network = isNetworkUrl(video.path)
+      val generator = browserPreferences.thumbnailGenerator.get()
+      val quality = browserPreferences.thumbnailQuality.get()
+      val indexedVideo = if (network) {
+        video
+      } else {
+        // Prefer the browser's indexed identity when the report's duration is rounded differently.
+        val metadata = resolveLocalMetadata(video.copy(duration = 0L), canonicalLocalPath(video))
+        video.copy(
+          size = metadata.size,
+          dateModified = metadata.dateModified,
+          duration = metadata.duration.takeIf { it > 0L } ?: video.duration,
+        )
+      }
+      val identities = listOf(indexedVideo, video, video.copy(duration = 0L)).distinct()
+      val diskKeys = identities.map { diskCacheKey(it, generator) }.toMutableList()
+      if (network) diskKeys += networkThumbnailDiskKey(networkThumbnailIdentity(video.path, null))
+      val bases = identities.map { "${videoBaseKey(it)}|" }
+      val suffix = "|${thumbnailModeKey()}|${thumbnailQualityKey()}" + thumbnailGeneratorCacheKey(video, generator)
+      val memoryBitmap = synchronized(memoryCache) {
+        memoryCache.snapshot().entries.firstOrNull { (key, bitmap) ->
+          !bitmap.isRecycled && bases.any { base -> key.startsWith(base) } && key.endsWith(suffix)
+        }?.value
+      }
+      val diskEntry = diskCacheLock.read {
+        val entries = diskKeys.distinct().mapNotNull { key ->
+          val file = File(if (network) networkDiskDir else localDiskDir, keyToFileName(key))
+          if (!file.isFile) return@mapNotNull null
+          val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+          runCatching { BitmapFactory.decodeFile(file.absolutePath, bounds) }
+          Triple(key, file, bounds)
+        }
+        entries.firstOrNull { (_, _, bounds) -> bounds.outWidth > 0 && bounds.outHeight > 0 } ?: entries.firstOrNull()
+      }
+      val diskPreview = diskEntry?.let { (key, _, _) -> readBitmapFromDisk(key, network) }
+      val preview = diskPreview ?: memoryBitmap
+      val bounds = diskEntry?.third
+      val file = diskEntry?.second
+      ThumbnailInspection(
+        cacheVideo = indexedVideo,
+        preview = preview,
+        generator = if (network) ThumbnailGenerator.Native else generator,
+        mode = browserPreferences.thumbnailMode.get(),
+        quality = quality,
+        framePositionPercent = browserPreferences.thumbnailFramePosition.get(),
+        width = bounds?.outWidth?.takeIf { it > 0 } ?: preview?.width,
+        height = bounds?.outHeight?.takeIf { it > 0 } ?: preview?.height,
+        mimeType = bounds?.outMimeType,
+        filePath = file?.absolutePath,
+        fileSizeBytes = file?.length(),
+        modifiedAtMillis = file?.lastModified()?.takeIf { it > 0 },
+        cachedInMemory = memoryBitmap != null,
+        jpegEncoderQuality = THUMBNAIL_JPEG_QUALITY,
+      )
+    }
 
   fun getThumbnailFromMemory(
     video: Video,
@@ -321,13 +391,23 @@ class ThumbnailRepository(
     }
   }
 
-  fun clearThumbnailCache() {
+  /** Publish the new generator only after the old cache has been removed. */
+  suspend fun setThumbnailGenerator(generator: ThumbnailGenerator) = withContext(Dispatchers.IO) {
+    if (browserPreferences.thumbnailGenerator.get() != generator) resetThumbnailCache(generator)
+  }
+
+  fun clearThumbnailCache() = resetThumbnailCache()
+
+  private fun resetThumbnailCache(generator: ThumbnailGenerator? = null) = diskCacheLock.write {
     folderJobs.values.forEach { it.cancel() }
     folderJobs.clear()
     folderStates.clear()
     ongoingOperations.values.forEach { it.cancel() }
     ongoingOperations.clear()
+    // Cancelled native work can still hold its old permit until its decoder returns.
+    workLimits = null
     diskVideoBaseKeyCache.clear()
+    resolvedThumbnailKeys.evictAll()
     localMetadataCache.clear()
     networkThumbnailFailedAt.clear()
     synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.evictAll() }
@@ -336,7 +416,7 @@ class ThumbnailRepository(
       memoryCache.evictAll()
     }
 
-    diskCacheLock.write {
+    try {
       listOf(
         File(context.cacheDir, "thumbnails"),
         File(context.filesDir, "thumbnails"),
@@ -353,6 +433,10 @@ class ThumbnailRepository(
       // ever ran once at construction. Recreate it here or every network image load silently fails
       // until the process restarts.
       File(context.cacheDir, "network_images").mkdirs()
+      if (generator != null) browserPreferences.thumbnailGenerator.set(generator)
+    } finally {
+      // Visible song/video/folder covers and playback artwork discard their own retained bitmaps.
+      _cacheRevision.value += 1L
     }
   }
 
@@ -491,10 +575,10 @@ class ThumbnailRepository(
       thumbnailGeneratorCacheKey(video, generator)
 
   private fun thumbnailGeneratorCacheKey(video: Video, generator: ThumbnailGenerator): String =
-    if (generator == ThumbnailGenerator.MediaStore && !video.isAudio && !isNetworkUrl(video.path)) {
-      "|generator:MediaStore_v1"
+    if (generator == ThumbnailGenerator.MediaStore && !isNetworkUrl(video.path)) {
+      "|generator:MediaStore_v2"
     } else {
-      // Preserve native cache compatibility, including network previews and audio artwork.
+      // Native extraction never reuses Android's audio/video thumbnails.
       ""
     }
 
@@ -561,7 +645,7 @@ class ThumbnailRepository(
       val cursor =
         when {
           video.uri.scheme == "content" &&
-            video.uri.toString().startsWith(MediaStore.Video.Media.EXTERNAL_CONTENT_URI.toString()) -> {
+            video.uri.authority == MediaStore.AUTHORITY -> {
             context.contentResolver.query(video.uri, projection, null, null, null)
           }
           file != null -> {
@@ -645,13 +729,13 @@ class ThumbnailRepository(
     // Entries saved without media metadata (e.g. songs added to a playlist) arrive flagged as video.
     val canonicalPath = canonicalLocalPath(video)
     val isAudio =
-      video.isAudio ||
+      video.isAudio || video.mimeType.startsWith("audio/", ignoreCase = true) ||
         app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalPath))
 
-    if (!isAudio && generator == ThumbnailGenerator.MediaStore) {
+    if (generator == ThumbnailGenerator.MediaStore) {
       // A missing Android thumbnail is a placeholder, not permission to start native extraction.
       // Keep local MediaStore requests independent of files that stall the native decoder.
-      return MediaStoreVideoThumbnailLoader.load(context, video, canonicalPath, dimension)?.let {
+      return MediaStoreThumbnailLoader.load(context, video, canonicalPath, dimension, isAudio)?.let {
         scaleBitmap(it, widthPx, heightPx)
       }
     }
@@ -659,7 +743,7 @@ class ThumbnailRepository(
     if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {
       generateEmbeddedArtwork(video)?.let { return scaleBitmap(it, widthPx, heightPx) }
       if (isAudio) {
-        return loadMediaStoreAudioArtwork(video, dimension)?.let { scaleBitmap(it, widthPx, heightPx) }
+        return null
       }
     }
 
@@ -669,41 +753,6 @@ class ThumbnailRepository(
 
     return extractLocalVideoFrame(video, widthPx, heightPx)
   }
-
-  /** MediaStore's indexed cover, which also covers formats the retriever cannot read art from. */
-  private fun loadMediaStoreAudioArtwork(
-    video: Video,
-    sizePx: Int,
-  ): Bitmap? =
-    runCatching {
-      val resolver = context.contentResolver
-      val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-      val mediaStoreId =
-        video.uri
-          .takeIf { it.scheme == "content" && it.authority == MediaStore.AUTHORITY }
-          ?.let { runCatching { android.content.ContentUris.parseId(it) }.getOrNull() }
-      val (audioId, albumId) =
-        resolver.query(
-          collection,
-          arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.ALBUM_ID),
-          if (mediaStoreId != null) "${MediaStore.Audio.Media._ID}=?" else "${MediaStore.Audio.Media.DATA}=?",
-          arrayOf(mediaStoreId?.toString() ?: canonicalLocalPath(video)),
-          null,
-        )?.use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) to cursor.getLong(1) else null }
-          ?: return null
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        resolver.loadThumbnail(
-          android.content.ContentUris.withAppendedId(collection, audioId),
-          android.util.Size(sizePx, sizePx),
-          null,
-        )
-      } else {
-        resolver
-          .openInputStream(
-            android.content.ContentUris.withAppendedId(Uri.parse("content://media/external/audio/albumart"), albumId),
-          )?.use(BitmapFactory::decodeStream)
-      }
-    }.getOrNull()
 
   private fun generateEmbeddedArtwork(video: Video): Bitmap? {
     val canonicalPath = canonicalLocalPath(video)
@@ -888,6 +937,7 @@ class ThumbnailRepository(
     key: String,
     bitmap: Bitmap,
     network: Boolean,
+    revision: Long,
   ) {
     val file = File(if (network) networkDiskDir else localDiskDir, keyToFileName(key))
     val encoded =
@@ -902,6 +952,7 @@ class ThumbnailRepository(
       }.getOrNull() ?: return
 
     diskCacheLock.write {
+      if (revision != cacheRevision.value) return@write
       runCatching {
         FileOutputStream(file).use { output ->
           output.write(encoded)
@@ -1198,6 +1249,7 @@ class ThumbnailRepository(
     mimeType: String? = null,
   ): Bitmap? =
     withContext(Dispatchers.IO) {
+      val revision = diskCacheLock.read { cacheRevision.value }
       if (!appearancePreferences.showNetworkThumbnails.get()) return@withContext null
 
       val identity = networkThumbnailIdentity(path, connection)
@@ -1216,6 +1268,7 @@ class ThumbnailRepository(
               identity = identity,
               fileSize = fileSize,
               mimeType = mimeType,
+              revision = revision,
             )
           }
 
@@ -1227,7 +1280,10 @@ class ThumbnailRepository(
           val diskKey = networkThumbnailDiskKey(identity)
           readBitmapFromDisk(diskKey, network = true)?.let { bitmap ->
             val scaled = scaleBitmap(bitmap, widthPx, heightPx)
-            synchronized(memoryCache) { memoryCache.put(memKey, scaled) }
+            diskCacheLock.read {
+              if (revision != cacheRevision.value) return@async null
+              synchronized(memoryCache) { memoryCache.put(memKey, scaled) }
+            }
             return@async scaled
           }
 
@@ -1253,9 +1309,13 @@ class ThumbnailRepository(
             return@async null
           }
 
+          currentCoroutineContext().ensureActive()
           networkThumbnailFailedAt.remove(identity)
-          writeBitmapToDisk(diskKey, bitmap, network = true)
-          synchronized(memoryCache) { memoryCache.put(memKey, bitmap) }
+          writeBitmapToDisk(diskKey, bitmap, network = true, revision = revision)
+          diskCacheLock.read {
+            if (revision != cacheRevision.value) return@async null
+            synchronized(memoryCache) { memoryCache.put(memKey, bitmap) }
+          }
           _thumbnailReadyKeys.tryEmit(memKey)
           bitmap
         }
@@ -1295,6 +1355,7 @@ class ThumbnailRepository(
     identity: String,
     fileSize: Long,
     mimeType: String?,
+    revision: Long,
   ): Bitmap? {
     if (hasRecentNetworkThumbnailFailure(identity)) {
       android.util.Log.d("ThumbnailRepository", "Skipping network thumbnail (previously failed): $path")
@@ -1310,7 +1371,10 @@ class ThumbnailRepository(
     // Disk cache hit
     readBitmapFromDisk(diskKey, network = true)?.let { bitmap ->
       val scaled = scaleBitmap(bitmap, widthPx, heightPx)
-      synchronized(memoryCache) { memoryCache.put(memKey, scaled) }
+      diskCacheLock.read {
+        if (revision != cacheRevision.value) return null
+        synchronized(memoryCache) { memoryCache.put(memKey, scaled) }
+      }
       return scaled
     }
 
@@ -1346,10 +1410,12 @@ class ThumbnailRepository(
 
     networkThumbnailFailedAt.remove(identity)
 
-    // Write to disk cache
-    writeBitmapToDisk(diskKey, bitmap, network = true)
-
-    synchronized(memoryCache) { memoryCache.put(memKey, bitmap) }
+    currentCoroutineContext().ensureActive()
+    writeBitmapToDisk(diskKey, bitmap, network = true, revision = revision)
+    diskCacheLock.read {
+      if (revision != cacheRevision.value) return null
+      synchronized(memoryCache) { memoryCache.put(memKey, bitmap) }
+    }
     _thumbnailReadyKeys.tryEmit(memKey)
     return bitmap
   }

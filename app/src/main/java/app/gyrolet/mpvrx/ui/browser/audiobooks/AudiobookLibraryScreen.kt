@@ -78,6 +78,7 @@ import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -108,6 +109,7 @@ import app.gyrolet.mpvrx.database.entities.AudiobookEntity
 import app.gyrolet.mpvrx.domain.audiobook.AudiobookOnlineMetadata
 import app.gyrolet.mpvrx.domain.audiobookshelf.AudiobookshelfBook
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
 import app.gyrolet.mpvrx.preferences.AudiobookSortType
 import app.gyrolet.mpvrx.preferences.AudiobookSourceProvider
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
@@ -720,6 +722,7 @@ fun AudiobookLibraryContent(
                   title = book.book.title,
                   author = book.book.author,
                   coverUri = book.book.coverUri,
+                  sourceUri = book.orderedTracks.firstOrNull()?.uri,
                   progressPercent = book.progress,
                   isFinished = book.book.finished,
                   remainingMs = (((book.durationMs - book.book.progressMs).coerceAtLeast(0) / book.book.playbackSpeed).toLong()),
@@ -739,6 +742,7 @@ fun AudiobookLibraryContent(
                   title = book.book.title,
                   author = book.book.author,
                   coverUri = book.book.coverUri,
+                  sourceUri = book.orderedTracks.firstOrNull()?.uri,
                   progressPercent = book.progress,
                   isFinished = book.book.finished,
                   remainingMs = (((book.durationMs - book.book.progressMs).coerceAtLeast(0) / book.book.playbackSpeed).toLong()),
@@ -770,6 +774,7 @@ fun AudiobookLibraryContent(
     books?.firstOrNull { it.book.id == detailsId }?.let { book ->
       AudiobookDetailsBottomSheet(
         coverUri = book.book.coverUri,
+        sourceUri = book.orderedTracks.firstOrNull()?.uri,
         title = book.book.title,
         author = book.book.author,
         durationMs = book.durationMs,
@@ -947,6 +952,7 @@ private fun AudiobookDetailsBottomSheet(
   onToggleFinished: () -> Unit,
   toggleFinishedEnabled: Boolean = true,
   extraActions: (@Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit)? = null,
+  sourceUri: String? = null,
 ) {
   val sheetState = rememberBottomSheetState(
     initialValue = SheetValue.Expanded,
@@ -972,6 +978,7 @@ private fun AudiobookDetailsBottomSheet(
         ) {
           AudiobookArtwork(
             uri = coverUri,
+            sourceUri = sourceUri,
             modifier = Modifier.width(96.dp).aspectRatio(0.76f).clip(MaterialTheme.shapes.large),
           )
           Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1407,16 +1414,21 @@ private fun AudiobookOnlineSearchDialog(
 }
 
 @Composable
-internal fun AudiobookArtwork(uri: String?, modifier: Modifier = Modifier) {
+internal fun AudiobookArtwork(uri: String?, modifier: Modifier = Modifier, sourceUri: String? = null) {
   val context = LocalContext.current
   val client = org.koin.compose.koinInject<okhttp3.OkHttpClient>()
-  var image by remember(uri) {
-    mutableStateOf<ImageBitmap?>(
-      uri?.let { app.gyrolet.mpvrx.presentation.components.RemoteImageLoader.getFromMemory(it)?.asImageBitmap() }
-    )
+  val repository = koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>()
+  val revision by repository.cacheRevision.collectAsState()
+  val generator by koinInject<BrowserPreferences>().thumbnailGenerator.collectAsState()
+  var image by remember(uri, sourceUri, generator, revision) {
+    mutableStateOf<ImageBitmap?>(null)
   }
 
-  LaunchedEffect(uri) {
+  LaunchedEffect(uri, sourceUri, generator, revision) {
+    if (app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource(sourceUri)) {
+      image = repository.getArtwork(sourceUri)?.asImageBitmap()
+      return@LaunchedEffect
+    }
     if (uri == null) {
       image = null
       return@LaunchedEffect
@@ -1522,6 +1534,7 @@ private fun AudiobookGridCard(
   onClick: () -> Unit,
   onPlay: () -> Unit,
   modifier: Modifier = Modifier,
+  sourceUri: String? = null,
 ) {
   Surface(
     onClick = onClick,
@@ -1536,7 +1549,7 @@ private fun AudiobookGridCard(
           .aspectRatio(0.76f)
           .clip(RoundedCornerShape(12.dp)),
       ) {
-        AudiobookArtwork(coverUri, Modifier.fillMaxSize())
+        AudiobookArtwork(coverUri, Modifier.fillMaxSize(), sourceUri)
         if (progressPercent > 0f) {
           LinearProgressIndicator(
             progress = { progressPercent },
@@ -1607,6 +1620,7 @@ private fun AudiobookListRow(
   onClick: () -> Unit,
   onPlay: () -> Unit,
   modifier: Modifier = Modifier,
+  sourceUri: String? = null,
 ) {
   Surface(
     onClick = onClick,
@@ -1619,7 +1633,7 @@ private fun AudiobookListRow(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-      AudiobookArtwork(coverUri, Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)))
+      AudiobookArtwork(coverUri, Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)), sourceUri)
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.titleMediumEmphasized, maxLines = 2, overflow = TextOverflow.Ellipsis)
         if (author.isNotBlank()) {

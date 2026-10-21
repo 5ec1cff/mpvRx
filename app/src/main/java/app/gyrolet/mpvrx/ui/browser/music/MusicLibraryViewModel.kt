@@ -74,18 +74,26 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
   private val _artists = MutableStateFlow<List<MusicArtist>>(emptyList())
   val artists: StateFlow<List<MusicArtist>> = _artists.asStateFlow()
 
-  val playlists: StateFlow<List<PlaylistEntity>> =
-    playlistRepository.observeAllPlaylists(isAudio = true)
-      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
   private val _selectedTab = MutableStateFlow(MusicTab.SONGS)
   val selectedTab: StateFlow<MusicTab> = _selectedTab.asStateFlow()
 
   private val _searchQuery = MutableStateFlow("")
   val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-  val sortField: StateFlow<MusicSortField> = browserPreferences.musicSortField.stateIn(viewModelScope)
+  val sortField: StateFlow<MusicSortField> = combine(
+    browserPreferences.musicSortField.changes(), selectedTab,
+  ) { field, tab ->
+    field.takeIf { it in tab.availableSortFields } ?: MusicSortField.TITLE
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MusicSortField.TITLE)
   val sortOrder: StateFlow<MusicSortOrder> = browserPreferences.musicSortOrder.stateIn(viewModelScope)
+
+  val playlists: StateFlow<List<PlaylistEntity>> = combine(
+    playlistRepository.observeAllPlaylists(isAudio = true), sortOrder,
+  ) { items, order ->
+    val sorted = items.sortedBy { it.name.lowercase() }
+    if (order == MusicSortOrder.DESCENDING) sorted.reversed() else sorted
+  }.flowOn(Dispatchers.Default)
+    .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
   val viewMode: StateFlow<MusicViewMode> = browserPreferences.musicViewMode.stateIn(viewModelScope)
 
@@ -160,7 +168,8 @@ class MusicLibraryViewModel : ViewModel(), KoinComponent {
       MusicSortField.ALBUM -> result.sortedBy { it.album.lowercase() }
       MusicSortField.DURATION -> result.sortedBy { it.durationMs }
       MusicSortField.DATE_ADDED -> result.sortedBy { it.dateAdded }
-      MusicSortField.TRACK_COUNT, MusicSortField.YEAR -> result.sortedBy { it.year }
+      MusicSortField.YEAR -> result.sortedBy { it.year }
+      MusicSortField.TRACK_COUNT -> result.sortedBy { it.title.lowercase() }
     }
     if (order == MusicSortOrder.DESCENDING) sorted.reversed() else sorted
   }.flowOn(Dispatchers.Default)

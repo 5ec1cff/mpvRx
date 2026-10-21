@@ -237,16 +237,16 @@ data class SnapshotDetailScreen(
       AlertDialog(
         onDismissRequest = { pendingDelete = null },
         title = { Text(stringResource(R.string.snapshot_delete_title)) },
+        singleRowActions = true,
         text = { Text(stringResource(R.string.snapshot_delete_message)) },
         confirmButton = {
-          TextButton(
+          app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+            paths = listOfNotNull(target.imageUri ?: target.imagePath),
             onClick = {
               pendingDelete = null
               scope.launch { viewModel.delete(target) }
             },
-          ) {
-            Text(stringResource(R.string.snapshot_delete))
-          }
+          )
         },
         dismissButton = {
           TextButton(onClick = { pendingDelete = null }) {

@@ -2667,4 +2667,52 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
     <item quantity="one">%1$d carpeta</item>
     <item quantity="other">%1$d carpetas</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Sin pérdida en alta resolución</string>
+  <string name="audio_quality_lossless">Sin pérdida</string>
+  <string name="audio_quality_lossy">Con pérdida</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calculando…</string>
+  <string name="delete_size_unknown">Tamaño desconocido</string>
+  <string name="delete_size_description">Tamaño total: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Miniatura</string>
+  <string name="thumbnail_preview_description">Miniatura en caché de %1$s</string>
+  <string name="thumbnail_status_disk">Almacenada en caché en disco</string>
+  <string name="thumbnail_status_memory">Almacenada en caché en memoria</string>
+  <string name="thumbnail_status_unreadable">No se pudo decodificar la imagen en caché</string>
+  <string name="thumbnail_status_missing">No hay ninguna miniatura en caché</string>
+  <string name="thumbnail_info_status">Estado de la caché</string>
+  <string name="thumbnail_info_generator">Política de generación</string>
+  <string name="thumbnail_info_strategy">Selección de fotograma o carátula</string>
+  <string name="thumbnail_strategy_artwork">Carátula del álbum</string>
+  <string name="thumbnail_strategy_android">Fotograma seleccionado por Android</string>
+  <string name="thumbnail_info_quality">Calidad configurada</string>
+  <string name="thumbnail_info_maximum">Límite de tamaño configurado</string>
+  <string name="thumbnail_maximum_value">Hasta %1$d píxeles en el lado más largo</string>
+  <string name="thumbnail_info_dimensions">Dimensiones reales de la imagen</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d píxeles</string>
+  <string name="thumbnail_info_format">Formato de la imagen en caché</string>
+  <string name="thumbnail_info_size">Tamaño del archivo en caché</string>
+  <string name="thumbnail_info_memory">Presente en la caché de memoria del explorador</string>
+  <string name="thumbnail_info_preview_memory">Memoria de la vista previa</string>
+  <string name="thumbnail_info_frame">Posición de fotograma configurada</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Ajuste del codificador JPEG de la aplicación</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Última actualización del archivo de caché</string>
+  <string name="thumbnail_info_cache_path">Ruta del archivo de caché</string>
+  <string name="thumbnail_info_source">URI de origen</string>
+  <string name="thumbnail_yes">Sí</string>
+  <string name="thumbnail_no">No</string>
+  <string name="thumbnail_refresh">Actualizar información</string>
+  <string name="thumbnail_generate">Generar miniatura</string>
+  <string name="thumbnail_quality_note">La vista previa muestra la imagen realmente almacenada en caché con la configuración actual. Los mosaicos del explorador pueden almacenar una imagen más pequeña que el límite de tamaño configurado. Abrir esta pestaña no genera un fotograma nuevo.</string>
+  <string name="thumbnail_inspection_failed">No se pudo leer la información de la miniatura. Prueba a actualizarla.</string>
+  <string name="thumbnail_generation_unavailable">El generador seleccionado no devolvió una miniatura para este archivo.</string>
 </resources>

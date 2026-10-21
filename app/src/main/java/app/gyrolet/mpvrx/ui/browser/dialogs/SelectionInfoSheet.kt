@@ -12,6 +12,7 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,7 +62,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -73,7 +73,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -85,6 +84,8 @@ import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton
+import app.gyrolet.mpvrx.presentation.components.ConnectedInfoStatCard
+import app.gyrolet.mpvrx.presentation.components.ConnectedInfoSurface
 import app.gyrolet.mpvrx.ui.browser.selection.summarizeSelection
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -96,6 +97,7 @@ import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
+import app.gyrolet.mpvrx.ui.theme.spacing
 import app.gyrolet.mpvrx.utils.clipboard.SafeClipboard
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import kotlinx.coroutines.CancellationException
@@ -226,7 +228,13 @@ private fun SelectionInfoPage(
       }
     }
   }
-  val metadataRows = buildList {
+  val metadataBreakdowns = mutableMapOf<String, List<Pair<String, Int>>>()
+  val metadataRows = buildList<Pair<String, String>> {
+    fun addBreakdown(label: String, files: List<Video>, value: (Video) -> String) {
+      val counts = metadataBreakdown(files, unknown, value)
+      metadataBreakdowns[label] = counts
+      add(label to counts.joinToString("\n") { (name, count) -> "$name: $count" })
+    }
     if (summary != null) {
       val files = summary.videos
       if (files.isNotEmpty()) {
@@ -240,32 +248,20 @@ private fun SelectionInfoPage(
               ),
           )
         }
-        add(
-          stringResource(R.string.selection_info_formats) to
-            metadataBreakdown(files, unknown) { it.mimeType },
-        )
+        addBreakdown(stringResource(R.string.selection_info_formats), files) { it.mimeType }
         val videoFiles = files.filterNot { it.isAudio }
         if (videoFiles.isNotEmpty()) {
-          add(
-            stringResource(R.string.selection_info_resolutions) to
-              metadataBreakdown(videoFiles, unknown) {
-                it.resolution.substringBefore("@").takeUnless { value -> value == "--" }.orEmpty()
-              },
-          )
-          add(
-            stringResource(R.string.selection_info_codecs) to
-              metadataBreakdown(videoFiles, unknown) { it.videoCodec },
-          )
-          add(
-            stringResource(R.string.selection_info_frame_rates) to
-              metadataBreakdown(videoFiles, unknown) {
-                if (it.fps.isFinite() && it.fps > 0) {
-                  String.format(configuration.locales[0], fpsFormat, it.fps)
-                } else {
-                  ""
-                }
-              },
-          )
+          addBreakdown(stringResource(R.string.selection_info_resolutions), videoFiles) {
+            it.resolution.substringBefore("@").takeUnless { value -> value == "--" }.orEmpty()
+          }
+          addBreakdown(stringResource(R.string.selection_info_codecs), videoFiles) { it.videoCodec }
+          addBreakdown(stringResource(R.string.selection_info_frame_rates), videoFiles) {
+            if (it.fps.isFinite() && it.fps > 0) {
+              String.format(configuration.locales[0], fpsFormat, it.fps)
+            } else {
+              ""
+            }
+          }
           add(
             stringResource(R.string.selection_info_subtitles) to
               stringResource(
@@ -442,14 +438,7 @@ private fun SelectionInfoPage(
       },
     ) { padding ->
       Box(
-        modifier = Modifier.fillMaxSize().padding(padding).background(
-          Brush.verticalGradient(
-            listOf(
-              MaterialTheme.colorScheme.background,
-              MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-            ),
-          ),
-        ),
+        modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.surface),
       ) {
         when {
           scanError != null -> {
@@ -545,13 +534,13 @@ private fun SelectionInfoPage(
                     item(key = "counts") {
                       Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
                       ) {
-                        countLabels.forEach { label ->
+                        countLabels.forEachIndexed { index, label ->
                           Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            contentColor = MaterialTheme.colorScheme.primary,
+                            shape = rememberConnectedShape(index, countLabels.size, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                           ) {
                             Text(
                               label,
@@ -585,11 +574,9 @@ private fun SelectionInfoPage(
                   }
                   if (metadataRows.isNotEmpty()) {
                     item(key = "metadata") {
-                      SelectionInfoCard {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                          SelectionInfoHeading(stringResource(R.string.info))
-                          SelectionInfoProperties(metadataRows, showValue)
-                        }
+                      Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small)) {
+                        SelectionInfoHeading(stringResource(R.string.info))
+                        SelectionInfoProperties(metadataRows, showValue, metadataBreakdowns)
                       }
                     }
                   }
@@ -632,37 +619,35 @@ private fun SelectionInfoPage(
                           },
                       )
                     }
-                    SelectionInfoCard {
-                      Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Row(
-                          verticalAlignment = Alignment.CenterVertically,
-                          horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                          Icon(
-                            Icons.RoundedFilled.Folder,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                    SelectionInfoProperties(folderRows, showValue, header = {
+                      Row(
+                        modifier = Modifier.padding(MaterialTheme.spacing.medium),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                      ) {
+                        Icon(
+                          Icons.RoundedFilled.Folder,
+                          contentDescription = null,
+                          tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                          Text(
+                            folder.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                           )
-                          Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                              folder.name,
-                              style = MaterialTheme.typography.titleMedium,
-                              fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                              pluralStringResource(
-                                R.plurals.selection_info_file_count,
-                                files.size,
-                                files.size,
-                              ),
-                              style = MaterialTheme.typography.bodySmall,
-                              color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                          }
+                          Text(
+                            pluralStringResource(
+                              R.plurals.selection_info_file_count,
+                              files.size,
+                              files.size,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                          )
                         }
-                        SelectionInfoProperties(folderRows, showValue)
                       }
-                    }
+                    })
                   }
                 }
               }
@@ -677,7 +662,9 @@ private fun SelectionInfoPage(
                     summary.videos,
                     key = { _, video -> video.path.ifBlank { video.uri.toString() } },
                   ) { index, video ->
-                    Surface(
+                    ConnectedInfoSurface(
+                      index = index,
+                      itemCount = summary.videos.size,
                       onClick = {
                         context.startActivity(
                           Intent(context, MediaInfoActivity::class.java).apply {
@@ -686,8 +673,6 @@ private fun SelectionInfoPage(
                           },
                         )
                       },
-                      shape = rememberConnectedShape(index, summary.videos.size, ConnectedLayout.Vertical),
-                      color = MaterialTheme.colorScheme.surfaceContainerLow,
                       modifier = Modifier.fillMaxWidth(),
                     ) {
                       Row(
@@ -746,10 +731,9 @@ private fun metadataBreakdown(
   videos: List<Video>,
   unknown: String,
   value: (Video) -> String,
-): String =
+): List<Pair<String, Int>> =
   videos.groupingBy { value(it).ifBlank { unknown } }.eachCount()
     .toList().sortedByDescending { it.second }
-    .joinToString("\n") { (label, count) -> "$label: $count" }
 
 private enum class SelectionInfoTab(@StringRes val labelRes: Int) {
   Overview(R.string.media_info_tab_overview),
@@ -895,83 +879,62 @@ private fun SelectionInfoStat(
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val accent = when (index) {
-    0 -> MaterialTheme.colorScheme.primary
-    1 -> MaterialTheme.colorScheme.secondary
-    else -> MaterialTheme.colorScheme.tertiary
-  }
-  Surface(
+  ConnectedInfoStatCard(
+    title = label,
+    value = value,
+    icon = icon,
+    accentColor = when (index) {
+      0 -> MaterialTheme.colorScheme.primary
+      1 -> MaterialTheme.colorScheme.secondary
+      2 -> MaterialTheme.colorScheme.tertiary
+      else -> Color(0xFFFFB300)
+    },
+    index = index,
+    itemCount = count,
+    columns = columns,
     onClick = onClick,
-    shape = rememberConnectedShape(
-      index,
-      count,
-      if (columns == 1) ConnectedLayout.Vertical else ConnectedLayout.Grid,
-      columns = columns,
-    ),
-    color = MaterialTheme.colorScheme.surfaceContainerLow,
     modifier = modifier,
-  ) {
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-      ) {
-        Surface(shape = RoundedCornerShape(12.dp), color = accent.copy(alpha = 0.12f), contentColor = accent) {
-          Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-          }
-        }
-        Text(
-          label,
-          modifier = Modifier.weight(1f),
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-      Text(
-        value,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-      )
-    }
-  }
+  )
 }
 
 @Composable
 private fun SelectionInfoProperties(
   rows: List<Pair<String, String>>,
   onValue: (String, String) -> Unit,
+  breakdowns: Map<String, List<Pair<String, Int>>> = emptyMap(),
+  header: (@Composable () -> Unit)? = null,
 ) {
-  val fontScale = LocalDensity.current.fontScale
-  BoxWithConstraints(Modifier.fillMaxWidth()) {
-    val stacked = maxWidth < 320.dp || fontScale >= 1.3f
-    Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
-      rows.forEachIndexed { index, (label, value) ->
-        Surface(
-          onClick = { onValue(label, value) },
-          shape = rememberConnectedShape(index, rows.size, ConnectedLayout.Vertical),
-          color = mediaInfoDetailContainerColor(),
-          modifier = Modifier.fillMaxWidth(),
+  val leadingRows = if (header == null) 0 else 1
+  val itemCount = rows.size + leadingRows
+  Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+    if (header != null) {
+      ConnectedInfoSurface(index = 0, itemCount = itemCount, content = header)
+    }
+    rows.forEachIndexed { index, (label, value) ->
+      ConnectedInfoSurface(
+        index = index + leadingRows,
+        itemCount = itemCount,
+        onClick = { onValue(label, value) },
+      ) {
+        Column(
+          Modifier.padding(MaterialTheme.spacing.medium),
+          verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
         ) {
-          if (stacked) {
-            Column(
-              Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-              verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-              SelectionInfoPropertyLabel(label)
-              SelectionInfoPropertyValue(value)
-            }
+          Text(
+            label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+          val counts = breakdowns[label]
+          if (counts.isNullOrEmpty()) {
+            Text(
+              value,
+              style = MaterialTheme.typography.bodyLarge,
+              fontWeight = FontWeight.Medium,
+              color = MaterialTheme.colorScheme.onSurface,
+            )
           } else {
-            Row(
-              Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-              horizontalArrangement = Arrangement.spacedBy(12.dp),
-              verticalAlignment = Alignment.Top,
-            ) {
-              SelectionInfoPropertyLabel(label, Modifier.weight(1f))
-              SelectionInfoPropertyValue(value, Modifier.weight(1.5f))
-            }
+            SelectionInfoBreakdown(counts)
           }
         }
       }
@@ -980,26 +943,43 @@ private fun SelectionInfoProperties(
 }
 
 @Composable
-private fun SelectionInfoPropertyLabel(label: String, modifier: Modifier = Modifier) {
-  Text(
-    label,
-    modifier = modifier,
-    style = MaterialTheme.typography.bodyMedium,
-    fontWeight = FontWeight.SemiBold,
-    color = MaterialTheme.colorScheme.onSurfaceVariant,
-  )
-}
-
-@Composable
-private fun SelectionInfoPropertyValue(value: String, modifier: Modifier = Modifier) {
-  Text(
-    value,
-    modifier = modifier,
-    style = MaterialTheme.typography.bodyMedium,
-    fontFamily = FontFamily.Monospace,
-    maxLines = 4,
-    overflow = TextOverflow.Ellipsis,
-  )
+private fun SelectionInfoBreakdown(counts: List<Pair<String, Int>>) {
+  FlowRow(
+    horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
+  ) {
+    counts.forEach { (name, count) ->
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Surface(
+          modifier = Modifier.weight(1f, fill = false),
+          shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
+          color = mediaInfoDetailContainerColor(),
+          contentColor = MaterialTheme.colorScheme.onSurface,
+        ) {
+          Text(
+            name,
+            modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small, vertical = MaterialTheme.spacing.smaller),
+            style = MaterialTheme.typography.bodyMedium,
+          )
+        }
+        Surface(
+          shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
+          color = MaterialTheme.colorScheme.secondaryContainer,
+          contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ) {
+          Text(
+            count.toString(),
+            modifier = Modifier.padding(horizontal = MaterialTheme.spacing.small, vertical = MaterialTheme.spacing.smaller),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+          )
+        }
+      }
+    }
+  }
 }
 
 @Composable

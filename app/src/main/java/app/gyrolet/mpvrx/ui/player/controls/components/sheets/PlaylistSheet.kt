@@ -150,7 +150,10 @@ private fun PlaylistThumbnail(
   modifier: Modifier = Modifier,
   contentScale: ContentScale = ContentScale.Crop,
 ) {
-  val hasArtwork = item.tvgLogo.isNotBlank()
+  val revision by thumbnailRepository.cacheRevision.collectAsState()
+  val generator by koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>().thumbnailGenerator.collectAsState()
+  val isLocal = app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource(item.path.ifBlank { item.uri.toString() })
+  val hasArtwork = !isLocal && item.tvgLogo.isNotBlank()
   val isYouTubeArtwork =
     remember(item.tvgLogo) {
       val host = runCatching { Uri.parse(item.tvgLogo).host.orEmpty().lowercase() }.getOrDefault("")
@@ -166,7 +169,7 @@ private fun PlaylistThumbnail(
       }
     }
   val video =
-    remember(item.uri, cleanPath, item.title) {
+    remember(item.uri, cleanPath, item.title, item.isAudio) {
       Video(
         id =
           item.uri
@@ -190,6 +193,7 @@ private fun PlaylistThumbnail(
         height = 0,
         fps = 0f,
         resolution = item.resolution,
+        isAudio = item.isAudio,
       )
     }
   val (thumbWidth, thumbHeight) =
@@ -197,17 +201,17 @@ private fun PlaylistThumbnail(
       if (item.isAudio) 512 to 512 else PLAYLIST_THUMBNAIL_WIDTH to PLAYLIST_THUMBNAIL_HEIGHT
     }
   val thumbnailKey =
-    remember(video, item.networkConnectionId, item.networkPath, thumbWidth, thumbHeight) {
+    remember(video, item.networkConnectionId, item.networkPath, thumbWidth, thumbHeight, generator, revision) {
       if (item.networkConnectionId != null && item.networkPath.isNotBlank()) {
-        "network-playlist|${item.networkConnectionId}|${item.networkPath}|$thumbWidth|$thumbHeight"
+        "network-playlist|${item.networkConnectionId}|${item.networkPath}|$thumbWidth|$thumbHeight|$revision"
       } else {
-        thumbnailRepository.thumbnailKey(video, thumbWidth, thumbHeight)
+        "${item.uri}|$thumbWidth|$thumbHeight|$generator|$revision"
       }
     }
   var bitmap by remember(thumbnailKey) {
     mutableStateOf(
       if (!hasArtwork && (item.networkConnectionId == null || item.networkPath.isBlank())) {
-        thumbnailRepository.getThumbnailFromMemory(video, thumbWidth, thumbHeight)
+        thumbnailRepository.peekThumbnailFromMemory(video, thumbWidth, thumbHeight)
       } else {
         null
       },

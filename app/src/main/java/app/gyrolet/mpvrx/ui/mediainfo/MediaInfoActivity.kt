@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.presentation.components.ConnectedInfoStatCard
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -414,6 +415,7 @@ class MediaInfoActivity : AppCompatActivity() {
     @androidx.annotation.StringRes val displayNameRes: Int,
   ) {
     OVERVIEW(R.string.media_info_tab_overview),
+    THUMBNAIL(R.string.media_info_tab_thumbnail),
     VIDEO(R.string.media_info_tab_video),
     AUDIO(R.string.media_info_tab_audio),
     SUBTITLES(R.string.media_info_tab_subtitles),
@@ -446,6 +448,12 @@ class MediaInfoActivity : AppCompatActivity() {
         fileUri?.let { uri -> uri.resolveLocalPath(context) ?: uri.toString() }
       }
     val sections = remember(fullMediaInfoText) { parseMediaInfoText(fullMediaInfoText) }
+    val thumbnailVideo = remember(mediaInfo, fileUri, filePath, fileName) {
+      fileUri?.takeIf { mediaInfo.videoStreams.isNotEmpty() || mediaInfo.audioStreams.isNotEmpty() }?.let { uri ->
+        mediaInfoThumbnailVideo(mediaInfo, uri, fileName, filePath ?: uri.toString())
+      }
+    }
+    val requestValueDetail = LocalValueDetailRequest.current
 
     // Group sections dynamically
     val videoSections = remember(sections) { sections.filter { it.name.startsWith("Video", ignoreCase = true) } }
@@ -494,9 +502,10 @@ class MediaInfoActivity : AppCompatActivity() {
 
     // Determine available tabs
     val availableTabs =
-      remember(sections) {
+      remember(sections, thumbnailVideo != null) {
         buildList {
           add(InfoTab.OVERVIEW)
+          if (thumbnailVideo != null) add(InfoTab.THUMBNAIL)
           if (videoSections.isNotEmpty()) add(InfoTab.VIDEO)
           if (audioSections.isNotEmpty()) add(InfoTab.AUDIO)
           if (subtitleSections.isNotEmpty()) add(InfoTab.SUBTITLES)
@@ -513,16 +522,7 @@ class MediaInfoActivity : AppCompatActivity() {
       modifier =
         Modifier
           .fillMaxSize()
-          .background(
-            brush =
-              androidx.compose.ui.graphics.Brush.verticalGradient(
-                colors =
-                  listOf(
-                    MaterialTheme.colorScheme.background,
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                  ),
-              ),
-          ),
+          .background(MaterialTheme.colorScheme.surface),
     ) {
       // Tab Content
       Box(
@@ -544,6 +544,7 @@ class MediaInfoActivity : AppCompatActivity() {
               menuSections.firstOrNull()?.properties?.size ?: 0,
               filePath,
             )
+          InfoTab.THUMBNAIL -> thumbnailVideo?.let { MediaThumbnailTab(it, requestValueDetail) }
           InfoTab.VIDEO -> StreamTabContent(videoSections, "Video Stream")
           InfoTab.AUDIO -> StreamTabContent(audioSections, "Audio Stream")
           InfoTab.SUBTITLES -> StreamTabContent(subtitleSections, "Subtitle Track")
@@ -604,6 +605,7 @@ class MediaInfoActivity : AppCompatActivity() {
               val icon =
                 when (tab) {
                   InfoTab.OVERVIEW -> Icons.RoundedFilled.Info
+                  InfoTab.THUMBNAIL -> Icons.RoundedFilled.Image
                   InfoTab.VIDEO -> Icons.RoundedFilled.Videocam
                   InfoTab.AUDIO -> Icons.RoundedFilled.VolumeUp
                   InfoTab.SUBTITLES -> Icons.RoundedFilled.Subtitles
@@ -654,54 +656,20 @@ class MediaInfoActivity : AppCompatActivity() {
     modifier: Modifier = Modifier,
   ) {
     val context = LocalContext.current
-    val shape = rememberConnectedShape(
+    ConnectedInfoStatCard(
+      title = title,
+      value = value,
+      icon = icon,
+      accentColor = accentColor,
       index = index,
       itemCount = 4,
-      layout = ConnectedLayout.Grid,
       columns = 2,
+      onClick = {
+        SafeClipboard.copyPlainText(context, title, value)
+        Toast.makeText(context, context.getString(R.string.toast_copied_value, value), Toast.LENGTH_SHORT).show()
+      },
+      modifier = modifier,
     )
-    ExpressiveInfoCard(
-      modifier =
-        modifier
-          .clip(shape)
-          .clickable {
-            SafeClipboard.copyPlainText(context, title, value)
-            Toast.makeText(context, context.getString(R.string.toast_copied_value, value), Toast.LENGTH_SHORT).show()
-          },
-      containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-      shape = shape,
-    ) {
-      Row(
-        modifier = Modifier.padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-      ) {
-        Surface(
-          shape = RoundedCornerShape(12.dp),
-          color = accentColor.copy(alpha = 0.12f),
-          contentColor = accentColor,
-          modifier = Modifier.size(40.dp),
-        ) {
-          Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = accentColor)
-          }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-          Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-          Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-          )
-        }
-      }
-    }
   }
 
   @Composable

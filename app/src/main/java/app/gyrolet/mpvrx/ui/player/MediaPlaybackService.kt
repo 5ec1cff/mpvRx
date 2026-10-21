@@ -48,7 +48,8 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.database.entities.PlaybackStateEntity
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
-import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
 import app.gyrolet.mpvrx.domain.torrent.TorrentStreamingEngine
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
@@ -253,6 +254,7 @@ class MediaPlaybackService :
   private val advancedPreferences: AdvancedPreferences by inject()
   private val audioPreferences: AudioPreferences by inject()
   private val browserPreferences: BrowserPreferences by inject()
+  private val thumbnailRepository: ThumbnailRepository by inject()
   private val gesturePreferences: GesturePreferences by inject()
   private val playlistRepository: PlaylistRepository by inject()
   private val playbackStateRepository: PlaybackStateRepository by inject()
@@ -487,6 +489,17 @@ class MediaPlaybackService :
 
     serviceScope.launch {
       PlaybackSession.queue.collect(::syncQueueState)
+    }
+
+    serviceScope.launch {
+      thumbnailRepository.cacheRevision.drop(1).collect {
+        replaceOwnedThumbnail(null)
+        updateMediaSessionMetadata()
+        updateNotification()
+        MediaPlayerWidget.clearArtworkCache()
+        MediaPlayerWidget.requestUpdate(this@MediaPlaybackService)
+        PlaybackSession.queue.value.currentItem?.let(::loadSessionArtwork)
+      }
     }
 
     serviceScope.launch {
@@ -939,14 +952,16 @@ class MediaPlaybackService :
   }
 
   private fun loadSessionArtwork(item: PlaybackItem) {
-    val artworkUri = item.artworkUri?.takeIf { it.isNotBlank() } ?: return
+    val revision = thumbnailRepository.cacheRevision.value
     val expectedIdentifier = item.stableId
     serviceScope.launch {
-      val loaded =
-        withContext(Dispatchers.IO) {
-          EmbeddedArtworkResolver.decodeArtworkUri(this@MediaPlaybackService, artworkUri)
-        } ?: return@launch
-      if (mediaIdentifier != expectedIdentifier) {
+      val loaded = thumbnailRepository.getArtwork(
+        source = item.originalUri,
+        artworkUri = item.artworkUri,
+        isAudio = resolveNotificationIsAudio(item, usesAudioBackgroundPlayback),
+        widthPx = 480,
+      ) ?: return@launch
+      if (mediaIdentifier != expectedIdentifier || revision != thumbnailRepository.cacheRevision.value) {
         return@launch
       }
       val changed = replaceOwnedThumbnail(loaded)

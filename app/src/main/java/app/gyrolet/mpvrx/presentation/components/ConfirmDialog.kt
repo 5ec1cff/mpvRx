@@ -48,9 +48,11 @@ fun ConfirmDialog(
   modifier: Modifier = Modifier,
   customContent: (@Composable () -> Unit)? = null,
   confirmText: String = stringResource(R.string.generic_confirm),
+  confirmContent: (@Composable () -> Unit)? = null,
 ) {
   val initialFocusRequester = rememberTvInitialFocusRequester(requestKey = title)
   AppAlertDialog(
+    singleRowActions = confirmContent != null,
     onDismissRequest = onCancel,
     modifier = modifier,
     title = { Text(title) },
@@ -98,10 +100,14 @@ fun ConfirmDialog(
       ) { Text(stringResource(R.string.generic_cancel), fontWeight = FontWeight.Medium) }
     },
     confirmButton = {
-      AppDialogTextButton(
-        onClick = onConfirm,
-        modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.04f),
-      ) { Text(confirmText, fontWeight = FontWeight.Bold) }
+      if (confirmContent != null) {
+        confirmContent()
+      } else {
+        AppDialogTextButton(
+          onClick = onConfirm,
+          modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.04f),
+        ) { Text(confirmText, fontWeight = FontWeight.Bold) }
+      }
     },
   )
 }

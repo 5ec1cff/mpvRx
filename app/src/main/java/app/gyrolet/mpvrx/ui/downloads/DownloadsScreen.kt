@@ -91,7 +91,7 @@ import app.gyrolet.mpvrx.preferences.DownloadPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.RemoteImage
-import app.gyrolet.mpvrx.repository.MediaFileRepository
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -317,12 +317,16 @@ object DownloadsScreen : Screen {
       AlertDialog(
         onDismissRequest = { pendingYtdlpDelete = null },
         title = { Text(stringResource(R.string.downloads_delete_confirm_title)) },
+        singleRowActions = true,
         text = { Text(stringResource(R.string.downloads_delete_confirm_message, job.title)) },
         confirmButton = {
-          TextButton(onClick = {
-            ytdlpEngine.remove(job.id, deleteFiles = true)
-            pendingYtdlpDelete = null
-          }) { Text(stringResource(R.string.downloads_delete_file)) }
+          app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+            paths = (job.artifactFiles + listOfNotNull(job.outputFile)).toList(),
+            onClick = {
+              ytdlpEngine.remove(job.id, deleteFiles = true)
+              pendingYtdlpDelete = null
+            },
+          )
         },
         dismissButton = {
           Column {
@@ -340,14 +344,16 @@ object DownloadsScreen : Screen {
       AlertDialog(
         onDismissRequest = { pendingDelete = null },
         title = { Text(stringResource(R.string.downloads_delete_confirm_title)) },
+        singleRowActions = true,
         text = { Text(stringResource(R.string.downloads_delete_confirm_message, download.displayTitle)) },
         confirmButton = {
-          TextButton(
+          app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+            paths = listOf(download.file.absolutePath),
             onClick = {
               downloadManager.remove(download, deleteFile = true)
               pendingDelete = null
             },
-          ) { Text(stringResource(R.string.downloads_delete_file)) }
+          )
         },
         dismissButton = {
           Column {
@@ -513,15 +519,18 @@ private fun DownloadLocationCard(
 
 @Composable
 private fun DownloadThumbnail(posterUrl: String?, mediaPath: String?) {
-  val context = LocalContext.current
   val repository = koinInject<ThumbnailRepository>()
+  val revision by repository.cacheRevision.collectAsState()
+  val generator by koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>().thumbnailGenerator.collectAsState()
   val density = LocalDensity.current
   val widthPx = with(density) { 88.dp.roundToPx() }
   val heightPx = (widthPx * 9f / 16f).toInt().coerceAtLeast(1)
-  val localThumbnail by produceState<ImageBitmap?>(null, mediaPath, widthPx, heightPx) {
-    val file = mediaPath?.let(::File)?.takeIf(File::isFile)
-    val video = file?.let { MediaFileRepository.getVideosFromFiles(context, listOf(it)).firstOrNull() }
-    value = video?.let { repository.getThumbnail(it, widthPx, heightPx)?.asImageBitmap() }
+  val localThumbnail by produceState<ImageBitmap?>(null, mediaPath, widthPx, heightPx, generator, revision) {
+    value = null
+    if (!mediaPath.isNullOrBlank()) {
+      val audio = mediaPath.substringAfterLast('.', "").lowercase() in app.gyrolet.mpvrx.utils.storage.FileTypeUtils.AUDIO_EXTENSIONS
+      value = repository.getArtwork(mediaPath, isAudio = audio, widthPx = widthPx, heightPx = heightPx)?.asImageBitmap()
+    }
   }
   Box(
     modifier = Modifier.width(88.dp).aspectRatio(16f / 9f)
@@ -543,7 +552,7 @@ private fun DownloadThumbnail(posterUrl: String?, mediaPath: String?) {
         contentScale = ContentScale.Crop,
       )
     }
-    posterUrl?.takeIf(String::isNotBlank)?.let { url ->
+    posterUrl?.takeIf { it.isNotBlank() && mediaPath.isNullOrBlank() }?.let { url ->
       RemoteImage(
         url = url,
         contentDescription = null,

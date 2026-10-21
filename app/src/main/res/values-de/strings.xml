@@ -2667,4 +2667,52 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
     <item quantity="one">%1$d Ordner</item>
     <item quantity="other">%1$d Ordner</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Verlustfrei in hoher Auflösung</string>
+  <string name="audio_quality_lossless">Verlustfrei</string>
+  <string name="audio_quality_lossy">Verlustbehaftet</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Wird berechnet…</string>
+  <string name="delete_size_unknown">Größe unbekannt</string>
+  <string name="delete_size_description">Gesamtgröße: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Vorschaubild</string>
+  <string name="thumbnail_preview_description">Zwischengespeichertes Vorschaubild für %1$s</string>
+  <string name="thumbnail_status_disk">Auf dem Datenträger zwischengespeichert</string>
+  <string name="thumbnail_status_memory">Im Arbeitsspeicher zwischengespeichert</string>
+  <string name="thumbnail_status_unreadable">Zwischengespeichertes Bild konnte nicht dekodiert werden</string>
+  <string name="thumbnail_status_missing">Kein zwischengespeichertes Vorschaubild</string>
+  <string name="thumbnail_info_status">Cache-Status</string>
+  <string name="thumbnail_info_generator">Generierungsrichtlinie</string>
+  <string name="thumbnail_info_strategy">Auswahl von Einzelbild oder Cover</string>
+  <string name="thumbnail_strategy_artwork">Albumcover</string>
+  <string name="thumbnail_strategy_android">Von Android ausgewähltes Einzelbild</string>
+  <string name="thumbnail_info_quality">Eingestellte Qualität</string>
+  <string name="thumbnail_info_maximum">Eingestellte Größenbegrenzung</string>
+  <string name="thumbnail_maximum_value">Bis zu %1$d Pixel an der längsten Seite</string>
+  <string name="thumbnail_info_dimensions">Tatsächliche Bildabmessungen</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d Pixel</string>
+  <string name="thumbnail_info_format">Format des zwischengespeicherten Bildes</string>
+  <string name="thumbnail_info_size">Größe der zwischengespeicherten Datei</string>
+  <string name="thumbnail_info_memory">Im Speichercache des Medienbrowsers vorhanden</string>
+  <string name="thumbnail_info_preview_memory">Speicherbedarf der Vorschau</string>
+  <string name="thumbnail_info_frame">Eingestellte Einzelbildposition</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">JPEG-Encodereinstellung der App</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Cache-Datei aktualisiert</string>
+  <string name="thumbnail_info_cache_path">Pfad der Cache-Datei</string>
+  <string name="thumbnail_info_source">Quell-URI</string>
+  <string name="thumbnail_yes">Ja</string>
+  <string name="thumbnail_no">Nein</string>
+  <string name="thumbnail_refresh">Informationen aktualisieren</string>
+  <string name="thumbnail_generate">Vorschaubild erzeugen</string>
+  <string name="thumbnail_quality_note">Die Vorschau zeigt das tatsächlich zwischengespeicherte Bild für die aktuellen Einstellungen. Die Kacheln im Medienbrowser können ein kleineres Bild als die eingestellte Größenbegrenzung zwischenspeichern. Das Öffnen dieses Tabs erzeugt kein neues Einzelbild.</string>
+  <string name="thumbnail_inspection_failed">Die Vorschaubildinformationen konnten nicht gelesen werden. Bitte aktualisieren.</string>
+  <string name="thumbnail_generation_unavailable">Die ausgewählte Generierungsmethode hat für diese Datei kein Vorschaubild geliefert.</string>
 </resources>

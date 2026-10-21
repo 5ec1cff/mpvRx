@@ -2667,4 +2667,52 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
     <item quantity="one">%1$d dossier</item>
     <item quantity="other">%1$d dossiers</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Sans perte en haute résolution</string>
+  <string name="audio_quality_lossless">Sans perte</string>
+  <string name="audio_quality_lossy">Avec perte</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calcul en cours…</string>
+  <string name="delete_size_unknown">Taille inconnue</string>
+  <string name="delete_size_description">Taille totale : %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Miniature</string>
+  <string name="thumbnail_preview_description">Miniature en cache pour %1$s</string>
+  <string name="thumbnail_status_disk">En cache sur le disque</string>
+  <string name="thumbnail_status_memory">En cache en mémoire</string>
+  <string name="thumbnail_status_unreadable">Impossible de décoder l’image en cache</string>
+  <string name="thumbnail_status_missing">Aucune miniature en cache</string>
+  <string name="thumbnail_info_status">État du cache</string>
+  <string name="thumbnail_info_generator">Stratégie de génération</string>
+  <string name="thumbnail_info_strategy">Sélection de l’image vidéo ou de la pochette</string>
+  <string name="thumbnail_strategy_artwork">Pochette de l’album</string>
+  <string name="thumbnail_strategy_android">Image vidéo choisie par Android</string>
+  <string name="thumbnail_info_quality">Qualité configurée</string>
+  <string name="thumbnail_info_maximum">Taille maximale configurée</string>
+  <string name="thumbnail_maximum_value">Jusqu’à %1$d pixels sur le côté le plus long</string>
+  <string name="thumbnail_info_dimensions">Dimensions réelles de l’image</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d pixels</string>
+  <string name="thumbnail_info_format">Format de l’image en cache</string>
+  <string name="thumbnail_info_size">Taille du fichier en cache</string>
+  <string name="thumbnail_info_memory">Présente dans le cache mémoire de l’explorateur</string>
+  <string name="thumbnail_info_preview_memory">Mémoire utilisée par l’aperçu</string>
+  <string name="thumbnail_info_frame">Position de capture configurée</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Réglage de l’encodeur JPEG de l’application</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Dernière mise à jour du fichier de cache</string>
+  <string name="thumbnail_info_cache_path">Chemin du fichier de cache</string>
+  <string name="thumbnail_info_source">URI de la source</string>
+  <string name="thumbnail_yes">Oui</string>
+  <string name="thumbnail_no">Non</string>
+  <string name="thumbnail_refresh">Actualiser les informations</string>
+  <string name="thumbnail_generate">Générer une miniature</string>
+  <string name="thumbnail_quality_note">L’aperçu affiche l’image réellement mise en cache avec les réglages actuels. Les vignettes de l’explorateur peuvent mettre en cache une image plus petite que la taille maximale configurée. L’ouverture de cet onglet ne génère pas de nouvelle image vidéo.</string>
+  <string name="thumbnail_inspection_failed">Impossible de lire les informations de la miniature. Essayez de les actualiser.</string>
+  <string name="thumbnail_generation_unavailable">Le générateur sélectionné n’a renvoyé aucune miniature pour ce fichier.</string>
 </resources>

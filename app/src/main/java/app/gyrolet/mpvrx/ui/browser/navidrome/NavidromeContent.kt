@@ -458,6 +458,9 @@ fun NavidromeContent(
       onSortOrderChange = { viewModel.setSortOrder(it) },
       onViewModeChange = { viewModel.setViewMode(it) },
       availableFields = availableFields,
+      trackCountLabel = if (uiState.activeTab == NavidromeMusicTab.ARTISTS) {
+        stringResource(R.string.ui_albums)
+      } else MusicSortField.TRACK_COUNT.displayName,
     )
 
     // Add server dialog

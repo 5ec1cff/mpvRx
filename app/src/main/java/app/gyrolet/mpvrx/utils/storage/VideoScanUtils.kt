@@ -40,12 +40,13 @@ object VideoScanUtils : KoinComponent {
   private val metadataCache: VideoMetadataCacheRepository by inject()
 
   /**
-   * Optional MediaStore per-video rotation column.
-   *
-   * Providers differ: some expose `rotation`, while newer Android/vendor providers reject it.
-   * The query retries without this column when the provider does not support it.
+   * Android indexes a video's container rotation in MediaColumns.ORIENTATION from API 29.
+   * Querying the legacy "rotation" name there drops the angle and launches quarter-turned videos
+   * in their encoded orientation until mpv corrects it. Retain the legacy name on older providers;
+   * the query below still retries without optional geometry when the column is unsupported.
    */
-  private const val VIDEO_ROTATION_COLUMN = "rotation"
+  private val videoRotationColumn =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.MediaColumns.ORIENTATION else "rotation"
 
   /**
    * Direct children only. The old `LIKE 'folder/%'` returned the whole subtree, so opening a storage
@@ -153,7 +154,7 @@ object VideoScanUtils : KoinComponent {
         MediaStore.Video.Media.WIDTH,
         MediaStore.Video.Media.HEIGHT,
       )
-    val projectionWithRotation = baseProjection + VIDEO_ROTATION_COLUMN
+    val projectionWithRotation = baseProjection + videoRotationColumn
 
     val normalizedFolderPath = normalizeStoragePath(folderPath) ?: return
     val normalizedFolderKey = storagePathKey(normalizedFolderPath) ?: return
@@ -192,7 +193,7 @@ object VideoScanUtils : KoinComponent {
           val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
           val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
           val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
-          val rotationColumn = cursor.getColumnIndex(VIDEO_ROTATION_COLUMN)
+          val rotationColumn = cursor.getColumnIndex(videoRotationColumn)
           val folderResolver = MediaFolderResolver(noMediaPathFilter)
           val existenceCache = FolderListingExistenceCache()
 

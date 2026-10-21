@@ -5,7 +5,6 @@
 package app.gyrolet.mpvrx.ui.browser.music
 
 import android.app.Application
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.text.format.DateUtils
 import app.gyrolet.mpvrx.ui.browser.jellyfin.JellyfinViewModel
@@ -113,6 +112,7 @@ import kotlinx.coroutines.flow.filter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
 import app.gyrolet.mpvrx.database.entities.PlaylistEntity
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
@@ -165,12 +165,10 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
-import app.gyrolet.mpvrx.utils.device.runAtLowThreadPriority
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.koin.compose.koinInject
@@ -588,6 +586,7 @@ fun MusicLibraryContent(
             onSortFieldChange = { musicViewModel.setSortField(it) },
             onSortOrderChange = { musicViewModel.setSortOrder(it) },
             onViewModeChange = { musicViewModel.setViewMode(it) },
+            availableFields = selectedTab.availableSortFields,
           )
         }
 
@@ -971,7 +970,9 @@ fun MusicLibraryContent(
             },
             itemCount = 1,
             itemType = "song",
-            itemNames = listOf(song.title)
+            itemNames = listOf(song.title),
+            itemPaths = listOf(song.uri.toString()),
+            totalSizeBytes = song.size.takeIf { it > 0L },
           )
         }
 
@@ -1001,7 +1002,10 @@ fun MusicLibraryContent(
             },
             itemCount = count,
             itemType = itemType,
-            itemNames = itemNames
+            itemNames = itemNames,
+            itemPaths = if (selectedTab == MusicTab.SONGS) {
+              songSelectionManager.getSelectedItems().map { it.uri.toString() }
+            } else emptyList(),
           )
         }
 
@@ -1299,55 +1303,28 @@ fun LocalAlbumArtImage(
   modifier: Modifier = Modifier,
   audioSong: MusicSong? = null,
 ) {
-  val context = LocalContext.current
   val thumbnailRepository = koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>()
+  val revision by thumbnailRepository.cacheRevision.collectAsState()
+  val generator by koinInject<BrowserPreferences>().thumbnailGenerator.collectAsState()
   val video = remember(audioSong) { audioSong?.toVideo() }
   val density = androidx.compose.ui.platform.LocalDensity.current
   BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
     val widthPx = with(density) { if (maxWidth.value.isFinite()) maxWidth.roundToPx().coerceAtLeast(1) else 256 }
     val heightPx = with(density) { if (maxHeight.value.isFinite()) maxHeight.roundToPx().coerceAtLeast(1) else 256 }
-    val cacheKey = remember(uri, audioSong?.path, widthPx, heightPx) { "${uri ?: audioSong?.path}|$widthPx|$heightPx" }
-    // Preserve the previous cover for the same track while higher-resolution art loads.
-    var retainedBitmap by remember(audioSong?.path, uri) {
+    var retainedBitmap by remember(video, uri, generator, revision) {
       mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
     }
-    var bitmap by remember(uri, video, widthPx, heightPx) {
-      mutableStateOf(
-        LocalAlbumArtCache.get(cacheKey)
-          ?: video?.let { thumbnailRepository.peekThumbnailFromMemory(it, widthPx, heightPx) }?.asImageBitmap()
-          ?: retainedBitmap,
-      )
+    var bitmap by remember(video, uri, widthPx, heightPx, generator, revision) {
+      mutableStateOf(video?.let { thumbnailRepository.peekThumbnailFromMemory(it, widthPx, heightPx) }?.asImageBitmap() ?: retainedBitmap)
     }
-
-    LaunchedEffect(uri, video, widthPx, heightPx) {
-      // This exact cover is already on screen; rebinding a row must not decode it again.
-      if (LocalAlbumArtCache.get(cacheKey) != null) return@LaunchedEffect
-      val artUri = uri?.toString()
-      // A provider that just failed for this cover would fail again; the result is the same as below.
-      if (artUri != null && LocalAlbumArtCache.isArtMissing(artUri)) return@LaunchedEffect
-      val loadedBitmap = LocalAlbumArtCache.decodePermits.withPermit {
-        withContext(Dispatchers.IO) {
-          try {
-            // MediaStore album art is normally the cheapest and most authoritative audio cover.
-            // Fall back to embedded/sidecar extraction for files whose indexed cover is unavailable.
-            val mediaStoreArtwork = uri?.let { source ->
-              runAtLowThreadPriority { decodeSampledAlbumArt(context, source, widthPx, heightPx) }
-            }
-            (mediaStoreArtwork ?: video?.let { thumbnailRepository.getThumbnail(it, widthPx, heightPx) })?.asImageBitmap()
-          } catch (error: kotlinx.coroutines.CancellationException) {
-            throw error
-          } catch (_: Exception) {
-            if (artUri != null) LocalAlbumArtCache.markArtMissing(artUri)
-            null
-          }
-        }
+    LaunchedEffect(video, uri, widthPx, heightPx, generator, revision) {
+      val loaded = if (video != null) {
+        thumbnailRepository.getThumbnail(video, widthPx, heightPx)
+      } else {
+        thumbnailRepository.getArtwork(uri?.toString(), widthPx = widthPx, heightPx = heightPx)
       }
-      // Do not blank an already-rendered cover if a transient rescan/reload fails.
-      if (loadedBitmap != null) {
-        LocalAlbumArtCache.put(cacheKey, loadedBitmap)
-        bitmap = loadedBitmap
-        retainedBitmap = loadedBitmap
-      }
+      bitmap = loaded?.asImageBitmap()
+      retainedBitmap = bitmap
     }
 
     val loaded = bitmap
@@ -1367,34 +1344,6 @@ fun LocalAlbumArtImage(
       )
     }
   }
-}
-
-/**
- * MediaStore/embedded cover art can be several megapixels even in a 48dp song row. Decode at the
- * requested UI size instead of allocating a full-size JPEG on every navigation/scroll.
- */
-private fun decodeSampledAlbumArt(
-  context: android.content.Context,
-  source: Uri,
-  widthPx: Int,
-  heightPx: Int,
-): android.graphics.Bitmap? {
-  val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-  context.contentResolver.openInputStream(source)?.use { stream ->
-    BitmapFactory.decodeStream(stream, null, bounds)
-  }
-  if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-  var sampleSize = 1
-  while (
-    bounds.outWidth / sampleSize > widthPx * 2 ||
-    bounds.outHeight / sampleSize > heightPx * 2
-  ) {
-    sampleSize *= 2
-  }
-  val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-  return context.contentResolver.openInputStream(source)?.use { stream ->
-    BitmapFactory.decodeStream(stream, null, options)
-  }?.also { it.prepareToDraw() }
 }
 
 @Composable

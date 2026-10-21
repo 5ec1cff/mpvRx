@@ -2725,4 +2725,52 @@
     <item quantity="many">%1$d مجلدًا</item>
     <item quantity="other">%1$d مجلد</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">صوت عالي الدقة دون فقد</string>
+  <string name="audio_quality_lossless">دون فقد</string>
+  <string name="audio_quality_lossy">مع فقد</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">الصوت</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">جارٍ الحساب…</string>
+  <string name="delete_size_unknown">الحجم غير معروف</string>
+  <string name="delete_size_description">الحجم الإجمالي: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">الصورة المصغرة</string>
+  <string name="thumbnail_preview_description">الصورة المصغرة المخزنة مؤقتًا لـ %1$s</string>
+  <string name="thumbnail_status_disk">مخزنة مؤقتًا على القرص</string>
+  <string name="thumbnail_status_memory">مخزنة مؤقتًا في الذاكرة</string>
+  <string name="thumbnail_status_unreadable">تعذر فك ترميز الصورة المخزنة مؤقتًا</string>
+  <string name="thumbnail_status_missing">لا توجد صورة مصغرة مخزنة مؤقتًا</string>
+  <string name="thumbnail_info_status">حالة التخزين المؤقت</string>
+  <string name="thumbnail_info_generator">سياسة إنشاء الصور المصغرة</string>
+  <string name="thumbnail_info_strategy">اختيار الإطار أو صورة الغلاف</string>
+  <string name="thumbnail_strategy_artwork">صورة غلاف الألبوم</string>
+  <string name="thumbnail_strategy_android">إطار يختاره Android</string>
+  <string name="thumbnail_info_quality">الجودة المحددة</string>
+  <string name="thumbnail_info_maximum">حد الأبعاد المحدد</string>
+  <string name="thumbnail_maximum_value">حتى %1$d بكسل في الجانب الأطول</string>
+  <string name="thumbnail_info_dimensions">أبعاد الصورة الفعلية</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d بكسل</string>
+  <string name="thumbnail_info_format">تنسيق الصورة المخزنة مؤقتًا</string>
+  <string name="thumbnail_info_size">حجم الملف المخزن مؤقتًا</string>
+  <string name="thumbnail_info_memory">موجودة في ذاكرة متصفح الوسائط المؤقتة</string>
+  <string name="thumbnail_info_preview_memory">الذاكرة المستخدمة للمعاينة</string>
+  <string name="thumbnail_info_frame">موضع الإطار المحدد</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">إعداد ترميز JPEG في التطبيق</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">آخر تحديث لملف التخزين المؤقت</string>
+  <string name="thumbnail_info_cache_path">مسار ملف التخزين المؤقت</string>
+  <string name="thumbnail_info_source">معرّف URI للمصدر</string>
+  <string name="thumbnail_yes">نعم</string>
+  <string name="thumbnail_no">لا</string>
+  <string name="thumbnail_refresh">تحديث المعلومات</string>
+  <string name="thumbnail_generate">إنشاء صورة مصغرة</string>
+  <string name="thumbnail_quality_note">تعرض المعاينة الصورة المخزنة مؤقتًا فعليًا وفقًا للإعدادات الحالية. قد تخزن مربعات متصفح الوسائط صورة أصغر من حد الأبعاد المحدد. لا يؤدي فتح علامة التبويب هذه إلى إنشاء إطار جديد.</string>
+  <string name="thumbnail_inspection_failed">تعذرت قراءة معلومات الصورة المصغرة. حاول التحديث.</string>
+  <string name="thumbnail_generation_unavailable">لم تُرجع طريقة الإنشاء المحددة صورة مصغرة لهذا الملف.</string>
 </resources>

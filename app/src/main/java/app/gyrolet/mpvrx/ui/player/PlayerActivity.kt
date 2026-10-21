@@ -99,6 +99,9 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.AudioChannels
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
+import app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource
 import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
@@ -279,6 +282,7 @@ class PlayerActivity :
    * Preferences for browser settings.
    */
   private val browserPreferences: BrowserPreferences by inject()
+  private val thumbnailRepository: ThumbnailRepository by inject()
   private val foldersPreferences: FoldersPreferences by inject()
 
   /**
@@ -892,6 +896,15 @@ class PlayerActivity :
     setupPlayerControls()
     setupAudioPlayerViewObserver()
     setupMediaSession()
+    lifecycleScope.launch {
+      thumbnailRepository.cacheRevision.drop(1).collect {
+        backgroundServiceSyncJob?.cancel()
+        lastBackgroundThumbnailKey = null
+        lastBackgroundThumbnail = null
+        pendingBackgroundThumbnailKey = null
+        syncBackgroundPlaybackService(updateThumbnail = true)
+      }
+    }
     observePlaybackSessionQueue()
     observeTorrentStreamingState()
     setupCastPlayback()
@@ -7872,39 +7885,14 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
           delay(150)
           val generatedThumbnail =
             withContext(Dispatchers.IO) {
-              app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver.decodeArtworkUri(
-                this@PlayerActivity,
-                currentQueueItem?.artworkUri,
-              ) ?: runCatching { PlaybackSession.grabThumbnail(480) }.getOrNull() ?: runCatching {
-                val uriStr = currentPlayableUri
-                if (!uriStr.isNullOrBlank()) {
-                  val parsedUri = Uri.parse(uriStr)
-                  val cleanPath =
-                    when (parsedUri.scheme) {
-                      null, "file" -> parsedUri.path ?: uriStr
-                      "content" -> null
-                      // Probing a remote/proxied URL opens a second upstream stream that competes
-                      // with live playback and audibly stalls it during Mini Player handoffs.
-                      else -> return@runCatching null
-                    }
-                  val retriever = android.media.MediaMetadataRetriever()
-                  try {
-                    if (cleanPath != null) {
-                      retriever.setDataSource(cleanPath)
-                    } else {
-                      retriever.setDataSource(this@PlayerActivity, parsedUri)
-                    }
-                    app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver.decodeEmbeddedArtwork(
-                      cleanPath,
-                      retriever,
-                    )
-                  } finally {
-                    retriever.release()
-                  }
-                } else {
-                  null
-                }
-              }.getOrNull()
+              val source = currentQueueItem?.originalUri ?: currentPlayableUri
+              if (isLocalArtworkSource(source)) {
+                thumbnailRepository.getArtwork(source, isAudio = isCurrentPlaybackAudio(), widthPx = 480)
+              } else {
+                app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver.decodeArtworkUri(
+                  this@PlayerActivity, currentQueueItem?.artworkUri,
+                ) ?: runCatching { PlaybackSession.grabThumbnail(480) }.getOrNull()
+              }
             }
 
           if (!ownsPlaybackSession() || !mpvInitialized || player.isExiting || isFinishing) return@launch
@@ -7928,7 +7916,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   private fun buildBackgroundThumbnailKey(): String {
     if (mediaIdentifier.isBlank()) return ""
     val artworkUri = PlaybackSession.queue.value.currentItem?.artworkUri.orEmpty()
-    return "$mediaIdentifier|$playlistIndex|$artworkUri"
+    return "$mediaIdentifier|$playlistIndex|$artworkUri|${browserPreferences.thumbnailGenerator.get()}|${thumbnailRepository.cacheRevision.value}"
   }
 
   /**

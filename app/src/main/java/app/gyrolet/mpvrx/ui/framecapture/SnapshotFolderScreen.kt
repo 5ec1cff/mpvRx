@@ -153,6 +153,7 @@ data class SnapshotFolderScreen(val folderId: Long) : Screen {
     if (confirmDelete) {
       SnapshotDeleteConfirmDialog(
         count = selection.selectedCount,
+        paths = content.snapshots.filter { it.id in selection.selectedIds }.mapNotNull { it.imageUri ?: it.imagePath },
         onConfirm = {
           confirmDelete = false
           viewModel.delete(selection.selectedIds)

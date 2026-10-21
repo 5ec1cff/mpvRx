@@ -99,6 +99,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
+import app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource
 import app.gyrolet.mpvrx.ui.player.EmbeddedMotionArtwork
 import app.gyrolet.mpvrx.ui.player.MotionArtworkImage
 import app.gyrolet.mpvrx.ui.player.rememberMotionArtworkDrawable
@@ -884,17 +886,26 @@ private fun rememberMiniPlayerArtwork(
   artworkUri: String?,
 ): MiniPlayerArtwork? {
   val context = LocalContext.current
-  var artwork by remember(pathOrUri, artworkUri) { mutableStateOf<MiniPlayerArtwork?>(null) }
+  val repository = koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>()
+  val revision by repository.cacheRevision.collectAsState()
+  val generator by koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>().thumbnailGenerator.collectAsState()
+  var artwork by remember(pathOrUri, artworkUri, generator, revision) { mutableStateOf<MiniPlayerArtwork?>(null) }
 
-  LaunchedEffect(pathOrUri, artworkUri) {
+  LaunchedEffect(pathOrUri, artworkUri, generator, revision) {
     if (pathOrUri.isNullOrBlank() && artworkUri.isNullOrBlank()) {
       artwork = null
       return@LaunchedEffect
     }
     artwork = withContext(Dispatchers.IO) {
+      if (isLocalArtworkSource(pathOrUri) && generator == app.gyrolet.mpvrx.preferences.ThumbnailGenerator.MediaStore) {
+        return@withContext MiniPlayerArtwork(bitmap = repository.getArtwork(pathOrUri))
+      }
       runCatching {
-        if (!artworkUri.isNullOrBlank()) {
-          EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)?.let {
+        val nativeArtworkUri = artworkUri?.takeUnless {
+          isLocalArtworkSource(pathOrUri) && Uri.parse(it).authority == android.provider.MediaStore.AUTHORITY
+        }
+        if (!nativeArtworkUri.isNullOrBlank()) {
+          EmbeddedArtworkResolver.decodeArtworkUri(context, nativeArtworkUri)?.let {
             return@runCatching MiniPlayerArtwork(bitmap = it)
           }
         }

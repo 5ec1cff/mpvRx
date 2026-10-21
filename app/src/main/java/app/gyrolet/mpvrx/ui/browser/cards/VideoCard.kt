@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -239,6 +240,7 @@ fun VideoCard(
 ) {
   // Screens hoist this once and pass it down; collecting per card would register a dozen
   // preference observers for every visible item in a grid.
+  val thumbnailCacheRevision by koinInject<ThumbnailRepository>().cacheRevision.collectAsState()
   val resolvedUiConfig = uiConfig ?: rememberVideoCardUiConfig()
   val maxLines = if (resolvedUiConfig.unlimitedNameLines) Int.MAX_VALUE else 2
 
@@ -260,13 +262,22 @@ fun VideoCard(
       video.sizeFormatted != "0 B" &&
       video.sizeFormatted != "--"
   val hasResolution = !video.isAudio && video.resolution.isNotBlank() && video.resolution != "--"
-  val fpsOnly = video.resolution.substringAfter("@", "")
-  val hasFps = hasResolution && fpsOnly.isNotEmpty()
+  // Some sources keep the frame rate in Video.fps without an '@' suffix in resolution.
+  // Prefer the numeric metadata, then fall back to older cached resolution strings.
+  val fpsOnly =
+    video.fps.takeIf { it.isFinite() && it > 0f }?.let { fps ->
+      if (fps % 1f == 0f) fps.toInt().toString()
+      else "%.2f".format(java.util.Locale.US, fps).trimEnd('0').trimEnd('.')
+    } ?: video.resolution.substringAfter("@", "").trim().removeSuffix("FPS").removeSuffix("fps").trim()
+  val hasFps = !video.isAudio && fpsOnly.isNotBlank()
+  val resolutionText = video.resolution.substringBefore("@").trim().let { base ->
+    if (showFramerateInResolution && hasFps) "${base}@$fpsOnly" else base
+  }
   val hasCodecChip = showCodecSupportIndicator && !video.isAudio && video.videoCodec.isNotBlank()
   val hasSubtitleChips = showSubtitleIndicator && !video.isAudio && video.hasEmbeddedSubtitles && video.subtitleCodec.isNotBlank()
   val hasDateMetadataChip = showDateChip && video.dateModified > 0
   val hasResolutionMetadataChip = !isGridMode && showResolutionChip && hasResolution
-  val hasFramerateMetadataChip = showFramerateInResolution && hasFps && (isGridMode || !showResolutionChip)
+  val hasFramerateMetadataChip = !isGridMode && showFramerateInResolution && hasFps && !showResolutionChip
   val hasMetadataChips =
     sourceLabel != null ||
       hasCodecChip ||
@@ -289,7 +300,7 @@ fun VideoCard(
 
   // Hold the last displayed thumbnail for this file across grid/list size changes.
   // Repository memory remains the source of truth for new requests.
-  var retainedThumbnail by remember(video.path, video.dateModified, video.size, thumbnailGenerator) { mutableStateOf<Bitmap?>(null) }
+  var retainedThumbnail by remember(video.path, video.dateModified, video.size, thumbnailGenerator, thumbnailCacheRevision) { mutableStateOf<Bitmap?>(null) }
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
 
@@ -364,6 +375,7 @@ fun VideoCard(
               resolvedThumbHeightPx,
               thumbnailQuality,
               thumbnailGenerator,
+              thumbnailCacheRevision,
             ) {
               Any()
             }
@@ -419,7 +431,7 @@ fun VideoCard(
             contentAlignment = Alignment.Center,
           ) {
             if (showThumbnails) {
-              if (!video.artworkUrl.isNullOrBlank()) {
+              if (!video.artworkUrl.isNullOrBlank() && !app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource(video.path)) {
                 RemoteImage(
                   url = video.artworkUrl,
                   contentDescription = stringResource(R.string.ui_thumbnail),
@@ -507,9 +519,9 @@ fun VideoCard(
               }
             }
 
-            if (isGridMode && showResolutionChip && hasResolution) {
+            if (isGridMode && ((showResolutionChip && hasResolution) || (showFramerateInResolution && hasFps))) {
               val displayResolution =
-                if (showFramerateInResolution) video.resolution else video.resolution.substringBefore("@")
+                if (showResolutionChip && hasResolution) resolutionText else "$fpsOnly FPS"
               Box(
                 modifier =
                   Modifier
@@ -632,12 +644,7 @@ fun VideoCard(
 
               if (!isGridMode && showResolutionChip && !video.isAudio) {
                 if (hasResolution) {
-                  val displayResolution =
-                    if (showFramerateInResolution) {
-                      video.resolution
-                    } else {
-                      video.resolution.substringBefore("@")
-                    }
+                  val displayResolution = resolutionText
 
                   Text(
                     displayResolution,
@@ -651,7 +658,8 @@ fun VideoCard(
                     color = MaterialTheme.colorScheme.onSurface,
                   )
                 }
-              } else if (!video.isAudio && showFramerateInResolution && hasFps) {
+              }
+              if (!video.isAudio && showFramerateInResolution && hasFps && !(showResolutionChip && hasResolution)) {
                 Text(
                   "$fpsOnly FPS",
                   style = MaterialTheme.typography.labelSmall,
@@ -712,6 +720,7 @@ fun VideoCard(
               thumbHeightPx,
               thumbnailQuality,
               thumbnailGenerator,
+              thumbnailCacheRevision,
             ) {
               Any()
             }
@@ -766,7 +775,7 @@ fun VideoCard(
             contentAlignment = Alignment.Center,
           ) {
             if (showThumbnails) {
-              if (!video.artworkUrl.isNullOrBlank()) {
+              if (!video.artworkUrl.isNullOrBlank() && !app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource(video.path)) {
                 RemoteImage(
                   url = video.artworkUrl,
                   contentDescription = stringResource(R.string.ui_thumbnail),
@@ -957,12 +966,7 @@ fun VideoCard(
                 // Resolution and Framerate logic (List view)
                 if (showResolutionChip && !video.isAudio) {
                   if (hasResolution) {
-                    val displayResolution =
-                      if (showFramerateInResolution) {
-                        video.resolution
-                      } else {
-                        video.resolution.substringBefore("@")
-                      }
+                    val displayResolution = resolutionText
 
                     Text(
                       displayResolution,
@@ -976,7 +980,8 @@ fun VideoCard(
                       color = MaterialTheme.colorScheme.onSurface,
                     )
                   }
-                } else if (showFramerateInResolution && hasFps) {
+                }
+                if (!video.isAudio && showFramerateInResolution && hasFps && !(showResolutionChip && hasResolution)) {
                   // Resolution is hidden, but framerate is enabled -> show only framerate
                   Text(
                     "$fpsOnly FPS",

@@ -50,6 +50,7 @@ fun SecureConfirmDialog(
   dontAskAgain: Preference<Boolean>,
   onConfirm: () -> Unit,
   onDismiss: () -> Unit,
+  deletePaths: List<String>? = null,
 ) {
   if (!isOpen) return
 
@@ -64,6 +65,17 @@ fun SecureConfirmDialog(
       onConfirm()
     },
     onCancel = onDismiss,
+    confirmContent = deletePaths?.let { paths ->
+      {
+        app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+          paths = paths,
+          onClick = {
+            if (dontAskChecked) dontAskAgain.set(true)
+            onConfirm()
+          },
+        )
+      }
+    },
     customContent = {
       Row(
         modifier = Modifier.fillMaxWidth(),

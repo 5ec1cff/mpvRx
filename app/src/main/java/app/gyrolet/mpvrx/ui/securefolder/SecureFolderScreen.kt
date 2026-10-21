@@ -125,6 +125,7 @@ data object SecureFolderScreen : Screen {
     val showDurationField by browserPreferences.showDurationField.collectAsState()
     val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
     val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+    val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
 
     val manualGridColumnsEnabled by browserPreferences.manualGridColumnsEnabled.collectAsState()
     val videoGridColumnsPortrait by browserPreferences.videoGridColumnsPortrait.collectAsState()
@@ -146,6 +147,7 @@ data object SecureFolderScreen : Screen {
         showDurationField,
         centerGridTitles,
         thumbnailQuality,
+        thumbnailGenerator,
       ) {
         VideoCardUiConfig(
           unlimitedNameLines = unlimitedNameLines,
@@ -162,6 +164,7 @@ data object SecureFolderScreen : Screen {
           showDurationField = showDurationField,
           centerGridTitles = centerGridTitles,
           thumbnailQuality = thumbnailQuality,
+          thumbnailGenerator = thumbnailGenerator,
         )
       }
 
@@ -488,6 +491,7 @@ data object SecureFolderScreen : Screen {
       title = stringResource(R.string.secure_folder_delete_confirm_title, selectedIds.size),
       subtitle = stringResource(R.string.secure_folder_delete_confirm_subtitle),
       dontAskAgain = viewModel.preferences.dontAskBeforeDelete,
+      deletePaths = media.filter { it.id in selectedIds }.map { it.secureFilePath },
       onConfirm = {
         pendingAction = null
         viewModel.deleteSelectedForever()

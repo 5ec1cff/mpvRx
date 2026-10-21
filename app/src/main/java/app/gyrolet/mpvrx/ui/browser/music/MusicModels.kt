@@ -83,6 +83,19 @@ enum class MusicSortField(val displayName: String) {
   YEAR("Year")
 }
 
+internal val MusicTab.availableSortFields: List<MusicSortField>
+  get() = when (this) {
+    MusicTab.SONGS -> listOf(
+      MusicSortField.TITLE, MusicSortField.ARTIST, MusicSortField.ALBUM,
+      MusicSortField.DURATION, MusicSortField.DATE_ADDED, MusicSortField.YEAR,
+    )
+    MusicTab.ALBUMS -> listOf(
+      MusicSortField.TITLE, MusicSortField.ARTIST, MusicSortField.TRACK_COUNT, MusicSortField.YEAR,
+    )
+    MusicTab.ARTISTS -> listOf(MusicSortField.TITLE, MusicSortField.TRACK_COUNT)
+    MusicTab.PLAYLISTS, MusicTab.FOLDERS -> listOf(MusicSortField.TITLE)
+  }
+
 @Immutable
 enum class MusicSortOrder {
   ASCENDING,

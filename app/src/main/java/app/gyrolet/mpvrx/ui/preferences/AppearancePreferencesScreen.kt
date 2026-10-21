@@ -107,6 +107,7 @@ object AppearancePreferencesScreen : Screen {
     val customTheme by preferences.customTheme.collectAsState()
     val selectedCustomThemeName by preferences.selectedCustomThemeName.collectAsState()
     val customWallpaperUri by preferences.customWallpaperUri.collectAsState()
+    var changingThumbnailGenerator by remember { mutableStateOf(false) }
     var pendingThumbnailMode by remember { mutableStateOf<ThumbnailMode?>(null) }
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
@@ -695,7 +696,25 @@ object AppearancePreferencesScreen : Screen {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_generator_title),
                   value = thumbnailGenerator,
-                  onValueChange = { browserPreferences.thumbnailGenerator.set(it) },
+                  onValueChange = { selected ->
+                    if (!changingThumbnailGenerator && selected != thumbnailGenerator) {
+                      changingThumbnailGenerator = true
+                      scope.launch {
+                        try {
+                          thumbnailRepository.setThumbnailGenerator(selected)
+                          app.gyrolet.mpvrx.ui.player.MediaPlayerWidget.clearArtworkCache()
+                          app.gyrolet.mpvrx.ui.player.MediaPlayerWidget.requestUpdate(context)
+                          Toast.makeText(context, thumbnailCacheClearedMessage, Toast.LENGTH_SHORT).show()
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                          throw cancelled
+                        } catch (error: Exception) {
+                          Toast.makeText(context, context.getString(R.string.pref_thumbnail_cache_clear_failed, error.message ?: "Unknown error"), Toast.LENGTH_LONG).show()
+                        } finally {
+                          changingThumbnailGenerator = false
+                        }
+                      }
+                    }
+                  },
                   values = ThumbnailGenerator.entries,
                   valueToText = {
                     AnnotatedString(
@@ -715,7 +734,7 @@ object AppearancePreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
-                  enabled = showVideoThumbnails,
+                  enabled = !changingThumbnailGenerator,
                 )
               }
 

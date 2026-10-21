@@ -2667,4 +2667,52 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
     <item quantity="one">%1$d pasta</item>
     <item quantity="other">%1$d pastas</item>
   </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Sem perdas em alta resolução</string>
+  <string name="audio_quality_lossless">Sem perdas</string>
+  <string name="audio_quality_lossy">Com perdas</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Áudio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calculando…</string>
+  <string name="delete_size_unknown">Tamanho desconhecido</string>
+  <string name="delete_size_description">Tamanho total: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Miniatura</string>
+  <string name="thumbnail_preview_description">Miniatura em cache de %1$s</string>
+  <string name="thumbnail_status_disk">Armazenada em cache no disco</string>
+  <string name="thumbnail_status_memory">Armazenada em cache na memória</string>
+  <string name="thumbnail_status_unreadable">Não foi possível decodificar a imagem em cache</string>
+  <string name="thumbnail_status_missing">Nenhuma miniatura em cache</string>
+  <string name="thumbnail_info_status">Status do cache</string>
+  <string name="thumbnail_info_generator">Política de geração</string>
+  <string name="thumbnail_info_strategy">Seleção de quadro ou capa</string>
+  <string name="thumbnail_strategy_artwork">Capa do álbum</string>
+  <string name="thumbnail_strategy_android">Quadro selecionado pelo Android</string>
+  <string name="thumbnail_info_quality">Qualidade configurada</string>
+  <string name="thumbnail_info_maximum">Limite de tamanho configurado</string>
+  <string name="thumbnail_maximum_value">Até %1$d pixels no lado mais longo</string>
+  <string name="thumbnail_info_dimensions">Dimensões reais da imagem</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d pixels</string>
+  <string name="thumbnail_info_format">Formato da imagem em cache</string>
+  <string name="thumbnail_info_size">Tamanho do arquivo em cache</string>
+  <string name="thumbnail_info_memory">Presente no cache de memória do navegador de mídia</string>
+  <string name="thumbnail_info_preview_memory">Memória da prévia</string>
+  <string name="thumbnail_info_frame">Posição do quadro configurada</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Configuração do codificador JPEG do aplicativo</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Última atualização do arquivo de cache</string>
+  <string name="thumbnail_info_cache_path">Caminho do arquivo de cache</string>
+  <string name="thumbnail_info_source">URI de origem</string>
+  <string name="thumbnail_yes">Sim</string>
+  <string name="thumbnail_no">Não</string>
+  <string name="thumbnail_refresh">Atualizar informações</string>
+  <string name="thumbnail_generate">Gerar miniatura</string>
+  <string name="thumbnail_quality_note">A prévia mostra a imagem realmente armazenada em cache com as configurações atuais. Os blocos do navegador de mídia podem armazenar uma imagem menor que o limite de tamanho configurado. Abrir esta aba não gera um novo quadro.</string>
+  <string name="thumbnail_inspection_failed">Não foi possível ler as informações da miniatura. Tente atualizar.</string>
+  <string name="thumbnail_generation_unavailable">O gerador selecionado não retornou uma miniatura para este arquivo.</string>
 </resources>

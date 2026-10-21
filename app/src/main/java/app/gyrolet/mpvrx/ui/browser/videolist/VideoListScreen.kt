@@ -622,63 +622,18 @@ data class VideoListScreen(
     }
   }
 
-      // Sort Dialog
-      if (isAudio) {
-        app.gyrolet.mpvrx.ui.browser.dialogs.MusicSortDialog(
-          isOpen = sortDialogOpen.value,
-          onDismiss = { sortDialogOpen.value = false },
-          sortField =
-            when (videoSortType) {
-              app.gyrolet.mpvrx.preferences.VideoSortType.Duration -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION
-              app.gyrolet.mpvrx.preferences.VideoSortType.Date -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED
-              else -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.TITLE
-            },
-          sortOrder =
-            if (videoSortOrder.isAscending) {
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.ASCENDING
-            } else {
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.DESCENDING
-            },
-          viewMode = if (mediaLayoutMode == MediaLayoutMode.GRID) app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.GRID else app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.LIST,
-          // VideoSortType has no Artist/Album, so only offer the fields it can actually persist
-          // (Title/Duration/Date Added) instead of silently collapsing Artist/Album back to Title.
-          availableFields =
-            listOf(
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.TITLE,
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION,
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED,
-            ),
-          onSortFieldChange = { field ->
-            val mapped =
-              when (field) {
-                app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION -> app.gyrolet.mpvrx.preferences.VideoSortType.Duration
-                app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED -> app.gyrolet.mpvrx.preferences.VideoSortType.Date
-                else -> app.gyrolet.mpvrx.preferences.VideoSortType.Title
-              }
-            browserPreferences.videoSortType.set(mapped)
-          },
-          onSortOrderChange = { order ->
-            browserPreferences.videoSortOrder.set(
-              if (order == app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.ASCENDING) SortOrder.Ascending else SortOrder.Descending,
-            )
-          },
-          onViewModeChange = { mode ->
-            browserPreferences.folderViewVideoLayoutMode.set(
-              if (mode == app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.GRID) MediaLayoutMode.GRID else MediaLayoutMode.LIST,
-            )
-          },
-        )
-      } else {
-        VideoSortDialog(
-          isOpen = sortDialogOpen.value,
-          onDismiss = { sortDialogOpen.value = false },
-          sortType = videoSortType,
-          sortOrder = videoSortOrder,
-          onSortTypeChange = { browserPreferences.videoSortType.set(it) },
-          onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
-          isDualPane = isDualPane,
-        )
-      }
+      // Audio folders use the same preferences and card fields as video folders.
+      VideoSortDialog(
+        isOpen = sortDialogOpen.value,
+        onDismiss = { sortDialogOpen.value = false },
+        sortType = videoSortType,
+        sortOrder = videoSortOrder,
+        onSortTypeChange = { browserPreferences.videoSortType.set(it) },
+        onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
+        isDualPane = isDualPane,
+        isAudio = isAudio,
+        onMetadataFieldEnabled = viewModel::refresh,
+      )
 
       // Delete Dialog
       DeleteConfirmationDialog(
@@ -688,6 +643,8 @@ data class VideoListScreen(
         itemType = "video",
         itemCount = selectionManager.selectedCount,
         itemNames = selectionManager.getSelectedItems().map { it.displayName },
+        itemPaths = selectionManager.getSelectedItems().map { it.uri.toString() },
+        totalSizeBytes = selectionManager.getSelectedItems().sumOf { it.size.coerceAtLeast(0L) }.takeIf { it > 0L },
       )
 
       // Rename Dialogs

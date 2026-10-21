@@ -61,6 +61,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -353,7 +355,7 @@ fun SortDialog(
                 )
               }
               if (isFieldsExpanded) {
-                ToggleChipRow(visibilityToggles)
+                FieldToggleChipRow(visibilityToggles)
               }
             }
           }
@@ -535,6 +537,71 @@ private fun ToggleChipRow(toggles: List<VisibilityToggle>) {
             selectedBorderWidth = 1.dp,
             selectedBorderColor = MaterialTheme.colorScheme.primary,
           ),
+      )
+    }
+  }
+}
+
+/** Expressive selection chips are used only for the expanded Fields options. */
+@Composable
+private fun OptionChip(
+  label: String,
+  selected: Boolean,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+  icon: AppIcon? = null,
+  singleChoice: Boolean = false,
+) {
+  val haptics = rememberAppHaptics()
+  FilterChip(
+    selected = selected,
+    onClick = {
+      if (enabled && !(singleChoice && selected)) {
+        onClick()
+        haptics.selection(!selected)
+      }
+    },
+    modifier = modifier
+      .heightIn(min = 48.dp)
+      .tvFocusHighlight(AppShapeScale.medium, focusedScale = 1.03f),
+    enabled = enabled,
+    label = { Text(text = label, style = MaterialTheme.typography.labelLarge) },
+    leadingIcon = if (icon != null) {
+      { Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(18.dp)) }
+    } else null,
+    trailingIcon = if (selected) {
+      { Icon(imageVector = Icons.RoundedFilled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+    } else null,
+    shape = AppShapeScale.medium,
+    colors = FilterChipDefaults.filterChipColors(
+      containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+      labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+      iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+      selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+      selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+      selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+      selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
+    border = null,
+  )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FieldToggleChipRow(toggles: List<VisibilityToggle>) {
+  FlowRow(
+    modifier = Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    toggles.forEach { toggle ->
+      OptionChip(
+        label = toggle.label,
+        selected = toggle.checked,
+        onClick = { toggle.onCheckedChange(!toggle.checked) },
+        enabled = toggle.enabled,
+        modifier = Modifier.semantics { role = Role.Checkbox },
       )
     }
   }

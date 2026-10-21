@@ -1345,6 +1345,7 @@ object FolderListScreen : Screen {
         itemType = "folder",
         itemCount = pendingDeleteFolders.size,
         itemNames = pendingDeleteFolders.map { it.name },
+        itemPaths = pendingDeleteFolders.map { it.path },
       )
     }
   }

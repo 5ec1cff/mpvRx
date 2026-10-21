@@ -605,6 +605,18 @@ object RecentlyPlayedScreen : Screen {
         ConfirmDialog(
           title = title,
           subtitle = subtitle,
+          confirmContent = if (deleteFiles) {
+            {
+              app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+                paths = selectionManager.getSelectedItems().filterIsInstance<RecentlyPlayedItem.VideoItem>().map { it.video.uri.toString() },
+                onClick = {
+                  selectionManager.deleteSelected(true)
+                  deleteDialogOpen.value = false
+                  deleteFilesCheckbox.value = false
+                },
+              )
+            }
+          } else null,
           customContent = {
             androidx.compose.foundation.layout.Row(
               modifier = Modifier.fillMaxWidth(),

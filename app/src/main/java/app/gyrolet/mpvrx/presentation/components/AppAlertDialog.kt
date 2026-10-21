@@ -58,6 +58,7 @@ fun AppAlertDialog(
   textContentColor: Color = AlertDialogDefaults.textContentColor,
   tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
   properties: DialogProperties = DialogProperties(),
+  singleRowActions: Boolean = false,
 ) {
   val colors = MaterialTheme.colorScheme
   val maximumHeight = (LocalConfiguration.current.screenHeightDp.dp - 48.dp).coerceAtLeast(120.dp)
@@ -118,15 +119,32 @@ fun AppAlertDialog(
           shape = rememberConnectedShape(sections - 1, sections, ConnectedLayout.Vertical),
           color = colors.surfaceContainerHigh,
         ) {
-          FlowRow(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-          ) {
-            if (dismissButton != null) {
-              CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Secondary) { dismissButton() }
+          if (singleRowActions) {
+            // Keep Cancel beside split confirmations while their status label changes width.
+            Row(
+              modifier = Modifier.fillMaxWidth().padding(12.dp),
+              horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+              verticalAlignment = Alignment.CenterVertically,
+            ) {
+              if (dismissButton != null) {
+                CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Secondary) { dismissButton() }
+              }
+              // Wrap the confirmation so unused width does not become a gap after Cancel.
+              Box(Modifier.weight(1f, fill = false), contentAlignment = Alignment.CenterEnd) {
+                CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Primary) { confirmButton() }
+              }
             }
-            CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Primary) { confirmButton() }
+          } else {
+            FlowRow(
+              modifier = Modifier.fillMaxWidth().padding(12.dp),
+              horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+              verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              if (dismissButton != null) {
+                CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Secondary) { dismissButton() }
+              }
+              CompositionLocalProvider(LocalDialogActionEmphasis provides DialogActionEmphasis.Primary) { confirmButton() }
+            }
           }
         }
       }

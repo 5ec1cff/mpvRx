@@ -27,7 +27,9 @@ import android.widget.RemoteViews
 import androidx.compose.ui.graphics.toArgb
 import app.gyrolet.mpvrx.MainActivity
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
+import org.koin.java.KoinJavaComponent
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.ui.player.components.ambientBoxBlur
 import app.gyrolet.mpvrx.ui.theme.CustomThemeDefinition
@@ -157,6 +159,15 @@ class MediaPlayerWidget : AppWidgetProvider() {
       context.sendBroadcast(Intent(context, MediaPlayerPillWidget::class.java).setAction(ACTION_REFRESH))
     }
 
+    internal fun clearArtworkCache() {
+      updates.incrementAndGet()
+      artworkCache.evictAll()
+      clearPillCache()
+    }
+
+    private fun artworkIdentity(item: PlaybackItem?, repository: ThumbnailRepository): String? =
+      item?.let { "${it.originalUri}|${it.artworkUri}|${repository.cacheRevision.value}" }
+
     internal fun clearPillCache() {
       pillUpdates.incrementAndGet()
       pillArtworkCache.evictAll()
@@ -168,6 +179,8 @@ class MediaPlayerWidget : AppWidgetProvider() {
       val ids = manager.getAppWidgetIds(ComponentName(context, MediaPlayerWidget::class.java))
       if (ids.isEmpty()) return
 
+      val repository = KoinJavaComponent.get<ThumbnailRepository>(ThumbnailRepository::class.java)
+      val revision = repository.cacheRevision.value
       val session = PlaybackSession.state.value
       val item = session.currentItem.takeIf {
         session.phase in setOf(PlaybackPhase.LOADING, PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
@@ -255,7 +268,7 @@ class MediaPlayerWidget : AppWidgetProvider() {
         views.setInt(R.id.media_widget_placeholder_halo, "setImageAlpha", if (item == null) 220 else 150)
         views.setImageViewResource(R.id.media_widget_placeholder, R.drawable.media_widget_music_note)
         views.setInt(R.id.media_widget_placeholder, "setColorFilter", palette.foreground)
-        val artwork = item?.artworkUri?.let { artworkCache.get(ArtworkKey(it, size)) }
+        val artwork = item?.let { artworkCache.get(ArtworkKey(checkNotNull(artworkIdentity(item, repository)), size)) }
         val showPlaceholder = artwork == null
         views.setImageViewBitmap(R.id.media_widget_artwork, artwork ?: themeBackgrounds.getValue(size))
         views.setViewVisibility(R.id.media_widget_artwork, View.VISIBLE)
@@ -304,7 +317,7 @@ class MediaPlayerWidget : AppWidgetProvider() {
       }
 
       fun publish() {
-        if (updates.get() != update || PlaybackSession.state.value.generation != session.generation) return
+        if (updates.get() != update || revision != repository.cacheRevision.value || PlaybackSession.state.value.generation != session.generation) return
         sizes.forEach { (id, dimensions) ->
           val remoteViews = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && dimensions.responsive.isNotEmpty()) {
             RemoteViews(dimensions.responsive.mapValues { (_, size) -> views(size) })
@@ -317,10 +330,11 @@ class MediaPlayerWidget : AppWidgetProvider() {
       }
 
       publish()
-      val uri = item?.artworkUri?.takeIf(String::isNotBlank) ?: return
+      val uri = artworkIdentity(item, repository) ?: return
       val missing = allSizes.filter { artworkCache.get(ArtworkKey(uri, it)) == null }
       if (missing.isEmpty()) return
-      val artwork = withContext(Dispatchers.IO) { EmbeddedArtworkResolver.decodeArtworkUri(context, uri) } ?: return
+      val artwork = repository.getArtwork(item?.originalUri, item?.artworkUri, item?.isDefinitelyAudioOnly() == true) ?: return
+      if (revision != repository.cacheRevision.value) return
       withContext(Dispatchers.Default) {
         for (size in missing) {
           if (updates.get() != update) break
@@ -336,6 +350,8 @@ class MediaPlayerWidget : AppWidgetProvider() {
       val ids = manager.getAppWidgetIds(ComponentName(context, MediaPlayerPillWidget::class.java))
       if (ids.isEmpty()) return
 
+      val repository = KoinJavaComponent.get<ThumbnailRepository>(ThumbnailRepository::class.java)
+      val revision = repository.cacheRevision.value
       val session = PlaybackSession.state.value
       val item = session.currentItem.takeIf {
         session.phase in setOf(PlaybackPhase.LOADING, PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
@@ -356,7 +372,7 @@ class MediaPlayerWidget : AppWidgetProvider() {
       val density = context.resources.displayMetrics.density
       val pillHeightPx = context.resources.getDimensionPixelSize(R.dimen.media_widget_pill_height)
       val pillArtPx = context.resources.getDimensionPixelSize(R.dimen.media_widget_pill_art)
-      val uri = item?.artworkUri?.takeIf(String::isNotBlank)
+      val uri = artworkIdentity(item, repository)
 
       fun servicePendingIntent(requestCode: Int, action: String): PendingIntent =
         PendingIntent.getForegroundService(
@@ -367,7 +383,7 @@ class MediaPlayerWidget : AppWidgetProvider() {
         )
 
       for (id in ids) {
-        if (pillUpdates.get() != update) return
+        if (pillUpdates.get() != update || revision != repository.cacheRevision.value) return
         val options = manager.getAppWidgetOptions(id)
         val widthDp =
           options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH)
@@ -426,8 +442,8 @@ class MediaPlayerWidget : AppWidgetProvider() {
 
         runCatching { manager.updateAppWidget(id, pillViews(cached)) }
         if (cached == null && uri != null) {
-          val source = withContext(Dispatchers.IO) { EmbeddedArtworkResolver.decodeArtworkUri(context, uri) }
-          if (source != null && pillUpdates.get() == update) {
+          val source = repository.getArtwork(item?.originalUri, item?.artworkUri, item?.isDefinitelyAudioOnly() == true)
+          if (source != null && pillUpdates.get() == update && revision == repository.cacheRevision.value) {
             val composed = withContext(Dispatchers.Default) {
               composePillArtwork(source, widthPx, pillHeightPx, pillArtPx)
             }

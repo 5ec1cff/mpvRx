@@ -757,6 +757,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         isFolderView = false,
         enableViewModeOptions = !forceAudio,
         isAudio = mediaType == MediaLibraryType.Audio,
+        onMetadataFieldEnabled = viewModel::refresh,
       )
     }
 
@@ -770,6 +771,8 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         itemCount = selectionManager.selectedCount,
         isOpen = deleteDialogOpen.value,
         itemType = if (mediaType == MediaLibraryType.Audio) "audio file" else "video",
+        itemPaths = selectionManager.getSelectedItems().map { it.uri.toString() },
+        totalSizeBytes = selectionManager.getSelectedItems().sumOf { it.size.coerceAtLeast(0L) }.takeIf { it > 0L },
       )
     }
 

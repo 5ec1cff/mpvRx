@@ -103,8 +103,8 @@
   <string name="pref_appearance_thumbnail_generator_summary">Choose Native or MediaStore for local video thumbnails</string>
   <string name="pref_thumbnail_generator_native">Native</string>
   <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
-  <string name="pref_thumbnail_generator_native_summary">Use Native generation with embedded artwork and frame selection</string>
-  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails for local videos; show a placeholder when unavailable. Android chooses the frame. Network previews use Native.</string>
+  <string name="pref_thumbnail_generator_native_summary">Extract local video thumbnails and song covers from the media file. Switching clears cached thumbnails.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails and album art for local videos and songs. Switching clears cached thumbnails; unavailable artwork shows a placeholder. Network previews use Native.</string>
   <string name="pref_appearance_thumbnail_generation_title">Thumbnail generation strategy</string>
   <string name="pref_appearance_thumbnail_generation_summary">Choose how thumbnails are generated, including embedded artwork or a specific frame position</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Change thumbnail strategy?</string>
@@ -2735,4 +2735,52 @@
   <string name="color_picker_brightness">Brightness</string>
     <string name="only_for_video_list">Only for video list</string>
     <string name="only_for_folder_list">Only for folder list</string>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Hi-Res lossless</string>
+  <string name="audio_quality_lossless">Lossless</string>
+  <string name="audio_quality_lossy">Lossy</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calculating…</string>
+  <string name="delete_size_unknown">Size unknown</string>
+  <string name="delete_size_description">Total size: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Thumbnail</string>
+  <string name="thumbnail_preview_description">Cached thumbnail for %1$s</string>
+  <string name="thumbnail_status_disk">Cached on disk</string>
+  <string name="thumbnail_status_memory">Cached in memory</string>
+  <string name="thumbnail_status_unreadable">Cached image could not be decoded</string>
+  <string name="thumbnail_status_missing">No cached thumbnail</string>
+  <string name="thumbnail_info_status">Cache status</string>
+  <string name="thumbnail_info_generator">Generator policy</string>
+  <string name="thumbnail_info_strategy">Frame or artwork selection</string>
+  <string name="thumbnail_strategy_artwork">Album artwork</string>
+  <string name="thumbnail_strategy_android">Android-selected frame</string>
+  <string name="thumbnail_info_quality">Configured quality</string>
+  <string name="thumbnail_info_maximum">Configured size limit</string>
+  <string name="thumbnail_maximum_value">Up to %1$d px on the longest side</string>
+  <string name="thumbnail_info_dimensions">Actual image dimensions</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d px</string>
+  <string name="thumbnail_info_format">Cached image format</string>
+  <string name="thumbnail_info_size">Cached file size</string>
+  <string name="thumbnail_info_memory">Present in browser memory cache</string>
+  <string name="thumbnail_info_preview_memory">Preview memory</string>
+  <string name="thumbnail_info_frame">Configured frame position</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">App JPEG encoder setting</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Cache file updated</string>
+  <string name="thumbnail_info_cache_path">Cache file path</string>
+  <string name="thumbnail_info_source">Source URI</string>
+  <string name="thumbnail_yes">Yes</string>
+  <string name="thumbnail_no">No</string>
+  <string name="thumbnail_refresh">Refresh info</string>
+  <string name="thumbnail_generate">Generate thumbnail</string>
+  <string name="thumbnail_quality_note">The preview is the actual cached image for the current settings. Browser tiles may cache a smaller image than the configured size limit. Opening this tab does not generate a new frame.</string>
+  <string name="thumbnail_inspection_failed">Thumbnail information could not be read. Try refreshing.</string>
+  <string name="thumbnail_generation_unavailable">The selected generator did not return a thumbnail for this file.</string>
 </resources>

@@ -46,12 +46,15 @@ fun DeleteConfirmationDialog(
   itemType: String,
   itemCount: Int,
   itemNames: List<String> = emptyList(),
+  itemPaths: List<String> = emptyList(),
+  totalSizeBytes: Long? = null,
 ) {
   if (!isOpen) return
 
   val itemText = if (itemCount == 1) itemType else "${itemType}s"
 
   AlertDialog(
+    singleRowActions = itemPaths.isNotEmpty() || totalSizeBytes != null,
     onDismissRequest = onDismiss,
     title = {
       Row(
@@ -149,30 +152,38 @@ fun DeleteConfirmationDialog(
       }
     },
     confirmButton = {
-      Button(
-        onClick = {
-          onConfirm()
-          onDismiss()
-        },
-        colors =
-          ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.error,
-            contentColor = MaterialTheme.colorScheme.onError,
-          ),
-        shape = MaterialTheme.shapes.extraLarge,
-      ) {
-        Icon(
-          imageVector = Icons.RoundedFilled.Delete,
-          contentDescription = null,
-          modifier = Modifier.size(18.dp),
+      if (itemPaths.isNotEmpty() || totalSizeBytes != null) {
+        app.gyrolet.mpvrx.presentation.components.DeleteSizeButton(
+          paths = itemPaths,
+          totalSizeBytes = totalSizeBytes,
+          onClick = { onConfirm(); onDismiss() },
         )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-          text =
-            androidx.compose.ui.res
-              .stringResource(app.gyrolet.mpvrx.R.string.delete),
-          fontWeight = FontWeight.Bold,
-        )
+      } else {
+        Button(
+          onClick = {
+            onConfirm()
+            onDismiss()
+          },
+          colors =
+            ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.error,
+              contentColor = MaterialTheme.colorScheme.onError,
+            ),
+          shape = MaterialTheme.shapes.extraLarge,
+        ) {
+          Icon(
+            imageVector = Icons.RoundedFilled.Delete,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+          )
+          Spacer(modifier = Modifier.width(6.dp))
+          Text(
+            text =
+              androidx.compose.ui.res
+                .stringResource(app.gyrolet.mpvrx.R.string.delete),
+            fontWeight = FontWeight.Bold,
+          )
+        }
       }
     },
     dismissButton = {

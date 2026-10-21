@@ -969,6 +969,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
       isOpen = sortDialogOpen.value,
       onDismiss = { sortDialogOpen.value = false },
       isAtRoot = isAppRoot,
+      onMetadataFieldEnabled = viewModel::refresh,
     )
 
     if (deleteDialogOpen) {
@@ -987,6 +988,9 @@ fun FileSystemBrowserScreen(path: String? = null) {
           },
         itemCount = selectedCount,
         itemNames = selectedItems.map { it.name },
+        itemPaths = selectedItems.map { item ->
+          if (item is FileSystemItem.VideoFile) item.video.uri.toString() else item.path
+        },
       )
     }
 
