@@ -2727,4 +2727,13 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="update_install_permission">Permite que esta aplicación instale actualizaciones en los ajustes de Android y vuelve a tocar Instalar.</string>
   <string name="update_checking_download">Comprobando el APK descargado…</string>
   <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba la conexión o inténtalo más tarde.</string>
+  <string name="update_auto_install">Descargar e instalar automáticamente</string>
+  <string name="update_auto_install_summary">Descarga mediante redes sin límite de datos e instala cuando mpvRx no esté en uso. Android puede pedir tu aprobación.</string>
+  <string name="update_download_and_install">Descargar e instalar</string>
+  <string name="update_background_downloading">Descargando actualización de la aplicación…</string>
+  <string name="update_installing">Instalando actualización…</string>
+  <string name="update_approval_required">Android necesita tu aprobación para completar la instalación. Pulsa Confirmar instalación.</string>
+  <string name="update_confirm_install">Confirmar instalación</string>
+  <string name="update_install_complete">Actualización instalada. Pulsa para abrir mpvRx.</string>
+  <string name="update_download_waiting">Esperando la red o reintentando la descarga…</string>
 </resources>

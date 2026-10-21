@@ -2,6 +2,20 @@
 
 These notes are written in plain English and focus on what changed for real use.
 
+## Unreleased
+
+### Tree Browser
+
+- **Immediate file actions:** Deleting or moving files and folders updates Tree mode immediately; renames appear before storage work finishes. Failed or cancelled items return, successful changes remain applied through stale scans, and operation refreshes keep the current list on screen.
+
+### App Updates
+
+- **Native installation:** Stable, Preview and Experimental updates use Android installer sessions, requesting silent self-updates on Android 12+ with confirmation when Android requires it.
+- **Optional background updates:** A separate switch downloads updates on unmetered networks and installs while mpvRx and its player are idle.
+- **Reliable progress and recovery:** Downloads survive navigation and process restarts, retain resumable partials, support cancellation, and keep the sheet open while downloading or staging an install.
+- **Safer handoff:** Verify the APK identity, signing certificates and version before installation, preserve a manual installer fallback, and handle permission requests and installation results through the sheet and notifications.
+- **Translated controls:** New updater settings and status messages are available in all existing app languages.
+
 ## 3.0.1 — Smoother Browsing, More Reliable Playback
 
 **Release date:** October 21, 2026

@@ -494,6 +494,7 @@ object AboutScreen : Screen {
           PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_updates))
           PreferenceCard {
             val isAutoUpdateEnabled by updateViewModel.isAutoUpdateEnabled.collectAsState()
+            val isAutoInstallEnabled by updateViewModel.isAutoInstallEnabled.collectAsState()
             val updateChannel by updateViewModel.updateChannel.collectAsState()
             Row(
                 modifier =
@@ -532,6 +533,23 @@ object AboutScreen : Screen {
                 )
               }
 
+
+              if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                Row(
+                  modifier = Modifier.fillMaxWidth()
+                    .clickable { updateViewModel.toggleAutoInstall(!isAutoInstallEnabled) }.padding(16.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                  Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.update_auto_install), style = MaterialTheme.typography.titleMedium,
+                      fontWeight = FontWeight.SemiBold, color = cs.onSurface)
+                    Spacer(Modifier.height(2.dp))
+                    Text(stringResource(R.string.update_auto_install_summary), style = MaterialTheme.typography.bodyMedium, color = cs.outline)
+                  }
+                  IconSwitch(checked = isAutoInstallEnabled, onCheckedChange = { updateViewModel.toggleAutoInstall(it) })
+                }
+              }
 
               Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),

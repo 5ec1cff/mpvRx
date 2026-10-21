@@ -67,7 +67,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 @OptIn(KoinExperimentalAPI::class)
 class App :
   Application(),
+  androidx.work.Configuration.Provider,
   Application.ActivityLifecycleCallbacks {
+  override val workManagerConfiguration: androidx.work.Configuration
+    get() = androidx.work.Configuration.Builder().setMinimumLoggingLevel(Log.WARN).build()
   private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
   private val networkAutoConnectStarted = AtomicBoolean(false)
   private val metadataMaintenanceStarted = AtomicBoolean(false)
@@ -95,6 +98,8 @@ class App :
   )
 
   companion object {
+    @Volatile var isInForeground: Boolean = false
+      private set
     private const val TAG = "App"
     private const val POST_START_MAINTENANCE_DELAY_MS = 10_000L
     private const val THUMBNAIL_WARMUP_DELAY_MS = 1_500L
@@ -146,6 +151,13 @@ class App :
       getKoin().get<DecoderPreferences>().useVulkan.set(false)
     }
     registerActivityLifecycleCallbacks(this)
+    if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+      applicationScope.launch(Dispatchers.IO) {
+        delay(1_500L)
+        runCatching { app.gyrolet.mpvrx.domain.update.UpdateWork.monitor(this@App) }
+          .onFailure { Log.w(TAG, "Update work monitoring stopped", it) }
+      }
+    }
     PlaybackSession.addObserver(PlaybackPerformanceTrace)
     startPlaybackPerformanceTracing()
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
@@ -278,6 +290,7 @@ class App :
   }
 
   override fun onActivityStarted(activity: Activity) {
+    isInForeground = true
     if (activity is PlayerActivity) PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_STARTED")
     if (startedActivityCount++ == 0) {
       mediaStoreLiveMonitor.start()
@@ -292,6 +305,7 @@ class App :
     if (activity is PlayerActivity) PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_STOPPED")
     startedActivityCount = (startedActivityCount - 1).coerceAtLeast(0)
     if (startedActivityCount == 0 && !activity.isChangingConfigurations) {
+      isInForeground = false
       mediaStoreLiveMonitor.stop()
       pauseVideoWhenBackgroundPlaybackDisabled(activity)
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppBackgrounded()
@@ -364,6 +378,12 @@ class App :
   }
 
   override fun onActivityResumed(activity: Activity) {
+    if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+      applicationScope.launch(Dispatchers.IO) {
+        runCatching { app.gyrolet.mpvrx.domain.update.UpdateInstaller.onForeground(this@App) }
+          .onFailure { Log.w(TAG, "Could not resume update installation", it) }
+      }
+    }
     when (activity) {
       is PlayerActivity -> {
         PlaybackPerformanceTrace.mark("PLAYER_ACTIVITY_RESUMED")

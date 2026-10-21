@@ -2785,4 +2785,13 @@
   <string name="update_install_permission">اسمح لهذا التطبيق بتثبيت التحديثات في إعدادات Android، ثم اضغط على تثبيت مجددًا.</string>
   <string name="update_checking_download">جارٍ التحقق من ملف APK الذي تم تنزيله…</string>
   <string name="update_check_failed">تعذّر التحقق من التحديثات. تحقق من الاتصال أو حاول لاحقًا.</string>
+  <string name="update_auto_install">التنزيل والتثبيت تلقائيًا</string>
+  <string name="update_auto_install_summary">تنزيل التحديثات عبر شبكات غير محدودة وتثبيتها عندما يكون mpvRx غير مستخدم. قد يطلب Android موافقتك.</string>
+  <string name="update_download_and_install">تنزيل وتثبيت</string>
+  <string name="update_background_downloading">جارٍ تنزيل تحديث التطبيق…</string>
+  <string name="update_installing">جارٍ تثبيت التحديث…</string>
+  <string name="update_approval_required">يحتاج Android إلى موافقتك لإكمال التثبيت. اضغط على تأكيد التثبيت.</string>
+  <string name="update_confirm_install">تأكيد التثبيت</string>
+  <string name="update_install_complete">تم تثبيت التحديث. اضغط لفتح mpvRx.</string>
+  <string name="update_download_waiting">بانتظار الشبكة أو إعادة محاولة التنزيل…</string>
 </resources>

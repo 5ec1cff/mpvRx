@@ -64,6 +64,7 @@ fun UpdateSheet(
   currentVersion: String,
   onDismiss: () -> Unit,
   onDownload: () -> Unit,
+  onCancelDownload: () -> Unit,
   onInstall: () -> Unit,
   onIgnore: () -> Unit,
   onRetryCheck: () -> Unit,
@@ -74,14 +75,15 @@ fun UpdateSheet(
   )
   val release = state.release
   val asset = state.asset
+  val busy = state.isDownloading || state.isInstalling
 
   ModalBottomSheet(
-    onDismissRequest = { if (!state.isDownloading) onDismiss() },
+    onDismissRequest = { if (!busy) onDismiss() },
     sheetState = sheetState,
-    sheetGesturesEnabled = !state.isDownloading,
+    sheetGesturesEnabled = !busy,
     properties = ModalBottomSheetProperties(
-      shouldDismissOnBackPress = !state.isDownloading,
-      shouldDismissOnClickOutside = !state.isDownloading,
+      shouldDismissOnBackPress = !busy,
+      shouldDismissOnClickOutside = !busy,
     ),
   ) {
     Column(
@@ -149,7 +151,17 @@ fun UpdateSheet(
       if (state.installPermissionRequired) {
         Text(stringResource(R.string.update_install_permission), style = MaterialTheme.typography.bodySmall)
       }
-      if (state.isDownloading) DownloadProgressSection(state.progress)
+      if (state.awaitingApproval) {
+        Text(stringResource(R.string.update_approval_required), style = MaterialTheme.typography.bodySmall)
+      }
+      if (state.isInstalling) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Text(stringResource(R.string.update_installing), style = MaterialTheme.typography.bodySmall)
+      }
+      if (state.queued) {
+        Text(stringResource(R.string.update_download_waiting), style = MaterialTheme.typography.bodySmall)
+      }
+      if (state.isDownloading) DownloadProgressSection(if (state.queued) -1f else state.progress)
       if (state.selecting) {
         Text(stringResource(R.string.update_checking_download), style = MaterialTheme.typography.bodySmall)
       }
@@ -158,11 +170,14 @@ fun UpdateSheet(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        if (!state.isDownloading && !state.readyToInstall && release != null) {
+        if (state.isDownloading) {
+          TextButton(onClick = onCancelDownload) { Text(stringResource(R.string.generic_cancel)) }
+        }
+        if (!busy && !state.readyToInstall && release != null) {
           TextButton(onClick = onIgnore, enabled = !state.selecting) { Text(stringResource(R.string.ui_ignore)) }
         }
         Spacer(Modifier.weight(1f))
-        if (!state.isDownloading) {
+        if (!busy) {
           TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }
           if (release != null && asset != null) {
             Button(
@@ -171,9 +186,10 @@ fun UpdateSheet(
             ) {
               Text(stringResource(
                 when {
+                  state.awaitingApproval -> R.string.update_confirm_install
                   state.readyToInstall -> R.string.ui_install
                   state.downloadError -> R.string.ui_retry
-                  else -> R.string.ui_download
+                  else -> R.string.update_download_and_install
                 },
               ))
             }
@@ -376,4 +392,3 @@ private fun formatDate(dateString: String): String {
     dateString
   }
 }
-

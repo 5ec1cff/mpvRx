@@ -206,6 +206,7 @@ object CopyPasteOps {
     context: Context,
     videos: List<Video>,
     destinationPath: String,
+    onMoved: (Video) -> Unit = {},
   ): Result<Unit> =
     withContext(Dispatchers.IO) {
       try {
@@ -250,7 +251,7 @@ object CopyPasteOps {
             val totalBytes = validVideos.sumOf { it.size }
 
             // Perform move operation
-            val (movedPaths, historyUpdates) = performMoveOperation(validVideos, destDir, totalBytes)
+            val (movedPaths, historyUpdates) = performMoveOperation(validVideos, destDir, totalBytes, onMoved)
 
             // Update history for moved files
             historyUpdates.forEach { (oldPath, newPath) ->
@@ -259,7 +260,7 @@ object CopyPasteOps {
             }
             movedPaths
           } else {
-            performScopedMoveOperation(context, videos, destinationPath)
+            performScopedMoveOperation(context, videos, destinationPath, onMoved)
           }
 
         MediaLibraryEvents.notifyChanged()
@@ -312,6 +313,7 @@ object CopyPasteOps {
     context: Context,
     videos: List<Video>,
     destinationTreeUri: Uri,
+    onMoved: (Video) -> Unit = {},
   ): Result<Unit> =
     withContext(Dispatchers.IO) {
       try {
@@ -329,9 +331,12 @@ object CopyPasteOps {
         checkCancellation()
         val moved = mutableListOf<Video>()
         val (deleted, failed) = if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
-          PermissionUtils.StorageOps.deleteScopedVideosForMove(context, videos) { moved += it }
+          PermissionUtils.StorageOps.deleteScopedVideosForMove(context, videos) {
+            moved += it
+            onMoved(it)
+          }
         } else {
-          PermissionUtils.StorageOps.deleteVideos(context, videos)
+          PermissionUtils.StorageOps.deleteVideos(context, videos, onMoved)
         }
         if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
           moved.forEach { video ->
@@ -662,6 +667,7 @@ object CopyPasteOps {
     context: Context,
     videos: List<Video>,
     destinationPath: String,
+    onMoved: (Video) -> Unit,
   ): List<String> {
     val movedPaths = performScopedCopyOperation(context, videos, destinationPath)
 
@@ -697,6 +703,7 @@ object CopyPasteOps {
       if (!deleted) {
         throw IOException("Failed to delete source after move: ${video.displayName}")
       }
+      onMoved(video)
 
       val newPath = movedPaths.getOrNull(index)
       if (newPath != null) {
@@ -827,6 +834,7 @@ object CopyPasteOps {
     videos: List<Video>,
     destDir: File,
     totalBytes: Long,
+    onMoved: (Video) -> Unit,
   ): Pair<List<String>, List<Pair<String, String>>> {
     val movedFilePaths = mutableListOf<String>()
     val historyUpdates = mutableListOf<Pair<String, String>>()
@@ -874,6 +882,7 @@ object CopyPasteOps {
       if (!finalDestFile.exists()) {
         throw IOException("Move failed: destination file not found for ${video.displayName}")
       }
+      onMoved(video)
 
       movedFilePaths.add(finalDestFile.absolutePath)
       historyUpdates.add(sourceFile.absolutePath to finalDestFile.absolutePath)
@@ -1144,3 +1153,4 @@ class OpenDocumentTreeContract : ActivityResultContract<Uri?, Uri?>() {
     intent: Intent?,
   ): Uri? = intent?.data
 }
+

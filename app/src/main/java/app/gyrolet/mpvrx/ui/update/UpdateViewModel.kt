@@ -11,11 +11,6 @@ package app.gyrolet.mpvrx.ui.update
 
 import android.app.Application
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.gyrolet.mpvrx.BuildConfig
@@ -23,16 +18,20 @@ import app.gyrolet.mpvrx.domain.update.AppUpdateChannel
 import app.gyrolet.mpvrx.domain.update.Asset
 import app.gyrolet.mpvrx.domain.update.Release
 import app.gyrolet.mpvrx.domain.update.UpdateManager
+import app.gyrolet.mpvrx.domain.update.UpdateInstaller
+import app.gyrolet.mpvrx.domain.update.UpdateStage
+import app.gyrolet.mpvrx.domain.update.UpdateTaskState
+import app.gyrolet.mpvrx.domain.update.UpdateWork
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** One state keeps the download sheet mounted while checking, downloading and installing. */
 data class UpdateUiState(
@@ -49,6 +48,9 @@ data class UpdateUiState(
   val downloadError: Boolean = false,
   val installError: Boolean = false,
   val installPermissionRequired: Boolean = false,
+  val isInstalling: Boolean = false,
+  val awaitingApproval: Boolean = false,
+  val queued: Boolean = false,
 )
 
 class UpdateViewModel(application: Application) : AndroidViewModel(application) {
@@ -58,6 +60,8 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     BuildConfig.ENABLE_UPDATE_FEATURE && prefs.getBoolean("auto_update", false),
   )
   val isAutoUpdateEnabled = _isAutoUpdateEnabled.asStateFlow()
+  private val _isAutoInstallEnabled = MutableStateFlow(UpdateWork.automaticEnabled(application))
+  val isAutoInstallEnabled = _isAutoInstallEnabled.asStateFlow()
 
   private val _updateChannel = MutableStateFlow(
     prefs.getString(UPDATE_CHANNEL_KEY, null)?.let(AppUpdateChannel::fromStoredValue)
@@ -74,6 +78,11 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
   private var selectionJob: Job? = null
 
   init {
+    if (BuildConfig.ENABLE_UPDATE_FEATURE) {
+      viewModelScope.launch {
+        UpdateWork.state(application).collect { task -> applyTask(task) }
+      }
+    }
     if (BuildConfig.ENABLE_UPDATE_FEATURE && _isAutoUpdateEnabled.value) {
       viewModelScope.launch {
         delay(UPDATE_CHECK_STARTUP_DELAY_MS)
@@ -83,12 +92,24 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
   }
 
   fun setUpdateChannel(channel: AppUpdateChannel) {
-    if (!BuildConfig.ENABLE_UPDATE_FEATURE || _uiState.value.isDownloading || channel == _updateChannel.value) return
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE || busy() || _uiState.value.awaitingApproval || channel == _updateChannel.value) return
     stopChecking()
     prefs.edit().putString(UPDATE_CHANNEL_KEY, channel.name).apply()
     _updateChannel.value = channel
-    _uiState.value = UpdateUiState(visible = _uiState.value.visible)
-    checkForUpdate(manual = true)
+    viewModelScope.launch {
+      withContext(Dispatchers.IO) {
+        UpdateWork.cancelAutomatic(getApplication())
+        UpdateWork.update(getApplication()) { UpdateTaskState() }
+      }
+      _uiState.value = UpdateUiState(visible = _uiState.value.visible)
+      checkForUpdate(manual = true)
+    }
+  }
+
+  fun toggleAutoInstall(enabled: Boolean) {
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
+    _isAutoInstallEnabled.value = enabled
+    viewModelScope.launch { UpdateWork.setAutomatic(getApplication(), enabled) }
   }
 
   fun toggleAutoUpdate(enabled: Boolean) {
@@ -100,8 +121,18 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
   fun retryCheck() = checkForUpdate(manual = true)
 
+  fun showPendingUpdate() {
+    applyTask(UpdateWork.state(getApplication()).value)
+    if (_uiState.value.release != null) _uiState.update { it.copy(visible = true) }
+    else checkForUpdate(manual = true)
+  }
+
   fun checkForUpdate(manual: Boolean = false) {
-    if (!BuildConfig.ENABLE_UPDATE_FEATURE || _uiState.value.isDownloading || _uiState.value.selecting) return
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
+    if (busy() || _uiState.value.awaitingApproval || _uiState.value.selecting) {
+      if (manual) _uiState.update { it.copy(visible = true) }
+      return
+    }
     if (!manual && _uiState.value.visible) return
     checkJob?.cancel()
     val channel = _updateChannel.value
@@ -110,7 +141,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
       try {
         val release = updateManager.checkForUpdate(channel, forceShow = manual)
         ensureActive()
-        if (channel != _updateChannel.value || _uiState.value.isDownloading) return@launch
+        if (channel != _updateChannel.value || busy()) return@launch
         val asset = release?.let(updateManager::selectUpdateAsset)
         if (release != null && asset != null) {
           _uiState.value = UpdateUiState(visible = true, release = release, asset = asset, selecting = true)
@@ -131,7 +162,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
   fun downloadUpdate() {
     val state = _uiState.value
-    if (!BuildConfig.ENABLE_UPDATE_FEATURE || state.isDownloading || state.selecting || state.checking) return
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE || busy() || state.selecting || state.checking) return
     val release = state.release ?: return
     if (state.asset == null) return
     checkJob?.cancel()
@@ -139,14 +170,10 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     _uiState.update { it.copy(isDownloading = true, checking = false, progress = 0f, downloadError = false) }
     viewModelScope.launch {
       try {
-        val resumedProgress = updateManager.getResumableProgress(release) ?: 0f
-        _uiState.update { it.copy(progress = resumedProgress) }
-        updateManager.downloadUpdate(release).collect { progress ->
-          _uiState.update { it.copy(progress = progress) }
+        if (!UpdateWork.enqueue(getApplication(), release)) {
+          applyTask(UpdateWork.state(getApplication()).value)
         }
-        _uiState.update { it.copy(isDownloading = false, readyToInstall = true, progress = 100f) }
       } catch (cancellation: CancellationException) {
-        _uiState.update { it.copy(isDownloading = false) }
         throw cancellation
       } catch (_: Exception) {
         _uiState.update { it.copy(isDownloading = false, readyToInstall = false, downloadError = true) }
@@ -154,9 +181,14 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     }
   }
 
+  fun cancelDownload() {
+    if (!_uiState.value.isDownloading) return
+    viewModelScope.launch { UpdateWork.cancelDownload(getApplication()) }
+  }
+
   fun installUpdate() {
     val state = _uiState.value
-    if (!BuildConfig.ENABLE_UPDATE_FEATURE || state.isDownloading || state.selecting || !state.readyToInstall) return
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE || busy() || state.selecting || !state.readyToInstall) return
     val release = state.release ?: return
     _uiState.update { it.copy(selecting = true, installError = false, installPermissionRequired = false) }
     selectionJob = viewModelScope.launch {
@@ -167,41 +199,31 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
           _uiState.update { it.copy(readyToInstall = false, downloadError = true) }
           return@launch
         }
-        val context = getApplication<Application>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
-          _uiState.update { it.copy(installPermissionRequired = true) }
-          context.startActivity(
-            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}"))
-              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-          )
-          return@launch
+        withContext(Dispatchers.IO) {
+          if (UpdateWork.state(getApplication()).value.release?.updateKey != release.updateKey) {
+            UpdateWork.update(getApplication()) { UpdateTaskState(release = release, stage = UpdateStage.READY) }
+          }
+          UpdateInstaller.requestUserInstall(getApplication(), release)
         }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-        context.startActivity(
-          Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-          },
-        )
       } catch (cancellation: CancellationException) {
         throw cancellation
       } catch (_: Exception) {
         _uiState.update { it.copy(installError = true) }
       } finally {
-        if (currentCoroutineContext().isActive) _uiState.update { it.copy(selecting = false) }
+        _uiState.update { it.copy(selecting = false) }
       }
     }
   }
 
   fun dismiss() {
-    if (_uiState.value.isDownloading) return
+    if (busy()) return
     stopChecking()
     // Retain verified APKs and partials when closing; the next download prunes other versions.
     _uiState.update { it.copy(visible = false, checking = false, selecting = false) }
   }
 
   fun ignoreVersion() {
-    if (_uiState.value.isDownloading) return
+    if (busy() || _uiState.value.awaitingApproval) return
     _uiState.value.release?.let { updateManager.ignoreVersion(it.updateKey, _updateChannel.value) }
     dismiss()
   }
@@ -211,9 +233,38 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     selectionJob?.cancel()
   }
 
+  private fun busy() = _uiState.value.isDownloading || _uiState.value.isInstalling
+
+  private fun applyTask(task: UpdateTaskState) {
+    if (task.stage == UpdateStage.COMPLETE) {
+      _uiState.update { it.copy(visible = false, isDownloading = false, isInstalling = false, awaitingApproval = false) }
+      return
+    }
+    val release = task.release ?: return
+    _uiState.update { current ->
+      current.copy(
+        visible = current.visible || !task.automatic,
+        release = release,
+        asset = updateManager.selectUpdateAsset(release),
+        checking = false,
+        checkError = false,
+        noUpdate = false,
+        isDownloading = task.stage == UpdateStage.DOWNLOADING || task.stage == UpdateStage.QUEUED,
+        isInstalling = task.stage == UpdateStage.INSTALLING,
+        awaitingApproval = task.stage == UpdateStage.APPROVAL,
+        queued = task.stage == UpdateStage.QUEUED,
+        progress = task.progress,
+        readyToInstall = task.stage in setOf(UpdateStage.READY, UpdateStage.APPROVAL, UpdateStage.PERMISSION) ||
+          (task.stage == UpdateStage.FAILED && !task.downloadError),
+        downloadError = task.stage == UpdateStage.FAILED && task.downloadError,
+        installError = task.stage == UpdateStage.FAILED && !task.downloadError,
+        installPermissionRequired = task.stage == UpdateStage.PERMISSION,
+      )
+    }
+  }
+
   private companion object {
     const val UPDATE_CHECK_STARTUP_DELAY_MS = 1500L
     const val UPDATE_CHANNEL_KEY = "app_update_channel"
   }
 }
-

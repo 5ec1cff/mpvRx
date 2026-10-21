@@ -2757,4 +2757,13 @@
   <string name="update_install_permission">Разрешите этому приложению устанавливать обновления в настройках Android, затем снова нажмите «Установить».</string>
   <string name="update_checking_download">Проверка загруженного APK…</string>
   <string name="update_check_failed">Не удалось проверить обновления. Проверьте подключение или повторите попытку позже.</string>
+  <string name="update_auto_install">Автоматически скачивать и устанавливать</string>
+  <string name="update_auto_install_summary">Скачивать через сети без тарификации и устанавливать, когда mpvRx не используется. Android может запросить подтверждение.</string>
+  <string name="update_download_and_install">Скачать и установить</string>
+  <string name="update_background_downloading">Скачивание обновления приложения…</string>
+  <string name="update_installing">Установка обновления…</string>
+  <string name="update_approval_required">Android требуется ваше разрешение для завершения установки. Нажмите «Подтвердить установку».</string>
+  <string name="update_confirm_install">Подтвердить установку</string>
+  <string name="update_install_complete">Обновление установлено. Нажмите, чтобы открыть mpvRx.</string>
+  <string name="update_download_waiting">Ожидание сети или повторная попытка скачивания…</string>
 </resources>

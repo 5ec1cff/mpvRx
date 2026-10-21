@@ -2792,4 +2792,13 @@
   <string name="update_install_permission">Allow this app to install updates in Android settings, then tap Install again.</string>
   <string name="update_checking_download">Checking downloaded APK…</string>
   <string name="update_check_failed">Could not check for updates. Check your connection or try again later.</string>
+  <string name="update_auto_install">Automatically download and install</string>
+  <string name="update_auto_install_summary">Download over unmetered networks and install when mpvRx is idle. Android may ask for approval.</string>
+  <string name="update_download_and_install">Download and install</string>
+  <string name="update_background_downloading">Downloading app update…</string>
+  <string name="update_installing">Installing update…</string>
+  <string name="update_approval_required">Android needs your approval to finish installing. Tap Confirm installation.</string>
+  <string name="update_confirm_install">Confirm installation</string>
+  <string name="update_install_complete">Update installed. Tap to open mpvRx.</string>
+  <string name="update_download_waiting">Waiting for the network or retrying the download…</string>
 </resources>

@@ -2697,4 +2697,13 @@
   <string name="update_install_permission">Дозвольте цій програмі встановлювати оновлення в налаштуваннях Android, а потім знову натисніть «Установити».</string>
   <string name="update_checking_download">Перевірка завантаженого APK…</string>
   <string name="update_check_failed">Не вдалося перевірити оновлення. Перевірте з’єднання або повторіть спробу пізніше.</string>
+  <string name="update_auto_install">Автоматично завантажувати й установлювати</string>
+  <string name="update_auto_install_summary">Завантажувати через мережі без тарифікації та встановлювати, коли mpvRx не використовується. Android може запитати підтвердження.</string>
+  <string name="update_download_and_install">Завантажити й установити</string>
+  <string name="update_background_downloading">Завантаження оновлення застосунку…</string>
+  <string name="update_installing">Установлення оновлення…</string>
+  <string name="update_approval_required">Android потрібен ваш дозвіл для завершення встановлення. Натисніть «Підтвердити встановлення».</string>
+  <string name="update_confirm_install">Підтвердити встановлення</string>
+  <string name="update_install_complete">Оновлення встановлено. Натисніть, щоб відкрити mpvRx.</string>
+  <string name="update_download_waiting">Очікування мережі або повторна спроба завантаження…</string>
 </resources>

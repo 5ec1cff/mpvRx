@@ -9,6 +9,9 @@
         android:name="android.permission.REQUEST_INSTALL_PACKAGES"
         tools:node="remove" />
     <uses-permission
+        android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION"
+        tools:node="remove" />
+    <uses-permission
         android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"
         tools:node="remove" />
     <uses-permission
@@ -16,6 +19,7 @@
         tools:node="remove" />
 
     <application tools:remove="android:requestLegacyExternalStorage">
+        <receiver android:name="app.gyrolet.mpvrx.domain.update.UpdateInstallReceiver" tools:node="remove" />
         <activity
             android:name="app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity"
             tools:node="remove" />

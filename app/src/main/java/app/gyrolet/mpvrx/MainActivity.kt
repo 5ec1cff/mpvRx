@@ -138,6 +138,7 @@ open class MainActivity : AppCompatActivity() {
   private var wasInPipMode = false
   private var pendingPipExitResolution = false
   private var isExpandingFromPip by mutableStateOf(false)
+  private var openUpdateSheet by mutableStateOf(false)
 
   // Register the ActivityResultLauncher at class level
   private val mediaAccessLauncher =
@@ -156,6 +157,8 @@ open class MainActivity : AppCompatActivity() {
     // directly into the real UI. Do not draw a second Compose logo/title layer afterwards.
     installSplashScreen()
     super.onCreate(savedInstanceState)
+    openUpdateSheet = intent.getBooleanExtra("open_update_sheet", false)
+    intent.removeExtra("open_update_sheet")
 
     if (DeviceFormFactor.isTelevision(this)) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -603,9 +606,15 @@ open class MainActivity : AppCompatActivity() {
     }
   }
 
-  /**
-   * Navigator that handles screen transitions and provides shared states
-   */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    if (intent.getBooleanExtra("open_update_sheet", false)) {
+      openUpdateSheet = true
+      intent.removeExtra("open_update_sheet")
+    }
+  }
+
+  /** Navigator that handles screen transitions and provides shared states. */
   @Composable
   fun Navigator() {
     val backstack = rememberNavBackStack(MainScreen)
@@ -631,6 +640,12 @@ open class MainActivity : AppCompatActivity() {
 
     val fallbackUpdateState = remember { MutableStateFlow(UpdateUiState()) }
     val updateState by (updateViewModel?.uiState ?: fallbackUpdateState).collectAsState()
+    LaunchedEffect(openUpdateSheet, updateViewModel) {
+      if (openUpdateSheet && updateViewModel != null) {
+        updateViewModel.showPendingUpdate()
+        openUpdateSheet = false
+      }
+    }
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
     val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
 
@@ -757,6 +772,7 @@ open class MainActivity : AppCompatActivity() {
           currentVersion = currentVersion,
           onDismiss = updateViewModel::dismiss,
           onDownload = updateViewModel::downloadUpdate,
+          onCancelDownload = updateViewModel::cancelDownload,
           onInstall = updateViewModel::installUpdate,
           onIgnore = updateViewModel::ignoreVersion,
           onRetryCheck = updateViewModel::retryCheck,
@@ -765,3 +781,4 @@ open class MainActivity : AppCompatActivity() {
     }
   }
 }
+

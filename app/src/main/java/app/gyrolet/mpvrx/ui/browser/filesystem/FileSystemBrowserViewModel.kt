@@ -45,12 +45,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * ViewModel for FileSystem Browser - based on Fossify's ItemsFragment logic
@@ -82,6 +84,18 @@ class FileSystemBrowserViewModel(
   // Unsorted items from filesystem scan - before sorting is applied
   // Similar to Fossify's items list before sorting
   private val _unsortedItems = MutableStateFlow<List<FileSystemItem>>(emptyList())
+
+  private data class ItemChange(
+    val original: FileSystemItem,
+    val directory: String,
+    val replacement: FileSystemItem?,
+    val revision: Long,
+    val confirmed: Boolean = false,
+  )
+
+  private val itemChanges = MutableStateFlow<Map<String, ItemChange>>(emptyMap())
+  private val changeRevision = AtomicLong()
+  private var loadedDirectoryPath: String? = null
 
   // Sorted and filtered items ready for display
   // Similar to Fossify's final sorted items list
@@ -217,7 +231,15 @@ class FileSystemBrowserViewModel(
     // Based on Fossify's ChangeSortingDialog callback and sorting logic
     viewModelScope.launch {
       combine(
-        _unsortedItems,
+        combine(_unsortedItems, itemChanges) { items, changes ->
+          val visible = items.filterNot { it.path in changes }.toMutableList()
+          changes.values.forEach { change ->
+            val replacement = change.replacement
+            if (change.directory == _currentPath.value && replacement != null &&
+              visible.none { matchesReplacement(it, change) }) visible += replacement
+          }
+          visible.toList()
+        },
         browserPreferences.folderSortType.changes(),
         browserPreferences.folderSortOrder.changes(),
         foldersPreferences.blacklistedFolders.changes(),
@@ -378,11 +400,101 @@ class FileSystemBrowserViewModel(
     _itemsWereDeletedOrMoved.value = true
   }
 
+  /** Keep removals hidden until a scan started after the mutation confirms the new directory. */
+  fun beginItemRemoval(items: List<FileSystemItem>): Map<String, Long> = beginItemChanges(items) { null }
+
+  private fun beginItemChanges(
+    items: List<FileSystemItem>,
+    replacement: (FileSystemItem) -> FileSystemItem?,
+  ): Map<String, Long> {
+    val directory = _currentPath.value
+    val visiblePaths = _unsortedItems.value.mapTo(hashSetOf()) { it.path }
+    val changes = items.distinctBy { it.path }.associate { item ->
+      val parent = if (item.path in visiblePaths) directory else File(item.path).parent.orEmpty()
+      item.path to ItemChange(item, parent, replacement(item), changeRevision.incrementAndGet())
+    }
+    var added = emptyMap<String, ItemChange>()
+    itemChanges.update { current ->
+      added = changes.filterKeys { path ->
+        path !in current && current.values.none { it.replacement?.path == path }
+      }
+      current + added
+    }
+    return added.mapValues { it.value.revision }
+  }
+
+  fun confirmItemChanges(request: Map<String, Long>, paths: Collection<String>) {
+    val confirmed = paths.toSet()
+    itemChanges.update { changes ->
+      changes.mapValues { (path, change) ->
+        if (path in confirmed && request[path] == change.revision) change.copy(confirmed = true) else change
+      }
+    }
+    if (confirmed.isNotEmpty()) _itemsWereDeletedOrMoved.value = true
+  }
+
+  /** Restore failed/cancelled items from their own snapshots, including after an intervening scan. */
+  fun finishItemChanges(request: Map<String, Long>) {
+    val failed = itemChanges.value.filter { (path, change) -> request[path] == change.revision && !change.confirmed }
+    _unsortedItems.update { current ->
+      val restored = current.toMutableList()
+      failed.values.filter { it.directory == _currentPath.value }.forEach { change ->
+        if (restored.none { it.path == change.original.path }) restored += change.original
+      }
+      restored
+    }
+    itemChanges.update { changes ->
+      changes.filterNot { (path, change) -> request[path] == change.revision && !change.confirmed }
+    }
+  }
+
+  private fun reconcileItemChanges(path: String, items: List<FileSystemItem>, scanRevision: Long) {
+    itemChanges.update { changes ->
+      changes.filterNot { (_, change) ->
+        change.confirmed && change.directory == path && change.revision <= scanRevision &&
+          items.none { it.path == change.original.path && it.name == change.original.name } &&
+          (change.replacement == null || items.any { matchesReplacement(it, change) })
+      }
+    }
+  }
+
+  private fun matchesReplacement(item: FileSystemItem, change: ItemChange): Boolean {
+    val replacement = change.replacement ?: return false
+    val contentRename = (change.original as? FileSystemItem.VideoFile)?.video?.uri?.scheme == "content"
+    return item.name == replacement.name &&
+      (item.path == replacement.path || (contentRename && item is FileSystemItem.VideoFile))
+  }
+
+  fun refreshAfterOperation() {
+    MediaFileRepository.invalidateTreeCache()
+    MediaStoreGenerationGuard.invalidate(getApplication())
+    loadCurrentDirectory(forceFileSystemCheck = true)
+  }
+
+  suspend fun deleteItems(items: List<FileSystemItem>): Pair<Int, Int> {
+    val request = beginItemRemoval(items)
+    val targets = items.distinctBy { it.path }.filter { it.path in request }
+    if (targets.isEmpty()) return 0 to 0
+    try {
+      val folders = targets.filterIsInstance<FileSystemItem.Folder>()
+      val videos = targets.filterIsInstance<FileSystemItem.VideoFile>().map { it.video }
+      val folderResult = withContext(Dispatchers.IO) { deleteFolders(folders, request) }
+      val videoResult = if (videos.isEmpty()) 0 to 0 else {
+        super.deleteVideos(videos) { video -> confirmItemChanges(request, listOf(video.path)) }
+      }
+      return (folderResult.first + videoResult.first) to (folderResult.second + videoResult.second)
+    } finally {
+      finishItemChanges(request)
+      refreshAfterOperation()
+    }
+  }
+
   /**
    * Delete folders (and their contents)
    * Based on Fossify's deleteFiles() logic with folder support
    */
-  fun deleteFolders(folders: List<FileSystemItem.Folder>): Pair<Int, Int> {
+  private fun deleteFolders(folders: List<FileSystemItem.Folder>, request: Map<String, Long>): Pair<Int, Int> {
+    if (folders.isEmpty()) return 0 to 0
     if (app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
       Log.w(TAG, "Folder deletion is unavailable with scoped storage")
       return 0 to folders.size
@@ -406,6 +518,7 @@ class FileSystemBrowserViewModel(
         if (deleteAll) {
           if (dir.deleteRecursively()) {
             successCount++
+            confirmItemChanges(request, listOf(folder.path))
             Log.d(TAG, "Successfully deleted folder (all contents): ${folder.path}")
           } else {
             failureCount++
@@ -429,6 +542,11 @@ class FileSystemBrowserViewModel(
           }
           if (deletedAny) {
             successCount++
+            val hasRemainingMedia = dir.walkTopDown().any { file ->
+              file.isFile && (file.extension.lowercase() in FileTypeUtils.VIDEO_EXTENSIONS ||
+                (includeAudio && file.extension.lowercase() in FileTypeUtils.AUDIO_EXTENSIONS))
+            }
+            if (!hasRemainingMedia) confirmItemChanges(request, listOf(folder.path))
             Log.d(TAG, "Deleted media files from folder: ${folder.path}")
           } else {
             failureCount++
@@ -455,15 +573,9 @@ class FileSystemBrowserViewModel(
    * Similar to Fossify's deleteFiles() for individual files
    */
   override suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {
-    Log.d(TAG, "Deleting ${videos.size} videos")
-    val result = super.deleteVideos(videos)
-
-    // Set flag if any deletions were successful
-    if (result.first > 0) {
-      _itemsWereDeletedOrMoved.value = true
-    }
-
-    return result
+    return deleteItems(videos.map { video ->
+      FileSystemItem.VideoFile(video.displayName, video.path, video.dateModified, video)
+    })
   }
 
   /**
@@ -474,19 +586,44 @@ class FileSystemBrowserViewModel(
     video: Video,
     newDisplayName: String,
   ): Result<Unit> {
-    Log.d(TAG, "Renaming video ${video.displayName} to $newDisplayName")
-    return super.renameVideo(video, newDisplayName)
+    if (newDisplayName == video.displayName) return Result.success(Unit)
+    val contentUri = video.uri.scheme == "content"
+    val newPath = if (video.path.startsWith('/')) File(File(video.path).parentFile, newDisplayName).absolutePath else video.path
+    val renamed = video.copy(
+      title = newDisplayName.substringBeforeLast('.'), displayName = newDisplayName, path = newPath,
+      uri = if (contentUri) video.uri else android.net.Uri.fromFile(File(newPath)),
+    )
+    val original = FileSystemItem.VideoFile(video.displayName, video.path, video.dateModified, video)
+    val request = beginItemChanges(listOf(original)) {
+      FileSystemItem.VideoFile(newDisplayName, newPath, video.dateModified, renamed)
+    }
+    if (request.isEmpty()) return Result.failure(IllegalStateException("File operation already in progress"))
+    try {
+      return super.renameVideo(video, newDisplayName).also { result ->
+        if (result.isSuccess) confirmItemChanges(request, listOf(video.path))
+      }
+    } finally {
+      finishItemChanges(request)
+      refreshAfterOperation()
+    }
   }
 
   suspend fun renameFolder(
     folder: FileSystemItem.Folder,
     newName: String,
   ): Boolean {
-    val ok = StorageOps.renameFolder(getApplication(), folder.path, newName)
-    if (ok) {
-      setItemsWereDeletedOrMoved()
+    if (newName == folder.name) return true
+    val newPath = File(File(folder.path).parentFile, newName).absolutePath
+    val request = beginItemChanges(listOf(folder)) { folder.copy(name = newName, path = newPath) }
+    if (request.isEmpty()) return false
+    try {
+      return StorageOps.renameFolder(getApplication(), folder.path, newName).also { ok ->
+        if (ok) confirmItemChanges(request, listOf(folder.path))
+      }
+    } finally {
+      finishItemChanges(request)
+      refreshAfterOperation()
     }
-    return ok
   }
 
   /**
@@ -497,7 +634,8 @@ class FileSystemBrowserViewModel(
     directoryLoadJob?.cancel()
     val path = _currentPath.value
     directoryLoadJob = viewModelScope.launch {
-      _isLoading.value = true
+      val scanRevision = changeRevision.get()
+      _isLoading.value = loadedDirectoryPath != path
       _error.value = null
       // Don't reset the flag here - let navigation handle it
 
@@ -510,6 +648,8 @@ class FileSystemBrowserViewModel(
           val roots = MediaFileRepository.getStorageRoots(getApplication(), forceFileSystemCheck)
           ensureActive()
           _unsortedItems.value = roots
+          loadedDirectoryPath = path
+          reconcileItemChanges(path, roots, scanRevision)
           _videoFilesWithPlayback.value = emptyMap()
           _newVideoIds.value = emptySet()
           _watchedVideoIds.value = emptySet()
@@ -557,6 +697,8 @@ class FileSystemBrowserViewModel(
               itemCountByPath[path] = items.size
 
               _unsortedItems.value = items
+              loadedDirectoryPath = path
+              reconcileItemChanges(path, items, scanRevision)
 
               val folderCount = items.filterIsInstance<FileSystemItem.Folder>().size
               val videoCount = items.filterIsInstance<FileSystemItem.VideoFile>().size
@@ -609,11 +751,7 @@ class FileSystemBrowserViewModel(
             }.onFailure { error ->
               if (error is CancellationException) throw error
               ensureActive()
-              _error.value = error.message
-              _unsortedItems.value = emptyList()
-              _videoFilesWithPlayback.value = emptyMap()
-              _newVideoIds.value = emptySet()
-              _watchedVideoIds.value = emptySet()
+              showDirectoryLoadError(path, error)
               Log.e(TAG, "Error loading directory: $path", error)
             }
         }
@@ -621,16 +759,21 @@ class FileSystemBrowserViewModel(
         throw error
       } catch (e: Exception) {
         ensureActive()
-        _error.value = e.message
-        _unsortedItems.value = emptyList()
-        _videoFilesWithPlayback.value = emptyMap()
-        _newVideoIds.value = emptySet()
-        _watchedVideoIds.value = emptySet()
+        showDirectoryLoadError(path, e)
         Log.e(TAG, "Exception loading directory", e)
       } finally {
         if (isActive) _isLoading.value = false
       }
     }
+  }
+
+  private fun showDirectoryLoadError(path: String, error: Throwable) {
+    if (loadedDirectoryPath == path && _unsortedItems.value.isNotEmpty()) return
+    _error.value = error.message
+    _unsortedItems.value = emptyList()
+    _videoFilesWithPlayback.value = emptyMap()
+    _newVideoIds.value = emptySet()
+    _watchedVideoIds.value = emptySet()
   }
 
   /**
@@ -706,3 +849,4 @@ class FileSystemBrowserViewModel(
     }
   }
 }
+

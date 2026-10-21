@@ -2631,4 +2631,13 @@
   <string name="update_install_permission">Android सेटिंग में इस ऐप को अपडेट इंस्टॉल करने की अनुमति दें, फिर इंस्टॉल करें पर दोबारा टैप करें।</string>
   <string name="update_checking_download">डाउनलोड किए गए APK की जाँच हो रही है…</string>
   <string name="update_check_failed">अपडेट की जाँच नहीं हो सकी। कनेक्शन जाँचें या बाद में फिर कोशिश करें।</string>
+  <string name="update_auto_install">अपने आप डाउनलोड और इंस्टॉल करें</string>
+  <string name="update_auto_install_summary">बिना डेटा सीमा वाले नेटवर्क पर डाउनलोड करें और mpvRx का उपयोग न होने पर इंस्टॉल करें। Android अनुमति माँग सकता है।</string>
+  <string name="update_download_and_install">डाउनलोड और इंस्टॉल करें</string>
+  <string name="update_background_downloading">ऐप अपडेट डाउनलोड हो रहा है…</string>
+  <string name="update_installing">अपडेट इंस्टॉल हो रहा है…</string>
+  <string name="update_approval_required">इंस्टॉलेशन पूरा करने के लिए Android को आपकी अनुमति चाहिए। इंस्टॉलेशन की पुष्टि करें पर टैप करें।</string>
+  <string name="update_confirm_install">इंस्टॉलेशन की पुष्टि करें</string>
+  <string name="update_install_complete">अपडेट इंस्टॉल हो गया। mpvRx खोलने के लिए टैप करें।</string>
+  <string name="update_download_waiting">नेटवर्क का इंतज़ार है या डाउनलोड फिर से आज़माया जा रहा है…</string>
 </resources>

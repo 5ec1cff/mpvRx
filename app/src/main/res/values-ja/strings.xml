@@ -2712,4 +2712,13 @@
   <string name="update_install_permission">Android の設定でこのアプリによる更新のインストールを許可し、再度「インストール」をタップしてください。</string>
   <string name="update_checking_download">ダウンロードした APK を確認中…</string>
   <string name="update_check_failed">更新を確認できませんでした。接続を確認するか、後でもう一度お試しください。</string>
+  <string name="update_auto_install">自動でダウンロードしてインストール</string>
+  <string name="update_auto_install_summary">従量制ではないネットワークでダウンロードし、mpvRx を使用していないときにインストールします。Android が承認を求める場合があります。</string>
+  <string name="update_download_and_install">ダウンロードしてインストール</string>
+  <string name="update_background_downloading">アプリの更新をダウンロード中…</string>
+  <string name="update_installing">更新をインストール中…</string>
+  <string name="update_approval_required">インストールを完了するには Android での承認が必要です。「インストールを確認」をタップしてください。</string>
+  <string name="update_confirm_install">インストールを確認</string>
+  <string name="update_install_complete">更新をインストールしました。タップして mpvRx を開きます。</string>
+  <string name="update_download_waiting">ネットワークを待機中、またはダウンロードを再試行中…</string>
 </resources>

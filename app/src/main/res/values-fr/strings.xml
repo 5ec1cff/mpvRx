@@ -2727,4 +2727,13 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="update_install_permission">Autorisez cette application à installer des mises à jour dans les paramètres Android, puis appuyez à nouveau sur Installer.</string>
   <string name="update_checking_download">Vérification de l’APK téléchargé…</string>
   <string name="update_check_failed">Impossible de rechercher des mises à jour. Vérifiez la connexion ou réessayez plus tard.</string>
+  <string name="update_auto_install">Télécharger et installer automatiquement</string>
+  <string name="update_auto_install_summary">Télécharger sur les réseaux sans limitation de données et installer lorsque mpvRx est inactif. Android peut demander votre accord.</string>
+  <string name="update_download_and_install">Télécharger et installer</string>
+  <string name="update_background_downloading">Téléchargement de la mise à jour…</string>
+  <string name="update_installing">Installation de la mise à jour…</string>
+  <string name="update_approval_required">Android demande votre accord pour terminer l’installation. Appuyez sur Confirmer l’installation.</string>
+  <string name="update_confirm_install">Confirmer l’installation</string>
+  <string name="update_install_complete">Mise à jour installée. Appuyez pour ouvrir mpvRx.</string>
+  <string name="update_download_waiting">En attente du réseau ou nouvelle tentative de téléchargement…</string>
 </resources>

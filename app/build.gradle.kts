@@ -331,6 +331,7 @@ dependencies {
   implementation(libs.bundles.compose.navigation3)
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.work.runtime)
   implementation(libs.androidx.core.splashscreen)
   implementation(libs.kmp.vibrate)
   implementation(libs.androidx.compose.constraintlayout)
