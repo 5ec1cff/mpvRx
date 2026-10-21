@@ -649,10 +649,11 @@ class ThumbnailRepository(
         app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalPath))
 
     if (!isAudio && generator == ThumbnailGenerator.MediaStore) {
-      MediaStoreVideoThumbnailLoader.load(context, video, canonicalPath, dimension)?.let {
-        return scaleBitmap(it, widthPx, heightPx)
+      // A missing Android thumbnail is a placeholder, not permission to start native extraction.
+      // Keep local MediaStore requests independent of files that stall the native decoder.
+      return MediaStoreVideoThumbnailLoader.load(context, video, canonicalPath, dimension)?.let {
+        scaleBitmap(it, widthPx, heightPx)
       }
-      currentCoroutineContext().ensureActive()
     }
 
     if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {

@@ -104,7 +104,7 @@
   <string name="pref_thumbnail_generator_native">Native</string>
   <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
   <string name="pref_thumbnail_generator_native_summary">Use Native generation with embedded artwork and frame selection</string>
-  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails for local videos. Android chooses the frame; Native handles unsupported files and network videos.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails for local videos; show a placeholder when unavailable. Android chooses the frame. Network previews use Native.</string>
   <string name="pref_appearance_thumbnail_generation_title">Thumbnail generation strategy</string>
   <string name="pref_appearance_thumbnail_generation_summary">Choose how thumbnails are generated, including embedded artwork or a specific frame position</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Change thumbnail strategy?</string>

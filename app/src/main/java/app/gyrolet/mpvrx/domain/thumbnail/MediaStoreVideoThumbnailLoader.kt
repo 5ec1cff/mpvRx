@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 
-/** Android owns frame selection and rotation; null lets the caller use native extraction. */
+/** Android owns frame selection and rotation; null leaves the caller's placeholder visible. */
 @Suppress("DEPRECATION")
 internal object MediaStoreVideoThumbnailLoader {
   private val requestSequence = AtomicLong()
@@ -85,7 +85,7 @@ internal object MediaStoreVideoThumbnailLoader {
         } catch (cancellation: OperationCanceledException) {
           continuation.cancel(cancellation)
         } catch (_: Exception) {
-          // Missing index entries, revoked permissions and unsupported codecs use native fallback.
+          // Missing index entries, revoked permissions and unsupported codecs leave a placeholder.
           continuation.resume(null)
         }
       }

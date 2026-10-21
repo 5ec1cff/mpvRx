@@ -6726,8 +6726,9 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    * PlayerActivity handles orientation|screenSize|screenLayout itself, so the late assignment does
    * not recreate the Activity; it relayouts the window mid-transition.
    *
-   * Media library launches carry width/height/rotation in the intent, so this is a pure lookup.
-   * Anything else falls back to MediaMetadataRetriever for the missing fields.
+   * Use only geometry already supplied by the launch intent. Missing metadata must not delay
+   * playback: MediaMetadataRetriever can stall on the same files as thumbnail extraction. The
+   * normal mpv video-parameter observer applies the orientation once the source geometry arrives.
    */
   private fun applyInitialVideoOrientation(sourceIntent: Intent) {
     if (isTelevision) {
@@ -6736,46 +6737,10 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     }
     if (playerPreferences.orientation.get() != PlayerOrientation.Video || isKnownAudioLaunch(sourceIntent)) return
 
-    var width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
-    var height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-    var rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0)
-
-    // Only invoke expensive MediaMetadataRetriever synchronously if the intent carried no geometry.
-    if (width <= 0 || height <= 0 || rotation == 0) {
-      extractUriFromIntent(sourceIntent)
-        ?.takeIf { uri -> uri.scheme.equals("content", true) || uri.scheme.equals("file", true) }
-        ?.let { uri ->
-          runCatching {
-            val retriever = android.media.MediaMetadataRetriever()
-            try {
-              retriever.setDataSource(this, uri)
-              if (width <= 0) {
-                width =
-                  retriever
-                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                    ?.toIntOrNull()
-                    ?: 0
-              }
-              if (height <= 0) {
-                height =
-                  retriever
-                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                    ?.toIntOrNull()
-                    ?: 0
-              }
-              if (rotation == 0) {
-                rotation =
-                  retriever
-                    .extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
-                    ?.toIntOrNull()
-                    ?: 0
-              }
-            } finally {
-              retriever.release()
-            }
-          }
-        }
-    }
+    val width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
+    val height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
+    // Zero is a valid container rotation, not a reason to probe the file again.
+    val rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0)
     val initialOrientation = PlayerOrientationPolicy.forSourceGeometry(width, height, rotation) ?: return
     if (requestedOrientation != initialOrientation) requestedOrientation = initialOrientation
   }
