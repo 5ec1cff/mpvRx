@@ -1102,7 +1102,7 @@ class MediaInfoActivity : AppCompatActivity() {
                   )
                   Surface(
                     shape = itemShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = mediaInfoDetailContainerColor(),
                   ) {
                     Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                       PropertyRow(key, value)
@@ -1305,7 +1305,7 @@ class MediaInfoActivity : AppCompatActivity() {
     Surface(
       modifier = modifier.clip(shape).clickable { requestValueDetail(label, value) },
       shape = shape,
-      color = MaterialTheme.colorScheme.surfaceContainerHigh,
+      color = mediaInfoDetailContainerColor(),
     ) {
       Column(
         modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -1455,7 +1455,7 @@ class MediaInfoActivity : AppCompatActivity() {
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
                     .clip(chapterShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .background(mediaInfoDetailContainerColor())
                     .clickable {
                       scope.launch {
                         SafeClipboard.copyPlainText(context, "Chapter timestamp", timestamp)
@@ -1670,7 +1670,7 @@ class MediaInfoActivity : AppCompatActivity() {
                   )
                   Surface(
                     shape = shape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = mediaInfoDetailContainerColor(),
                   ) {
                     Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                       PropertyRow("#${index + 1}", name)

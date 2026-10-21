@@ -90,6 +90,7 @@ import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity
+import app.gyrolet.mpvrx.ui.mediainfo.mediaInfoDetailContainerColor
 import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -951,7 +952,7 @@ private fun SelectionInfoProperties(
         Surface(
           onClick = { onValue(label, value) },
           shape = rememberConnectedShape(index, rows.size, ConnectedLayout.Vertical),
-          color = MaterialTheme.colorScheme.surfaceContainerHigh,
+          color = mediaInfoDetailContainerColor(),
           modifier = Modifier.fillMaxWidth(),
         ) {
           if (stacked) {
