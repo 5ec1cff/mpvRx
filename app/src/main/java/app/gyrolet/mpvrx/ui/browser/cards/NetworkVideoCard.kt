@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -159,15 +158,11 @@ fun NetworkVideoCard(
   val displayName = if (showExtensionField) file.name else file.name.substringBeforeLast('.', file.name)
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
   val selectionColor = animatedSelectionColor(isSelected)
-  val gridFooterHeight = with(LocalDensity.current) {
-    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 + MaterialTheme.typography.labelSmall.lineHeight.toDp() * 2 + 64.dp
-  }
 
   Card(
     modifier =
       modifier
         .fillMaxWidth()
-        .then(if (isGridMode) Modifier.mediaGridTileHeight(16f / 10f, gridFooterHeight) else Modifier)
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }
@@ -179,7 +174,8 @@ fun NetworkVideoCard(
     shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
-    Box(modifier = if (isGridMode) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
+    // Measure visible content so short titles and fewer chips leave no reserved footer.
+    Box(modifier = Modifier.fillMaxWidth()) {
       Box(
         modifier = Modifier.matchParentSize().clip(cardShape).background(selectionColor),
       )

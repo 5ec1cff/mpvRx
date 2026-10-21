@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,15 +67,11 @@ fun NetworkFolderCard(
   val maxLines = if (unlimitedNameLines) Int.MAX_VALUE else 2
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
   val selectionColor = animatedSelectionColor(isSelected)
-  val gridFooterHeight = with(LocalDensity.current) {
-    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 + 32.dp
-  }
 
   Card(
     modifier =
       modifier
         .fillMaxWidth()
-        .then(if (isGridMode) Modifier.mediaGridTileHeight(20f / 17f, gridFooterHeight) else Modifier)
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }
@@ -89,7 +83,8 @@ fun NetworkFolderCard(
     shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
-    Box(modifier = if (isGridMode) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
+    // Size the tile from its thumbnail and title rather than a fixed footer.
+    Box(modifier = Modifier.fillMaxWidth()) {
       Box(
         modifier = Modifier.matchParentSize().clip(cardShape).background(selectionColor),
       )

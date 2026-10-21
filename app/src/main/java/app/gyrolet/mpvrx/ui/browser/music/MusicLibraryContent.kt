@@ -152,7 +152,6 @@ import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
-import app.gyrolet.mpvrx.ui.browser.cards.mediaGridTileHeight
 import app.gyrolet.mpvrx.ui.browser.cards.rememberMediaSelectionShape
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
@@ -1607,7 +1606,6 @@ private fun SongGridCard(
   Card(
     modifier = modifier
       .fillMaxWidth()
-      .mediaGridTileHeight(1f, 80.dp)
       .clip(selectedShape)
       .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
       .tvContextMenu(onLongClick)
@@ -1826,7 +1824,6 @@ private fun AlbumGridCard(
   Card(
     modifier = modifier
       .fillMaxWidth()
-      .mediaGridTileHeight(1f, 80.dp)
       .clip(selectedShape)
       .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
       .tvContextMenu(onLongClick)
@@ -2071,7 +2068,6 @@ private fun ArtistGridCard(
   Card(
     modifier = modifier
       .fillMaxWidth()
-      .mediaGridTileHeight(1f, 65.dp)
       .clip(selectedShape)
       .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
       .tvContextMenu(onLongClick)
@@ -2393,7 +2389,6 @@ private fun MusicPlaylistCard(
     Card(
       modifier = modifier
         .fillMaxWidth()
-        .mediaGridTileHeight(1f, 60.dp)
         .clip(selectedShape)
         .tvFocusHighlight(selectedShape, focusedScale = 1.03f)
         .tvContextMenu(onLongClick)
