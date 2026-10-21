@@ -2,6 +2,70 @@
 
 These notes are written in plain English and focus on what changed for real use.
 
+## 3.0.1 — Smoother Browsing, More Reliable Playback
+
+**Release date:** October 21, 2026
+
+This update builds on 3.0.0 with smoother media browsing, more reliable local and network playback, clearer media information, and a steadier update download sheet.
+
+### Browsing and Performance
+
+- **Smoother scrolling:** Thumbnail reads, decoding, and generation wait for scrolling to settle. Cached artwork remains visible, failed thumbnail work is throttled, and background work adapts to devices with smaller memory budgets.
+- **Less background overhead:** Reuse decoded album artwork, reduce repeated media and audiobook-folder checks, and avoid repeatedly decoding watch-statistics data during playback.
+- **No oversized grid gaps:** Media tiles size themselves around their visible thumbnail, title, and metadata. The fix covers Library, Folders, Tree, search, network browsing, playlists, and music grids, while allowing long titles and larger text to wrap.
+- **Better screen clearance:** Lists, playlists, recents, floating action buttons, and the mini player account more consistently for navigation bars, selection bars, and system insets.
+- **More reliable metadata fields:** FPS, codecs, duration, subtitles, and resolution options populate the active view when enabled. FPS can appear without Resolution, and supported fields are available in playlists, recents, and Tree.
+- **More consistent sorting:** Correct playlist sort order, limit local music sorting to supported fields, and align audio-folder controls with their card preferences.
+
+### Thumbnails and Artwork
+
+- **Auto, MediaStore, or Native:** Choose the thumbnail generator in Appearance. Auto is the default for installations without a saved choice: it tries Android MediaStore first and uses native artwork or frame extraction when needed. Explicit MediaStore and Native choices remain independent.
+- **Broader Auto coverage:** Try system thumbnails for local media, including hidden folders, .nomedia folders, and granted document URIs. Android 10 and newer use the current system thumbnail API, with the legacy API on Android 8–9.
+- **One artwork policy:** Local audio and video cards, folder previews, mini-player artwork, and audio artwork honor the selected generator. Switching generators refreshes the relevant previews and caches.
+- **Faster playback launch:** Opening local media no longer waits for synchronous thumbnail or artwork extraction.
+- **Thumbnail information:** MediaInfo includes thumbnail previews and cache details. Network images also respect the network-thumbnail visibility setting.
+
+### Playback and Streaming
+
+- **Correct portrait startup:** Rotation-tagged videos use available source geometry and rotation metadata without briefly forcing a landscape window. Missing rotation stays unresolved until reliable metadata arrives, and delayed events from a previous file cannot rotate the current video.
+- **Independent autoplay:** Video and audio autoplay work even when the next/previous buttons are hidden. Playback queues preserve browser order and the existing repeat behavior.
+- **Accurate buffering feedback:** Show the buffering indicator for confirmed network cache waits, including stalls after seeking and with hidden controls. Local playback, pauses, file loading, and decoder restarts no longer produce false buffering indicators.
+- **Missing local durations:** Only local audio and video with missing duration metadata receive the additional duration probe.
+- **Updated intro skipping:** TheIntroDB integration uses its v4 media API.
+
+### Network Browsing
+
+- **SMB loading recovery:** Bound connection and directory-listing waits, detect broken sessions, and handle reconnection and cancellation more reliably to address folders that otherwise keep loading indefinitely.
+- **More responsive SMB connections:** Improve idle-session checks and socket handling, and keep concurrent directory requests isolated.
+- **Better seeking on slow servers:** Prefetch and reuse byte-range chunks so media with distant audio and video regions does not repeatedly reopen the same slow source.
+- **Connection-row polish:** Keep the auto-connect checkbox fully visible within its touch target.
+
+### Music and Media Details
+
+- **Correct lyrics per song:** Tighten track matching and prevent lyrics from a previous song appearing on the next one.
+- **Glass playlist picker:** The music player's Add to playlist sheet follows the Liquid Glass setting and shares the player's inset, keyboard, and dismissal handling.
+- **Selection details:** Inspect multiple selected items in a MediaInfo-style sheet, including total size and duration, resolution and codec summaries, item and folder details, and copy/share actions.
+- **Consistent information cards:** Single-media and selection details share connected quick-stat styling, with readable row shapes in AMOLED themes.
+- **Clearer audio information:** Keep a plain audio-format indicator while removing artwork quality badges.
+- **Better delete confirmations:** Keep Cancel aligned with Delete and let the size segment fit its content without unnecessarily stretching the dialog.
+
+### Appearance and Navigation
+
+- **Cleaner background transitions:** Wallpaper and animated backgrounds use a sequential fade-through transition to avoid overlapping text and ghosted content.
+- **Correct glass backdrop:** Liquid Glass navigation includes the composed theme, wallpaper, or animated background in its captured backdrop.
+- **Background animation settings:** Animation preferences have a dedicated screen with more consistent background-type handling.
+- **Connected settings:** About and Folders use the shared expressive connected shapes.
+- **Localization:** Updated settings labels and new information and download-sheet messages across supported languages.
+
+### Updates and Downloads
+
+- **Experimental channel:** Add signed CI builds alongside Stable and Nightly (Preview), with compact channel labels.
+- **Reliable channel checks:** Recognize a changed source commit even when a CI build number is reused, and preserve the other channel's published feed during deployment.
+- **Correct package selection:** Keep the installed Standard, FongMi, or Non-Vulkan distribution and the appropriate architecture or Universal package. The download sheet shows the selected package and its size.
+- **Safer downloads:** Validate published APK sizes and available SHA-256 checksums, retain interrupted downloads for resuming, and recheck cached APKs before installation.
+- **Persistent download sheet:** Keep one sheet through update checks, progress, failures, and installation readiness. Prevent duplicate downloads and accidental dismissal during a download, and provide inline retry and installer-permission handling.
+- **Latest-build updates:** Stable, Nightly, and Experimental continue to offer the latest eligible build for their channel.
+
 ## 3.0.0 — Expressive
 
 **Release date:** October 18, 2026

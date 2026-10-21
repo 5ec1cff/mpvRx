@@ -2,12 +2,18 @@ name: Make release
 
 on:
   push:
+    branches:
+      - master
+    paths:
+      - app/build.gradle.kts
+      - CHANGELOG.md
+      - .github/workflows/release.yml
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: Tag to release (for example v2.1.0)
+        description: Tag to release (for example v3.0.1)
         required: true
         type: string
 
@@ -21,21 +27,38 @@ concurrency:
 jobs:
   prepare:
     name: Resolve release tag
+    if: >-
+      github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') ||
+      startsWith(github.event.head_commit.message, 'chore(release): v')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       version_tag: ${{ steps.tag.outputs.version_tag }}
+      source_sha: ${{ steps.tag.outputs.source_sha }}
 
     steps:
+      - name: Checkout release source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - name: Resolve and validate release tag
         id: tag
         shell: bash
         env:
           INPUT_TAG: ${{ inputs.tag_name }}
+          PUSH_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             version_tag="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            subject="${PUSH_MESSAGE%%$'\n'*}"
+            if [[ ! "$subject" =~ ^chore\(release\):\ (v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+              echo "Release pushes must use the subject: chore(release): vX.Y.Z"
+              exit 1
+            fi
+            version_tag="${BASH_REMATCH[1]}"
           else
             version_tag="$INPUT_TAG"
           fi
@@ -44,7 +67,34 @@ jobs:
             echo "Invalid stable release tag: $version_tag"
             exit 1
           fi
+          source_sha="$GITHUB_SHA"
+          if git rev-parse --verify --quiet "refs/tags/${version_tag}^{commit}" > /dev/null; then
+            source_sha="$(git rev-parse "refs/tags/${version_tag}^{commit}")"
+            if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" != refs/tags/* && "$source_sha" != "$GITHUB_SHA" ]]; then
+              echo "The release tag already points to another commit; refusing to replace it."
+              exit 1
+            fi
+          fi
+
+          # Validate the exact source that all build and publish jobs will check out.
+          git show "${source_sha}:app/build.gradle.kts" > release-build.gradle.kts
+          git show "${source_sha}:CHANGELOG.md" > release-changelog.md
+          VERSION_TAG="$version_tag" python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ['VERSION_TAG'].removeprefix('v')
+          build = Path('release-build.gradle.kts').read_text(encoding='utf-8')
+          actual = re.search(r'\bversionName\s*=\s*"([^"]+)"', build)
+          if actual is None or actual.group(1) != version:
+              raise SystemExit('Release tag does not match the app version')
+          changelog = Path('release-changelog.md').read_text(encoding='utf-8')
+          if not re.search(rf'^##\s+{re.escape(version)}(?:\s|$)', changelog, re.MULTILINE):
+              raise SystemExit('Release version is missing from CHANGELOG.md')
+          PY
           echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.distribution.name }} release ${{ matrix.distribution.package == 'aab' && 'bundle' || 'APKs' }}
@@ -101,6 +151,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
           fetch-depth: 0
 
       - name: Set up JDK 17
@@ -245,6 +296,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.source_sha }}
 
       - name: Download release assets
         uses: actions/download-artifact@v7
@@ -281,8 +334,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import os
+          import re
           from pathlib import Path
 
+          version = os.environ['VERSION_TAG'].removeprefix('v')
           changelog = Path('CHANGELOG.md').read_text(encoding='utf-8').splitlines()
           section = []
           in_latest = False
@@ -290,13 +346,13 @@ jobs:
               if line.startswith('## '):
                   if in_latest:
                       break
-                  in_latest = True
+                  in_latest = re.match(rf'^##\s+{re.escape(version)}(?:\s|$)', line) is not None
               if in_latest:
                   section.append(line)
 
           latest = '\n'.join(section).strip()
           if not latest:
-              raise SystemExit('Could not find latest changelog section')
+              raise SystemExit(f'Could not find changelog section for {version}')
           variant_guide = """
           ### APK variants
 
@@ -319,9 +375,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.version_tag }}
+          target_commitish: ${{ needs.prepare.outputs.source_sha }}
           name: mpvRx ${{ needs.prepare.outputs.version_tag }}
           body_path: release-notes.md
-          generate_release_notes: true
+          generate_release_notes: false
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
