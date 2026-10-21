@@ -2685,4 +2685,10 @@
   <string name="thumbnail_quality_note">Попередній перегляд показує фактичне кешоване зображення для поточних налаштувань. Плитки оглядача можуть кешувати зображення, менше за задане обмеження розміру. Відкриття цієї вкладки не створює нового кадру.</string>
   <string name="thumbnail_inspection_failed">Не вдалося прочитати відомості про мініатюру. Спробуйте оновити.</string>
   <string name="thumbnail_generation_unavailable">Вибраний генератор не повернув мініатюру для цього файлу.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Виберіть Авто, Native або MediaStore для локальних мініатюр та обкладинок пісень</string>
+  <string name="pref_thumbnail_generator_auto">Авто (за замовчуванням)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Спочатку використовується MediaStore; якщо мініатюра або обкладинка пісні недоступна, використовується Native, зокрема у прихованих папках. Зміна режиму очищає кеш мініатюр.</string>
+  <string name="thumbnail_strategy_auto">Спочатку MediaStore, потім Native у разі невдачі</string>
 </resources>

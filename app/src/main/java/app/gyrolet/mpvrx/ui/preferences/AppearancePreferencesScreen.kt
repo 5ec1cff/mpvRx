@@ -667,7 +667,7 @@ object AppearancePreferencesScreen : Screen {
 
           item {
             ExpressivePreferenceGroup {
-              val showFramePosition = thumbnailGenerator == ThumbnailGenerator.Native && thumbnailMode == ThumbnailMode.FrameAtPosition
+              val showFramePosition = thumbnailGenerator != ThumbnailGenerator.MediaStore && thumbnailMode == ThumbnailMode.FrameAtPosition
               val itemCount = if (showFramePosition) 8 else 7
               val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
               SwitchPreference(
@@ -719,8 +719,11 @@ object AppearancePreferencesScreen : Screen {
                   valueToText = {
                     AnnotatedString(
                       context.getString(
-                        if (it == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native
-                        else R.string.pref_thumbnail_generator_mediastore,
+                        when (it) {
+                          ThumbnailGenerator.Auto -> R.string.pref_thumbnail_generator_auto
+                          ThumbnailGenerator.Native -> R.string.pref_thumbnail_generator_native
+                          ThumbnailGenerator.MediaStore -> R.string.pref_thumbnail_generator_mediastore
+                        },
                       ),
                     )
                   },
@@ -728,8 +731,11 @@ object AppearancePreferencesScreen : Screen {
                   summary = {
                     Text(
                       text = stringResource(
-                        if (thumbnailGenerator == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native_summary
-                        else R.string.pref_thumbnail_generator_mediastore_summary,
+                        when (thumbnailGenerator) {
+                          ThumbnailGenerator.Auto -> R.string.pref_thumbnail_generator_auto_summary
+                          ThumbnailGenerator.Native -> R.string.pref_thumbnail_generator_native_summary
+                          ThumbnailGenerator.MediaStore -> R.string.pref_thumbnail_generator_mediastore_summary
+                        },
                       ),
                       color = MaterialTheme.colorScheme.outline,
                     )
@@ -765,7 +771,7 @@ object AppearancePreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
-                  enabled = showVideoThumbnails && thumbnailGenerator == ThumbnailGenerator.Native,
+                  enabled = showVideoThumbnails && thumbnailGenerator != ThumbnailGenerator.MediaStore,
                 )
               }
 

@@ -575,11 +575,15 @@ class ThumbnailRepository(
       thumbnailGeneratorCacheKey(video, generator)
 
   private fun thumbnailGeneratorCacheKey(video: Video, generator: ThumbnailGenerator): String =
-    if (generator == ThumbnailGenerator.MediaStore && !isNetworkUrl(video.path)) {
-      "|generator:MediaStore_v2"
-    } else {
-      // Native extraction never reuses Android's audio/video thumbnails.
+    if (isNetworkUrl(video.path)) {
       ""
+    } else {
+      // Auto may cache native fallback artwork; keep it separate from strict MediaStore results.
+      when (generator) {
+        ThumbnailGenerator.Auto -> "|generator:Auto_v1"
+        ThumbnailGenerator.Native -> ""
+        ThumbnailGenerator.MediaStore -> "|generator:MediaStore_v2"
+      }
     }
 
   private fun canonicalLocalPath(video: Video): String {
@@ -732,12 +736,15 @@ class ThumbnailRepository(
       video.isAudio || video.mimeType.startsWith("audio/", ignoreCase = true) ||
         app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalPath))
 
-    if (generator == ThumbnailGenerator.MediaStore) {
-      // A missing Android thumbnail is a placeholder, not permission to start native extraction.
-      // Keep local MediaStore requests independent of files that stall the native decoder.
-      return MediaStoreThumbnailLoader.load(context, video, canonicalPath, dimension, isAudio)?.let {
-        scaleBitmap(it, widthPx, heightPx)
+    if (generator != ThumbnailGenerator.Native) {
+      // Auto asks MediaStore first for every local source, including hidden/.nomedia folders
+      // and granted document URIs. An unindexed file follows the same native fallback below.
+      MediaStoreThumbnailLoader.load(context, video, canonicalPath, dimension, isAudio)?.let {
+        return scaleBitmap(it, widthPx, heightPx)
       }
+      // Explicit MediaStore mode stays Android-only; only Auto falls back to native extraction.
+      if (generator == ThumbnailGenerator.MediaStore) return null
+      currentCoroutineContext().ensureActive()
     }
 
     if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {

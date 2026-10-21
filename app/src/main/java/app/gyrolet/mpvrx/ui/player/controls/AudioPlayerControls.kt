@@ -286,7 +286,7 @@ private object AudioPresentationMetadataCache {
       synchronized(cache) { cache.get(key) }?.let { return@withContext it }
 
       // An old native retriever may still be unwinding; Android artwork must not wait for it.
-      if (isLocalArtworkSource(pathOrUri) && generator == app.gyrolet.mpvrx.preferences.ThumbnailGenerator.MediaStore) {
+      if (isLocalArtworkSource(pathOrUri) && generator != app.gyrolet.mpvrx.preferences.ThumbnailGenerator.Native) {
         return@withContext AudioPresentationMetadata(artwork = repository.getArtwork(pathOrUri), artist = null)
       }
       loadMutex.withLock {

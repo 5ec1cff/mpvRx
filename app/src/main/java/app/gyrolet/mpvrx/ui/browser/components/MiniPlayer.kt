@@ -897,7 +897,7 @@ private fun rememberMiniPlayerArtwork(
       return@LaunchedEffect
     }
     artwork = withContext(Dispatchers.IO) {
-      if (isLocalArtworkSource(pathOrUri) && generator == app.gyrolet.mpvrx.preferences.ThumbnailGenerator.MediaStore) {
+      if (isLocalArtworkSource(pathOrUri) && generator != app.gyrolet.mpvrx.preferences.ThumbnailGenerator.Native) {
         return@withContext MiniPlayerArtwork(bitmap = repository.getArtwork(pathOrUri))
       }
       runCatching {

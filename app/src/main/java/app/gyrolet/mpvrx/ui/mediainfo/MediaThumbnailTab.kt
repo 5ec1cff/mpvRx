@@ -110,9 +110,18 @@ internal fun MediaThumbnailTab(video: Video, onValue: (String, String) -> Unit) 
   val rows = buildList<Pair<String, String>> {
     if (info != null) {
       add(stringResource(R.string.thumbnail_info_status) to status)
-      add(stringResource(R.string.thumbnail_info_generator) to info.generator.name)
+      add(
+        stringResource(R.string.thumbnail_info_generator) to stringResource(
+          when (info.generator) {
+            ThumbnailGenerator.Auto -> R.string.pref_thumbnail_generator_auto
+            ThumbnailGenerator.Native -> R.string.pref_thumbnail_generator_native
+            ThumbnailGenerator.MediaStore -> R.string.pref_thumbnail_generator_mediastore
+          },
+        ),
+      )
       add(
         stringResource(R.string.thumbnail_info_strategy) to when {
+          info.generator == ThumbnailGenerator.Auto -> stringResource(R.string.thumbnail_strategy_auto)
           info.generator == ThumbnailGenerator.MediaStore -> stringResource(R.string.thumbnail_strategy_android)
           video.isAudio -> stringResource(R.string.thumbnail_strategy_artwork)
           else -> info.mode.displayName
@@ -132,7 +141,7 @@ internal fun MediaThumbnailTab(video: Video, onValue: (String, String) -> Unit) 
       if (info.preview != null) {
         add(stringResource(R.string.thumbnail_info_preview_memory) to VideoScanUtils.formatFileSize(info.preview.byteCount.toLong()))
       }
-      if (info.generator == ThumbnailGenerator.Native && !video.isAudio && info.mode == ThumbnailMode.FrameAtPosition) {
+      if (info.generator != ThumbnailGenerator.MediaStore && !video.isAudio && info.mode == ThumbnailMode.FrameAtPosition) {
         add(stringResource(R.string.thumbnail_info_frame) to stringResource(R.string.thumbnail_percent_value, info.framePositionPercent))
       }
       if (info.filePath != null) {

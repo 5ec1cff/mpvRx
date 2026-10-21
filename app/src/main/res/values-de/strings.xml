@@ -2715,4 +2715,10 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="thumbnail_quality_note">Die Vorschau zeigt das tatsächlich zwischengespeicherte Bild für die aktuellen Einstellungen. Die Kacheln im Medienbrowser können ein kleineres Bild als die eingestellte Größenbegrenzung zwischenspeichern. Das Öffnen dieses Tabs erzeugt kein neues Einzelbild.</string>
   <string name="thumbnail_inspection_failed">Die Vorschaubildinformationen konnten nicht gelesen werden. Bitte aktualisieren.</string>
   <string name="thumbnail_generation_unavailable">Die ausgewählte Generierungsmethode hat für diese Datei kein Vorschaubild geliefert.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Auto, Native oder MediaStore für lokale Vorschaubilder und Songcover wählen</string>
+  <string name="pref_thumbnail_generator_auto">Automatisch (Standard)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Zuerst MediaStore versuchen; wenn ein Vorschaubild oder Songcover fehlt, Native verwenden, auch in versteckten Ordnern. Ein Moduswechsel leert den Vorschaubild-Cache.</string>
+  <string name="thumbnail_strategy_auto">Zuerst MediaStore, dann Native als Ausweichlösung</string>
 </resources>

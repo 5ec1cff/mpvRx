@@ -2715,4 +2715,10 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="thumbnail_quality_note">A prévia mostra a imagem realmente armazenada em cache com as configurações atuais. Os blocos do navegador de mídia podem armazenar uma imagem menor que o limite de tamanho configurado. Abrir esta aba não gera um novo quadro.</string>
   <string name="thumbnail_inspection_failed">Não foi possível ler as informações da miniatura. Tente atualizar.</string>
   <string name="thumbnail_generation_unavailable">O gerador selecionado não retornou uma miniatura para este arquivo.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Escolha Auto, Native ou MediaStore para miniaturas e capas locais</string>
+  <string name="pref_thumbnail_generator_auto">Automático (padrão)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Tenta o MediaStore primeiro; usa Native se a miniatura ou capa da música estiver indisponível, inclusive em pastas ocultas. Mudar de modo limpa as miniaturas em cache.</string>
+  <string name="thumbnail_strategy_auto">Primeiro MediaStore, depois Native como alternativa</string>
 </resources>

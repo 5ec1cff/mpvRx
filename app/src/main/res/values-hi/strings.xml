@@ -2619,4 +2619,10 @@
   <string name="thumbnail_quality_note">पूर्वावलोकन मौजूदा सेटिंग के अनुसार वास्तव में कैश की गई छवि दिखाता है। मीडिया ब्राउज़र की टाइलें तय की गई आकार सीमा से छोटी छवि कैश कर सकती हैं। यह टैब खोलने से नया फ़्रेम नहीं बनता।</string>
   <string name="thumbnail_inspection_failed">थंबनेल की जानकारी नहीं पढ़ी जा सकी। रीफ़्रेश करके देखें।</string>
   <string name="thumbnail_generation_unavailable">चुने गए जनरेटर से इस फ़ाइल के लिए थंबनेल नहीं मिला।</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">स्थानीय थंबनेल और गानों के कवर के लिए ऑटो, Native या MediaStore चुनें</string>
+  <string name="pref_thumbnail_generator_auto">ऑटो (डिफ़ॉल्ट)</string>
+  <string name="pref_thumbnail_generator_auto_summary">पहले MediaStore आज़माएँ; थंबनेल या गाने का कवर उपलब्ध न होने पर Native का उपयोग करें, छिपे फ़ोल्डरों में भी। मोड बदलने से कैश किए गए थंबनेल साफ़ हो जाते हैं।</string>
+  <string name="thumbnail_strategy_auto">पहले MediaStore, फिर विकल्प के रूप में Native</string>
 </resources>

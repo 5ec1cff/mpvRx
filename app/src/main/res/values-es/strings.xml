@@ -2715,4 +2715,10 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="thumbnail_quality_note">La vista previa muestra la imagen realmente almacenada en caché con la configuración actual. Los mosaicos del explorador pueden almacenar una imagen más pequeña que el límite de tamaño configurado. Abrir esta pestaña no genera un fotograma nuevo.</string>
   <string name="thumbnail_inspection_failed">No se pudo leer la información de la miniatura. Prueba a actualizarla.</string>
   <string name="thumbnail_generation_unavailable">El generador seleccionado no devolvió una miniatura para este archivo.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Elige Auto, Native o MediaStore para miniaturas y portadas locales</string>
+  <string name="pref_thumbnail_generator_auto">Automático (predeterminado)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Primero intenta MediaStore; usa Native si no hay miniatura o portada de la canción, también en carpetas ocultas. Cambiar de modo borra las miniaturas en caché.</string>
+  <string name="thumbnail_strategy_auto">Primero MediaStore y después Native como alternativa</string>
 </resources>

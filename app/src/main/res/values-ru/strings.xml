@@ -2745,4 +2745,10 @@
   <string name="thumbnail_quality_note">Предпросмотр показывает фактическое кэшированное изображение для текущих настроек. Плитки обозревателя могут кэшировать изображение меньше заданного ограничения размера. При открытии этой вкладки новый кадр не создаётся.</string>
   <string name="thumbnail_inspection_failed">Не удалось прочитать сведения о миниатюре. Попробуйте обновить.</string>
   <string name="thumbnail_generation_unavailable">Выбранный генератор не вернул миниатюру для этого файла.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Выберите Авто, Native или MediaStore для локальных миниатюр и обложек песен</string>
+  <string name="pref_thumbnail_generator_auto">Авто (по умолчанию)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Сначала используется MediaStore; если миниатюра или обложка песни недоступна, используется Native, в том числе в скрытых папках. Смена режима очищает кэш миниатюр.</string>
+  <string name="thumbnail_strategy_auto">Сначала MediaStore, затем Native при неудаче</string>
 </resources>

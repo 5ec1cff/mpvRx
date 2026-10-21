@@ -2715,4 +2715,10 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="thumbnail_quality_note">L’aperçu affiche l’image réellement mise en cache avec les réglages actuels. Les vignettes de l’explorateur peuvent mettre en cache une image plus petite que la taille maximale configurée. L’ouverture de cet onglet ne génère pas de nouvelle image vidéo.</string>
   <string name="thumbnail_inspection_failed">Impossible de lire les informations de la miniature. Essayez de les actualiser.</string>
   <string name="thumbnail_generation_unavailable">Le générateur sélectionné n’a renvoyé aucune miniature pour ce fichier.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Choisir Auto, Native ou MediaStore pour les miniatures et pochettes locales</string>
+  <string name="pref_thumbnail_generator_auto">Auto (par défaut)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Essayer MediaStore en premier, puis utiliser Native si la miniature ou la pochette est indisponible, y compris dans les dossiers masqués. Changer de mode efface les miniatures en cache.</string>
+  <string name="thumbnail_strategy_auto">MediaStore en premier, puis Native en secours</string>
 </resources>

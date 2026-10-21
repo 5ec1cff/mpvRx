@@ -2700,4 +2700,10 @@
   <string name="thumbnail_quality_note">プレビューには、現在の設定で実際にキャッシュされた画像が表示されます。メディアブラウザのタイルには、設定されたサイズ上限より小さい画像がキャッシュされることがあります。このタブを開いても、新しいフレームは生成されません。</string>
   <string name="thumbnail_inspection_failed">サムネイル情報を読み取れませんでした。更新してください。</string>
   <string name="thumbnail_generation_unavailable">選択した生成方法では、このファイルのサムネイルを取得できませんでした。</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">ローカルのサムネイルと曲のカバーに自動、Native、MediaStoreのいずれかを選択</string>
+  <string name="pref_thumbnail_generator_auto">自動（デフォルト）</string>
+  <string name="pref_thumbnail_generator_auto_summary">最初にMediaStoreを試し、サムネイルや曲のカバーを取得できない場合はNativeを使用します。隠しフォルダにも適用されます。モードを切り替えるとキャッシュ済みのサムネイルが消去されます。</string>
+  <string name="thumbnail_strategy_auto">最初にMediaStore、取得できない場合はNative</string>
 </resources>

@@ -2698,4 +2698,10 @@
   <string name="thumbnail_quality_note">预览显示当前设置下实际缓存的图片。媒体浏览器中的图块可能会缓存小于所设尺寸上限的图片。打开此标签页不会生成新的帧。</string>
   <string name="thumbnail_inspection_failed">无法读取缩略图信息，请尝试刷新。</string>
   <string name="thumbnail_generation_unavailable">所选生成器未能为此文件返回缩略图。</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">为本地缩略图和歌曲封面选择自动、Native或MediaStore</string>
+  <string name="pref_thumbnail_generator_auto">自动（默认）</string>
+  <string name="pref_thumbnail_generator_auto_summary">先尝试MediaStore；若无法获取缩略图或歌曲封面，则使用Native，隐藏文件夹也适用。切换模式会清除已缓存的缩略图。</string>
+  <string name="thumbnail_strategy_auto">优先使用MediaStore，失败时回退到Native</string>
 </resources>

@@ -2773,4 +2773,10 @@
   <string name="thumbnail_quality_note">تعرض المعاينة الصورة المخزنة مؤقتًا فعليًا وفقًا للإعدادات الحالية. قد تخزن مربعات متصفح الوسائط صورة أصغر من حد الأبعاد المحدد. لا يؤدي فتح علامة التبويب هذه إلى إنشاء إطار جديد.</string>
   <string name="thumbnail_inspection_failed">تعذرت قراءة معلومات الصورة المصغرة. حاول التحديث.</string>
   <string name="thumbnail_generation_unavailable">لم تُرجع طريقة الإنشاء المحددة صورة مصغرة لهذا الملف.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">اختر تلقائي أو Native أو MediaStore للصور المصغرة وأغلفة الأغاني المحلية</string>
+  <string name="pref_thumbnail_generator_auto">تلقائي (الافتراضي)</string>
+  <string name="pref_thumbnail_generator_auto_summary">جرّب MediaStore أولاً، ثم استخدم Native إذا لم تتوفر صورة مصغرة أو غلاف أغنية، بما في ذلك المجلدات المخفية. يؤدي تبديل الوضع إلى مسح الصور المصغرة المخزنة مؤقتاً.</string>
+  <string name="thumbnail_strategy_auto">MediaStore أولاً، ثم Native عند التعذر</string>
 </resources>
