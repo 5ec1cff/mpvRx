@@ -618,7 +618,7 @@
   <string name="pref_section_general">عام</string>
   <string name="pref_playlist_mode_title">تفعيل التنقل إلى التالي/السابق</string>
   <string name="pref_playlist_mode_summary">إظهار زري التالي/السابق لجميع مقاطع الفيديو في المجلد</string>
-  <string name="pref_playlist_mode_summary_disabled">تشغيل مقاطع الفيديو منفردة (حدد عدة مقاطع لإنشاء قائمة تشغيل)</string>
+  <string name="pref_playlist_mode_summary_disabled">إخفاء أزرار التالي والسابق؛ يتم التحكم في التشغيل التلقائي بشكل منفصل</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">استخدام علامات تخطي عبر الإنترنت</string>

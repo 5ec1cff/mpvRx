@@ -809,7 +809,7 @@
   <string name="pref_section_general">General</string>
   <string name="pref_playlist_mode_title">Enable next/previous navigation</string>
   <string name="pref_playlist_mode_summary">Show next/previous buttons for all videos in folder</string>
-  <string name="pref_playlist_mode_summary_disabled">Play videos individually (select multiple for playlist)</string>
+  <string name="pref_playlist_mode_summary_disabled">Hide next/previous buttons; autoplay is controlled separately</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Use online skip markers</string>

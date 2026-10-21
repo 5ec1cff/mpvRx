@@ -620,7 +620,7 @@
   <string name="pref_section_general">常规</string>
   <string name="pref_playlist_mode_title">启用上一个/下一个导航</string>
   <string name="pref_playlist_mode_summary">为文件夹中的所有视频显示上一个/下一个按钮</string>
-  <string name="pref_playlist_mode_summary_disabled">单独播放视频（多选可创建播放列表）</string>
+  <string name="pref_playlist_mode_summary_disabled">隐藏上一个/下一个按钮；自动播放由独立设置控制</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">使用在线跳过标记</string>

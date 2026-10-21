@@ -618,7 +618,7 @@ Siguiente: NEXT</string>
   <string name="pref_section_general">General</string>
   <string name="pref_playlist_mode_title">Activar navegación siguiente/anterior</string>
   <string name="pref_playlist_mode_summary">Mostrar botones siguiente/anterior para todos los vídeos de la carpeta</string>
-  <string name="pref_playlist_mode_summary_disabled">Reproducir vídeos individualmente (selecciona varios para una lista)</string>
+  <string name="pref_playlist_mode_summary_disabled">Ocultar los botones siguiente/anterior; la reproducción automática se controla por separado</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Usar marcadores de salto en línea</string>

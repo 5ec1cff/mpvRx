@@ -824,11 +824,11 @@ class PlayerActivity :
       }
     }
 
-    // Only auto-generate playlist from folder if playlist mode is enabled and no playlist_id
+    // Autoplay and visible navigation controls independently need a sibling queue.
     if (playlist.isEmpty() &&
       playlistId == null &&
       !intent.hasExtra(AudiobookPlayback.EXTRA_BOOK_ID) &&
-      playerPreferences.playlistMode.get() &&
+      playerPreferences.shouldBuildAutomaticQueue(isKnownAudioLaunch(intent)) &&
       !hasReusableSavedPlaybackSession
     ) {
       val path = parsePathFromIntent(intent)
@@ -4550,7 +4550,7 @@ class PlayerActivity :
     val autoplay = isAudiobook || if (isAudio) playerPreferences.autoplayNextAudio.get() else playerPreferences.autoplayNextVideo.get()
     val repeatAll = repeatMode == RepeatMode.ALL
 
-    if (playlist.isNotEmpty()) {
+    if (playlist.size > 1 || PlaybackSession.queue.value.isExplicitQueue) {
       val hasNext = PlaybackSession.hasNext()
       if ((autoplay && hasNext) || repeatAll) {
         isAdvancingAtEof = true
@@ -4561,14 +4561,19 @@ class PlayerActivity :
       return
     }
 
-    if (playerPreferences.playlistMode.get() && (autoplay || repeatAll)) {
+    if (autoplay || repeatAll) {
       val path = parsePathFromIntent(intent)
       if (path != null) {
+        val requestGeneration = mediaRequestGeneration
+        val playbackGeneration = PlaybackSession.state.value.generation
         isAdvancingAtEof = true
         eofAdvanceJob =
           lifecycleScope.launch(Dispatchers.IO) {
-            generatePlaylistFromFolderInternal(path)
+            generatePlaylistFromFolderInternal(path, requestGeneration)
             withContext(Dispatchers.Main) {
+              if (!isCurrentMediaRequest(requestGeneration) ||
+                !PlaybackSession.isCurrentGeneration(playbackGeneration)
+              ) return@withContext
               val hasNext = PlaybackSession.hasNext()
               when {
                 (autoplay && hasNext) || (repeatAll && playlist.isNotEmpty()) -> playNextQueueItem()
@@ -5906,8 +5911,10 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
     }
 
-    // Auto-generate playlist from folder if playlist mode is enabled and no playlist_id
-    if (playlist.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
+    // Prepare autoplay independently of the next/previous button preference.
+    if (playlist.isEmpty() && playlistId == null &&
+      playerPreferences.shouldBuildAutomaticQueue(isKnownAudioLaunch(intent))
+    ) {
       val path = parsePathFromIntent(intent)
       if (path != null) {
         generatePlaylistFromFolder(path)

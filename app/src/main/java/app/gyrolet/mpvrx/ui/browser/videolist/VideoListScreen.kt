@@ -152,7 +152,6 @@ data class VideoListScreen(
     val backstack = LocalBackStack.current
     val browserPreferences = koinInject<BrowserPreferences>()
     val playerPreferences = koinInject<PlayerPreferences>()
-    val playlistMode by playerPreferences.playlistMode.collectAsState()
     val appearancePreferences = koinInject<app.gyrolet.mpvrx.preferences.AppearancePreferences>()
     val showQuickPlayFab by appearancePreferences.showQuickPlayFab.collectAsState()
     val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
@@ -478,7 +477,7 @@ data class VideoListScreen(
                         .firstOrNull { it.filePath in folderPaths }
                     val startIndex =
                       sortedVideos.indexOfFirst { it.path == lastPlayed?.filePath }.coerceAtLeast(0)
-                    if (playlistMode) {
+                    if (playerPreferences.shouldBuildAutomaticQueue(sortedVideos[startIndex].isAudio)) {
                       MediaUtils.playFiles(sortedVideos, context, startIndex, "video_list")
                     } else {
                       MediaUtils.playFile(sortedVideos[startIndex], context, "video_list")
@@ -536,7 +535,7 @@ data class VideoListScreen(
             if (selectionManager.isInSelectionMode && !archiveFolder) {
               selectionManager.toggleFromUser(video)
             } else if (!selectionManager.isInSelectionMode) {
-              if (archiveFolder || (scopedFolder && playlistMode)) {
+              if (archiveFolder || (scopedFolder && playerPreferences.shouldBuildAutomaticQueue(video.isAudio))) {
                 val startIndex = sortedVideos.indexOfFirst { it.uri == video.uri }.coerceAtLeast(0)
                 MediaUtils.playFiles(
                   sortedVideos,

@@ -138,6 +138,10 @@ class PlayerPreferences(
   val autoplayNextVideo = preferenceStore.getBoolean("autoplay_next_video", true)
   val autoplayNextAudio = preferenceStore.getBoolean("autoplay_next_audio", true)
 
+  /** Queue availability serves autoplay even when the user hides next/previous controls. */
+  fun shouldBuildAutomaticQueue(isAudio: Boolean): Boolean =
+    playlistMode.get() || (if (isAudio) autoplayNextAudio.get() else autoplayNextVideo.get())
+
   val autoPiPOnNavigation = preferenceStore.getBoolean("auto_pip_on_navigation", false)
 
   // MX/VLC-style: only the home gesture auto-enters PiP; Back keeps its normal close/handoff.

@@ -587,7 +587,7 @@
   <string name="pref_section_general">सामान्य</string>
   <string name="pref_playlist_mode_title">अगली/पिछली नेविगेशन सक्षम करें</string>
   <string name="pref_playlist_mode_summary">फोल्डर की सभी वीडियो के लिए अगला/पिछला बटन दिखाएं</string>
-  <string name="pref_playlist_mode_summary_disabled">वीडियो अलग-अलग चलाएं (प्लेलिस्ट के लिए कई चुनें)</string>
+  <string name="pref_playlist_mode_summary_disabled">अगला/पिछला बटन छिपाएं; अपने आप चलाने का विकल्प अलग से नियंत्रित होता है</string>
   <string name="pref_online_skip_markers_title">ऑनलाइन स्किप मार्कर इस्तेमाल करें</string>
   <string name="pref_online_skip_markers_summary">चुने गए प्रोवाइडर से इंट्रो, रीकैप, आउट्रो, क्रेडिट्स और प्रीव्यू मार्कर लाएं</string>
   <string name="pref_marker_provider_title">ऑनलाइन मार्कर प्रोवाइडर</string>

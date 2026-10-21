@@ -834,7 +834,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   if (isInSelectionMode && !archiveEntry) {
                     selectionManager.toggleFromUser(videoFile)
                   } else if (!isInSelectionMode) {
-                    if (playlistMode || archiveEntry) {
+                    if (playerPreferences.shouldBuildAutomaticQueue(video.isAudio) || archiveEntry) {
                       val allVideos = videos
                       val startIndex = allVideos.indexOfFirst { it.id == video.id }
                       if (startIndex >= 0) {

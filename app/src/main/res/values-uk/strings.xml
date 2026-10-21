@@ -698,7 +698,7 @@
   <string name="pref_section_general">Загальні</string>
   <string name="pref_playlist_mode_title">Увімкнути навігацію наступний/попередній</string>
   <string name="pref_playlist_mode_summary">Показувати кнопки «Наступний»/«Попередній» для всіх відео в папці</string>
-  <string name="pref_playlist_mode_summary_disabled">Відтворювати відео окремо (виберіть кілька для списку відтворення)</string>
+  <string name="pref_playlist_mode_summary_disabled">Приховувати кнопки наступного/попереднього файлу; автовідтворення налаштовується окремо</string>
   <string name="pref_online_skip_markers_title">Використовувати онлайн-маркери пропуску</string>
   <string name="pref_online_skip_markers_summary">Отримувати маркери вступу, переказу, завершення, титрів і анонсу від вибраного провайдера</string>
   <string name="pref_marker_provider_title">Онлайн-провайдер маркерів</string>

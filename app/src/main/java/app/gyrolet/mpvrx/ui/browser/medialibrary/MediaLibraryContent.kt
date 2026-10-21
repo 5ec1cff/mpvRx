@@ -143,7 +143,6 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
   val includeAudioBrowser by browserPreferences.includeAudioBrowser.collectAsState()
   val savedMediaType by browserPreferences.mediaLibraryType.collectAsState()
-  val playlistMode by playerPreferences.playlistMode.collectAsState()
   val mediaType = if (forceAudio) MediaLibraryType.Audio else if (includeAudioBrowser) savedMediaType else MediaLibraryType.Video
   val musicCoverArtSize by browserPreferences.musicCoverArtSize.collectAsState()
   val sortedVideos =
@@ -322,7 +321,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
   )
 
   fun playFromMediaLibrary(video: Video) {
-    if (!playlistMode || mediaTypeVideosWithInfo.size <= 1) {
+    if (!playerPreferences.shouldBuildAutomaticQueue(video.isAudio) || mediaTypeVideosWithInfo.size <= 1) {
       MediaUtils.playFile(video, context, "media_library")
       return
     }
@@ -370,6 +369,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         putExtra("is_audio", video.isAudio)
         putExtra("title", video.displayName)
         putExtra("local_media_path", video.path)
+        putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, video.width)
+        putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
+        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, video.rotation)
       }
     context.startActivity(intent)
   }

@@ -618,7 +618,7 @@
   <string name="pref_section_general">一般</string>
   <string name="pref_playlist_mode_title">次へ/前へ移動を有効にする</string>
   <string name="pref_playlist_mode_summary">フォルダー内のすべての動画に次へ/前へボタンを表示します</string>
-  <string name="pref_playlist_mode_summary_disabled">動画を個別に再生（複数選択するとプレイリスト）</string>
+  <string name="pref_playlist_mode_summary_disabled">次へ・前へボタンを非表示にします。自動再生は別の設定で制御します</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">オンラインのスキップマーカーを使用</string>

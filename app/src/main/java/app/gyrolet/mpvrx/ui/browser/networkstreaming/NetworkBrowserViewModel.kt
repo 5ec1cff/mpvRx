@@ -260,7 +260,9 @@ class NetworkBrowserViewModel(
 
   private fun currentDirectoryPlayableFiles(clickedFile: NetworkFile): List<NetworkFile> {
     val includeAudio = browserPreferences.includeAudioBrowser.get()
-    if (!playerPreferences.playlistMode.get() || !clickedFile.isPlayableNetworkMedia(includeAudio)) {
+    if (!playerPreferences.shouldBuildAutomaticQueue(clickedFile.isPlayableNetworkAudio()) ||
+      !clickedFile.isPlayableNetworkMedia(includeAudio)
+    ) {
       return listOf(clickedFile)
     }
 

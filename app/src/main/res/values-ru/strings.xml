@@ -618,7 +618,7 @@
   <string name="pref_section_general">Общие</string>
   <string name="pref_playlist_mode_title">Включить переход к следующему/предыдущему</string>
   <string name="pref_playlist_mode_summary">Показывать кнопки следующего/предыдущего для всех видео в папке</string>
-  <string name="pref_playlist_mode_summary_disabled">Воспроизводить видео по отдельности (выберите несколько для плейлиста)</string>
+  <string name="pref_playlist_mode_summary_disabled">Скрывать кнопки следующего/предыдущего файла; автовоспроизведение настраивается отдельно</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Использовать сетевые метки пропуска</string>
