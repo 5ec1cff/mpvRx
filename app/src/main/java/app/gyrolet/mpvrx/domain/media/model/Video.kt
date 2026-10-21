@@ -12,6 +12,9 @@ package app.gyrolet.mpvrx.domain.media.model
 import android.net.Uri
 import androidx.compose.runtime.Immutable
 
+/** Missing rotation must not be mistaken for a confirmed, unrotated video. */
+internal const val UNKNOWN_VIDEO_ROTATION = Int.MIN_VALUE
+
 @Immutable
 data class Video(
   val id: Long,
@@ -33,9 +36,9 @@ data class Video(
   /**
    * Container rotation in degrees, not yet applied to [width]/[height]. Media library rows already
    * carry this from MediaStore, so the player can pick the correct launch orientation before mpv has
-   * reported any geometry.
+   * reported any geometry. [UNKNOWN_VIDEO_ROTATION] means the provider did not supply an angle.
    */
-  val rotation: Int = 0,
+  val rotation: Int = UNKNOWN_VIDEO_ROTATION,
   val fps: Float,
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,

@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -1621,6 +1623,35 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
   }
 
   fun getPropertyNode(property: String): MPVNode? = withReadyCore(null) { MPVLib.getPropertyNode(property) }
+
+  /**
+   * Read dimensions, pixel aspect and rotation from one native snapshot of the loaded file.
+   * Before the first decoded frame, mpv can expose only w/h without rotate. That incomplete
+   * fallback must not turn a rotation-tagged portrait video into a temporary landscape window.
+   */
+  internal fun videoDisplayAspect(expectedGeneration: Long = state.value.generation): Double? = withReadyCore(null) {
+    val current = _state.value
+    if (expectedGeneration <= 0L || current.generation != expectedGeneration ||
+      current.activeGeneration != expectedGeneration || loadedGeneration != expectedGeneration
+    ) return@withReadyCore null
+    val params = MPVLib.getPropertyNode("video-params")?.toObject<JsonObject>(Json)
+      ?: return@withReadyCore null
+    val rotation = (params["rotate"] as? JsonPrimitive)?.intOrNull ?: return@withReadyCore null
+    fun positive(name: String): Double? = (params[name] as? JsonPrimitive)?.doubleOrNull
+      ?.takeIf { it.isFinite() && it > 0.0 }
+    val aspect = positive("aspect") ?: run {
+      val width = positive("dw")
+      val height = positive("dh")
+      if (width != null && height != null) {
+        width / height
+      } else {
+        val sourceWidth = positive("w") ?: return@withReadyCore null
+        val sourceHeight = positive("h") ?: return@withReadyCore null
+        sourceWidth * (positive("par") ?: 1.0) / sourceHeight
+      }
+    }
+    PlayerOrientationPolicy.displayAspect(aspect, rotation)
+  }
 
   fun setPropertyString(
     property: String,

@@ -99,6 +99,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.AudioChannels
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.domain.media.model.UNKNOWN_VIDEO_ROTATION
 import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
 import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
 import app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource
@@ -2900,6 +2901,9 @@ class PlayerActivity :
     PlaybackActivityOwner.beginRequest(playbackOwnerToken) {
       lastExitBackPressAtMs = null
       mediaRequestGeneration++
+      videoParamRefreshJob?.cancel()
+      videoParamRefreshJob = null
+      pendingVideoParamRefreshRequiresShaderReload = false
     }
 
   private fun isCurrentMediaRequest(requestGeneration: Long): Boolean =
@@ -4449,10 +4453,11 @@ class PlayerActivity :
     when (property) {
       "video-params/w",
       "video-params/h",
+      "video-params/rotate",
       -> {
         // Safety check: don't access MPV during cleanup
         if (!mpvInitialized || player.isExiting || isFinishing) return
-        scheduleVideoParamRefresh(reloadShaders = true)
+        scheduleVideoParamRefresh(reloadShaders = property != "video-params/rotate")
       }
     }
   }
@@ -4667,6 +4672,8 @@ class PlayerActivity :
 
   @Synchronized
   private fun scheduleVideoParamRefresh(reloadShaders: Boolean) {
+    val generation = PlaybackSession.state.value.generation
+    val requestGeneration = mediaRequestGeneration
     pendingVideoParamRefreshRequiresShaderReload =
       pendingVideoParamRefreshRequiresShaderReload ||
       reloadShaders
@@ -4676,11 +4683,13 @@ class PlayerActivity :
       lifecycleScope.launch {
         delay(100)
         if (!mpvInitialized || player.isExiting || isFinishing) return@launch
+        if (!isCurrentMediaRequest(requestGeneration) || !PlaybackSession.isCurrentGeneration(generation)) return@launch
 
         val aspect =
           withContext(playbackRenderDispatcher) {
-            player.getVideoOutAspect()
+            player.getVideoOutAspect(generation)
           }
+        if (!isCurrentMediaRequest(requestGeneration) || !PlaybackSession.isCurrentGeneration(generation)) return@launch
         Log.d(TAG, "Coalesced video params refresh, aspect: $aspect")
         PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
         pipHelper.updatePictureInPictureParams()
@@ -5807,7 +5816,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     val previousItemWasReady = isReady
 
     setIntent(intent)
-    applyInitialVideoOrientation(intent)
     applyPlaybackBrightnessPolicy(isAudio = isCurrentMediaKnownAudio())
     if (!beginMediaRequest()) return
     cancelPlaybackLoadRecovery()
@@ -5944,6 +5952,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         return@let
       }
 
+      applyInitialVideoOrientation(intent)
       currentPlayableUri = uri
       isReady = false
       viewModel.onVideoLoadStarted()
@@ -6741,7 +6750,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    *
    * Use only geometry already supplied by the launch intent. Missing metadata must not delay
    * playback: MediaMetadataRetriever can stall on the same files as thumbnail extraction. The
-   * normal mpv video-parameter observer applies the orientation once the source geometry arrives.
+   * normal mpv video-parameter observer applies the orientation once complete geometry arrives.
    */
   private fun applyInitialVideoOrientation(sourceIntent: Intent) {
     if (isTelevision) {
@@ -6752,9 +6761,11 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
 
     val width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
     val height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-    // Zero is a valid container rotation, not a reason to probe the file again.
-    val rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0)
-    val initialOrientation = PlayerOrientationPolicy.forSourceGeometry(width, height, rotation) ?: return
+    // A missing angle is different from a confirmed zero. Hold the launch configuration until
+    // mpv supplies a complete snapshot instead of guessing landscape from encoded dimensions.
+    val rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, UNKNOWN_VIDEO_ROTATION)
+    val initialOrientation = PlayerOrientationPolicy.forSourceGeometry(width, height, rotation)
+      ?: ActivityInfo.SCREEN_ORIENTATION_LOCKED
     if (requestedOrientation != initialOrientation) requestedOrientation = initialOrientation
   }
 
