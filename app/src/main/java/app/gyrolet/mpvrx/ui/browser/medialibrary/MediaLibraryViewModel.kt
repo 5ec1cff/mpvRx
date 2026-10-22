@@ -30,7 +30,13 @@ import app.gyrolet.mpvrx.utils.media.MetadataRetrieval
 import app.gyrolet.mpvrx.utils.media.PlaybackStateEvents
 import app.gyrolet.mpvrx.utils.media.PlaybackStateOps
 import app.gyrolet.mpvrx.utils.storage.MediaStoreGenerationGuard
+import app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -40,11 +46,12 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -60,7 +67,8 @@ class MediaLibraryViewModel(
   private enum class DeletionState { Pending, Confirmed }
 
   private val hiddenVideoPaths = MutableStateFlow<Map<String, DeletionState>>(emptyMap())
-  private val scanMutex = Mutex()
+  private val loadRequests = Channel<Boolean>(Channel.CONFLATED)
+  private var enrichmentJob: Job? = null
   private val _videos = MutableStateFlow<List<Video>>(emptyList())
   val videos: StateFlow<List<Video>> =
     combine(
@@ -104,17 +112,17 @@ class MediaLibraryViewModel(
   }
 
   init {
-    // Try the persisted list first so an unchanged library needs no scan at all. Without this, every
-    // cold boot queried MediaStore once per folder before the screen had anything to show.
     viewModelScope.launch(Dispatchers.IO) {
+      // Restore before consuming refreshes so a slow cache read cannot overwrite a newer list.
       val restored = loadCachedVideos()
-      if (!restored) {
-        loadData()
-      } else if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY)) {
-        // MediaStore generations cannot detect changes inside .nomedia or dot folders. Display
-        // the cached list now and verify the hidden sources without blocking the first frame.
+      if (!restored || foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY) ||
+        UnindexedVideoDiscovery.hasVideos || _videos.value.any { it.uri.scheme == "file" }
+      ) {
         loadData(force = true)
       }
+      // Finish the lightweight listing, retaining only the newest queued request. Cancelling
+      // every read during a long extraction can starve publication until copying stops.
+      loadRequests.receiveAsFlow().collect { force -> loadData(force) }
     }
     viewModelScope.launch(Dispatchers.IO) {
       val hiddenPreferences = combine(
@@ -131,8 +139,9 @@ class MediaLibraryViewModel(
       ).collectLatest { mediaChanged ->
         // Changing Library's scan policy must not destroy the saved Tree snapshot.
         MediaLibraryCache.clear(getApplication())
+        MediaFileRepository.invalidateFolderCache()
         if (mediaChanged) MediaStoreGenerationGuard.invalidate(getApplication())
-        loadData(force = true)
+        loadRequests.trySend(true)
       }
     }
     viewModelScope.launch(Dispatchers.IO) {
@@ -173,75 +182,92 @@ class MediaLibraryViewModel(
     return true
   }
 
-  private fun loadData(force: Boolean = false) {
+  private suspend fun loadData(force: Boolean = false) {
     // Guards a re-entry that has nothing new to learn: a media event fired while the list on screen
     // still matches the current MediaStore, or refresh() was asked to invalidate and rebuild. force
     // comes from refresh() and always re-reads. The MediaStore check queries providers, so it runs
     // off the main thread.
-    viewModelScope.launch(Dispatchers.IO) {
+    withContext(Dispatchers.IO) {
+      enrichmentJob?.cancel()
       if (!force &&
         !foldersPreferences.hiddenScanEnabled(HiddenScanScope.LIBRARY) &&
         _videos.value.isNotEmpty() &&
         MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
       ) {
         Log.d(tag, "MediaStore unchanged, keeping current media library")
-        return@launch
+        return@withContext
       }
-      scanMutex.withLock {
-        try {
-          // Read before scanning: recording the generation afterwards would bless a MediaStore newer
-          // than the data, and the next cold boot would keep a stale list.
-          val observedGeneration = MediaStoreGenerationGuard.currentToken(getApplication())
-          val scanCacheKey = currentLibraryCacheKey()
-          val metadataEnriched = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
+      try {
+        // Read before scanning: recording the generation afterwards would bless a MediaStore newer
+        // than the data, and the next cold boot would keep a stale list.
+        val observedGeneration = MediaStoreGenerationGuard.currentToken(getApplication())
+        val scanCacheKey = currentLibraryCacheKey()
+        val metadataEnriched = MetadataRetrieval.isVideoMetadataNeeded(browserPreferences)
 
-          if (_videos.value.isEmpty()) {
-            _isLoading.value = true
-          }
-          var videoList =
-            MediaFileRepository.getAllVideos(
-              context = getApplication(),
-              includeAudioOverride = true,
-            )
+        if (_videos.value.isEmpty()) {
+          _isLoading.value = true
+        }
+        val scannedVideos =
+          MediaFileRepository.getAllVideos(
+            context = getApplication(),
+            includeAudioOverride = true,
+          )
 
-          // Reuse durations learned in any browser mode before showing the fresh listing.
-          // Only genuinely missing metadata may open documents, after the list is visible.
-          videoList = MetadataRetrieval.restoreCachedContentMetadata(videoList, metadataCache)
-          _videos.value = videoList
-          loadPlaybackInfo(videoList)
-          _isLoading.value = false
+        // Reuse durations learned in any browser mode before showing the fresh listing.
+        // Only genuinely missing metadata may open documents, after the list is visible.
+        val videoList = MetadataRetrieval.restoreCachedContentMetadata(scannedVideos, metadataCache)
+        publishVideos(videoList, scanCacheKey, observedGeneration, metadataEnriched = false)
 
-          if (metadataEnriched) {
-            videoList =
-              MetadataRetrieval.enrichVideosIfNeeded(
+        if (metadataEnriched) {
+          // Metadata must never hold the refresh queue. The next listing cancels this work.
+          enrichmentJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+              val enriched = MetadataRetrieval.enrichVideosIfNeeded(
                 context = getApplication(),
                 videos = videoList,
                 browserPreferences = browserPreferences,
                 metadataCache = metadataCache,
               )
+              publishVideos(enriched, scanCacheKey, observedGeneration, metadataEnriched = true)
+            } catch (cancelled: CancellationException) {
+              throw cancelled
+            } catch (error: Exception) {
+              Log.w(tag, "Could not enrich media library", error)
+            }
           }
-
-          _videos.value = videoList
-          val scannedPaths = videoList.mapTo(hashSetOf()) { it.path }
-          hiddenVideoPaths.update { states ->
-            states.filter { (path, state) -> state == DeletionState.Pending || path in scannedPaths }
-          }
-          MediaLibraryCache.save(
-            getApplication(),
-            videoList.filterNot { hiddenVideoPaths.value[it.path] == DeletionState.Confirmed },
-            scanOptionsKey = scanCacheKey,
-            observedGeneration = observedGeneration,
-            metadataEnriched = metadataEnriched,
-          )
-          MediaStoreGenerationGuard.remember(getApplication(), observedGeneration)
-          loadPlaybackInfo(videoList)
-        } catch (e: Exception) {
-          Log.e(tag, "Error loading media library videos", e)
-        } finally {
-          _isLoading.value = false
         }
+      } catch (cancelled: CancellationException) {
+        throw cancelled
+      } catch (e: Exception) {
+        Log.e(tag, "Error loading media library videos", e)
+      } finally {
+        _isLoading.value = false
       }
     }
+  }
+
+  private suspend fun publishVideos(
+    videos: List<Video>,
+    scanCacheKey: String,
+    observedGeneration: String?,
+    metadataEnriched: Boolean,
+  ) {
+    currentCoroutineContext().ensureActive()
+    _videos.value = videos
+    val scannedPaths = videos.mapTo(hashSetOf()) { it.path }
+    hiddenVideoPaths.update { states ->
+      states.filter { (path, state) -> state == DeletionState.Pending || path in scannedPaths }
+    }
+    MediaLibraryCache.save(
+      getApplication(),
+      videos.filterNot { hiddenVideoPaths.value[it.path] == DeletionState.Confirmed },
+      scanOptionsKey = scanCacheKey,
+      observedGeneration = observedGeneration,
+      metadataEnriched = metadataEnriched,
+    )
+    MediaStoreGenerationGuard.remember(getApplication(), observedGeneration)
+    loadPlaybackInfo(videos)
+    _isLoading.value = false
   }
 
   override suspend fun deleteVideos(videos: List<Video>): Pair<Int, Int> {
@@ -263,8 +289,13 @@ class MediaLibraryViewModel(
   override fun refresh() {
     // A user-driven refresh must never be satisfied by the persisted list.
     MediaLibraryCache.clear(getApplication())
+    MediaFileRepository.invalidateFolderCache()
     MediaStoreGenerationGuard.invalidate(getApplication())
-    loadData(force = true)
+    loadRequests.trySend(true)
+    viewModelScope.launch(Dispatchers.IO) {
+      UnindexedVideoDiscovery.refresh(getApplication(), force = true)
+      loadRequests.trySend(true)
+    }
   }
 
   private suspend fun loadPlaybackInfo(videos: List<Video>) {

@@ -89,6 +89,10 @@ object VideoScanUtils : KoinComponent {
       if (options.includeAudio) {
         scanAudioFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, options, keyResolver)
       }
+      for (video in UnindexedVideoDiscovery.videos(options, normalizedFolderPath)) {
+        val key = keyResolver.key(video.path) ?: continue
+        videosMap.putIfAbsent(key, video)
+      }
 
       // MediaStore returns 0 duration for .ts/.mts/.m2ts — fix those entries now
       val zeroTsKeys =

@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.utils.media
 
+import app.gyrolet.mpvrx.utils.storage.FolderViewScanner
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,6 +24,9 @@ object MediaLibraryEvents {
   val changes: SharedFlow<Unit> = _changes
 
   fun notifyChanged() {
+    // Library can be the only instantiated browser. Do not depend on FolderListViewModel
+    // being alive to invalidate the shared five-minute folder snapshot before re-querying it.
+    FolderViewScanner.clearCache()
     _changes.tryEmit(Unit)
   }
 }

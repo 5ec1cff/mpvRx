@@ -118,6 +118,9 @@ import app.gyrolet.mpvrx.ui.update.UpdateViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import androidx.lifecycle.lifecycleScope
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.getKoin
@@ -139,6 +142,7 @@ open class MainActivity : AppCompatActivity() {
   private var pendingPipExitResolution = false
   private var isExpandingFromPip by mutableStateOf(false)
   private var openUpdateSheet by mutableStateOf(false)
+  private var mediaDiscoveryJob: Job? = null
 
   // Register the ActivityResultLauncher at class level
   private val mediaAccessLauncher =
@@ -362,9 +366,20 @@ open class MainActivity : AppCompatActivity() {
     PlayerSheetTransitions.clearBrowserCache()
     // Interactive again without the player having taken over, so its expansion is void.
     PlayerSheetTransitions.abandonExpansion()
+    mediaDiscoveryJob?.cancel()
+    mediaDiscoveryJob = lifecycleScope.launch(Dispatchers.IO) {
+      // Let the cached browser draw first. A second bounded pass catches extraction that was
+      // still finishing when the user switched back; there is no continuous storage polling.
+      delay(350L)
+      app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery.refresh(applicationContext)
+      delay(2_000L)
+      app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery.refresh(applicationContext)
+    }
   }
 
   override fun onPause() {
+    mediaDiscoveryJob?.cancel()
+    mediaDiscoveryJob = null
     // Still on screen here, so this is the last point where the browser layer can be frozen
     // for the player's swipe-down and predictive-back previews.
     PlayerSheetTransitions.captureBrowser()

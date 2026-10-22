@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 import java.util.PriorityQueue
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Folder View Scanner - Optimized for folder list view
@@ -41,17 +42,20 @@ object FolderViewScanner {
     val folders: List<VideoFolder>,
     val createdAt: Long,
     val optionsKey: String,
+    val revision: Long,
   )
 
   // MediaStore is already invalidated by library events; keep it warm between screen visits.
   @Volatile
   private var folderCache: FolderCache? = null
+  private val cacheRevision = AtomicLong()
   private const val CACHE_TTL_MS = 5 * 60_000L
 
   /**
    * Clear cache (call when media library changes)
    */
   fun clearCache() {
+    cacheRevision.incrementAndGet()
     folderCache = null
   }
 
@@ -106,10 +110,13 @@ object FolderViewScanner {
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
       val now = System.currentTimeMillis()
+      val revision = cacheRevision.get()
 
       // Return cached data if still valid
       folderCache?.let { cached ->
-        if (!forceFileSystemCheck && now - cached.createdAt < CACHE_TTL_MS && cached.optionsKey == options.cacheKey) {
+        if (!forceFileSystemCheck && cached.revision == revision &&
+          now - cached.createdAt < CACHE_TTL_MS && cached.optionsKey == options.cacheKey
+        ) {
           return@withContext cached.folders
         }
       }
@@ -117,11 +124,31 @@ object FolderViewScanner {
       // Build fresh data
       val allFolders = mutableMapOf<String, FolderData>()
       val noMediaPathFilter = NoMediaPathFilter(options)
+      val unindexedVideos = UnindexedVideoDiscovery.videos(options)
+      val indexedVideoPaths = if (unindexedVideos.isEmpty()) null else hashSetOf<String>()
 
       // Step 1: Scan MediaStore (fast, covers most cases)
-      scanMediaStoreImmediateChildren(context, allFolders, noMediaPathFilter)
+      scanMediaStoreImmediateChildren(context, allFolders, noMediaPathFilter, indexedVideoPaths)
       if (options.includeAudio) {
         scanAudioMediaStoreImmediateChildren(context, allFolders, noMediaPathFilter, options)
+      }
+      // Merge only files absent from this exact MediaStore read. A scanner callback can arrive
+      // between discovery and this query; adding an already indexed file would double its count.
+      val missingKeyResolver = MediaPathKeyResolver()
+      for (video in unindexedVideos) {
+        val videoKey = missingKeyResolver.key(video.path) ?: continue
+        if (indexedVideoPaths?.contains(videoKey) == true) continue
+        val key = storagePathKey(video.bucketId) ?: continue
+        val existing = allFolders[key]
+        allFolders[key] = FolderData(
+          path = existing?.path ?: video.bucketId,
+          name = existing?.name ?: video.bucketDisplayName,
+          videoCount = (existing?.videoCount ?: 0) + 1,
+          totalSize = (existing?.totalSize ?: 0L) + video.size,
+          totalDuration = existing?.totalDuration ?: 0L,
+          lastModified = maxOf(existing?.lastModified ?: 0L, video.dateModified),
+          hasSubfolders = existing?.hasSubfolders ?: false,
+        )
       }
       // MediaStore already covers indexed primary/removable media. Recursively walking every
       // filesystem root on each normal refresh defeats the cache and can block for minutes.
@@ -151,7 +178,7 @@ object FolderViewScanner {
           }.sortedBy { it.name.lowercase(Locale.getDefault()) }
 
       // Update cache
-      folderCache = FolderCache(result, now, options.cacheKey)
+      folderCache = FolderCache(result, now, options.cacheKey, revision)
 
       result
     }
@@ -721,6 +748,7 @@ object FolderViewScanner {
     context: Context,
     folders: MutableMap<String, FolderData>,
     noMediaPathFilter: NoMediaPathFilter,
+    indexedVideoPaths: MutableSet<String>?,
   ) {
     val projection =
       arrayOf(
@@ -748,6 +776,7 @@ object FolderViewScanner {
           val videosByFolder = mutableMapOf<String, FolderAggregate>()
           val folderResolver = MediaFolderResolver(noMediaPathFilter)
           val existenceCache = FolderListingExistenceCache()
+          val keyResolver = MediaPathKeyResolver()
 
           while (cursor.moveToNext()) {
             val videoPath = cursor.getString(dataColumn)?.takeIf { it.isNotBlank() } ?: continue
@@ -757,6 +786,7 @@ object FolderViewScanner {
             val folder = folderResolver.resolve(file.parent) ?: continue
             if (folder.excluded) continue
             if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
+            if (indexedVideoPaths != null) keyResolver.key(videoPath)?.let(indexedVideoPaths::add)
 
             val folderPath = folder.path
             val folderKey = folder.key
