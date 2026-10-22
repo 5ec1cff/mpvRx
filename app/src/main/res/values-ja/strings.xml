@@ -2721,4 +2721,22 @@
   <string name="update_confirm_install">インストールを確認</string>
   <string name="update_install_complete">更新をインストールしました。タップして mpvRx を開きます。</string>
   <string name="update_download_waiting">ネットワークを待機中、またはダウンロードを再試行中…</string>
+  <string name="pref_appearance_thumbnail_generator_title">サムネイルの生成方法</string>
+  <string name="pref_thumbnail_generator_native">直接抽出</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">ローカル動画のサムネイルと楽曲のカバーをメディアファイルから抽出します。切り替えるとキャッシュ済みのサムネイルが削除されます。</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">ローカルの動画や楽曲に Android のサムネイルとアルバムアートを使用します。切り替えるとキャッシュ済みのサムネイルが削除され、画像を取得できない場合は代替画像を表示します。ネットワークのプレビューには直接抽出を使用します。</string>
+  <string name="ui_update_channels_summary">安定版、ナイトリープレビュー、実験的な CI ビルド。</string>
+  <string name="update_experimental_build_format">実験版 r%1$d</string>
+  <string name="tv_nav_settings">設定</string>
+  <string name="tv_player_play_pause">再生または一時停止</string>
+  <string name="tv_player_subtitles">字幕</string>
+  <string name="tv_player_audio">音声トラック</string>
+  <string name="tv_player_chapters">チャプター</string>
+  <string name="tv_player_speed">再生速度</string>
+  <string name="tv_player_aspect_ratio">アスペクト比</string>
+  <string name="tv_player_quality">画質</string>
+  <string name="tv_player_seek_bar">シークバー</string>
+  <string name="pref_audio_animated_artwork_title">アニメーションアルバムアート</string>
+  <string name="pref_audio_animated_artwork_summary">全画面の音楽プレーヤーで、楽曲に合うアニメーションカバーを Apple Music から取得します。曲名、アーティスト名、アルバム名を Apple に送信し、モバイルデータを使用します。初期設定ではオフです。取得できない場合は現在のカバーを表示します。表示するにはビジュアライザーからカバーに切り替えてください。</string>
 </resources>

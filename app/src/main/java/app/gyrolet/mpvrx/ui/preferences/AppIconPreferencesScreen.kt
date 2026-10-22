@@ -160,6 +160,7 @@ object AppIconPreferencesScreen : Screen {
           verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
           IconBuilder(
+            modifier = Modifier.settingsSearchTarget(R.string.pref_app_icon_title),
             pending = pending,
             current = current,
             backgrounds = backgrounds,
@@ -343,6 +344,7 @@ private fun IconBuilder(
 
   onCustomBackground: (Boolean) -> Unit,
   onCustomMark: (IconMark) -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   val scope = rememberCoroutineScope()
   val latest by rememberUpdatedState(pending)
@@ -370,7 +372,7 @@ private fun IconBuilder(
   }
 
   Column(
-    modifier = Modifier.fillMaxWidth(),
+    modifier = modifier.fillMaxWidth(),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {

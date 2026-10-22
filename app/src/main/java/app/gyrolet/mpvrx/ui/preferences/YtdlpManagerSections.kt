@@ -127,7 +127,12 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
             }
           }
 
-          PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.ui_release_channel), topPadding = 18.dp)
+          PreferenceSectionHeader(
+            position = PreferenceSectionPosition.Middle,
+            title = stringResource(R.string.ui_release_channel),
+            topPadding = 18.dp,
+            modifier = Modifier.settingsSearchTarget(R.string.ui_release_channel),
+          )
 
           ExpressivePreferenceGroup {
             Column(
@@ -181,7 +186,11 @@ internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
             }
           }
 
-          PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.ytdlp_subtitles_language))
+          PreferenceSectionHeader(
+            position = PreferenceSectionPosition.Middle,
+            title = stringResource(R.string.ytdlp_subtitles_language),
+            modifier = Modifier.settingsSearchTarget(R.string.ytdlp_subtitles_language),
+          )
 
           ExpressivePreferenceGroup {
             SwitchPreference(

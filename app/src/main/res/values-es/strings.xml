@@ -2736,4 +2736,22 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="update_confirm_install">Confirmar instalación</string>
   <string name="update_install_complete">Actualización instalada. Pulsa para abrir mpvRx.</string>
   <string name="update_download_waiting">Esperando la red o reintentando la descarga…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Generador de miniaturas</string>
+  <string name="pref_thumbnail_generator_native">Extracción directa</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Extraer miniaturas de vídeos locales y carátulas de canciones del archivo multimedia. Al cambiar se borran las miniaturas en caché.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Usar miniaturas y carátulas de álbumes de Android para vídeos y canciones locales. Al cambiar se borran las miniaturas en caché; si falta una imagen, se muestra un marcador de posición. Las vistas previas de red usan la extracción directa.</string>
+  <string name="ui_update_channels_summary">Versiones estables, versiones preliminares nocturnas o compilaciones experimentales de CI.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
+  <string name="tv_nav_settings">Ajustes</string>
+  <string name="tv_player_play_pause">Reproducir o pausar</string>
+  <string name="tv_player_subtitles">Subtítulos</string>
+  <string name="tv_player_audio">Pistas de audio</string>
+  <string name="tv_player_chapters">Capítulos</string>
+  <string name="tv_player_speed">Velocidad de reproducción</string>
+  <string name="tv_player_aspect_ratio">Relación de aspecto</string>
+  <string name="tv_player_quality">Calidad de vídeo</string>
+  <string name="tv_player_seek_bar">Barra de progreso</string>
+  <string name="pref_audio_animated_artwork_title">Carátulas de álbumes animadas</string>
+  <string name="pref_audio_animated_artwork_summary">Obtener carátulas animadas coincidentes de Apple Music en el reproductor de música a pantalla completa. Envía el título, el artista y el álbum de la canción a Apple y usa datos móviles. Desactivado por defecto; conserva la carátula actual si no hay ninguna disponible. Cambia del visualizador a la carátula para verla.</string>
 </resources>

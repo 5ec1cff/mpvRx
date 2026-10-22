@@ -155,7 +155,7 @@ object MediaServersPreferencesScreen : Screen {
                   }
                   val isActive = server.id == jellyfinUiState.activeServer?.id
                   ServerPreferenceItem(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_jellyfin_server_management),
+                    modifier = if (index == 0) Modifier.settingsSearchTarget(R.string.pref_jellyfin_server_management) else Modifier,
                     title = {
                       Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -419,7 +419,6 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
               title = stringResource(R.string.pref_navidrome_title),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_media_servers_title),
             )
           }
 
@@ -443,7 +442,7 @@ object MediaServersPreferencesScreen : Screen {
                   }
                   val isActive = server.id == navidromeUiState.activeServer?.id
                   ServerPreferenceItem(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_navidrome_title),
+                    modifier = if (index == 0) Modifier.settingsSearchTarget(R.string.pref_navidrome_title) else Modifier,
                     title = {
                       Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -590,7 +589,6 @@ object MediaServersPreferencesScreen : Screen {
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
               title = stringResource(R.string.pref_audiobookshelf_title),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_media_servers_title),
             )
           }
 
@@ -614,7 +612,7 @@ object MediaServersPreferencesScreen : Screen {
                   }
                   val isActive = server.id == audiobookshelfUiState.activeServer?.id
                   ServerPreferenceItem(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_audiobookshelf_title),
+                    modifier = if (index == 0) Modifier.settingsSearchTarget(R.string.pref_audiobookshelf_title) else Modifier,
                     title = {
                       Row(
                         verticalAlignment = Alignment.CenterVertically,

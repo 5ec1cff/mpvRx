@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -111,6 +112,10 @@ object AppearancePreferencesScreen : Screen {
     var pendingThumbnailMode by remember { mutableStateOf<ThumbnailMode?>(null) }
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
+    val searchTarget by SettingsSearchNavigation.target.collectAsState()
+    LaunchedEffect(searchTarget) {
+      if (searchTarget?.screen == AppearancePreferencesScreen) isThemeSectionExpanded = true
+    }
     var isAppFontSheetOpen by rememberSaveable { mutableStateOf(false) }
     val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
@@ -257,6 +262,7 @@ object AppearancePreferencesScreen : Screen {
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .settingsSearchTarget(R.string.pref_appearance_category_theme)
                     .clickable { isThemeSectionExpanded = !isThemeSectionExpanded }
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -351,6 +357,7 @@ object AppearancePreferencesScreen : Screen {
                   PreferenceDivider()
 
                   WallpaperPreferenceCard(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_custom_wallpaper_title),
                     wallpaperUri = customWallpaperUri,
                     onClick = { backstack.navigateTo(WallpaperEditorScreen()) },
                   )
@@ -936,10 +943,10 @@ object AppearancePreferencesScreen : Screen {
             val tabItems = ordered.map { id ->
               when (id) {
                 "HOME" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_home_title), stringResource(R.string.pref_nav_home_summary), true, required = true)
-                "MUSIC" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_music_title), stringResource(R.string.pref_nav_music_summary), showMusicTab)
-                "NETWORK" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_network_title), stringResource(R.string.pref_nav_network_summary), showNetworkTab)
-                "JELLYFIN" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_jellyfin_title), stringResource(R.string.pref_nav_jellyfin_summary), showJellyfinTab)
-                else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab)
+                "MUSIC" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_music_title), stringResource(R.string.pref_nav_music_summary), showMusicTab, titleRes = R.string.pref_nav_music_title)
+                "NETWORK" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_network_title), stringResource(R.string.pref_nav_network_summary), showNetworkTab, titleRes = R.string.pref_nav_network_title)
+                "JELLYFIN" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_jellyfin_title), stringResource(R.string.pref_nav_jellyfin_summary), showJellyfinTab, titleRes = R.string.pref_nav_jellyfin_title)
+                else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab, titleRes = R.string.pref_nav_profile_title)
               }
             }
             ExpressivePreferenceGroup {

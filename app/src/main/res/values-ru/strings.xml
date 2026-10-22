@@ -2766,4 +2766,22 @@
   <string name="update_confirm_install">Подтвердить установку</string>
   <string name="update_install_complete">Обновление установлено. Нажмите, чтобы открыть mpvRx.</string>
   <string name="update_download_waiting">Ожидание сети или повторная попытка скачивания…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Способ создания миниатюр</string>
+  <string name="pref_thumbnail_generator_native">Прямое извлечение</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Извлекать миниатюры локальных видео и обложки песен из медиафайла. При переключении кэш миниатюр очищается.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Использовать миниатюры и обложки альбомов Android для локальных видео и песен. При переключении кэш миниатюр очищается; если изображение недоступно, отображается заглушка. Для сетевых превью используется прямое извлечение.</string>
+  <string name="ui_update_channels_summary">Стабильные версии, ночные предварительные версии или экспериментальные сборки CI.</string>
+  <string name="update_experimental_build_format">Эксп. r%1$d</string>
+  <string name="tv_nav_settings">Настройки</string>
+  <string name="tv_player_play_pause">Воспроизвести или приостановить</string>
+  <string name="tv_player_subtitles">Субтитры</string>
+  <string name="tv_player_audio">Аудиодорожки</string>
+  <string name="tv_player_chapters">Главы</string>
+  <string name="tv_player_speed">Скорость воспроизведения</string>
+  <string name="tv_player_aspect_ratio">Соотношение сторон</string>
+  <string name="tv_player_quality">Качество видео</string>
+  <string name="tv_player_seek_bar">Полоса перемотки</string>
+  <string name="pref_audio_animated_artwork_title">Анимированные обложки альбомов</string>
+  <string name="pref_audio_animated_artwork_summary">Загружать подходящие анимированные обложки из Apple Music в полноэкранном музыкальном плеере. Название песни, имя исполнителя и альбом отправляются в Apple; используются мобильные данные. По умолчанию отключено. Если анимация недоступна, остаётся текущая обложка. Чтобы увидеть её, переключитесь с визуализатора на обложку.</string>
 </resources>

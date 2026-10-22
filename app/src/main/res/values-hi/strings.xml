@@ -952,7 +952,7 @@
   <string name="compressor_volume">वॉल्यूम</string>
   <string name="compressor_volume_hint" formatted="false">100% मूल ऑडियो स्तर है। 100% से ज्यादा पर ऑडियो बढ़ जाता है।</string>
   <string name="compressor_zero_keeps_original">0 मूल वैल्यू बनाए रखता है।</string>
-  <string name="generic_minutes_short">%1$dm</string>
+  <string name="generic_minutes_short">%1$d मि.</string>
   <string name="player_horizontal_flip_on">हॉरिजॉन्टल फ्लिप ऑन</string>
   <string name="player_horizontal_flip_off">हॉरिजॉन्टल फ्लिप ऑफ</string>
   <string name="player_vertical_flip_on">वर्टिकल फ्लिप ऑन</string>
@@ -2640,4 +2640,22 @@
   <string name="update_confirm_install">इंस्टॉलेशन की पुष्टि करें</string>
   <string name="update_install_complete">अपडेट इंस्टॉल हो गया। mpvRx खोलने के लिए टैप करें।</string>
   <string name="update_download_waiting">नेटवर्क का इंतज़ार है या डाउनलोड फिर से आज़माया जा रहा है…</string>
+  <string name="pref_appearance_thumbnail_generator_title">थंबनेल जनरेटर</string>
+  <string name="pref_thumbnail_generator_native">सीधे फ़ाइल से</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">मीडिया फ़ाइल से स्थानीय वीडियो के थंबनेल और गानों के कवर निकालें। विकल्प बदलने पर कैश किए गए थंबनेल मिट जाते हैं।</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">स्थानीय वीडियो और गानों के लिए Android के थंबनेल और एल्बम कवर इस्तेमाल करें। विकल्प बदलने पर कैश किए गए थंबनेल मिट जाते हैं; कवर उपलब्ध न होने पर उसकी जगह एक संकेतक दिखता है। नेटवर्क पूर्वावलोकन सीधे फ़ाइल से बनाए जाते हैं।</string>
+  <string name="ui_update_channels_summary">स्थिर संस्करण, हर रात के पूर्वावलोकन या प्रायोगिक CI बिल्ड।</string>
+  <string name="update_experimental_build_format">प्रायोगिक r%1$d</string>
+  <string name="tv_nav_settings">सेटिंग्स</string>
+  <string name="tv_player_play_pause">चलाएँ या रोकें</string>
+  <string name="tv_player_subtitles">उपशीर्षक</string>
+  <string name="tv_player_audio">ऑडियो ट्रैक</string>
+  <string name="tv_player_chapters">अध्याय</string>
+  <string name="tv_player_speed">प्लेबैक गति</string>
+  <string name="tv_player_aspect_ratio">पक्षानुपात</string>
+  <string name="tv_player_quality">वीडियो गुणवत्ता</string>
+  <string name="tv_player_seek_bar">सीक बार</string>
+  <string name="pref_audio_animated_artwork_title">एनिमेटेड एल्बम कवर</string>
+  <string name="pref_audio_animated_artwork_summary">फ़ुल-स्क्रीन संगीत प्लेयर में Apple Music से मेल खाते एनिमेटेड कवर पाएँ। गाने का शीर्षक, कलाकार और एल्बम Apple को भेजे जाते हैं और मोबाइल डेटा इस्तेमाल होता है। डिफ़ॉल्ट रूप से बंद है; कवर उपलब्ध न होने पर मौजूदा कवर बना रहता है। इसे देखने के लिए विज़ुअलाइज़र से कवर पर जाएँ।</string>
 </resources>

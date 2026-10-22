@@ -254,13 +254,14 @@ object AiIntegrationScreen : Screen {
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
               title = stringResource(R.string.pref_ai_features_section),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_section_ai_title),
+              modifier = if (enabled) Modifier.settingsSearchTarget(R.string.pref_section_ai_title) else Modifier,
             )
           }
 
           item {
             PreferenceCard {
               SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_ai_enabled_title, fallback = !enabled),
                 value = enabled,
                 onValueChange = { preferences.enabled.set(it) },
                 title = {
@@ -808,6 +809,7 @@ val apiKeyInfo =
                   val sttModel by preferences.sttModelFor(sttProvider).collectAsState()
 
                   SwitchPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_stt_title),
                     value = realtimeSubsEnabled,
                     onValueChange = { preferences.realtimeSubsEnabled.set(it) },
                     title = {
@@ -829,6 +831,7 @@ val apiKeyInfo =
 
                   ExpressivePreferenceItem {
                   ListPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_stt_output_format_title),
                     value = subtitleGenerationOutputFormat,
                     onValueChange = { preferences.subtitleGenerationOutputFormat.set(it) },
                     values = listOf("srt", "vtt"),
@@ -855,6 +858,7 @@ val apiKeyInfo =
 
                   ExpressivePreferenceItem {
                   ListPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_stt_provider_title),
                     value = sttProvider,
                     onValueChange = preferences.sttProvider::set,
                     values = sttProviders,
@@ -898,7 +902,7 @@ val apiKeyInfo =
                   val sttLanguage by preferences.sttLanguage.collectAsState()
                   ExpressivePreferenceItem {
                   ListPreference(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_translation_section),
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_audio_language_title),
                     value = sttLanguage,
                     onValueChange = { preferences.sttLanguage.set(it) },
                     values =
@@ -974,6 +978,7 @@ val apiKeyInfo =
               item {
                 PreferenceCard {
                   SwitchPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_enable_translation_title),
                     value = subtitleTranslationEnabled,
                     onValueChange = { enabled ->
                       preferences.subtitleTranslationEnabled.set(enabled)
@@ -1016,6 +1021,7 @@ val apiKeyInfo =
             item {
               PreferenceCard {
                 SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_override_instructions_title),
                   value = customPromptEnabled,
                   onValueChange = { preferences.customPromptEnabled.set(it) },
                   title = {

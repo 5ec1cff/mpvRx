@@ -500,6 +500,7 @@ object AboutScreen : Screen {
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .settingsSearchTarget(R.string.ui_auto_check_for_updates)
                     .clickable { updateViewModel.toggleAutoUpdate(!isAutoUpdateEnabled) }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -537,6 +538,7 @@ object AboutScreen : Screen {
               if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 Row(
                   modifier = Modifier.fillMaxWidth()
+                    .settingsSearchTarget(R.string.update_auto_install)
                     .clickable { updateViewModel.toggleAutoInstall(!isAutoInstallEnabled) }.padding(16.dp),
                   verticalAlignment = Alignment.CenterVertically,
                   horizontalArrangement = Arrangement.SpaceBetween,
@@ -552,7 +554,7 @@ object AboutScreen : Screen {
               }
 
               Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().settingsSearchTarget(R.string.ui_update_channel).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
               ) {
                 Text(

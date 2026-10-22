@@ -223,8 +223,8 @@ object FoldersPreferencesScreen : Screen {
         initialUri?.let { putExtra(DocumentsContract.EXTRA_INITIAL_URI, it) }
       })
     }
-    val settingsHighlight =
-      rememberSettingsSearchHighlight(FoldersPreferencesScreen, MaterialTheme.colorScheme.primary)
+    val (settingsListState, settingsHighlight) =
+      rememberSettingsSearchList(FoldersPreferencesScreen, MaterialTheme.colorScheme.primary)
 
     val allBlacklistedFolders = remember(blacklistedVideoFolders, blacklistedAudioFolders) {
       (blacklistedVideoFolders + blacklistedAudioFolders).toList().sorted()
@@ -278,6 +278,7 @@ object FoldersPreferencesScreen : Screen {
       // One scrolling viewport: media settings, blacklisted folders and Add all travel
       // together. A weighted inner list used to leave only two blacklist rows visible.
       LazyColumn(
+        state = settingsListState,
         modifier =
           Modifier
             .fillMaxSize()

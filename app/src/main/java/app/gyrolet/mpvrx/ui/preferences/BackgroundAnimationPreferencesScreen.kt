@@ -144,7 +144,10 @@ object BackgroundAnimationPreferencesScreen : Screen {
             modifier = Modifier.widthIn(max = 760.dp).fillMaxSize().then(searchHighlight),
           ) {
             item(key = "preview") {
-              Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+              Column(
+                modifier = Modifier.settingsSearchTarget(R.string.bg_pref_title),
+                verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+              ) {
                 Surface(
                   shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
                   color = MaterialTheme.colorScheme.surfaceContainerLow,

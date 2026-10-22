@@ -24,9 +24,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -46,6 +48,7 @@ import org.koin.compose.koinInject
 
 private val NavigationEnterEasing = CubicBezierEasing(0.05f, 0.70f, 0.10f, 1.00f)
 private val NavigationExitEasing = CubicBezierEasing(0.30f, 0.00f, 0.80f, 0.15f)
+internal val LocalCurrentScreen = staticCompositionLocalOf<Screen?> { null }
 
 /** The Appearance slider is a duration multiplier: smaller values finish sooner. */
 internal fun navigationDurationMillis(speed: Float, baseMillis: Int = 260): Int =
@@ -141,8 +144,10 @@ internal fun ScreenNavDisplay(
           }
         val entryColor =
           if (entryOpaque) MaterialTheme.colorScheme.background else wallpaperAwareBackgroundColor()
-        Surface(Modifier.fillMaxSize(), color = entryColor) {
-          content(route)
+        CompositionLocalProvider(LocalCurrentScreen provides route) {
+          Surface(Modifier.fillMaxSize(), color = entryColor) {
+            content(route)
+          }
         }
       }
     },

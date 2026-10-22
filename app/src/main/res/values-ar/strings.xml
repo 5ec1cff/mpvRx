@@ -2213,7 +2213,7 @@
   <string name="playlist_unavailable_file">تم نقله أو حذفه</string>
   <string name="playlist_item_unavailable">«%1$s» %2$s</string>
   <plurals name="playlist_remove_dialog_title">
-    <item quantity="one">إزالة مقطع فيديو واحد من قائمة التشغيل؟</item>
+    <item quantity="one">إزالة %1$d مقطع فيديو من قائمة التشغيل؟</item>
     <item quantity="other">إزالة %1$d مقطع فيديو من قائمة التشغيل؟</item>
   </plurals>
   <plurals name="playlist_remove_dialog_message">
@@ -2794,4 +2794,22 @@
   <string name="update_confirm_install">تأكيد التثبيت</string>
   <string name="update_install_complete">تم تثبيت التحديث. اضغط لفتح mpvRx.</string>
   <string name="update_download_waiting">بانتظار الشبكة أو إعادة محاولة التنزيل…</string>
+  <string name="pref_appearance_thumbnail_generator_title">مولّد الصور المصغرة</string>
+  <string name="pref_thumbnail_generator_native">استخراج مباشر</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">استخراج الصور المصغرة للفيديوهات المحلية وأغلفة الأغاني من ملف الوسائط. يؤدي التبديل إلى مسح الصور المصغرة المخزنة مؤقتًا.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">استخدام صور Android المصغرة وأغلفة الألبومات للفيديوهات والأغاني المحلية. يؤدي التبديل إلى مسح الصور المصغرة المخزنة مؤقتًا؛ وتظهر صورة بديلة عند عدم توفر الغلاف. تستخدم معاينات الشبكة الاستخراج المباشر.</string>
+  <string name="ui_update_channels_summary">إصدارات مستقرة أو معاينات ليلية أو إصدارات تجريبية من التكامل المستمر.</string>
+  <string name="update_experimental_build_format">تجريبي r%1$d</string>
+  <string name="tv_nav_settings">الإعدادات</string>
+  <string name="tv_player_play_pause">تشغيل أو إيقاف مؤقت</string>
+  <string name="tv_player_subtitles">الترجمات</string>
+  <string name="tv_player_audio">المسارات الصوتية</string>
+  <string name="tv_player_chapters">الفصول</string>
+  <string name="tv_player_speed">سرعة التشغيل</string>
+  <string name="tv_player_aspect_ratio">نسبة العرض إلى الارتفاع</string>
+  <string name="tv_player_quality">جودة الفيديو</string>
+  <string name="tv_player_seek_bar">شريط التنقل</string>
+  <string name="pref_audio_animated_artwork_title">أغلفة ألبومات متحركة</string>
+  <string name="pref_audio_animated_artwork_summary">جلب أغلفة متحركة مطابقة من Apple Music في مشغّل الموسيقى بملء الشاشة. يُرسل عنوان الأغنية والفنان والألبوم إلى Apple ويستخدم بيانات الجوال. معطّل افتراضيًا؛ ويحتفظ بالغلاف الحالي عند عدم توفر غلاف متحرك. بدّل من المؤثرات المرئية إلى الغلاف لرؤيته.</string>
 </resources>

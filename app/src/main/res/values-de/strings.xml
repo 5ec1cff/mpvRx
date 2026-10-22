@@ -2736,4 +2736,22 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="update_confirm_install">Installation bestätigen</string>
   <string name="update_install_complete">Update installiert. Tippe, um mpvRx zu öffnen.</string>
   <string name="update_download_waiting">Warten auf das Netzwerk oder erneuter Downloadversuch…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Vorschaubilderzeugung</string>
+  <string name="pref_thumbnail_generator_native">Direkte Extraktion</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Vorschaubilder lokaler Videos und Songcover direkt aus der Mediendatei extrahieren. Beim Wechsel werden zwischengespeicherte Vorschaubilder gelöscht.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Android-Vorschaubilder und Albumcover für lokale Videos und Songs verwenden. Beim Wechsel werden zwischengespeicherte Vorschaubilder gelöscht; fehlende Bilder werden durch Platzhalter ersetzt. Netzwerkvorschauen verwenden die direkte Extraktion.</string>
+  <string name="ui_update_channels_summary">Stabile Versionen, nächtliche Vorschauversionen oder experimentelle CI-Builds.</string>
+  <string name="update_experimental_build_format">Experimentell r%1$d</string>
+  <string name="tv_nav_settings">Einstellungen</string>
+  <string name="tv_player_play_pause">Wiedergabe oder Pause</string>
+  <string name="tv_player_subtitles">Untertitel</string>
+  <string name="tv_player_audio">Audiospuren</string>
+  <string name="tv_player_chapters">Kapitel</string>
+  <string name="tv_player_speed">Wiedergabegeschwindigkeit</string>
+  <string name="tv_player_aspect_ratio">Seitenverhältnis</string>
+  <string name="tv_player_quality">Videoqualität</string>
+  <string name="tv_player_seek_bar">Suchleiste</string>
+  <string name="pref_audio_animated_artwork_title">Animierte Albumcover</string>
+  <string name="pref_audio_animated_artwork_summary">Passende animierte Cover von Apple Music im Vollbild-Musikplayer abrufen. Sendet Songtitel, Künstler und Album an Apple und nutzt mobile Daten. Standardmäßig deaktiviert; wenn kein animiertes Cover verfügbar ist, bleibt das bisherige Cover erhalten. Wechsle vom Visualisierer zum Cover, um es zu sehen.</string>
 </resources>

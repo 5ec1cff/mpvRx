@@ -407,6 +407,7 @@ object AdvancedPreferencesScreen : Screen {
           item {
             PreferenceCard {
               SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_auto_backup_title),
                 value = autoBackupEnabled,
                 enabled = configurationFolderUri.isNotBlank(),
                 onValueChange = { enabled ->
@@ -1078,6 +1079,7 @@ object AdvancedPreferencesScreen : Screen {
 
               ExpressivePreferenceItem {
               SliderPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_debug_log_size_title),
                 value = debugLogSizeMb.toFloat(),
                 onValueChange = { value -> preferences.debugLogSizeMb.set(value.toInt().coerceIn(1, 10)) },
                 sliderValue = debugLogSizeMb.toFloat(),

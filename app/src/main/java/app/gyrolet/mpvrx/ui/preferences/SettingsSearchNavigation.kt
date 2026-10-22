@@ -4,6 +4,7 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -25,11 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.utils.LocalCurrentScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,9 +64,9 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_amoled_mode_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_app_icon_title, itemIndex = 1),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_system_font_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.legacy_navigation_bar_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.progressive_navigation_blur_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.legacy_navigation_bar_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.progressive_navigation_blur_title, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unlimited_name_lines_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_unplayed_old_video_label_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 3),
@@ -77,22 +80,22 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
       ),
     LiquidGlassPreferencesScreen to
       listOf(
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_liquid_glass_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_in_hdr_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_frost, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_opacity, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_height, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_amount, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_depth, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_chromatic, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_vibrancy, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_Saturation, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_brightness, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_contrast, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_style, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_strength, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_width, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_blur, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_liquid_glass_title, itemIndex = 2),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_in_hdr_title, itemIndex = 2),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_frost, itemIndex = 4),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_opacity, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_height, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_refraction_amount, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_depth, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_chromatic, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_vibrancy, itemIndex = 8),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_Saturation, itemIndex = 8),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_brightness, itemIndex = 8),
+        SettingsSearchListAnchor(titleRes = R.string.player_sheets_filters_contrast, itemIndex = 8),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_style, itemIndex = 10),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_strength, itemIndex = 10),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_width, itemIndex = 10),
+        SettingsSearchListAnchor(titleRes = R.string.pref_liquid_glass_highlight_blur, itemIndex = 10),
       ),
     PlayerControlsPreferencesScreen to
       listOf(
@@ -179,16 +182,25 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
     AudioPreferencesScreen to
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_audio, itemIndex = 0),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_visualizer_style_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_orientation_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_preferred_languages, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_pitch_correction_title, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_volume_normalization_title, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_background_playback_title, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_autoplay_next_audio_title, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_channels, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_audio_volume_boost_cap, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_auto_fetch_online, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_music_tabs_title, itemIndex = 2),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_visualizer_style_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_orientation_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_ambient_mode_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_wavy_seekbar_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_animated_artwork_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_preferred_languages, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_pitch_correction_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_volume_normalization_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_background_playback_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_autoplay_next_audio_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_drc_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_channels, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_volume_boost_cap, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_auto_fetch_online, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_auto_translate, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_target_language, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_lyrics_display_mode, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_paxsenix_api_key, itemIndex = 11),
       ),
     SubtitlesPreferencesScreen to
       listOf(
@@ -211,13 +223,19 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_section_ai_title, itemIndex = 0),
         SettingsSearchListAnchor(titleRes = R.string.pref_ai_provider_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.search_api_key_config_title, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.search_ai_model_selection_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_ai_enabled_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.search_api_key_config_title, itemIndex = 4),
+        SettingsSearchListAnchor(titleRes = R.string.search_ai_model_selection_title, itemIndex = 6),
         SettingsSearchListAnchor(titleRes = R.string.pref_ai_rename_title, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.pref_ai_search_title, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.search_stt_title, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_translation_section, itemIndex = 13),
-        SettingsSearchListAnchor(titleRes = R.string.search_custom_ai_prompts_title, itemIndex = 15),
+        SettingsSearchListAnchor(titleRes = R.string.search_stt_title, itemIndex = 10),
+        SettingsSearchListAnchor(titleRes = R.string.pref_stt_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_stt_output_format_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_stt_provider_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audio_language_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_translation_section, itemIndex = 12),
+        SettingsSearchListAnchor(titleRes = R.string.pref_enable_translation_title, itemIndex = 13),
+        SettingsSearchListAnchor(titleRes = R.string.search_custom_ai_prompts_title, itemIndex = 14),
       ),
     AdvancedPreferencesScreen to
       listOf(
@@ -229,21 +247,25 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf_storage_location, itemIndex = 5),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf, itemIndex = 7),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_input_conf, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.pref_enable_lua_scripts_title, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_manage_lua_scripts_title, itemIndex = 11),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_enable_recently_played_title, itemIndex = 13),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_clear_playback_history, itemIndex = 13),
-        SettingsSearchListAnchor(titleRes = R.string.pref_clear_config_cache_title, itemIndex = 15),
-        SettingsSearchListAnchor(titleRes = R.string.pref_clear_thumbnail_cache_title, itemIndex = 15),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_clear_fonts_cache, itemIndex = 15),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_verbose_logging_title, itemIndex = 17),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_dump_logs_title, itemIndex = 17),
+        SettingsSearchListAnchor(titleRes = R.string.pref_auto_backup_title, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_enable_lua_scripts_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_manage_lua_scripts_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_enable_recently_played_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_clear_playback_history, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_clear_config_cache_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_clear_thumbnail_cache_title, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_clear_fonts_cache, itemIndex = 11),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_verbose_logging_title, itemIndex = 13),
+        SettingsSearchListAnchor(titleRes = R.string.pref_debug_log_size_title, itemIndex = 13),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_dump_logs_title, itemIndex = 13),
       ),
     MediaServersPreferencesScreen to
       listOf(
         SettingsSearchListAnchor(titleRes = R.string.pref_media_servers_title, itemIndex = 0),
         SettingsSearchListAnchor(titleRes = R.string.pref_jellyfin_server_management, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_seerr_server_management, itemIndex = 2),
+        SettingsSearchListAnchor(titleRes = R.string.pref_seerr_server_management, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_navidrome_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_audiobookshelf_title, itemIndex = 7),
       ),
     NetworkConfigurationPreferencesScreen to
       listOf(
@@ -259,8 +281,10 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
 object SettingsSearchNavigation {
   private val _target = MutableStateFlow<SettingsSearchTarget?>(null)
   val target = _target.asStateFlow()
+  private var locatedTarget: SettingsSearchTarget? = null
 
   fun open(preference: SearchablePreference) {
+    locatedTarget = null
     _target.value =
       SettingsSearchTarget(
         screen = preference.screen,
@@ -272,6 +296,12 @@ object SettingsSearchNavigation {
   fun clear(target: SettingsSearchTarget) {
     _target.compareAndSet(target, null)
   }
+
+  internal fun located(target: SettingsSearchTarget) {
+    if (_target.value == target) locatedTarget = target
+  }
+
+  internal fun isLocated(target: SettingsSearchTarget): Boolean = locatedTarget == target
 }
 
 val SearchablePreference.searchTargetKey: String
@@ -280,14 +310,18 @@ val SearchablePreference.searchTargetKey: String
 /** Scrolls to one concrete preference row and briefly highlights only that row. */
 fun Modifier.settingsSearchTarget(
   key: String,
+  fallback: Boolean = false,
 ): Modifier =
   composed {
     val requestedTarget by SettingsSearchNavigation.target.collectAsState()
-    val isTarget = requestedTarget?.key == key
+    val currentScreen = LocalCurrentScreen.current
+    val isTarget = requestedTarget != null && requestedTarget?.screen == currentScreen &&
+      (requestedTarget?.key == key || fallback)
     val requester = remember { BringIntoViewRequester() }
 
-    LaunchedEffect(isTarget) {
+    LaunchedEffect(isTarget, requestedTarget) {
       if (isTarget) {
+        requestedTarget?.let(SettingsSearchNavigation::located)
         delay(300)
         requester.bringIntoView()
         delay(3200)
@@ -302,7 +336,8 @@ fun Modifier.settingsSearchTarget(
 
 fun Modifier.settingsSearchTarget(
   @StringRes titleRes: Int,
-): Modifier = settingsSearchTarget("res:$titleRes")
+  fallback: Boolean = false,
+): Modifier = settingsSearchTarget("res:$titleRes", fallback)
 
 @Composable
 fun Modifier.highlightBackground(highlighted: Boolean): Modifier {
@@ -311,6 +346,8 @@ fun Modifier.highlightBackground(highlighted: Boolean): Modifier {
     if (highlighted) {
       highlightFlag = true
       delay(3.seconds)
+      highlightFlag = false
+    } else {
       highlightFlag = false
     }
   }
@@ -341,6 +378,38 @@ fun Modifier.highlightBackground(highlighted: Boolean): Modifier {
   return this.background(color = highlight)
 }
 
+private suspend fun scrollToSettingsSearchTarget(
+  screen: Screen,
+  listState: LazyListState,
+  target: SettingsSearchTarget,
+) {
+  delay(200)
+  if (SettingsSearchNavigation.isLocated(target)) return
+  val count = listState.layoutInfo.totalItemsCount
+  if (count == 0) {
+    Log.w("SettingsSearch", "No settings rows available for $screen")
+    return
+  }
+  val hint = settingsSearchListAnchors[screen]
+    ?.firstOrNull {
+      target.key == "res:${it.titleRes}" || (it.title != null && target.key == "text:${it.title}")
+    }?.itemIndex ?: target.anchorItemIndex ?: 0
+  val start = hint.coerceIn(0, count - 1)
+  // Indices are only hints: conditional cards and reordered sections must not break deep links.
+  val candidates = sequenceOf(start) + (0 until count).asSequence().filter { it != start }
+  for (index in candidates) {
+    if (SettingsSearchNavigation.target.value != target || SettingsSearchNavigation.isLocated(target)) return
+    listState.scrollToItem(index)
+    withFrameNanos { }
+    withFrameNanos { }
+    delay(80)
+  }
+  if (!SettingsSearchNavigation.isLocated(target) && SettingsSearchNavigation.target.value == target) {
+    listState.scrollToItem(start)
+    Log.w("SettingsSearch", "Requested setting ${target.key} is not displayed on $screen; it may require another option to be enabled")
+  }
+}
+
 @Composable
 fun rememberSettingsSearchList(
   screen: Screen,
@@ -351,15 +420,7 @@ fun rememberSettingsSearchList(
 
   LaunchedEffect(requestedTarget, screen) {
     val target = requestedTarget?.takeIf { it.screen == screen } ?: return@LaunchedEffect
-    val targetIndex =
-      target.anchorItemIndex ?: settingsSearchListAnchors[screen]
-        ?.firstOrNull {
-          target.key == "res:${it.titleRes}" || (it.title != null && target.key == "text:${it.title}")
-        }?.itemIndex
-        ?: 0
-
-    delay(200)
-    listState.animateScrollToItem(targetIndex)
+    scrollToSettingsSearchTarget(screen, listState, target)
   }
 
   return listState to Modifier
@@ -375,15 +436,7 @@ fun rememberSettingsSearchHighlight(
 
   LaunchedEffect(requestedTarget, screen) {
     val target = requestedTarget?.takeIf { it.screen == screen } ?: return@LaunchedEffect
-    val targetIndex =
-      target.anchorItemIndex ?: settingsSearchListAnchors[screen]
-        ?.firstOrNull {
-          target.key == "res:${it.titleRes}" || (it.title != null && target.key == "text:${it.title}")
-        }?.itemIndex
-        ?: 0
-
-    delay(200)
-    listState.animateScrollToItem(targetIndex)
+    scrollToSettingsSearchTarget(screen, listState, target)
   }
   return Modifier
 }

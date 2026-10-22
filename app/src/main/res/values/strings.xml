@@ -2810,4 +2810,6 @@
   <string name="tv_player_aspect_ratio">Aspect ratio</string>
   <string name="tv_player_quality">Video quality</string>
   <string name="tv_player_seek_bar">Seek bar</string>
+  <string name="pref_audio_animated_artwork_title">Animated album artwork</string>
+  <string name="pref_audio_animated_artwork_summary">Fetch matching animated covers from Apple Music in the full-screen music player. Sends song title, artist and album to Apple and uses mobile data. Off by default; keeps the existing cover when unavailable. Switch from the visualizer to the cover to see it.</string>
 </resources>

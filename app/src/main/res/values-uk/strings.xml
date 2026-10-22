@@ -2706,4 +2706,22 @@
   <string name="update_confirm_install">Підтвердити встановлення</string>
   <string name="update_install_complete">Оновлення встановлено. Натисніть, щоб відкрити mpvRx.</string>
   <string name="update_download_waiting">Очікування мережі або повторна спроба завантаження…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Спосіб створення мініатюр</string>
+  <string name="pref_thumbnail_generator_native">Пряме видобування</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Видобувати мініатюри локальних відео й обкладинки пісень із медіафайлу. Перемикання очищує кеш мініатюр.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Використовувати мініатюри й обкладинки альбомів Android для локальних відео та пісень. Перемикання очищує кеш мініатюр; якщо зображення недоступне, відображається заповнювач. Для мережевих переглядів використовується пряме видобування.</string>
+  <string name="ui_update_channels_summary">Стабільні версії, нічні попередні версії або експериментальні збірки CI.</string>
+  <string name="update_experimental_build_format">Експ. r%1$d</string>
+  <string name="tv_nav_settings">Налаштування</string>
+  <string name="tv_player_play_pause">Відтворити або призупинити</string>
+  <string name="tv_player_subtitles">Субтитри</string>
+  <string name="tv_player_audio">Аудіодоріжки</string>
+  <string name="tv_player_chapters">Розділи</string>
+  <string name="tv_player_speed">Швидкість відтворення</string>
+  <string name="tv_player_aspect_ratio">Співвідношення сторін</string>
+  <string name="tv_player_quality">Якість відео</string>
+  <string name="tv_player_seek_bar">Смуга перемотування</string>
+  <string name="pref_audio_animated_artwork_title">Анімовані обкладинки альбомів</string>
+  <string name="pref_audio_animated_artwork_summary">Завантажувати відповідні анімовані обкладинки з Apple Music у повноекранному музичному програвачі. Назва пісні, виконавець і альбом надсилаються до Apple; використовуються мобільні дані. Типово вимкнено. Якщо анімація недоступна, залишається поточна обкладинка. Щоб побачити її, перемкніться з візуалізатора на обкладинку.</string>
 </resources>

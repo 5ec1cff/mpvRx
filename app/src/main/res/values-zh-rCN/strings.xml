@@ -2719,4 +2719,22 @@
   <string name="update_confirm_install">确认安装</string>
   <string name="update_install_complete">更新已安装。点按以打开 mpvRx。</string>
   <string name="update_download_waiting">正在等待网络或重试下载…</string>
+  <string name="pref_appearance_thumbnail_generator_title">缩略图生成方式</string>
+  <string name="pref_thumbnail_generator_native">直接提取</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">从媒体文件中提取本地视频缩略图和歌曲封面。切换后会清除已缓存的缩略图。</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">为本地视频和歌曲使用 Android 缩略图及专辑封面。切换后会清除已缓存的缩略图；封面不可用时显示占位图。网络预览使用直接提取方式。</string>
+  <string name="ui_update_channels_summary">稳定版本、每夜预览版或实验性 CI 构建。</string>
+  <string name="update_experimental_build_format">实验版 r%1$d</string>
+  <string name="tv_nav_settings">设置</string>
+  <string name="tv_player_play_pause">播放或暂停</string>
+  <string name="tv_player_subtitles">字幕</string>
+  <string name="tv_player_audio">音轨</string>
+  <string name="tv_player_chapters">章节</string>
+  <string name="tv_player_speed">播放速度</string>
+  <string name="tv_player_aspect_ratio">宽高比</string>
+  <string name="tv_player_quality">视频画质</string>
+  <string name="tv_player_seek_bar">进度条</string>
+  <string name="pref_audio_animated_artwork_title">动态专辑封面</string>
+  <string name="pref_audio_animated_artwork_summary">在全屏音乐播放器中从 Apple Music 获取匹配的动态封面。会向 Apple 发送歌曲名称、艺人和专辑信息，并使用移动数据。默认关闭；动态封面不可用时保留现有封面。请从可视化效果切换到封面以查看动画。</string>
 </resources>

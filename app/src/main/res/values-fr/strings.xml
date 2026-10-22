@@ -924,7 +924,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="diagnostics_app_cpu">CPU de l’appli</string>
   <string name="diagnostics_memory_cache_header">MÉMOIRE ET CACHE</string>
   <string name="diagnostics_process_memory">Processus</string>
-  <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Native %4$s</string>
+  <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Mémoire native %4$s</string>
   <string name="diagnostics_playback_cache">Lecture</string>
   <string name="diagnostics_playback_cache_value">En mémoire tampon %1$.1f s | Paquets %2$s | Fichier %3$s</string>
   <string name="toast_failed_to_read_file">Impossible de lire le fichier : %1$s</string>
@@ -2736,4 +2736,22 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="update_confirm_install">Confirmer l’installation</string>
   <string name="update_install_complete">Mise à jour installée. Appuyez pour ouvrir mpvRx.</string>
   <string name="update_download_waiting">En attente du réseau ou nouvelle tentative de téléchargement…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Générateur de miniatures</string>
+  <string name="pref_thumbnail_generator_native">Extraction directe</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Extraire les miniatures des vidéos locales et les pochettes des chansons depuis le fichier multimédia. Changer de méthode efface les miniatures en cache.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Utiliser les miniatures et pochettes d’albums Android pour les vidéos et chansons locales. Changer de méthode efface les miniatures en cache ; une image de remplacement apparaît si la pochette est indisponible. Les aperçus réseau utilisent l’extraction directe.</string>
+  <string name="ui_update_channels_summary">Versions stables, aperçus nocturnes ou compilations expérimentales issues de l’intégration continue.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
+  <string name="tv_nav_settings">Paramètres</string>
+  <string name="tv_player_play_pause">Lire ou mettre en pause</string>
+  <string name="tv_player_subtitles">Sous-titres</string>
+  <string name="tv_player_audio">Pistes audio</string>
+  <string name="tv_player_chapters">Chapitres</string>
+  <string name="tv_player_speed">Vitesse de lecture</string>
+  <string name="tv_player_aspect_ratio">Rapport d’image</string>
+  <string name="tv_player_quality">Qualité vidéo</string>
+  <string name="tv_player_seek_bar">Barre de progression</string>
+  <string name="pref_audio_animated_artwork_title">Pochettes d’albums animées</string>
+  <string name="pref_audio_animated_artwork_summary">Récupérer les pochettes animées correspondantes sur Apple Music dans le lecteur de musique en plein écran. Envoie le titre, l’artiste et l’album à Apple et utilise les données mobiles. Désactivé par défaut ; conserve la pochette actuelle si aucune animation n’est disponible. Passez du visualiseur à la pochette pour la voir.</string>
 </resources>

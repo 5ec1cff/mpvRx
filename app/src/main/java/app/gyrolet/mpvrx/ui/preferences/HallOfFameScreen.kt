@@ -179,12 +179,14 @@ object HallOfFameScreen : Screen {
             var index = 0
 
             item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
-              HallOfFameHeader(
-                showBack = showBack,
-                loading = loading,
-                onBack = { backstack.popSafely() },
-                onRefresh = { refreshRequest++ },
-              )
+              Box(Modifier.settingsSearchTarget(R.string.pref_hall_of_fame_title)) {
+                HallOfFameHeader(
+                  showBack = showBack,
+                  loading = loading,
+                  onBack = { backstack.popSafely() },
+                  onRefresh = { refreshRequest++ },
+                )
+              }
             }
             index++
 

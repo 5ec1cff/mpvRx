@@ -98,6 +98,7 @@ val domainModule =
         .SyncplayManager(androidContext())
     }
     single { app.gyrolet.mpvrx.data.lyrics.LrcLibApiService(get()) }
+    single { app.gyrolet.mpvrx.data.artwork.AppleMusicArtworkRepository(get()) }
     single { app.gyrolet.mpvrx.data.lyrics.LyricsTranslationService(get()) }
     single { app.gyrolet.mpvrx.repository.lyrics.LyricsRepository(androidContext(), get(), get()) }
     single { TorrentStreamingEngine(androidContext()) }

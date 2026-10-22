@@ -1052,7 +1052,7 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="btn_label_rotation">Rotação da tela</string>
   <string name="btn_label_frame_nav">Navegação por quadros</string>
   <string name="btn_label_zoom">Zoom do vídeo</string>
-  <string name="btn_label_pip">Picture-in-Picture</string>
+  <string name="btn_label_pip">Imagem em imagem</string>
   <string name="btn_label_cast">Transmitir</string>
   <string name="btn_label_aspect">Proporção da tela</string>
   <string name="btn_label_lock">Bloquear controles</string>
@@ -2736,4 +2736,22 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="update_confirm_install">Confirmar instalação</string>
   <string name="update_install_complete">Atualização instalada. Toque para abrir o mpvRx.</string>
   <string name="update_download_waiting">Aguardando a rede ou tentando baixar novamente…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Gerador de miniaturas</string>
+  <string name="pref_thumbnail_generator_native">Extração direta</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Extrair miniaturas de vídeos locais e capas de músicas do arquivo de mídia. A troca limpa as miniaturas em cache.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Usar miniaturas e capas de álbuns do Android para vídeos e músicas locais. A troca limpa as miniaturas em cache; uma imagem substituta é exibida quando a capa não está disponível. As prévias de rede usam a extração direta.</string>
+  <string name="ui_update_channels_summary">Versões estáveis, prévias noturnas ou compilações experimentais de CI.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
+  <string name="tv_nav_settings">Configurações</string>
+  <string name="tv_player_play_pause">Reproduzir ou pausar</string>
+  <string name="tv_player_subtitles">Legendas</string>
+  <string name="tv_player_audio">Faixas de áudio</string>
+  <string name="tv_player_chapters">Capítulos</string>
+  <string name="tv_player_speed">Velocidade de reprodução</string>
+  <string name="tv_player_aspect_ratio">Proporção da imagem</string>
+  <string name="tv_player_quality">Qualidade do vídeo</string>
+  <string name="tv_player_seek_bar">Barra de progresso</string>
+  <string name="pref_audio_animated_artwork_title">Capas de álbuns animadas</string>
+  <string name="pref_audio_animated_artwork_summary">Buscar capas animadas correspondentes no Apple Music no reprodutor de música em tela cheia. Envia o título, o artista e o álbum da música à Apple e usa dados móveis. Desativado por padrão; mantém a capa atual quando não há animação disponível. Alterne do visualizador para a capa para vê-la.</string>
 </resources>

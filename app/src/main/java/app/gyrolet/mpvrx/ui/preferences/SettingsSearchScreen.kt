@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.SecureFolderPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
@@ -81,10 +82,12 @@ object SettingsSearchScreen : Screen {
     val emphasizedTypography = LocalEmphasizedTypography.current
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    val secureFolderPreferences = org.koin.compose.koinInject<SecureFolderPreferences>()
+    val secureFolderHidden by secureFolderPreferences.isEntryPointHidden.collectAsState()
 
-    val searchResults by remember(searchQuery, resources) {
+    val searchResults by remember(searchQuery, resources, secureFolderHidden) {
       derivedStateOf {
-        SearchablePreferences.search(searchQuery) { resId ->
+        SearchablePreferences.search(searchQuery, includeSecureFolder = !secureFolderHidden) { resId ->
           resources.getString(resId)
         }
       }
@@ -489,7 +492,10 @@ private fun SearchResultItem(
 
 @Composable
 private fun localizedSearchCategory(category: String): String =
-  stringResource(
+  stringResource(searchCategoryTitleRes(category))
+
+@androidx.annotation.StringRes
+internal fun searchCategoryTitleRes(category: String): Int =
     when (category) {
       "About" -> R.string.pref_section_about
       "Advanced" -> R.string.search_category_advanced
@@ -497,11 +503,12 @@ private fun localizedSearchCategory(category: String): String =
       "Appearance" -> R.string.search_category_appearance
       "Audio" -> R.string.search_category_audio
       "Decoder" -> R.string.search_category_decoder
+      "Codecs" -> R.string.pref_codecs_title
       "Folders" -> R.string.search_category_folders
+      "Media Servers" -> R.string.pref_media_servers_title
       "Gestures" -> R.string.search_category_gestures
       "Network" -> R.string.ui_network
       "Player" -> R.string.search_category_player
       "Subtitles" -> R.string.search_category_subtitles
       else -> R.string.search_category_advanced
-    },
-  )
+    }

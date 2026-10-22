@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 package app.gyrolet.mpvrx.ui.preferences
 
+import androidx.annotation.StringRes
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,7 @@ internal data class ReorderableTabItem(
   val summary: String,
   val enabled: Boolean,
   val required: Boolean = false,
+  @StringRes val titleRes: Int? = null,
 )
 
 /** REX-style animated drag-and-drop with the app's normal connected preference surfaces. */
@@ -50,7 +53,9 @@ internal fun ReorderableTabPreferences(
       ExpressivePreferenceTile(
         index = index,
         itemCount = tabs.size,
-        modifier = Modifier.graphicsLayer { alpha = if (isDragging) 0.95f else 1f },
+        modifier = Modifier
+          .then(tab.titleRes?.let { Modifier.settingsSearchTarget(it) } ?: Modifier)
+          .graphicsLayer { alpha = if (isDragging) 0.95f else 1f },
       ) {
         Row(
           modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp)

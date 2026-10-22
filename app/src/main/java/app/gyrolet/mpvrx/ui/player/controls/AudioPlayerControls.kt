@@ -112,6 +112,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.palette.graphics.Palette
+import app.gyrolet.mpvrx.data.artwork.MotionArtworkQuery
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.repository.JellyfinRepository
 import app.gyrolet.mpvrx.repository.NavidromeRepository
@@ -602,6 +603,7 @@ private fun CoverArtCardImage(
   contentScale: ContentScale = ContentScale.Crop,
   motionArtwork: ByteArray? = null,
   isPlaying: Boolean = false,
+  remoteMotionQuery: MotionArtworkQuery? = null,
 ) {
   val context = LocalContext.current
   val client = org.koin.compose.koinInject<okhttp3.OkHttpClient>()
@@ -628,30 +630,39 @@ private fun CoverArtCardImage(
   val imageBitmap = remember(finalBitmap) { finalBitmap?.asImageBitmap() }
   val animatedDrawable = rememberMotionArtworkDrawable(motionArtwork)
 
-  if (animatedDrawable != null) {
-    MotionArtworkImage(
-      drawable = animatedDrawable,
-      isPlaying = isPlaying,
-      fit = contentScale == ContentScale.Fit,
-      modifier = Modifier.fillMaxSize(),
-    )
-  } else if (imageBitmap != null) {
-    Image(
-      bitmap = imageBitmap,
-      contentDescription = null,
-      contentScale = contentScale,
-      modifier = Modifier.fillMaxSize(),
-    )
-  } else {
-    Box(
-      modifier = Modifier.fillMaxSize(),
-      contentAlignment = Alignment.Center,
-    ) {
-      Icon(
-        imageVector = Icons.RoundedFilled.Audiotrack,
+  Box(Modifier.fillMaxSize()) {
+    if (animatedDrawable != null) {
+      MotionArtworkImage(
+        drawable = animatedDrawable,
+        isPlaying = isPlaying,
+        fit = contentScale == ContentScale.Fit,
+        modifier = Modifier.fillMaxSize(),
+      )
+    } else if (imageBitmap != null) {
+      Image(
+        bitmap = imageBitmap,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(64.dp),
+        contentScale = contentScale,
+        modifier = Modifier.fillMaxSize(),
+      )
+    } else {
+      Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+      ) {
+        Icon(
+          imageVector = Icons.RoundedFilled.Audiotrack,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.size(64.dp),
+        )
+      }
+    }
+    if (remoteMotionQuery != null && motionArtwork == null) {
+      RemoteMotionArtwork(
+        query = remoteMotionQuery,
+        isPlaying = isPlaying,
+        modifier = Modifier.fillMaxSize(),
       )
     }
   }
@@ -827,6 +838,28 @@ fun AudioPlayerControls(
     }
 
   val audioPreferences = koinInject<AudioPreferences>()
+  val animatedAlbumArtwork by audioPreferences.animatedAlbumArtwork.collectAsState()
+  val rawAlbum by PlaybackSession.propString["metadata/by-key/Album"].collectAsState()
+  val rawAlbumAlt by PlaybackSession.propString["metadata/album"].collectAsState()
+  val motionTitle = (currentItem?.title?.takeIf(String::isNotBlank) ?: mediaTitle)
+    ?.let { cleanSongTitle(it, displayArtist) }?.trim()
+  val motionArtist = displayArtist.takeUnless {
+    it.isBlank() || it.equals("Unknown Artist", ignoreCase = true) || it.equals("<unknown>", ignoreCase = true)
+  }
+  val motionQuery =
+    if (animatedAlbumArtwork && !isAudiobook && !motionTitle.isNullOrBlank() && motionArtist != null &&
+      (playbackState.phase == PlaybackPhase.READY || playbackState.phase == PlaybackPhase.BACKGROUND)
+    ) {
+      MotionArtworkQuery(
+        title = motionTitle,
+        artist = motionArtist,
+        album = (rawAlbum?.takeIf(String::isNotBlank) ?: rawAlbumAlt)?.takeUnless {
+          it.isBlank() || it.equals("Unknown Album", ignoreCase = true)
+        },
+      )
+    } else {
+      null
+    }
   val appearancePreferences = koinInject<AppearancePreferences>()
   val audioVisualizerStyle by audioPreferences.audioVisualizerStyle.collectAsState()
   val audioWavySeekbar by audioPreferences.audioWavySeekbar.collectAsState()
@@ -1472,6 +1505,9 @@ fun AudioPlayerControls(
                     contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
                     motionArtwork = currentAudioPresentation?.motionArtwork?.takeIf { activeCoverOverride == null },
                     isPlaying = isPlaying,
+                    remoteMotionQuery = motionQuery?.takeIf {
+                      activeCoverOverride == null && !showVisualizer && !showInPlaceLyrics
+                    },
                   )
 
                 }
