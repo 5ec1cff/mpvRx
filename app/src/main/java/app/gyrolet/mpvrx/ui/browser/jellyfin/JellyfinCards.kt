@@ -48,15 +48,18 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.snapping.SnapPosition
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerSnapDistance
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.carousel.CarouselDefaults
-import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import android.content.Intent
@@ -198,7 +201,7 @@ fun JellyfinHeroBanner(
 ) {
   if (items.isEmpty()) return
 
-  val carouselState = key(server.id) { rememberCarouselState { items.size } }
+  val pagerState = key(server.id) { rememberPagerState { items.size } }
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
   val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -211,14 +214,14 @@ fun JellyfinHeroBanner(
     !isTelevision && !reduceMotion && !hasFocus
   val artworkColors = LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme
 
-  LaunchedEffect(carouselState, items.size) {
-    if (carouselState.currentItem >= items.size) carouselState.scrollToItem(items.lastIndex)
+  LaunchedEffect(pagerState, items.size) {
+    if (pagerState.currentPage >= items.size) pagerState.scrollToPage(items.lastIndex)
   }
 
-  LaunchedEffect(carouselState, carouselState.currentItem, carouselState.isScrollInProgress, canAutoAdvance, items.size) {
-    if (items.size > 1 && canAutoAdvance && !carouselState.isScrollInProgress) {
+  LaunchedEffect(pagerState, pagerState.currentPage, pagerState.isScrollInProgress, canAutoAdvance, items.size) {
+    if (items.size > 1 && canAutoAdvance && !pagerState.isScrollInProgress) {
       delay(5000L)
-      carouselState.animateScrollToItem((carouselState.currentItem + 1) % items.size)
+      pagerState.animateScrollToPage((pagerState.currentPage + 1) % items.size)
     }
   }
 
@@ -239,15 +242,20 @@ fun JellyfinHeroBanner(
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-    HorizontalUncontainedCarousel(
-      state = carouselState,
-      itemWidth = (maxWidth - 48.dp).coerceIn(1.dp, 960.dp),
-      itemSpacing = 12.dp,
-      contentPadding = PaddingValues(horizontal = 20.dp),
-      flingBehavior = CarouselDefaults.singleAdvanceFlingBehavior(carouselState),
-      modifier = Modifier.fillMaxWidth().height(heroHeight),
+    val pageWidth = (maxWidth - 48.dp).coerceIn(1.dp, 960.dp)
+    // Keep the leading gutter outside the scrolling viewport, including after the first card.
+    // Matching the trailing space to the page width keeps the last card aligned there too.
+    HorizontalPager(
+      state = pagerState,
+      pageSize = PageSize.Fixed(pageWidth),
+      pageSpacing = 12.dp,
+      contentPadding = PaddingValues(end = (maxWidth - 20.dp - pageWidth).coerceAtLeast(0.dp)),
+      snapPosition = SnapPosition.Start,
+      flingBehavior = PagerDefaults.flingBehavior(pagerState, pagerSnapDistance = PagerSnapDistance.atMost(1)),
+      key = { items[it].id },
+      modifier = Modifier.fillMaxWidth().padding(start = 20.dp).height(heroHeight),
     ) { page ->
-      val item = items.getOrNull(page) ?: return@HorizontalUncontainedCarousel
+      val item = items.getOrNull(page) ?: return@HorizontalPager
       val backdropUrl =
         remember(server.serverUrl, item.id, item.backdropImageTag, item.primaryImageTag, server.accessToken) {
           if (!item.backdropImageTag.isNullOrBlank()) {
@@ -291,7 +299,7 @@ fun JellyfinHeroBanner(
         }
 
       Box(
-        modifier = Modifier.fillMaxSize().maskClip(MaterialTheme.shapes.extraLarge)
+        modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
           .background(MaterialTheme.colorScheme.surfaceContainerHigh),
       ) {
         // High-res backdrop artwork
@@ -499,7 +507,7 @@ fun JellyfinHeroBanner(
           ) {
             Button(
               onClick = { onPlay(item) },
-              enabled = page == carouselState.currentItem,
+              enabled = page == pagerState.currentPage,
               modifier = Modifier.weight(1f).heightIn(min = 52.dp).tvFocusHighlight(CircleShape),
               shape = CircleShape,
               colors = ButtonDefaults.buttonColors(containerColor = artworkColors.primary, contentColor = artworkColors.onPrimary),
@@ -526,7 +534,7 @@ fun JellyfinHeroBanner(
 
             FilledTonalIconButton(
               onClick = { onDetails(item) },
-              enabled = page == carouselState.currentItem,
+              enabled = page == pagerState.currentPage,
               modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
               shape = CircleShape,
               colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
@@ -559,7 +567,7 @@ fun JellyfinHeroBanner(
                   Toast.makeText(context, R.string.jellyfin_open_trailer_error, Toast.LENGTH_LONG).show()
                 }
               },
-              enabled = page == carouselState.currentItem,
+              enabled = page == pagerState.currentPage,
               shape = CircleShape,
               modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
               colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
@@ -586,7 +594,7 @@ fun JellyfinHeroBanner(
       ) {
         FilledTonalIconButton(
           modifier = Modifier.tvFocusHighlight(CircleShape),
-          onClick = { scope.launch { carouselState.animateScrollToItem((carouselState.currentItem - 1 + items.size) % items.size) } },
+          onClick = { scope.launch { pagerState.animateScrollToPage((pagerState.currentPage - 1 + items.size) % items.size) } },
         ) {
           Icon(
             if (isRtl) Icons.RoundedFilled.ChevronRight else Icons.RoundedFilled.ChevronLeft,
@@ -594,12 +602,12 @@ fun JellyfinHeroBanner(
           )
         }
         SlidingWormDotsIndicator(
-          selectedItem = carouselState.currentItem,
+          selectedItem = pagerState.currentPage,
           pageCount = items.size,
         )
         FilledTonalIconButton(
           modifier = Modifier.tvFocusHighlight(CircleShape),
-          onClick = { scope.launch { carouselState.animateScrollToItem((carouselState.currentItem + 1) % items.size) } },
+          onClick = { scope.launch { pagerState.animateScrollToPage((pagerState.currentPage + 1) % items.size) } },
         ) {
           Icon(
             if (isRtl) Icons.RoundedFilled.ChevronLeft else Icons.RoundedFilled.ChevronRight,

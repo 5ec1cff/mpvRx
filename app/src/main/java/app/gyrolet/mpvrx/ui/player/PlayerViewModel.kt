@@ -169,8 +169,15 @@ enum class AutoCropState {
   ERROR,
 }
 
+/**
+ * @param hostedInBrowser the in-app music sheet adopts a core owned by [MediaPlaybackService]. It
+ * never claims process-wide bindings (Syncplay, ambient/post-processing shaders, subtitle styling)
+ * and only reads the core between [attachToDetachedPlayback] and [detachFromDetachedPlayback].
+ */
 @Suppress("TooManyFunctions")
-class PlayerViewModel : ViewModel(),
+class PlayerViewModel(
+  private val hostedInBrowser: Boolean = false,
+) : ViewModel(),
   KoinComponent {
   private var hostReference = WeakReference<PlayerHost>(null)
   private val host: PlayerHost?
@@ -1174,6 +1181,8 @@ class PlayerViewModel : ViewModel(),
    * and when the screen resumes, and does nothing if the lyrics already belong to this file.
    */
   fun syncLyricsWithPlayback() {
+    // A collapsed in-app sheet must not fetch lyrics for playback it is not showing.
+    if (hostedInBrowser && !_isMpvCoreReady.value) return
     if (!isAudioOnly.value) return
     val path = currentLyricsPath() ?: return
     if (path == lyricsStatePath) return
@@ -2356,28 +2365,31 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         reconcileHdrModeWithRenderer()
       }
     }
-    syncplayManager.playbackStateProvider = { currentSyncplayPlaybackState() }
-    syncplayManager.fileInfoProvider = { currentSyncplayFileInfo() }
-    syncplayManager.onRemotePause = { shouldPause ->
-      viewModelScope.launch(playbackStateDispatcher) {
-        val currentlyPaused = PlaybackSession.getPropertyBoolean("pause") ?: false
-        if (currentlyPaused != shouldPause) {
-          if (!shouldPause) {
-            val focusGranted = withContext(Dispatchers.Main) { host?.requestAudioFocus() ?: false }
-            if (!focusGranted) return@launch
-          }
-          PlaybackSession.setPropertyBoolean("pause", shouldPause)
-          if (shouldPause) {
-            withContext(Dispatchers.Main) { host?.abandonAudioFocus() }
+    // Syncplay keeps one set of player bindings; the in-app sheet must not steal the player's.
+    if (!hostedInBrowser) {
+      syncplayManager.playbackStateProvider = { currentSyncplayPlaybackState() }
+      syncplayManager.fileInfoProvider = { currentSyncplayFileInfo() }
+      syncplayManager.onRemotePause = { shouldPause ->
+        viewModelScope.launch(playbackStateDispatcher) {
+          val currentlyPaused = PlaybackSession.getPropertyBoolean("pause") ?: false
+          if (currentlyPaused != shouldPause) {
+            if (!shouldPause) {
+              val focusGranted = withContext(Dispatchers.Main) { host?.requestAudioFocus() ?: false }
+              if (!focusGranted) return@launch
+            }
+            PlaybackSession.setPropertyBoolean("pause", shouldPause)
+            if (shouldPause) {
+              withContext(Dispatchers.Main) { host?.abandonAudioFocus() }
+            }
           }
         }
       }
-    }
-    syncplayManager.onRemoteSeek = { pos ->
-      viewModelScope.launch(Dispatchers.IO) {
-        val currentPos = PlaybackSession.getPropertyDouble("time-pos") ?: 0.0
-        if (kotlin.math.abs(currentPos - pos) > 0.75) {
-          PlaybackSession.command("seek", pos.toString(), "absolute+exact")
+      syncplayManager.onRemoteSeek = { pos ->
+        viewModelScope.launch(Dispatchers.IO) {
+          val currentPos = PlaybackSession.getPropertyDouble("time-pos") ?: 0.0
+          if (kotlin.math.abs(currentPos - pos) > 0.75) {
+            PlaybackSession.command("seek", pos.toString(), "absolute+exact")
+          }
         }
       }
     }
@@ -2414,7 +2426,8 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         val playbackPhase = PlaybackSession.state.value.phase
         val hasActiveTimeline = playbackPhase == PlaybackPhase.READY || playbackPhase == PlaybackPhase.BACKGROUND
         if (!_isMpvCoreReady.value || !hasActiveTimeline) {
-          delay(250L)
+          // A collapsed in-app sheet keeps its state for the session; it must not keep waking up.
+          if (hostedInBrowser && !_isMpvCoreReady.value) _isMpvCoreReady.first { it } else delay(250L)
           continue
         }
         runCatching {
@@ -2500,7 +2513,8 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       }
     }
 
-    viewModelScope.launch {
+    // Crop, aspect and ambient work belongs to the video player's surface, never to the in-app sheet.
+    if (!hostedInBrowser) viewModelScope.launch {
       val activeGeneration =
         PlaybackSession.state
           .map { state ->
@@ -2526,7 +2540,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         }
     }
 
-    viewModelScope.launch {
+    if (!hostedInBrowser) viewModelScope.launch {
       combine(
         PlaybackSession.propInt["osd-width"],
         PlaybackSession.propInt["osd-height"],
@@ -2569,10 +2583,17 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     // Track selection is now handled by TrackSelector in PlayerActivity
 
     // Restore repeat mode and shuffle state from preferences
-    _repeatMode.value = playerPreferences.repeatMode.get()
-    _shuffleEnabled.value = playerPreferences.shuffleEnabled.get()
-    PlaybackSession.setRepeatMode(_repeatMode.value)
-    PlaybackSession.setShuffleEnabled(_shuffleEnabled.value)
+    if (hostedInBrowser) {
+      // The in-app sheet adopts the running queue instead of re-imposing the saved modes on it.
+      val queue = PlaybackSession.queue.value
+      _repeatMode.value = queue.repeatMode
+      _shuffleEnabled.value = queue.shuffleEnabled
+    } else {
+      _repeatMode.value = playerPreferences.repeatMode.get()
+      _shuffleEnabled.value = playerPreferences.shuffleEnabled.get()
+      PlaybackSession.setRepeatMode(_repeatMode.value)
+      PlaybackSession.setShuffleEnabled(_shuffleEnabled.value)
+    }
 
     // Observe volume boost cap changes to enforce limits dynamically (in PiP)
     viewModelScope.launch(playbackStateDispatcher) {
@@ -2597,10 +2618,13 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         audioPreferences.volumeNormalization.changes(),
         audioPreferences.drcEnabled.changes(),
         audioPreferences.audioChannels.changes(),
-      ) { _, _, _ -> }.collect {
-        if (!_isMpvCoreReady.value) return@collect
-        applyEqualizerMpvFilters(immediate = true)
-      }
+      ) { _, _, _ -> }
+        // Re-sending the unchanged filter chain to a playing core rebuilds it and audibly hiccups.
+        .drop(if (hostedInBrowser) 1 else 0)
+        .collect {
+          if (!_isMpvCoreReady.value) return@collect
+          applyEqualizerMpvFilters(immediate = true)
+        }
     }
 
     // Monitor duration and AB loop changes to automatically enable precise seeking
@@ -2633,8 +2657,9 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       }
     }
 
-    // Refresh custom buttons whenever their configuration changes.
-    viewModelScope.launch {
+    // Refresh custom buttons whenever their configuration changes. Their scripts live in the
+    // shared core, so only the player screen that loaded them may rebuild them.
+    if (!hostedInBrowser) viewModelScope.launch {
       playerPreferences.customButtons.changes().drop(1).collect {
         setupCustomButtons()
       }
@@ -2704,6 +2729,81 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     _volumeBoostCap.value = null
     _precisePosition.value = 0f
     _preciseDuration.value = 0f
+  }
+
+  @Volatile
+  private var detachedPlaybackJob: Job? = null
+
+  /**
+   * Adopts the core [MediaPlaybackService] is playing, for the in-app music sheet. Unlike
+   * [onMpvCoreInitialized] it loads no scripts and writes nothing to mpv, so opening the sheet can
+   * never interrupt the audio that is already playing. The service keeps owning the session and
+   * advances the queue; this only mirrors it, the way PlayerActivity's load callbacks would.
+   */
+  fun attachToDetachedPlayback() {
+    if (!hostedInBrowser || detachedPlaybackJob?.isActive == true) return
+    detachedPlaybackJob =
+      viewModelScope.launch(playbackStateDispatcher) {
+        // Seed the timeline before the polling loop wakes, so the sheet never opens at 0:00.
+        PlaybackSession.getPropertyDouble("time-pos")?.let { _precisePosition.value = it.toFloat() }
+        PlaybackSession.getPropertyDouble("duration")?.takeIf { it > 0.0 }?.let { _preciseDuration.value = it.toFloat() }
+        _isMpvCoreReady.value = true
+        startMpvStateCollectors()
+        refreshPlaylistItems()
+        launch {
+          // The audio-only verdict needs the track list, which can land just after attaching.
+          withTimeoutOrNull(2_000L) { isAudioOnly.first { it } }
+          withContext(Dispatchers.Main) { syncLyricsWithPlayback() }
+        }
+        launch { PlaybackSession.queue.drop(1).collect { refreshPlaylistItems() } }
+        launch {
+          // Notification and widget shuffle toggles change the queue directly.
+          PlaybackSession.queue
+            .map { it.shuffleEnabled }
+            .distinctUntilChanged()
+            .collect { _shuffleEnabled.value = it }
+        }
+        val attachedState = PlaybackSession.state.value
+        var startedGeneration = attachedState.generation
+        var loadedGeneration =
+          attachedState.generation.takeIf {
+            attachedState.phase == PlaybackPhase.READY || attachedState.phase == PlaybackPhase.BACKGROUND
+          }
+        PlaybackSession.state
+          .map { it.generation to it.phase }
+          .distinctUntilChanged()
+          .collect { (generation, phase) ->
+            when (phase) {
+              PlaybackPhase.LOADING ->
+                if (generation != startedGeneration) {
+                  startedGeneration = generation
+                  withContext(Dispatchers.Main) { onVideoLoadStarted() }
+                }
+              PlaybackPhase.READY, PlaybackPhase.BACKGROUND ->
+                if (generation != loadedGeneration) {
+                  startedGeneration = generation
+                  loadedGeneration = generation
+                  refreshPlaylistItems()
+                  withContext(Dispatchers.Main) { syncLyricsWithPlayback() }
+                }
+              else -> Unit
+            }
+          }
+      }
+  }
+
+  /** Stops reading the core when the in-app sheet leaves; its UI state stays for the next open. */
+  fun detachFromDetachedPlayback() {
+    if (!hostedInBrowser) return
+    detachedPlaybackJob?.cancel()
+    detachedPlaybackJob = null
+    // Queued behind any attach work on the same single-threaded dispatcher, so it always wins.
+    viewModelScope.launch(playbackStateDispatcher) {
+      if (detachedPlaybackJob != null) return@launch
+      _isMpvCoreReady.value = false
+      mpvStateCollectorsJob?.cancel()
+      mpvStateCollectorsJob = null
+    }
   }
 
   private fun startMpvStateCollectors() {
@@ -5003,7 +5103,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
   fun showControls() {
     if (sheetShown.value != Sheets.None || panelShown.value != Panels.None) return
-    if (!isAudioOnly.value) {
+    if (!isAudioOnly.value && !hostedInBrowser) {
       try {
         if (playerPreferences.showSystemStatusBar.get()) {
           host?.windowInsetsController?.show(WindowInsetsCompat.Type.statusBars())
@@ -5024,7 +5124,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   fun hideControls() {
-    if (!isAudioOnly.value) {
+    if (!isAudioOnly.value && !hostedInBrowser) {
       try {
         host?.windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
         host?.windowInsetsController?.hide(WindowInsetsCompat.Type.navigationBars())
@@ -5039,7 +5139,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   fun autoHideControls() {
-    if (!isAudioOnly.value) {
+    if (!isAudioOnly.value && !hostedInBrowser) {
       try {
         host?.windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
         host?.windowInsetsController?.hide(WindowInsetsCompat.Type.navigationBars())
@@ -8382,6 +8482,12 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   override fun onCleared() {
+    if (hostedInBrowser) {
+      // The core, its shaders, subtitle styling and Syncplay bindings belong to the playback owner.
+      runCatching { metadataCache.evictAll() }
+      super.onCleared()
+      return
+    }
     // The core can outlive this screen (background playback), so never leave the gesture style behind.
     restoreSubtitleGestureHighlight()
     // Deterministic cleanup of resources that previously relied on GC.

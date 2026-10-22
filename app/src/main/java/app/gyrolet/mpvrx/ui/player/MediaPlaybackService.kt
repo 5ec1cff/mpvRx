@@ -185,6 +185,27 @@ class MediaPlaybackService :
 
     internal fun takeAudioOwnershipForDetachedPlayback(): Boolean = activeInstance?.takeAudioOwnership() == true
 
+    private val inAppPlayerVisible = MutableStateFlow(false)
+
+    /**
+     * The in-app music sheet shows the full player while the service keeps owning playback. While
+     * it is visible, turning background playback off means "stop once I leave", as it does in
+     * PlayerActivity, instead of stopping the playback the user is looking at.
+     */
+    internal fun setInAppPlayerVisible(visible: Boolean) {
+      inAppPlayerVisible.value = visible
+    }
+
+    // In-app full player transport. It shares the detached owner's queue handling, notification
+    // updates and forced state saves, exactly like the notification and media-session controls.
+    internal fun skipToNextFromApp(): Boolean = activeInstance?.playNextFromSession() == true
+
+    internal fun skipToPreviousFromApp() {
+      activeInstance?.playPreviousFromSession()
+    }
+
+    internal fun playQueueItemFromApp(index: Int): Boolean = activeInstance?.playQueueItemFromSession(index) == true
+
     internal fun setExternalDisplayActive(active: Boolean) {
       activeInstance?.updateExternalDisplayWakeLock(active)
     }
@@ -468,8 +489,10 @@ class MediaPlaybackService :
         PlaybackSession.videoBackgroundPlaybackEnabled,
         audioPreferences.audioBackgroundPlayback.changes(),
         PlaybackSession.state,
-      ) { _, audioEnabled, playbackState ->
+        inAppPlayerVisible,
+      ) { _, audioEnabled, playbackState, inAppVisible ->
         when {
+          inAppVisible -> true
           playbackState.currentItem?.audiobook != null -> true
           playbackState.currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.AUDIO -> audioEnabled
           playbackState.currentItem?.declaredMediaKind() == DeclaredPlaybackMediaKind.VIDEO ->
@@ -834,6 +857,18 @@ class MediaPlaybackService :
     if (!canHandleTransportAction()) return
     schedulePlaybackStateSave(force = true)
     PlaybackSession.playPrevious()?.let(::applySessionItem) ?: refreshTransportControls()
+  }
+
+  private fun playQueueItemFromSession(index: Int): Boolean {
+    if (!canHandleTransportAction()) return false
+    schedulePlaybackStateSave(force = true)
+    val item = PlaybackSession.playQueueItem(index)
+    if (item == null) {
+      refreshTransportControls()
+      return false
+    }
+    applySessionItem(item)
+    return true
   }
 
   private fun handleMediaPlayAction(shouldPlay: Boolean) {

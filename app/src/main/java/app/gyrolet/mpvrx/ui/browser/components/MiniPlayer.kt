@@ -113,6 +113,7 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.DeclaredPlaybackMediaKind
+import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
 import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
@@ -122,6 +123,7 @@ import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.VideoDisplayGeometry
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
+import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
 import app.gyrolet.mpvrx.ui.player.toObject
@@ -362,9 +364,13 @@ private fun MiniPlayerContent(
   val towardCloseButton = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
   val reduceMotion = AppMotion.playerReducedMotion()
   val currentOnDismiss by rememberUpdatedState(onDismiss)
+  val musicSheet = LocalInAppMusicSheet.current
+  val useInAppSheet = isAudioOnlyItem && musicSheet?.isAvailable == true
 
-  val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion) {
+  val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion, musicSheet) {
     launch@{
+      // Music opens as a live sheet in this window; video and TV keep the player screen.
+      if (isAudioOnlyItem && musicSheet?.isAvailable == true) return@launch musicSheet.expand()
       val mediaId = PlaybackSession.state.value.currentItem?.stableId
       if (!PlayerSheetTransitions.holdExpansion(mediaId)) return@launch false
       videoSurface[0]?.setPlaybackActive(false)
@@ -496,10 +502,22 @@ private fun MiniPlayerContent(
         },
       )
       .clip(miniPlayerShape)
-      .swipeUpToFullPlayer(
-        mediaId = currentItem?.stableId,
-        animateSheet = isAudioOnlyItem,
-        onExpand = { !tossed && launchPlayer() },
+      .then(
+        if (useInAppSheet && musicSheet != null) {
+          // The live sheet follows the finger from the first pixel; touching down starts warming it.
+          Modifier.inAppMusicSheetDrag(
+            state = musicSheet,
+            collapsing = false,
+            enabled = !tossed,
+            onDown = musicSheet::prewarm,
+          )
+        } else {
+          Modifier.swipeUpToFullPlayer(
+            mediaId = currentItem?.stableId,
+            animateSheet = isAudioOnlyItem,
+            onExpand = { !tossed && launchPlayer() },
+          )
+        },
       )
       .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion) {
         val velocityTracker = VelocityTracker()

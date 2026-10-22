@@ -9,7 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.player.controls
 
+import app.gyrolet.mpvrx.ui.player.InAppMusicSheetState
 import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
+import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeDownToMiniPlayer
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
@@ -678,6 +680,7 @@ fun AudioPlayerControls(
   onOpenPanel: (Panels) -> Unit,
   modifier: Modifier = Modifier,
   sheetBackdrop: Backdrop? = null,
+  inAppSheet: InAppMusicSheetState? = null,
 ) {
   // The queue can move on while the app is in the background; catch the lyrics up on return.
   val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -1192,15 +1195,27 @@ fun AudioPlayerControls(
   Box(
     modifier =
       modifier
-        .playerSheetAnchor(
-          destination = PlayerSheetDestination.FULL,
-          mediaId = currentItem?.stableId,
-          backgroundColor = MaterialTheme.colorScheme.surface,
-        )
-        .swipeDownToMiniPlayer(
-          mediaId = currentItem?.stableId,
-          enabled = !isSheetOpen && !showInPlaceLyrics && !isLyricsFullscreen,
-          onMinimize = viewModel::minimizeToMiniPlayer,
+        .then(
+          if (inAppSheet != null) {
+            // The live sheet moves with the finger, so it tracks the drag itself in window space.
+            Modifier.inAppMusicSheetDrag(
+              state = inAppSheet,
+              collapsing = true,
+              enabled = !isSheetOpen && !showInPlaceLyrics && !isLyricsFullscreen,
+            )
+          } else {
+            Modifier
+              .playerSheetAnchor(
+                destination = PlayerSheetDestination.FULL,
+                mediaId = currentItem?.stableId,
+                backgroundColor = MaterialTheme.colorScheme.surface,
+              )
+              .swipeDownToMiniPlayer(
+                mediaId = currentItem?.stableId,
+                enabled = !isSheetOpen && !showInPlaceLyrics && !isLyricsFullscreen,
+                onMinimize = viewModel::minimizeToMiniPlayer,
+              )
+          },
         )
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.surface)

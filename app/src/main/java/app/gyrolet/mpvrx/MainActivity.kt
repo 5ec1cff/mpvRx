@@ -89,6 +89,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.ui.player.MPVPipHelper
+import app.gyrolet.mpvrx.ui.player.InAppMusicPlayerSheet
+import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
+import app.gyrolet.mpvrx.ui.player.coveredByInAppMusicSheet
+import app.gyrolet.mpvrx.ui.player.inAppMusicSheetMiniSource
+import app.gyrolet.mpvrx.ui.player.rememberInAppMusicSheetState
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
@@ -289,16 +294,21 @@ open class MainActivity : AppCompatActivity() {
       } else {
         MpvrxTheme(transitionState = themeTransitionState) {
           AppWallpaperHost {
+            val musicSheet = rememberInAppMusicSheetState()
             // Reserve the system button area once for every destination and overlay.
             // Consuming it here lets nested Scaffolds/sheets avoid adding it twice.
-            Surface(
-              modifier = Modifier.fillMaxSize().windowInsetsPadding(
-                WindowInsets.tappableElement.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
-              ),
-              color = Color.Transparent,
-            ) {
-              Navigator()
+            CompositionLocalProvider(LocalInAppMusicSheet provides musicSheet) {
+              Surface(
+                modifier = Modifier.fillMaxSize().windowInsetsPadding(
+                  WindowInsets.tappableElement.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                ),
+                color = Color.Transparent,
+              ) {
+                Navigator()
+              }
             }
+            // Above the browser and outside its inset padding: the music player fills the window.
+            InAppMusicPlayerSheet(musicSheet)
             if (showRendererBuildNotice) {
               val acknowledgeNotice = {
                 rendererNoticePreferences.edit().putBoolean(NON_VULKAN_NOTICE_SHOWN, true).apply()
@@ -663,6 +673,7 @@ open class MainActivity : AppCompatActivity() {
     }
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
     val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
+    val musicSheet = LocalInAppMusicSheet.current
 
     // Provide both LocalBackStack and the LazyList/Grid states to all screens
     CompositionLocalProvider(
@@ -709,6 +720,7 @@ open class MainActivity : AppCompatActivity() {
               modifier =
                 Modifier
                   .fillMaxSize()
+                  .coveredByInAppMusicSheet(musicSheet)
                   .playerSheetBackdrop()
                   .captureLiquidGlassBackdrop(miniPlayerBackdrop, liquidGlassEnabled),
               backStack = typedBackstack,
@@ -774,7 +786,9 @@ open class MainActivity : AppCompatActivity() {
             backdrop = miniPlayerBackdrop,
             enabled = liquidGlassEnabled,
           ) {
-            MiniPlayer(modifier = miniPlayerModifier)
+            MiniPlayer(
+              modifier = miniPlayerModifier.inAppMusicSheetMiniSource(musicSheet, AppShapeScale.largeIncreased),
+            )
           }
           PlayerSheetTransitionOverlay(PlayerSheetDestination.MINI, Modifier.matchParentSize())
         }
