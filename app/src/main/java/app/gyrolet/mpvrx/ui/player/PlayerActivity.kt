@@ -4242,11 +4242,18 @@ class PlayerActivity :
     vararg sources: Map<String, String>,
   ): Map<String, String> {
     if (!HttpUtils.isNetworkStream(uri)) return emptyMap()
-    var headers = PlaybackHttpHeaders.merge(*sources)
+    var headers = PlaybackSession.resolveHttpHeaders(uri.toString(), *sources)
     headers = PlaybackHttpHeaders.withDefault(headers, "Referer", HttpUtils.extractRefererDomain(uri))
     headers = PlaybackHttpHeaders.withDefault(headers, "User-Agent", NetworkUserAgent.resolve(this))
     return headers
   }
+
+  /** Keep queue metadata explicit; resolve config defaults and inferred headers at request time. */
+  private fun buildMediaHeaders(
+    uri: Uri?,
+    vararg sources: Map<String, String>,
+  ): Map<String, String> =
+    if (HttpUtils.isNetworkStream(uri)) PlaybackHttpHeaders.merge(*sources) else emptyMap()
 
   private fun applyHttpHeaders(headers: Map<String, String>) {
     PlaybackSession.setPropertyString("user-agent", PlaybackHttpHeaders.userAgent(headers).orEmpty())
@@ -6005,7 +6012,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     val requestGeneration = mediaRequestGeneration
     val requestedSource = originalUri ?: extractUriFromIntent(sourceIntent)?.toString() ?: playableUri
     val requestedHeaders =
-      buildPlaybackHeaders(
+      buildMediaHeaders(
         Uri.parse(requestedSource),
         PlaybackHttpHeaders.fromFlatPairs(sourceIntent.extras?.getStringArray("headers")),
         requestedQueueItem?.headers.orEmpty(),
@@ -8272,7 +8279,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
             ?.takeIf { it.isNotBlank() }
             ?.let { userAgent -> mapOf("User-Agent" to userAgent) }
             .orEmpty()
-        val headers = buildPlaybackHeaders(uri, networkPlaylistHeaders.getOrNull(index).orEmpty(), storedHeaders)
+        val headers = buildMediaHeaders(uri, networkPlaylistHeaders.getOrNull(index).orEmpty(), storedHeaders)
         val existingItem =
           existingQueueItems.firstOrNull { it.originalUri == uri.toString() || it.playableUri == uri.toString() }
 
@@ -8680,11 +8687,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     sourceIntent: Intent,
     requestGeneration: Long,
   ): Boolean {
-    val requestHeaders =
-      buildPlaybackHeaders(
+    val sourceHeaders =
+      buildMediaHeaders(
         Uri.parse(uriString),
         PlaybackHttpHeaders.fromFlatPairs(sourceIntent.extras?.getStringArray("headers")),
       )
+    val requestHeaders = buildPlaybackHeaders(Uri.parse(uriString), sourceHeaders)
     val userAgent = PlaybackHttpHeaders.userAgent(requestHeaders)
     val parseResult =
       when {
@@ -8721,9 +8729,9 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
           networkPlaylistPaths = items.map { it.url }
           networkPlaylistHeaders =
             items.map { item ->
-              buildPlaybackHeaders(
+              buildMediaHeaders(
                 Uri.parse(item.url),
-                requestHeaders,
+                sourceHeaders,
                 item.userAgent?.let { mapOf("User-Agent" to it) }.orEmpty(),
               )
             }

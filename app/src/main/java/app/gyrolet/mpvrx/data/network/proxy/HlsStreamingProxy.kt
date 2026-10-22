@@ -233,7 +233,7 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     headOnly: Boolean,
   ): Response {
     val requestBuilder = Request.Builder().url(variantUrl)
-    applyHeaders(requestBuilder, credentialsFor(variantUrl, session), session.userAgent, session.sourceUrl)
+    applyHeaders(requestBuilder, headersForTarget(variantUrl, session), session.userAgent, session.sourceUrl)
 
     val okResponse: OkResponse
     try {
@@ -275,7 +275,7 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     headOnly: Boolean,
   ): Response {
     val requestBuilder = Request.Builder().url(segmentUrl)
-    applyHeaders(requestBuilder, credentialsFor(segmentUrl, session), session.userAgent, session.sourceUrl)
+    applyHeaders(requestBuilder, headersForTarget(segmentUrl, session), session.userAgent, session.sourceUrl)
     if (!rangeHeader.isNullOrBlank()) {
       requestBuilder.header("Range", rangeHeader)
     }
@@ -330,7 +330,7 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     headOnly: Boolean,
   ): Response {
     val requestBuilder = Request.Builder().url(keyUrl)
-    applyHeaders(requestBuilder, credentialsFor(keyUrl, session), session.userAgent, session.sourceUrl)
+    applyHeaders(requestBuilder, headersForTarget(keyUrl, session), session.userAgent, session.sourceUrl)
 
     val okResponse: OkResponse
     try {
@@ -524,10 +524,10 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
   ): String? = synchronized(session) { session.targetUrlsByToken[token] }
 
   /**
-   * Manifest-supplied targets are attacker-influenced and may point at any host, so the session's
-   * Authorization/Cookie headers are only forwarded back to the origin that issued them.
+   * CDNs still need the configured Referer/Origin. Other session headers, including credentials,
+   * are only forwarded back to the origin that issued them.
    */
-  private fun credentialsFor(
+  private fun headersForTarget(
     targetUrl: String,
     session: HlsSession,
   ): Map<String, String> {
@@ -537,10 +537,14 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
       target.host.equals(source.host, ignoreCase = true) &&
         target.port == source.port &&
         target.scheme.equals(source.scheme, ignoreCase = true)
-    if (!sameOrigin) {
-      Log.w(TAG, "Withholding session headers for cross-origin target ${target.host}")
+    if (sameOrigin) return session.headers
+    val headers = session.headers.filterKeys { name ->
+      name.equals("Referer", ignoreCase = true) || name.equals("Origin", ignoreCase = true)
     }
-    return if (sameOrigin) session.headers else emptyMap()
+    if (headers.size != session.headers.size) {
+      Log.w(TAG, "Withholding session credentials for cross-origin target ${target.host}")
+    }
+    return headers
   }
 
   private fun applyHeaders(

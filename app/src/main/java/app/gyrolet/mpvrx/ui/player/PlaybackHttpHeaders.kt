@@ -22,6 +22,16 @@ internal object PlaybackHttpHeaders {
     return headers
   }
 
+  /** Values already parsed by mpv, so commas in a header value are not list separators. */
+  fun fromHeaderFields(values: Iterable<String>): Map<String, String> {
+    val headers = linkedMapOf<String, String>()
+    values.forEach { field ->
+      val separator = field.indexOf(':')
+      if (separator > 0) put(headers, field.substring(0, separator), field.substring(separator + 1))
+    }
+    return headers
+  }
+
   fun merge(vararg sources: Map<String, String>): Map<String, String> {
     val headers = linkedMapOf<String, String>()
     sources.forEach { source -> source.forEach { (name, value) -> put(headers, name, value) } }

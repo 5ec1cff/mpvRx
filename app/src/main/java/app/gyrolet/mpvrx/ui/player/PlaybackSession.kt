@@ -26,6 +26,7 @@ import app.gyrolet.mpvrx.preferences.AdvancedPreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.MpvConfigControlledFeatures
 import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
 import kotlinx.coroutines.CoroutineScope
@@ -309,6 +310,7 @@ object PlaybackSession : MPVLib.EventObserver {
   private var appliedUserAgent: String? = null
   private var defaultHttpHeaderFields: String? = null
   private var appliedHttpHeaderFields: String? = null
+  private var defaultRequestHeaders: Map<String, String> = emptyMap()
 
   val isInitialized: Boolean
     get() = initialized
@@ -336,12 +338,51 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       activeCoreConfigurationKey = null
       if (!initialized) return@withLock false
       runCatching {
+        // A live core may still carry the previous item's credentials. Clear the header/referrer
+        // options before reloading, so removed config values and per-item credentials cannot linger.
+        MPVLib.setPropertyString("user-agent", defaultUserAgent.orEmpty())
+        MPVLib.setPropertyString("http-header-fields", "")
+        MPVLib.setPropertyString("referrer", "")
         MPVLib.command("load-config-file", configPath)
+        captureHttpDefaultsLocked()
         true
       }.onFailure { error ->
         Log.e(TAG, "Failed to reload mpv.conf", error)
       }.getOrDefault(false)
     }
+
+  /** Config defaults first, explicit per-media headers next, generated fallbacks last. */
+  internal fun resolveHttpHeaders(
+    playableUri: String,
+    vararg sources: Map<String, String>,
+  ): Map<String, String> =
+    nativeLock.withLock {
+      val headers =
+        PlaybackHttpHeaders.withDefault(
+          PlaybackHttpHeaders.merge(defaultRequestHeaders, *sources),
+          "User-Agent",
+          defaultUserAgent,
+        )
+      if (playableUri.startsWith("http://", ignoreCase = true) || playableUri.startsWith("https://", ignoreCase = true)) {
+        PlaybackHttpHeaders.withDefault(headers, "Referer", HttpUtils.extractRefererDomain(Uri.parse(playableUri)))
+      } else {
+        headers
+      }
+    }
+
+  private fun captureHttpDefaultsLocked() {
+    defaultUserAgent = MPVLib.getPropertyString("user-agent")
+    appliedUserAgent = defaultUserAgent
+    defaultHttpHeaderFields = MPVLib.getPropertyString("http-header-fields").orEmpty()
+    appliedHttpHeaderFields = defaultHttpHeaderFields
+    // Read the native list rather than splitting its string representation: header values may
+    // contain commas, and mpv has already handled config quoting, includes and list operations.
+    val headers =
+      PlaybackHttpHeaders.fromHeaderFields(
+        MPVLib.getPropertyNode("http-header-fields")?.toObject<List<String>>(Json).orEmpty(),
+      )
+    defaultRequestHeaders = PlaybackHttpHeaders.withDefault(headers, "Referer", MPVLib.getPropertyString("referrer"))
+  }
 
   val propInt = PlaybackProperty(MPVLib.MpvFormat.MPV_FORMAT_INT64, ::getPropertyInt)
   val propLong = PlaybackProperty(MPVLib.MpvFormat.MPV_FORMAT_INT64, ::getPropertyLong)
@@ -384,6 +425,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         desiredPaused = true
         loadedGeneration = 0L
         defaultUserAgent = null
+        defaultRequestHeaders = emptyMap()
         appliedUserAgent = null
         defaultHttpHeaderFields = null
         appliedHttpHeaderFields = null
@@ -409,10 +451,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           nativeCoreReady = true
           // Preserve the effective default after mpv.conf has been parsed. Per-media request
           // headers may temporarily override it, but must not leak into the next item.
-          defaultUserAgent = MPVLib.getPropertyString("user-agent")
-          appliedUserAgent = defaultUserAgent
-          defaultHttpHeaderFields = MPVLib.getPropertyString("http-header-fields").orEmpty()
-          appliedHttpHeaderFields = defaultHttpHeaderFields
+          captureHttpDefaultsLocked()
           postInitOptions()
           MPVLib.getPropertyString("vo")
             ?.takeIf { it.isNotBlank() && it != "null" }
@@ -445,6 +484,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           desiredPaused = true
           loadedGeneration = 0L
           defaultUserAgent = null
+          defaultRequestHeaders = emptyMap()
           appliedUserAgent = null
           pendingPositionRestoreGeneration = 0L
           pendingPositionRestoreOverride = null
@@ -825,6 +865,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     desiredPaused = true
     loadedGeneration = 0L
     defaultUserAgent = null
+    defaultRequestHeaders = emptyMap()
     appliedUserAgent = null
     pendingPositionRestoreGeneration = 0L
     pendingPositionRestoreOverride = null
@@ -1147,7 +1188,8 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       // media UA, then restore the post-mpv.conf default for a headerless item. Both writes are
       // skipped when the value already matches what is applied, so a local file after another
       // local file costs nothing while a headerless item still gets the default back.
-      val userAgent = PlaybackHttpHeaders.userAgent(resolvedItem.headers) ?: defaultUserAgent.orEmpty()
+      val requestHeaders = resolveHttpHeaders(resolvedItem.playableUri, resolvedItem.headers)
+      val userAgent = PlaybackHttpHeaders.userAgent(requestHeaders) ?: defaultUserAgent.orEmpty()
       if (userAgent != appliedUserAgent) {
         MPVLib.setPropertyString("user-agent", userAgent)
         appliedUserAgent = userAgent
@@ -1156,10 +1198,10 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       // when the incoming item has no headers; otherwise a previous stream's Referer,
       // Authorization, or Cookie can leak into an unrelated media request.
       val nextHttpHeaders =
-        if (resolvedItem.headers.isEmpty()) {
+        if (resolvedItem.headers.isEmpty() && !HttpUtils.isNetworkStream(Uri.parse(resolvedItem.playableUri))) {
           defaultHttpHeaderFields.orEmpty()
         } else {
-          PlaybackHttpHeaders.toMpvHeaderFields(resolvedItem.headers)
+          PlaybackHttpHeaders.toMpvHeaderFields(requestHeaders)
         }
       if (nextHttpHeaders != appliedHttpHeaderFields) {
         MPVLib.setPropertyString("http-header-fields", nextHttpHeaders)
@@ -1690,6 +1732,10 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       // A preference update can race with a shader install. Enforce the composition boundary
       // under the same native lock, rather than trusting a blend value calculated before it.
       MPVLib.setPropertyString(property, if (property == "blend-subtitles" && isAmbientShaderActive) "no" else value)
+      when (property) {
+        "user-agent" -> appliedUserAgent = value
+        "http-header-fields" -> appliedHttpHeaderFields = value
+      }
     }
   }
 
@@ -1981,6 +2027,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             loadedGeneration = 0L
             pendingEofSeekGeneration = null
             defaultUserAgent = null
+            defaultRequestHeaders = emptyMap()
             appliedUserAgent = null
             pendingPositionRestoreGeneration = 0L
             pendingPositionRestoreOverride = null
@@ -2467,12 +2514,13 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     if (M3uPlaybackPolicy.shouldProxyHls(item.playableUri, item.mimeType)) {
       val hlsProxy = HlsStreamingProxy.getInstance()
       val streamId = "hls-${streamSequence.incrementAndGet()}"
-      val userAgent = PlaybackHttpHeaders.userAgent(item.headers)
+      val headers = resolveHttpHeaders(item.playableUri, item.headers)
+      val userAgent = PlaybackHttpHeaders.userAgent(headers)
       val uri =
         hlsProxy.registerStream(
           streamId = streamId,
           sourceUrl = item.playableUri,
-          headers = item.headers,
+          headers = headers,
           userAgent = userAgent,
         )
       Log.d(TAG, "Routing HLS stream through HlsStreamingProxy: $uri")
