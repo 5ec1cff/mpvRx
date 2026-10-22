@@ -181,7 +181,7 @@ object MediaUtils {
         localPlaybackPath(selected)?.let { putExtra("local_media_path", it) }
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, selected.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, selected.height)
-        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, selected.rotation)
+        selected.rotation?.let { putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
       }
     PlaybackPerformanceTrace.mark("OPEN_REQUEST", "source=$launchSource queue=${videos.size}")
     context.startActivity(intent)
@@ -327,7 +327,7 @@ object MediaUtils {
       intent.putExtra("is_audio", videoSource.isAudio)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, videoSource.width)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, videoSource.height)
-      intent.putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, videoSource.rotation)
+      videoSource.rotation?.let { intent.putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
     }
     startPositionSeconds?.takeIf { it.isFinite() && it >= 0 }?.let {
       intent.putExtra(PlayerActivity.EXTRA_START_POSITION_SECONDS, it)

@@ -371,7 +371,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         putExtra("local_media_path", video.path)
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, video.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
-        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, video.rotation)
+        video.rotation?.let { putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
       }
     context.startActivity(intent)
   }

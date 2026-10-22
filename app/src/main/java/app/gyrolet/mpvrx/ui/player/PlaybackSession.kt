@@ -1622,6 +1622,43 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
 
   fun getPropertyNode(property: String): MPVNode? = withReadyCore(null) { MPVLib.getPropertyNode(property) }
 
+  /** Generation whose file mpv has finished opening, or 0 while a load is still in flight. */
+  fun loadedMediaGeneration(): Long = withReadyCore(0L) {
+    loadedGeneration.takeIf { it > 0L && it == _state.value.generation } ?: 0L
+  }
+
+  /**
+   * Runs [block] atomically against [generation]'s loaded file.
+   *
+   * The native lock serializes this with load/stop, so a geometry read can never combine the
+   * previous file's properties with the next request. Returns null once [generation] is superseded.
+   */
+  internal fun <T> readLoadedMedia(
+    generation: Long,
+    block: (PropertyReader) -> T?,
+  ): T? = withReadyCore(null) {
+    if (generation <= 0L || loadedGeneration != generation || _state.value.generation != generation) {
+      return@withReadyCore null
+    }
+    runCatching { block(LockedPropertyReader) }.getOrNull()
+  }
+
+  internal interface PropertyReader {
+    fun int(property: String): Int?
+
+    fun double(property: String): Double?
+
+    fun string(property: String): String?
+  }
+
+  private object LockedPropertyReader : PropertyReader {
+    override fun int(property: String): Int? = runCatching { MPVLib.getPropertyInt(property) }.getOrNull()
+
+    override fun double(property: String): Double? = runCatching { MPVLib.getPropertyDouble(property) }.getOrNull()
+
+    override fun string(property: String): String? = runCatching { MPVLib.getPropertyString(property) }.getOrNull()
+  }
+
   fun setPropertyString(
     property: String,
     value: String,

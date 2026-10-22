@@ -31,11 +31,11 @@ data class Video(
   val width: Int,
   val height: Int,
   /**
-   * Container rotation in degrees, not yet applied to [width]/[height]. Media library rows already
-   * carry this from MediaStore, so the player can pick the correct launch orientation before mpv has
-   * reported any geometry.
+   * Container rotation in degrees, not yet applied to [width]/[height], or null when no trustworthy
+   * source reported it. Null is deliberately distinct from 0: treating an unknown rotation as 0
+   * opens quarter-turned phone videos in the wrong orientation until mpv corrects it.
    */
-  val rotation: Int = 0,
+  val rotation: Int? = null,
   val fps: Float,
   val resolution: String,
   val hasEmbeddedSubtitles: Boolean = false,

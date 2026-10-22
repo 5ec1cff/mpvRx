@@ -120,6 +120,7 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
 import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
+import app.gyrolet.mpvrx.ui.player.VideoDisplayGeometry
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
@@ -296,6 +297,7 @@ private fun MiniPlayerContent(
   val videoAspectRaw by PlaybackSession.propDouble["video-params/aspect"].collectAsStateWithLifecycle()
   val videoWidth by PlaybackSession.propLong["video-params/w"].collectAsStateWithLifecycle()
   val videoHeight by PlaybackSession.propLong["video-params/h"].collectAsStateWithLifecycle()
+  val videoRotate by PlaybackSession.propInt["video-params/rotate"].collectAsStateWithLifecycle()
 
   val isPlaying = paused == false
   val activeBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsStateWithLifecycle()
@@ -536,13 +538,16 @@ private fun MiniPlayerContent(
     val progressColor = MaterialTheme.colorScheme.primary
 
     if (isVideoMode) {
-      // Calculate aspect ratio for video surface container
-      val aspect = videoAspectRaw?.toFloat()
+      // Calculate aspect ratio for video surface container. mpv reports the pre-rotation shape, so
+      // a quarter-turned phone recording must be inverted to match what the surface shows.
+      val sourceAspect = videoAspectRaw?.toFloat()?.takeIf { it.isFinite() && it > 0f }
         ?: if ((videoWidth ?: 0L) > 0L && (videoHeight ?: 0L) > 0L) {
           videoWidth!!.toFloat() / videoHeight!!.toFloat()
         } else {
           16f / 9f
         }
+      val rotation = videoRotate?.let { VideoDisplayGeometry.normalizeQuarterTurn(it) } ?: 0
+      val aspect = if (rotation == 90 || rotation == 270) 1f / sourceAspect else sourceAspect
 
       // Constrain aspect ratio between 0.5 (portrait) and 2.4 (ultrawide)
       val safeAspect = aspect.coerceIn(0.5f, 2.39f)
