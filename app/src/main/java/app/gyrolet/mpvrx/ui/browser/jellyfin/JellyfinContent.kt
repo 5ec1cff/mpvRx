@@ -106,6 +106,8 @@ import app.gyrolet.mpvrx.preferences.MediaLayoutMode
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.pullrefresh.PullRefreshBox
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
+import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
@@ -118,6 +120,7 @@ import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
@@ -480,7 +483,7 @@ fun JellyfinContent(
                   state = homeListState,
                   modifier = Modifier.fillMaxSize(),
                   contentPadding = PaddingValues(
-                    top = if (uiState.heroItems.isEmpty()) topBarHeight else 0.dp,
+                    top = topBarHeight + 12.dp,
                     bottom = navigationBarHeight + 84.dp,
                   ),
                   verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -489,6 +492,8 @@ fun JellyfinContent(
                   if (uiState.heroItems.isNotEmpty()) {
                     item {
                       JellyfinHeroBanner(
+                        autoAdvance = uiState.detailItem == null && !selectionManager.isInSelectionMode &&
+                          !isSearching && !isAddDialogOpen && !isManageServersOpen && !isSortDialogOpen && !isSeerrRequestsOpen,
                         items = uiState.heroItems,
                         server = server,
                         onPlay = { item ->
@@ -516,12 +521,12 @@ fun JellyfinContent(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                       ) {
                         JellyfinSectionHeader(
-                          title = "Libraries",
+                          title = stringResource(R.string.jellyfin_libraries),
                         )
 
                         LazyRow(
-                          horizontalArrangement = Arrangement.spacedBy(12.dp),
-                          contentPadding = PaddingValues(horizontal = 16.dp),
+                          horizontalArrangement = Arrangement.spacedBy(16.dp),
+                          contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
                         ) {
                           items(homeLibraries, key = { it.id }) { library ->
                             JellyfinLibraryCard(
@@ -539,8 +544,7 @@ fun JellyfinContent(
                   if (uiState.resumeItems.isNotEmpty()) {
                     item {
                       JellyfinHorizontalSection(
-                        title = "Continue Watching",
-                        subtitle = "Jump back in",
+                        title = stringResource(R.string.jellyfin_continue_watching),
                         items = uiState.resumeItems,
                         server = server,
                         isContinueWatching = true,
@@ -570,8 +574,8 @@ fun JellyfinContent(
                     if (uiState.latestMovies.isNotEmpty()) {
                       item {
                         JellyfinHorizontalSection(
-                          title = "Latest Movies",
-                          subtitle = "Newly added to server",
+                          title = stringResource(R.string.jellyfin_latest_movies),
+                          subtitle = stringResource(R.string.seerr_recently_added),
                           items = uiState.latestMovies,
                           server = server,
                           onItemClick = { item -> viewModel.openDetail(item) },
@@ -588,8 +592,7 @@ fun JellyfinContent(
                     if (uiState.latestShows.isNotEmpty()) {
                       item {
                         JellyfinHorizontalSection(
-                          title = "Latest TV Shows",
-                          subtitle = "Newly updated series",
+                          title = stringResource(R.string.jellyfin_latest_series),
                           items = uiState.latestShows,
                           server = server,
                           onItemClick = { item -> viewModel.openDetail(item) },
@@ -828,6 +831,9 @@ fun JellyfinContent(
                 }
               } else {
                 val gridState = libraryGridState
+                val gridColumns by remember(gridState) {
+                  derivedStateOf { gridState.layoutInfo.maxSpan.coerceAtLeast(1) }
+                }
                 val hasEnoughItems = items.size > 6
                 val scrollbarAlpha by animateFloatAsState(
                   targetValue = if (hasEnoughItems) 1f else 0f,
@@ -859,10 +865,11 @@ fun JellyfinContent(
                       top = topBarHeight + 8.dp,
                       bottom = navigationBarHeight + 80.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
+                    horizontalArrangement = Arrangement.spacedBy(MediaSelectionGridGap),
                   ) {
-                    items(items, key = { it.id }) { item ->
+                    items(count = items.size, key = { index -> items[index].id }) { index ->
+                      val item = items[index]
                       uiState.activeServer?.let { server ->
                         JellyfinPosterCard(
                           item = item,
@@ -881,6 +888,9 @@ fun JellyfinContent(
                           onLongClick = { selectionManager.handleLongClick(item) },
                           isSelected = selectionManager.isSelected(item),
                           isDownloaded = item.id in downloadedItemIds,
+                          selectionNeighbors = mediaSelectionNeighbors(index, items.size, gridColumns) { neighbor ->
+                            selectionManager.isSelected(items[neighbor])
+                          },
                         )
                       }
                     }
@@ -955,7 +965,7 @@ fun JellyfinContent(
             onSearch = { query -> viewModel.performSearch(query, debounceMs = 0L) },
             modifier = Modifier.fillMaxWidth(),
             inputFieldModifier = Modifier.focusRequester(searchFocusRequester),
-            placeholder = { Text("Search movies, shows, episodes...") },
+            placeholder = { Text(stringResource(R.string.jellyfin_search_hint)) },
             leadingIcon = {
               Icon(
                 imageVector = Icons.RoundedFilled.Search,
@@ -998,7 +1008,8 @@ fun JellyfinContent(
                 selected = isSelected,
                 onClick = { viewModel.setSearchCategory(category) },
                 label = { Text(category.displayName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.tvFocusHighlight(CircleShape),
+                shape = CircleShape,
                 colors =
                   FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,

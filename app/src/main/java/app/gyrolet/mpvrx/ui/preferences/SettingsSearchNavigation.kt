@@ -12,7 +12,6 @@ import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.StartOffsetType
 import androidx.compose.animation.core.repeatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -437,37 +436,6 @@ fun rememberSettingsSearchHighlight(
   LaunchedEffect(requestedTarget, screen) {
     val target = requestedTarget?.takeIf { it.screen == screen } ?: return@LaunchedEffect
     scrollToSettingsSearchTarget(screen, listState, target)
-  }
-  return Modifier
-}
-
-@Composable
-fun rememberSettingsSearchHighlight(
-  screen: Screen,
-  scrollState: ScrollState,
-  @Suppress("UnusedParameter") highlightColor: Color = Color.Unspecified,
-): Modifier {
-  val requestedTarget by SettingsSearchNavigation.target.collectAsState()
-
-  LaunchedEffect(requestedTarget, screen) {
-    if (requestedTarget?.screen == screen) {
-      delay(200)
-    }
-  }
-  return Modifier
-}
-
-@Composable
-fun rememberSettingsSearchHighlight(
-  screen: Screen,
-  @Suppress("UnusedParameter") highlightColor: Color = Color.Unspecified,
-): Modifier {
-  val requestedTarget by SettingsSearchNavigation.target.collectAsState()
-
-  LaunchedEffect(requestedTarget, screen) {
-    if (requestedTarget?.screen == screen) {
-      delay(200)
-    }
   }
   return Modifier
 }

@@ -843,6 +843,10 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_config_cache_size">Tamanho: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Excluir todas as miniaturas de vídeo em cache (serão recriadas ao navegar pelas pastas)</string>
   <string name="pref_thumbnail_cache_size">Tamanho: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">Limpar cache de capas animadas</string>
+  <string name="pref_clear_animated_artwork_cache_summary">Excluir capas de álbum animadas baixadas (serão baixadas novamente quando exibidas)</string>
+  <string name="pref_animated_artwork_cache_size">Tamanho: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">Cache de capas animadas limpo</string>
   <string name="pref_fonts_cache_size">Tamanho: %1$s · %2$d fonte(s)</string>
   <string name="pref_failed_to_clear">Falha ao limpar: %1$s</string>
   <string name="pref_export_failed">Falha ao exportar: %1$s</string>
@@ -2754,4 +2758,16 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="tv_player_seek_bar">Barra de progresso</string>
   <string name="pref_audio_animated_artwork_title">Capas de álbuns animadas</string>
   <string name="pref_audio_animated_artwork_summary">Buscar capas animadas correspondentes no Apple Music no reprodutor de música em tela cheia. Envia o título, o artista e o álbum da música à Apple e usa dados móveis. Desativado por padrão; mantém a capa atual quando não há animação disponível. Alterne do visualizador para a capa para vê-la.</string>
+  <string name="jellyfin_featured">Em destaque</string>
+  <string name="jellyfin_series">Série</string>
+  <string name="jellyfin_movie">Filme</string>
+  <string name="jellyfin_browse_series">Explorar série</string>
+  <string name="jellyfin_details">Detalhes</string>
+  <string name="jellyfin_trailer">Trailer</string>
+  <string name="jellyfin_open_trailer_error">Nenhum aplicativo disponível para abrir trailers.</string>
+  <string name="jellyfin_libraries">Bibliotecas</string>
+  <string name="jellyfin_continue_watching">Continuar assistindo</string>
+  <string name="jellyfin_latest_movies">Filmes recentes</string>
+  <string name="jellyfin_latest_series">Séries recentes</string>
+  <string name="jellyfin_search_hint">Buscar filmes, séries e episódios…</string>
 </resources>

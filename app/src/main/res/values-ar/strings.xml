@@ -843,6 +843,10 @@
   <string name="pref_config_cache_size">الحجم: %1$s</string>
   <string name="pref_thumbnail_cache_summary">حذف جميع الصور المصغرة المخزّنة مؤقتًا (ستُنشأ مجددًا أثناء تصفح المجلدات)</string>
   <string name="pref_thumbnail_cache_size">الحجم: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">مسح ذاكرة التخزين المؤقت لأغلفة الألبومات المتحركة</string>
+  <string name="pref_clear_animated_artwork_cache_summary">حذف أغلفة الألبومات المتحركة التي تم تنزيلها (يُعاد تنزيلها عند عرضها)</string>
+  <string name="pref_animated_artwork_cache_size">الحجم: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">تم مسح ذاكرة التخزين المؤقت لأغلفة الألبومات المتحركة</string>
   <string name="pref_fonts_cache_size">الحجم: %1$s · %2$d خط</string>
   <string name="pref_failed_to_clear">تعذّر المسح: %1$s</string>
   <string name="pref_export_failed">فشل التصدير: %1$s</string>
@@ -2812,4 +2816,16 @@
   <string name="tv_player_seek_bar">شريط التنقل</string>
   <string name="pref_audio_animated_artwork_title">أغلفة ألبومات متحركة</string>
   <string name="pref_audio_animated_artwork_summary">جلب أغلفة متحركة مطابقة من Apple Music في مشغّل الموسيقى بملء الشاشة. يُرسل عنوان الأغنية والفنان والألبوم إلى Apple ويستخدم بيانات الجوال. معطّل افتراضيًا؛ ويحتفظ بالغلاف الحالي عند عدم توفر غلاف متحرك. بدّل من المؤثرات المرئية إلى الغلاف لرؤيته.</string>
+  <string name="jellyfin_featured">المحتوى المميز</string>
+  <string name="jellyfin_series">مسلسل</string>
+  <string name="jellyfin_movie">فيلم</string>
+  <string name="jellyfin_browse_series">تصفح المسلسل</string>
+  <string name="jellyfin_details">التفاصيل</string>
+  <string name="jellyfin_trailer">المقطع الدعائي</string>
+  <string name="jellyfin_open_trailer_error">لا يوجد تطبيق لفتح المقاطع الدعائية.</string>
+  <string name="jellyfin_libraries">المكتبات</string>
+  <string name="jellyfin_continue_watching">متابعة المشاهدة</string>
+  <string name="jellyfin_latest_movies">أحدث الأفلام</string>
+  <string name="jellyfin_latest_series">أحدث المسلسلات</string>
+  <string name="jellyfin_search_hint">ابحث عن الأفلام والمسلسلات والحلقات…</string>
 </resources>

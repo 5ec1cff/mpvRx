@@ -760,6 +760,10 @@
   <string name="pref_config_cache_size">साइज़: %1$s</string>
   <string name="pref_thumbnail_cache_summary">सभी कैश किए गए वीडियो थंबनेल डिलीट करें (फोल्डर ब्राउज़ करते ही फिर से बन जाएंगे)</string>
   <string name="pref_thumbnail_cache_size">साइज़: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">एनिमेटेड एल्बम आर्टवर्क कैश साफ़ करें</string>
+  <string name="pref_clear_animated_artwork_cache_summary">डाउनलोड किए गए एनिमेटेड एल्बम कवर हटाएँ (दिखाने पर फिर से डाउनलोड होंगे)</string>
+  <string name="pref_animated_artwork_cache_size">साइज़: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">एनिमेटेड आर्टवर्क कैश साफ़ किया गया</string>
   <string name="pref_fonts_cache_size">साइज़: %1$s · %2$d फॉन्ट</string>
   <string name="pref_failed_to_clear">साफ करना नाकाम: %1$s</string>
   <string name="pref_export_failed">एक्सपोर्ट नाकाम: %1$s</string>
@@ -2658,4 +2662,16 @@
   <string name="tv_player_seek_bar">सीक बार</string>
   <string name="pref_audio_animated_artwork_title">एनिमेटेड एल्बम कवर</string>
   <string name="pref_audio_animated_artwork_summary">फ़ुल-स्क्रीन संगीत प्लेयर में Apple Music से मेल खाते एनिमेटेड कवर पाएँ। गाने का शीर्षक, कलाकार और एल्बम Apple को भेजे जाते हैं और मोबाइल डेटा इस्तेमाल होता है। डिफ़ॉल्ट रूप से बंद है; कवर उपलब्ध न होने पर मौजूदा कवर बना रहता है। इसे देखने के लिए विज़ुअलाइज़र से कवर पर जाएँ।</string>
+  <string name="jellyfin_featured">चुनिंदा</string>
+  <string name="jellyfin_series">सीरीज़</string>
+  <string name="jellyfin_movie">फ़िल्म</string>
+  <string name="jellyfin_browse_series">सीरीज़ देखें</string>
+  <string name="jellyfin_details">जानकारी</string>
+  <string name="jellyfin_trailer">ट्रेलर</string>
+  <string name="jellyfin_open_trailer_error">ट्रेलर खोलने के लिए कोई ऐप उपलब्ध नहीं है।</string>
+  <string name="jellyfin_libraries">लाइब्रेरी</string>
+  <string name="jellyfin_continue_watching">देखना जारी रखें</string>
+  <string name="jellyfin_latest_movies">नई फ़िल्में</string>
+  <string name="jellyfin_latest_series">नई सीरीज़</string>
+  <string name="jellyfin_search_hint">फ़िल्में, सीरीज़ और एपिसोड खोजें…</string>
 </resources>

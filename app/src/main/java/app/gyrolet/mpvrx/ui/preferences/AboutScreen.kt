@@ -105,8 +105,6 @@ object AboutScreen : Screen {
     val githubRepoUrl = stringResource(R.string.github_repo_url)
     val privacyPolicyUrl = stringResource(R.string.privacy_policy_url)
     val settingsScrollState = rememberScrollState()
-    val settingsHighlight =
-      rememberSettingsSearchHighlight(AboutScreen, settingsScrollState, MaterialTheme.colorScheme.primary)
 
     // Conditionally initialize update feature based on build config
     val updateViewModel: UpdateViewModel? =
@@ -143,7 +141,6 @@ object AboutScreen : Screen {
         modifier =
           Modifier
             .padding(paddingValues)
-            .then(settingsHighlight)
             .verticalScroll(settingsScrollState),
       ) {
         PreferenceCard {

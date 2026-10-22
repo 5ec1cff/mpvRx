@@ -370,7 +370,13 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
     val rewrittenLines = mutableListOf<String>()
     var nextLineIsVariant = false
 
-    val isMasterPlaylist = lines.any { it.trim().startsWith("#EXT-X-STREAM-INF:", ignoreCase = true) }
+    val isMasterPlaylist = lines.any {
+      val line = it.trim()
+      line.startsWith("#EXT-X-STREAM-INF:", ignoreCase = true) ||
+        line.startsWith("#EXT-X-MEDIA:", ignoreCase = true) ||
+        line.startsWith("#EXT-X-I-FRAME-STREAM-INF:", ignoreCase = true)
+    }
+    if (!isMasterPlaylist) return rewriteVariantManifest(manifestContent, token, session, baseUrl)
 
     for (rawLine in lines) {
       val line = rawLine.trim()
@@ -394,7 +400,8 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
           rewrittenLines.add(line)
           nextLineIsVariant = true
         }
-        line.startsWith("#EXT-X-MEDIA:", ignoreCase = true) -> {
+        line.startsWith("#EXT-X-MEDIA:", ignoreCase = true) ||
+          line.startsWith("#EXT-X-I-FRAME-STREAM-INF:", ignoreCase = true) -> {
           val uriMatch = Regex("""URI="([^"]+)"""", RegexOption.IGNORE_CASE).find(line)
           if (uriMatch != null) {
             val originalUri = uriMatch.groupValues[1]
@@ -405,12 +412,6 @@ class HlsStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0) {
           } else {
             rewrittenLines.add(line)
           }
-        }
-        !isMasterPlaylist && !line.startsWith("#") -> {
-          // Single-variant media playlist received as master
-          val resolvedSegmentUrl = resolveUrl(baseUrl, line)
-          val proxiedSegmentUrl = proxyTargetUrl(token, session, "segment", resolvedSegmentUrl)
-          rewrittenLines.add(proxiedSegmentUrl)
         }
         else -> {
           rewrittenLines.add(line)

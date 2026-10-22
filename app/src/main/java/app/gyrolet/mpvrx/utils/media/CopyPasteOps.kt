@@ -25,6 +25,7 @@ import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -209,6 +210,7 @@ object CopyPasteOps {
     onMoved: (Video) -> Unit = {},
   ): Result<Unit> =
     withContext(Dispatchers.IO) {
+      val completedDirectPaths = mutableListOf<String>()
       try {
         // Validate inputs
         if (videos.isEmpty()) {
@@ -251,14 +253,14 @@ object CopyPasteOps {
             val totalBytes = validVideos.sumOf { it.size }
 
             // Perform move operation
-            val (movedPaths, historyUpdates) = performMoveOperation(validVideos, destDir, totalBytes, onMoved)
-
-            // Update history for moved files
-            historyUpdates.forEach { (oldPath, newPath) ->
-              RecentlyPlayedOps.onVideoRenamed(oldPath, newPath)
-              PlaybackStateOps.onVideoRenamed(oldPath, newPath)
+            performMoveOperation(validVideos, destDir, totalBytes) { video, newPath ->
+              completedDirectPaths += newPath
+              withContext(NonCancellable) {
+                RecentlyPlayedOps.onVideoRenamed(video.path, newPath)
+                PlaybackStateOps.onVideoRenamed(video.path, newPath)
+              }
+              onMoved(video)
             }
-            movedPaths
           } else {
             performScopedMoveOperation(context, videos, destinationPath, onMoved)
           }
@@ -268,6 +270,10 @@ object CopyPasteOps {
         Log.d(TAG, "Move operation completed successfully. Moved ${movedFilePaths.size} files")
         Result.success(Unit)
       } catch (e: Exception) {
+        if (completedDirectPaths.isNotEmpty()) {
+          MediaLibraryEvents.notifyChanged()
+          triggerMediaScan(context, completedDirectPaths)
+        }
         Log.e(TAG, "Move operation failed: ${e.message}", e)
         _operationProgress.value =
           _operationProgress.value.copy(
@@ -830,14 +836,13 @@ object CopyPasteOps {
   // Private Helper - Move Operation
   // ============================================================================
 
-  private fun performMoveOperation(
+  private suspend fun performMoveOperation(
     videos: List<Video>,
     destDir: File,
     totalBytes: Long,
-    onMoved: (Video) -> Unit,
-  ): Pair<List<String>, List<Pair<String, String>>> {
+    onMoved: suspend (Video, String) -> Unit,
+  ): List<String> {
     val movedFilePaths = mutableListOf<String>()
-    val historyUpdates = mutableListOf<Pair<String, String>>()
     var processedBytes = 0L
 
     _operationProgress.value =
@@ -882,10 +887,9 @@ object CopyPasteOps {
       if (!finalDestFile.exists()) {
         throw IOException("Move failed: destination file not found for ${video.displayName}")
       }
-      onMoved(video)
+      onMoved(video, finalDestFile.absolutePath)
 
       movedFilePaths.add(finalDestFile.absolutePath)
-      historyUpdates.add(sourceFile.absolutePath to finalDestFile.absolutePath)
       processedBytes += video.size
 
       updateProgress(
@@ -907,7 +911,7 @@ object CopyPasteOps {
         bytesProcessed = totalBytes,
       )
 
-    return Pair(movedFilePaths, historyUpdates)
+    return movedFilePaths
   }
 
   private fun tryDirectMove(
@@ -957,9 +961,9 @@ object CopyPasteOps {
     }
 
     // Delete source
-    if (!source.delete()) {
-      Log.w(TAG, "Failed to delete source file after copy: ${source.absolutePath}")
-      // Don't throw - the file was successfully copied
+    if (!source.delete() && source.exists()) {
+      if (!destination.delete()) Log.w(TAG, "Could not roll back copied file: ${destination.absolutePath}")
+      throw IOException("Could not remove original after copy: ${source.name}; move was not completed")
     }
   }
 
@@ -1153,4 +1157,3 @@ class OpenDocumentTreeContract : ActivityResultContract<Uri?, Uri?>() {
     intent: Intent?,
   ): Uri? = intent?.data
 }
-

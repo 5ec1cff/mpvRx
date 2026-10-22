@@ -1055,6 +1055,10 @@
   <string name="pref_config_cache_size">Size: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Delete all cached video thumbnails (will regenerate as you browse folders)</string>
   <string name="pref_thumbnail_cache_size">Size: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">Clear animated artwork cache</string>
+  <string name="pref_clear_animated_artwork_cache_summary">Delete downloaded animated album covers (downloaded again when shown)</string>
+  <string name="pref_animated_artwork_cache_size">Size: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">Animated artwork cache cleared</string>
   <string name="pref_fonts_cache_size">Size: %1$s · %2$d font(s)</string>
   <string name="pref_failed_to_clear">Failed to clear: %1$s</string>
   <string name="pref_export_failed">Export failed: %1$s</string>
@@ -2812,4 +2816,16 @@
   <string name="tv_player_seek_bar">Seek bar</string>
   <string name="pref_audio_animated_artwork_title">Animated album artwork</string>
   <string name="pref_audio_animated_artwork_summary">Fetch matching animated covers from Apple Music in the full-screen music player. Sends song title, artist and album to Apple and uses mobile data. Off by default; keeps the existing cover when unavailable. Switch from the visualizer to the cover to see it.</string>
+  <string name="jellyfin_featured">Featured</string>
+  <string name="jellyfin_series">Series</string>
+  <string name="jellyfin_movie">Movie</string>
+  <string name="jellyfin_browse_series">Browse series</string>
+  <string name="jellyfin_details">Details</string>
+  <string name="jellyfin_trailer">Trailer</string>
+  <string name="jellyfin_open_trailer_error">No app is available to open trailers.</string>
+  <string name="jellyfin_libraries">Libraries</string>
+  <string name="jellyfin_continue_watching">Continue watching</string>
+  <string name="jellyfin_latest_movies">Latest movies</string>
+  <string name="jellyfin_latest_series">Latest series</string>
+  <string name="jellyfin_search_hint">Search movies, shows, and episodes…</string>
 </resources>

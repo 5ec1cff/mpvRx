@@ -73,18 +73,11 @@ object NetworkConfigurationPreferencesScreen : Screen {
     ) { padding ->
       ProvideExpressivePreferenceLocals {
         val scrollState = rememberScrollState()
-        val settingsHighlight =
-          rememberSettingsSearchHighlight(
-            NetworkConfigurationPreferencesScreen,
-            scrollState,
-            MaterialTheme.colorScheme.primary,
-          )
         Column(
           modifier =
             Modifier
               .fillMaxSize()
               .padding(padding)
-              .then(settingsHighlight)
               .verticalScroll(scrollState)
               .padding(bottom = MaterialTheme.spacing.extraLarge),
           verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),

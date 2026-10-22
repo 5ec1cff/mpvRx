@@ -26,7 +26,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,16 +44,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.carousel.CarouselDefaults
+import androidx.compose.material3.carousel.HorizontalUncontainedCarousel
+import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import android.content.Intent
@@ -64,15 +70,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -81,6 +90,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -89,6 +100,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.R
@@ -96,12 +108,25 @@ import app.gyrolet.mpvrx.data.jellyfin.JellyfinClient
 import app.gyrolet.mpvrx.domain.jellyfin.JellyfinItem
 import app.gyrolet.mpvrx.domain.jellyfin.JellyfinServer
 import app.gyrolet.mpvrx.presentation.components.RemoteImage
+import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionNeighbors
+import app.gyrolet.mpvrx.ui.browser.cards.animatedSelectionColor
+import app.gyrolet.mpvrx.ui.browser.cards.mediaCardClickable
+import app.gyrolet.mpvrx.ui.browser.cards.rememberMediaSelectionShape
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** Watch-progress overlay drawn on top of artwork; uses the always-dark accent so the
@@ -161,6 +186,7 @@ private fun buildStarSubtitle(
 // Hero Featured Carousel Banner (Material 3 Expressive)
 // ============================================================================
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JellyfinHeroBanner(
   items: List<JellyfinItem>,
@@ -168,44 +194,60 @@ fun JellyfinHeroBanner(
   onPlay: (JellyfinItem) -> Unit,
   onDetails: (JellyfinItem) -> Unit,
   modifier: Modifier = Modifier,
+  autoAdvance: Boolean = true,
 ) {
   if (items.isEmpty()) return
 
-  val pageCount = if (items.size > 1) Int.MAX_VALUE else items.size
-  val initialPage = remember(items) {
-    if (items.size > 1) {
-      val middle = Int.MAX_VALUE / 2
-      middle - (middle % items.size)
-    } else 0
-  }
-  val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { pageCount })
+  val carouselState = key(server.id) { rememberCarouselState { items.size } }
+  val scope = rememberCoroutineScope()
+  val context = LocalContext.current
+  val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+  val isTelevision = DeviceFormFactor.isTelevision(context)
+  val reduceMotion = AppMotion.shouldReduceMotion()
+  val pageActive = LocalNavigationPageActive.current
+  val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+  var hasFocus by remember { mutableStateOf(false) }
+  val canAutoAdvance = autoAdvance && pageActive && lifecycle.isAtLeast(Lifecycle.State.STARTED) &&
+    !isTelevision && !reduceMotion && !hasFocus
+  val artworkColors = LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme
 
-  // Auto-scroll every 5 seconds when not touched
-  LaunchedEffect(pagerState.settledPage, items.size) {
-    if (items.size > 1) {
+  LaunchedEffect(carouselState, items.size) {
+    if (carouselState.currentItem >= items.size) carouselState.scrollToItem(items.lastIndex)
+  }
+
+  LaunchedEffect(carouselState, carouselState.currentItem, carouselState.isScrollInProgress, canAutoAdvance, items.size) {
+    if (items.size > 1 && canAutoAdvance && !carouselState.isScrollInProgress) {
       delay(5000L)
-      if (!pagerState.isScrollInProgress) {
-        pagerState.animateScrollToPage(pagerState.currentPage + 1, animationSpec = tween(800))
-      }
+      carouselState.animateScrollToItem((carouselState.currentItem + 1) % items.size)
     }
   }
 
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-  val screenHeight = configuration.screenHeightDp.dp
-  val heroHeight = if (isLandscape) (screenHeight * 0.95f).coerceAtMost(560.dp) else (screenHeight * 0.65f).coerceIn(480.dp, 560.dp)
+  val heroHeight = (when {
+    isTelevision -> 360.dp
+    isLandscape -> 300.dp
+    else -> 460.dp
+  }) * configuration.fontScale.coerceAtLeast(1f)
 
-  Box(
+  Column(
     modifier =
       modifier
         .fillMaxWidth()
-        .height(heroHeight),
+        .onFocusChanged { hasFocus = it.hasFocus }
+        .focusGroup(),
+    verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
-    HorizontalPager(
-      state = pagerState,
-      modifier = Modifier.fillMaxSize(),
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+    HorizontalUncontainedCarousel(
+      state = carouselState,
+      itemWidth = (maxWidth - 48.dp).coerceIn(1.dp, 960.dp),
+      itemSpacing = 12.dp,
+      contentPadding = PaddingValues(horizontal = 20.dp),
+      flingBehavior = CarouselDefaults.singleAdvanceFlingBehavior(carouselState),
+      modifier = Modifier.fillMaxWidth().height(heroHeight),
     ) { page ->
-      val item = items[page % items.size]
+      val item = items.getOrNull(page) ?: return@HorizontalUncontainedCarousel
       val backdropUrl =
         remember(server.serverUrl, item.id, item.backdropImageTag, item.primaryImageTag, server.accessToken) {
           if (!item.backdropImageTag.isNullOrBlank()) {
@@ -248,36 +290,51 @@ fun JellyfinHeroBanner(
           } else null
         }
 
-      Box(modifier = Modifier.fillMaxSize()) {
+      Box(
+        modifier = Modifier.fillMaxSize().maskClip(MaterialTheme.shapes.extraLarge)
+          .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+      ) {
         // High-res backdrop artwork
         RemoteImage(
           url = backdropUrl,
-          contentDescription = item.name,
+          contentDescription = null,
           contentScale = ContentScale.Crop,
           modifier = Modifier.fillMaxSize(),
         )
 
-        // Gradient Scrim: top dark for status/topbar, bottom gradient melting into background
         Box(
           modifier =
             Modifier
               .fillMaxSize()
               .background(
                 Brush.verticalGradient(
-                  0.0f to Color.Black.copy(alpha = 0.6f),
+                  0.0f to Color.Black.copy(alpha = 0.28f),
                   0.25f to Color.Transparent,
-                  0.65f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
-                  1.0f to MaterialTheme.colorScheme.background,
+                  0.6f to Color.Black.copy(alpha = 0.65f),
+                  1.0f to Color.Black.copy(alpha = 0.96f),
                 ),
               ),
         )
+
+        Surface(
+          modifier = Modifier.align(Alignment.TopStart).padding(20.dp),
+          shape = CircleShape,
+          color = Color.Black.copy(alpha = 0.45f),
+          contentColor = Color.White,
+        ) {
+          Text(
+            stringResource(R.string.jellyfin_featured),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+          )
+        }
 
         // Hero Info Overlay
         Column(
           modifier =
             Modifier
               .fillMaxSize()
-              .padding(horizontal = 20.dp, vertical = 16.dp),
+              .padding(horizontal = 20.dp, vertical = 24.dp),
           verticalArrangement = Arrangement.Bottom,
         ) {
           // Title / Logo (matches AFinity)
@@ -292,7 +349,7 @@ fun JellyfinHeroBanner(
             ) {
               RemoteImage(
                 url = logoUrl,
-                contentDescription = "${item.name} logo",
+                contentDescription = item.name,
                 contentScale = ContentScale.Fit,
                 alignment = Alignment.BottomStart,
                 modifier =
@@ -306,7 +363,7 @@ fun JellyfinHeroBanner(
               text = item.name,
               style = MaterialTheme.typography.headlineMedium,
               fontWeight = FontWeight.ExtraBold,
-              color = MaterialTheme.colorScheme.onSurface,
+              color = Color.White,
               maxLines = 2,
               overflow = TextOverflow.Ellipsis,
               modifier = Modifier.padding(bottom = 4.dp),
@@ -318,15 +375,15 @@ fun JellyfinHeroBanner(
             when {
               item.genres.isNotEmpty() -> item.genresString
               !item.taglines.isEmpty() -> item.taglines.first()
-              item.isSeries && item.childCount != null -> "${item.childCount} Seasons"
-              else -> item.type
+              item.isSeries -> stringResource(R.string.jellyfin_series)
+              else -> stringResource(R.string.jellyfin_movie)
             }
 
           if (metaText.isNotBlank()) {
             Text(
               text = metaText,
               style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              color = Color.White.copy(alpha = 0.8f),
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
               modifier = Modifier.padding(bottom = 8.dp),
@@ -334,21 +391,21 @@ fun JellyfinHeroBanner(
           }
 
           // Badges Row (Rating, Year, Resolution)
-          Row(
+          FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.padding(bottom = 12.dp),
           ) {
             // Type Pill (Featured)
             Surface(
-              shape = RoundedCornerShape(6.dp),
-              color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+              shape = CircleShape,
+              color = artworkColors.primary,
             ) {
               Text(
-                text = if (item.isSeries) "SERIES" else "MOVIE",
+                text = stringResource(if (item.isSeries) R.string.jellyfin_series else R.string.jellyfin_movie),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                color = artworkColors.onPrimary,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
               )
             }
 
@@ -436,14 +493,17 @@ fun JellyfinHeroBanner(
 
           // Action Buttons Row
           Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
           ) {
             Button(
               onClick = { onPlay(item) },
-              shape = RoundedCornerShape(14.dp),
-              colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-              contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+              enabled = page == carouselState.currentItem,
+              modifier = Modifier.weight(1f).heightIn(min = 52.dp).tvFocusHighlight(CircleShape),
+              shape = CircleShape,
+              colors = ButtonDefaults.buttonColors(containerColor = artworkColors.primary, contentColor = artworkColors.onPrimary),
+              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             ) {
               Icon(
                 imageVector = if (item.isSeries && item.progressPercent <= 0.05f) Icons.RoundedFilled.Tv else Icons.RoundedFilled.PlayArrow,
@@ -454,30 +514,33 @@ fun JellyfinHeroBanner(
               Text(
                 text =
                   when {
-                    item.progressPercent > 0.05f -> "Resume"
-                    item.isSeries -> "Explore Series"
-                    else -> "Watch Now"
+                    item.progressPercent > 0.05f -> stringResource(R.string.player_resume_action)
+                    item.isSeries -> stringResource(R.string.jellyfin_browse_series)
+                    else -> stringResource(R.string.ui_play)
                   },
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
               )
             }
 
-            FilledTonalButton(
+            FilledTonalIconButton(
               onClick = { onDetails(item) },
-              shape = RoundedCornerShape(14.dp),
-              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+              enabled = page == carouselState.currentItem,
+              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
+              shape = CircleShape,
+              colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
+              ),
             ) {
               Icon(
                 imageVector = Icons.RoundedFilled.Info,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                contentDescription = stringResource(R.string.jellyfin_details),
+                modifier = Modifier.size(24.dp),
               )
-              Spacer(modifier = Modifier.width(6.dp))
-              Text(text = "Details", fontWeight = FontWeight.Medium)
             }
 
             // Trailer Icon Button
-            val heroContext = LocalContext.current
             FilledTonalIconButton(
               onClick = {
                 val rawUrl = item.remoteTrailerUrl?.takeIf { it.isNotBlank() }
@@ -490,54 +553,78 @@ fun JellyfinHeroBanner(
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl)).apply {
                   addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                runCatching { heroContext.startActivity(intent) }
+                try {
+                  context.startActivity(intent)
+                } catch (_: ActivityNotFoundException) {
+                  Toast.makeText(context, R.string.jellyfin_open_trailer_error, Toast.LENGTH_LONG).show()
+                }
               },
-              shape = RoundedCornerShape(14.dp),
-              modifier = Modifier.size(42.dp),
+              enabled = page == carouselState.currentItem,
+              shape = CircleShape,
+              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
+              colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
+              ),
             ) {
               Icon(
                 imageVector = Icons.RoundedFilled.Movie,
-                contentDescription = "Trailer",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                contentDescription = stringResource(R.string.jellyfin_trailer),
+                modifier = Modifier.size(24.dp),
               )
             }
           }
         }
       }
     }
+    }
 
-    // Sliding 5-Dot Worm Indicator (AFinity style)
     if (items.size > 1) {
-      SlidingWormDotsIndicator(
-        pagerState = pagerState,
-        pageCount = items.size,
-        modifier =
-          Modifier
-            .align(Alignment.BottomEnd)
-            .padding(end = 20.dp, bottom = 16.dp),
-      )
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        FilledTonalIconButton(
+          modifier = Modifier.tvFocusHighlight(CircleShape),
+          onClick = { scope.launch { carouselState.animateScrollToItem((carouselState.currentItem - 1 + items.size) % items.size) } },
+        ) {
+          Icon(
+            if (isRtl) Icons.RoundedFilled.ChevronRight else Icons.RoundedFilled.ChevronLeft,
+            stringResource(R.string.pref_gesture_media_previous),
+          )
+        }
+        SlidingWormDotsIndicator(
+          selectedItem = carouselState.currentItem,
+          pageCount = items.size,
+        )
+        FilledTonalIconButton(
+          modifier = Modifier.tvFocusHighlight(CircleShape),
+          onClick = { scope.launch { carouselState.animateScrollToItem((carouselState.currentItem + 1) % items.size) } },
+        ) {
+          Icon(
+            if (isRtl) Icons.RoundedFilled.ChevronLeft else Icons.RoundedFilled.ChevronRight,
+            stringResource(R.string.pref_gesture_media_next),
+          )
+        }
+      }
     }
   }
 }
 
 @Composable
 private fun SlidingWormDotsIndicator(
-  pagerState: PagerState,
+  selectedItem: Int,
   pageCount: Int,
   modifier: Modifier = Modifier,
   visibleDotCount: Int = 5,
 ) {
   if (pageCount <= 1) return
 
-  val fraction by remember(pagerState, pageCount) {
-    derivedStateOf {
-      val rawPage = pagerState.currentPage
-      val offset = pagerState.currentPageOffsetFraction
-      val page = rawPage % pageCount
-      (page.toFloat() + offset).coerceIn(0f, (pageCount - 1).toFloat())
-    }
-  }
+  val fraction by animateFloatAsState(
+    targetValue = selectedItem.coerceIn(0, pageCount - 1).toFloat(),
+    animationSpec = tween(300),
+    label = "jellyfin_carousel_indicator",
+  )
 
   val maxStart = (pageCount - visibleDotCount).coerceAtLeast(0).toFloat()
   val windowStart = (fraction - (visibleDotCount - 1) / 2f).coerceIn(0f, maxStart)
@@ -594,39 +681,44 @@ fun JellyfinSectionHeader(
     modifier =
       modifier
         .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 4.dp),
+        .padding(horizontal = 20.dp, vertical = 6.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Column {
-      Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-      )
-      if (!subtitle.isNullOrBlank()) {
+    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+      Box(Modifier.width(5.dp).height(28.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+      Column(Modifier.weight(1f)) {
         Text(
-          text = subtitle,
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          text = title,
+          style = MaterialTheme.typography.titleLarge,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.onSurface,
         )
+        if (!subtitle.isNullOrBlank()) {
+          Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
       }
     }
 
     if (onSeeAll != null) {
-      TextButton(
+      FilledTonalButton(
         onClick = onSeeAll,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+        modifier = Modifier.tvFocusHighlight(CircleShape),
+        shape = CircleShape,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
       ) {
         Text(
-          text = "See All",
+          text = stringResource(R.string.profile_view_all),
           style = MaterialTheme.typography.labelMedium,
           fontWeight = FontWeight.SemiBold,
           color = MaterialTheme.colorScheme.primary,
         )
         Icon(
-          imageVector = Icons.RoundedFilled.ChevronRight,
+          imageVector = if (LocalLayoutDirection.current == LayoutDirection.Rtl) Icons.RoundedFilled.ChevronLeft else Icons.RoundedFilled.ChevronRight,
           contentDescription = null,
           tint = MaterialTheme.colorScheme.primary,
           modifier = Modifier.size(16.dp),
@@ -665,8 +757,8 @@ fun JellyfinHorizontalSection(
     )
 
     LazyRow(
-      horizontalArrangement = Arrangement.spacedBy(12.dp),
-      contentPadding = PaddingValues(horizontal = 16.dp),
+      horizontalArrangement = Arrangement.spacedBy(16.dp),
+      contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
     ) {
       items(items, key = { it.id }) { item ->
         if (isContinueWatching) {
@@ -682,7 +774,7 @@ fun JellyfinHorizontalSection(
             server = server,
             onClick = { onItemClick(item) },
             onLongClick = onItemLongClick?.let { { it(item) } },
-            cardWidth = 136.dp,
+            cardWidth = 156.dp,
           )
         }
       }
@@ -728,20 +820,21 @@ fun JellyfinResumeCard(
 
   val posterBorderModifier =
     if (isSelected) {
-      Modifier.clip(RoundedCornerShape(10.dp)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+      Modifier.clip(RoundedCornerShape(24.dp)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp))
     } else {
-      Modifier.clip(RoundedCornerShape(10.dp))
+      Modifier.clip(RoundedCornerShape(24.dp))
     }
 
   Column(
-    modifier = modifier.width(230.dp),
+    modifier = modifier.width(280.dp).clip(MaterialTheme.shapes.extraLarge)
+      .background(MaterialTheme.colorScheme.surfaceContainerLow).padding(8.dp),
   ) {
     Box(
       modifier =
         Modifier
           .fillMaxWidth()
           .aspectRatio(16f / 9f)
-          .tvFocusHighlight(RoundedCornerShape(10.dp), focusedScale = 1.03f)
+          .tvFocusHighlight(RoundedCornerShape(24.dp), focusedScale = 1.03f)
           .then(posterBorderModifier)
           .background(MaterialTheme.colorScheme.surfaceContainerHighest)
           .tvContextMenu(onLongClick)
@@ -907,6 +1000,7 @@ fun JellyfinPosterCard(
   onLongClick: (() -> Unit)? = null,
   isSelected: Boolean = false,
   isDownloaded: Boolean = false,
+  selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
 ) {
   val posterImageTag = if (item.type == "Episode" && !item.seriesPrimaryImageTag.isNullOrBlank()) {
     item.seriesPrimaryImageTag
@@ -936,31 +1030,28 @@ fun JellyfinPosterCard(
       modifier.fillMaxWidth()
     }
 
-  val posterBorderModifier =
-    if (isSelected) {
-      Modifier.clip(RoundedCornerShape(8.dp)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-    } else {
-      Modifier.clip(RoundedCornerShape(8.dp))
-    }
+  val cardShape = rememberMediaSelectionShape(isSelected, true, selectionNeighbors)
 
   Column(
-    modifier = cardModifier,
+    modifier = cardModifier
+      .tvFocusHighlight(cardShape, focusedScale = 1.03f)
+      .clip(cardShape)
+      .background(MaterialTheme.colorScheme.surfaceContainerLow)
+      .background(animatedSelectionColor(isSelected))
+      .semantics { selected = isSelected }
+      .tvContextMenu(onLongClick)
+      .mediaCardClickable(onClick = onClick, onLongClick = onLongClick)
+      .padding(8.dp),
   ) {
     Box(
       modifier =
         Modifier
           .fillMaxWidth()
           .aspectRatio(2f / 3f)
-          .tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.03f)
-          .then(posterBorderModifier)
-          .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-          .tvContextMenu(onLongClick)
-          .combinedClickable(
-            onClick = onClick,
-            onLongClick = onLongClick,
-          ),
+          .clip(RoundedCornerShape(12.dp))
+          .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
-      if (!item.primaryImageTag.isNullOrBlank()) {
+      if (!posterImageTag.isNullOrBlank()) {
         RemoteImage(
           url = imageUrl,
           contentDescription = item.name,
@@ -1073,7 +1164,8 @@ fun JellyfinPosterCard(
         text = title,
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = FontWeight.SemiBold,
-        maxLines = 1,
+        minLines = 2,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
         textAlign = TextAlign.Start,
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
@@ -1296,7 +1388,7 @@ fun JellyfinLibraryCard(
   server: JellyfinServer,
   onClick: () -> Unit,
   modifier: Modifier = Modifier,
-  cardWidth: androidx.compose.ui.unit.Dp = 220.dp,
+  cardWidth: androidx.compose.ui.unit.Dp = 248.dp,
 ) {
   val imageUrl =
     remember(server.serverUrl, item.id, item.primaryImageTag, item.backdropImageTag, server.accessToken) {
@@ -1342,6 +1434,8 @@ fun JellyfinLibraryCard(
     modifier =
       modifier
         .width(cardWidth)
+        .tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.02f)
+        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         .clickable(onClick = onClick),
   ) {
     Card(
@@ -1349,9 +1443,8 @@ fun JellyfinLibraryCard(
         Modifier
           .fillMaxWidth()
           .aspectRatio(16f / 9f)
-          .tvFocusHighlight(RoundedCornerShape(10.dp), focusedScale = 1.03f)
-          .clip(RoundedCornerShape(10.dp)),
-      shape = RoundedCornerShape(10.dp),
+          .clip(MaterialTheme.shapes.extraLarge),
+      shape = MaterialTheme.shapes.extraLarge,
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
@@ -1377,7 +1470,7 @@ fun JellyfinLibraryCard(
         }
 
         Surface(
-          shape = RoundedCornerShape(6.dp),
+          shape = CircleShape,
           color = Color.Black.copy(alpha = 0.65f),
           modifier =
             Modifier
@@ -1399,14 +1492,16 @@ fun JellyfinLibraryCard(
       }
     }
 
-    Spacer(modifier = Modifier.height(6.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
     Text(
       text = item.name,
-      style = MaterialTheme.typography.labelMedium,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      style = MaterialTheme.typography.titleSmall,
+      fontWeight = FontWeight.SemiBold,
+      color = MaterialTheme.colorScheme.onSurface,
       maxLines = 1,
       overflow = TextOverflow.Ellipsis,
+      modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
     )
   }
 }
@@ -1442,36 +1537,36 @@ fun JellyfinEpisodeCard(
 
   val backgroundColor =
     if (isSelected) {
-      MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+      MaterialTheme.colorScheme.secondaryContainer
     } else {
-      Color.Transparent
+      MaterialTheme.colorScheme.surfaceContainerLow
     }
 
   Surface(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.02f)
-        .clip(RoundedCornerShape(8.dp))
+        .tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.02f)
+        .clip(MaterialTheme.shapes.extraLarge)
         .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onPlay,
           onLongClick = onLongClick,
         ),
-    shape = RoundedCornerShape(8.dp),
+    shape = MaterialTheme.shapes.extraLarge,
     color = backgroundColor,
   ) {
     Row(
-      modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+      modifier = Modifier.padding(12.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
       Box(
         modifier =
           Modifier
-            .width(140.dp)
+            .width(120.dp)
             .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
       ) {
         if (!item.primaryImageTag.isNullOrBlank()) {

@@ -23,12 +23,15 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -85,6 +88,7 @@ import android.content.Intent
 import android.net.Uri
 import android.text.format.DateUtils
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.data.jellyfin.JellyfinClient
@@ -101,8 +105,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicDetailHeader
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicTrackListItem
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun JellyfinDetailSheet(
   item: JellyfinItem?,
@@ -145,7 +152,7 @@ fun JellyfinDetailSheet(
     ModalBottomSheet(
       onDismissRequest = onDismiss,
       sheetState = sheetState,
-      containerColor = MaterialTheme.colorScheme.surface,
+      containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
       contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
       Column(
@@ -270,10 +277,10 @@ fun JellyfinDetailSheet(
   ModalBottomSheet(
     onDismissRequest = onDismiss,
     sheetState = sheetState,
-    containerColor = MaterialTheme.colorScheme.surface,
+    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     contentColor = MaterialTheme.colorScheme.onSurface,
     dragHandle = null,
-    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    shape = RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp),
   ) {
     Column(
       modifier =
@@ -286,7 +293,7 @@ fun JellyfinDetailSheet(
         modifier =
           Modifier
             .fillMaxWidth()
-            .height(240.dp),
+            .height(if (LocalConfiguration.current.screenWidthDp >= 600) 360.dp else 300.dp),
       ) {
         val backdropUrl =
           remember(server.serverUrl, item.id, item.backdropImageTag, item.primaryImageTag, server.accessToken) {
@@ -325,8 +332,8 @@ fun JellyfinDetailSheet(
                 Brush.verticalGradient(
                   0.0f to Color.Black.copy(alpha = 0.4f),
                   0.4f to Color.Transparent,
-                  0.8f to MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                  1.0f to MaterialTheme.colorScheme.surface,
+                  0.8f to MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f),
+                  1.0f to MaterialTheme.colorScheme.surfaceContainerLow,
                 ),
               ),
         )
@@ -342,7 +349,8 @@ fun JellyfinDetailSheet(
           modifier =
             Modifier
               .align(Alignment.TopEnd)
-              .padding(16.dp),
+              .padding(16.dp)
+              .tvFocusHighlight(CircleShape),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Close,
@@ -372,12 +380,12 @@ fun JellyfinDetailSheet(
           horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
           Card(
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.large,
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             modifier =
               Modifier
-                .size(width = 86.dp, height = 126.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .size(width = 108.dp, height = 162.dp)
+                .clip(MaterialTheme.shapes.large),
           ) {
             RemoteImage(
               url = posterUrl,
@@ -388,30 +396,30 @@ fun JellyfinDetailSheet(
           }
 
           Column(
-            modifier = Modifier.padding(bottom = 4.dp),
+            modifier = Modifier.weight(1f).padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
           ) {
             // Type Pill
             Surface(
-              shape = RoundedCornerShape(6.dp),
+              shape = CircleShape,
               color = MaterialTheme.colorScheme.primaryContainer,
             ) {
               Text(
                 text =
                   when {
-                    item.isSeries -> "TV SERIES"
-                    item.type == "Movie" -> "MOVIE"
+                    item.isSeries -> stringResource(R.string.jellyfin_series)
+                    item.type == "Movie" -> stringResource(R.string.jellyfin_movie)
                     else -> item.type.uppercase()
                   },
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
               )
             }
 
             Text(
               text = item.name,
-              style = MaterialTheme.typography.titleLarge,
+              style = MaterialTheme.typography.headlineSmall,
               fontWeight = FontWeight.ExtraBold,
               maxLines = 2,
               overflow = TextOverflow.Ellipsis,
@@ -424,8 +432,8 @@ fun JellyfinDetailSheet(
         modifier =
           Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
       ) {
         // Tagline
         if (item.taglines.isNotEmpty()) {
@@ -437,10 +445,10 @@ fun JellyfinDetailSheet(
         }
 
         // Metadata Badges Row
-        Row(
+        FlowRow(
           modifier = Modifier.fillMaxWidth(),
-          verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           // Community Rating
           item.communityRating?.let { rating ->
@@ -668,9 +676,9 @@ fun JellyfinDetailSheet(
           ) {
             Button(
               onClick = { onPlay(targetItem, isRestartSeriesMode) },
-              shape = RoundedCornerShape(14.dp),
+              shape = CircleShape,
               colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-              modifier = Modifier.weight(1f),
+              modifier = Modifier.weight(1f).heightIn(min = 56.dp).tvFocusHighlight(CircleShape),
               contentPadding = PaddingValues(vertical = 12.dp),
             ) {
               Icon(
@@ -690,8 +698,8 @@ fun JellyfinDetailSheet(
             if (isResumeMode) {
               FilledTonalIconButton(
                 onClick = { onPlay(targetItem, true) },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
               ) {
                 Icon(
                   imageVector = Icons.RoundedFilled.Refresh,
@@ -703,10 +711,10 @@ fun JellyfinDetailSheet(
             }
           }
 
-          Row(
+          FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
           ) {
           // Trailer Button for Movies & Series
           if (item.type == "Movie" || item.isSeries || item.type == "Series") {
@@ -722,14 +730,18 @@ fun JellyfinDetailSheet(
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl)).apply {
                   addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                runCatching { context.startActivity(intent) }
+                try {
+                  context.startActivity(intent)
+                } catch (_: ActivityNotFoundException) {
+                  Toast.makeText(context, R.string.jellyfin_open_trailer_error, Toast.LENGTH_LONG).show()
+                }
               },
-              shape = RoundedCornerShape(14.dp),
-              modifier = Modifier.size(48.dp),
+              shape = CircleShape,
+              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
             ) {
               Icon(
                 imageVector = Icons.RoundedFilled.Movie,
-                contentDescription = "Trailer",
+                contentDescription = stringResource(R.string.jellyfin_trailer),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp),
               )
@@ -752,8 +764,8 @@ fun JellyfinDetailSheet(
                     else -> onDownload(item)
                   }
                 },
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
               ) {
                 when {
                   isItemDownloading ->
@@ -804,8 +816,8 @@ fun JellyfinDetailSheet(
           // Favorite Toggle Button
           FilledTonalIconButton(
             onClick = { onToggleFavorite(item) },
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
           ) {
             Icon(
               imageVector = if (item.isFavorite) Icons.RoundedFilled.Favorite else Icons.RoundedFilled.FavoriteBorder,
@@ -818,8 +830,8 @@ fun JellyfinDetailSheet(
           // Mark Watched Toggle Button
           FilledTonalIconButton(
             onClick = { onTogglePlayed(item) },
-            shape = RoundedCornerShape(14.dp),
-            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
           ) {
             Icon(
               imageVector = if (item.isPlayed) Icons.RoundedFilled.Check else Icons.RoundedFilled.Visibility,
@@ -834,12 +846,12 @@ fun JellyfinDetailSheet(
             var showDeleteDialog by remember { mutableStateOf(false) }
             FilledTonalIconButton(
               onClick = { showDeleteDialog = true },
-              shape = RoundedCornerShape(14.dp),
+              shape = CircleShape,
               colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
                 contentColor = MaterialTheme.colorScheme.error,
               ),
-              modifier = Modifier.size(48.dp),
+              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
             ) {
               Icon(
                 imageVector = Icons.RoundedFilled.Delete,

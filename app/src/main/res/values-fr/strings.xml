@@ -843,6 +843,10 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_config_cache_size">Taille : %1$s</string>
   <string name="pref_thumbnail_cache_summary">Supprimer toutes les miniatures vidéo en cache (elles seront recréées lors de la navigation)</string>
   <string name="pref_thumbnail_cache_size">Taille : %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">Vider le cache des pochettes animées</string>
+  <string name="pref_clear_animated_artwork_cache_summary">Supprimer les pochettes animées téléchargées (elles seront retéléchargées lors de leur affichage)</string>
+  <string name="pref_animated_artwork_cache_size">Taille : %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">Cache des pochettes animées vidé</string>
   <string name="pref_fonts_cache_size">Taille : %1$s · %2$d police(s)</string>
   <string name="pref_failed_to_clear">Échec de l’effacement : %1$s</string>
   <string name="pref_export_failed">Échec de l’exportation : %1$s</string>
@@ -2754,4 +2758,16 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="tv_player_seek_bar">Barre de progression</string>
   <string name="pref_audio_animated_artwork_title">Pochettes d’albums animées</string>
   <string name="pref_audio_animated_artwork_summary">Récupérer les pochettes animées correspondantes sur Apple Music dans le lecteur de musique en plein écran. Envoie le titre, l’artiste et l’album à Apple et utilise les données mobiles. Désactivé par défaut ; conserve la pochette actuelle si aucune animation n’est disponible. Passez du visualiseur à la pochette pour la voir.</string>
+  <string name="jellyfin_featured">À la une</string>
+  <string name="jellyfin_series">Série</string>
+  <string name="jellyfin_movie">Film</string>
+  <string name="jellyfin_browse_series">Explorer la série</string>
+  <string name="jellyfin_details">Détails</string>
+  <string name="jellyfin_trailer">Bande-annonce</string>
+  <string name="jellyfin_open_trailer_error">Aucune application disponible pour ouvrir les bandes-annonces.</string>
+  <string name="jellyfin_libraries">Médiathèques</string>
+  <string name="jellyfin_continue_watching">Reprendre la lecture</string>
+  <string name="jellyfin_latest_movies">Films récents</string>
+  <string name="jellyfin_latest_series">Séries récentes</string>
+  <string name="jellyfin_search_hint">Rechercher des films, séries et épisodes…</string>
 </resources>

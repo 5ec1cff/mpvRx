@@ -30,9 +30,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -156,16 +153,7 @@ internal object YtdlpMediaMerger {
   ): File {
     check(stagingFile.isFile && stagingFile.length() > 0L) { "Media merge produced no output" }
     outputFile.parentFile?.mkdirs()
-    try {
-      Files.move(
-        stagingFile.toPath(),
-        outputFile.toPath(),
-        StandardCopyOption.ATOMIC_MOVE,
-        StandardCopyOption.REPLACE_EXISTING,
-      )
-    } catch (_: IOException) {
-      Files.move(stagingFile.toPath(), outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-    }
+    DownloadOutputReservations.publish(stagingFile, outputFile)
     check(outputFile.isFile && outputFile.length() > 0L) { "Could not finalize merged download" }
     return outputFile
   }

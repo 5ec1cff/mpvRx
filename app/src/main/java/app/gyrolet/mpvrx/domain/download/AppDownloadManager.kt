@@ -19,10 +19,15 @@ import app.gyrolet.mpvrx.database.dao.DownloadItemDao
 import app.gyrolet.mpvrx.database.entities.DownloadItemEntity
 import app.gyrolet.mpvrx.network.SharedHttpClient
 import app.gyrolet.mpvrx.network.awaitResponse
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.media.PlaybackSubtitleTrack
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,16 +35,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 /**
  * In-app direct-file download engine: streams with OkHttp straight into the selected
- * download folder (`<name>.part` in place, renamed on completion), resumes interrupted
+ * download folder (an ID-owned partial file, published without replacement), resumes interrupted
  * transfers with Range requests, and reports live progress/speed. Runs inside
  * [DirectDownloadService] so transfers survive backgrounding, with the same
  * notification treatment as the yt-dlp engine.
@@ -51,6 +59,7 @@ class AppDownloadManager(
   private val context: Context,
   private val dao: DownloadItemDao,
   val locations: DownloadLocations,
+  private val outputReservations: DownloadOutputReservations,
 ) {
   /** Live notification/UI info for the transfer currently on the wire. */
   data class ActiveSnapshot(
@@ -64,6 +73,9 @@ class AppDownloadManager(
 
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val mainHandler = Handler(Looper.getMainLooper())
+  private val sidecarOwnership by lazy {
+    context.getSharedPreferences("download_sidecar_ownership", Context.MODE_PRIVATE)
+  }
 
   private val httpClient =
     SharedHttpClient.derive {
@@ -105,35 +117,41 @@ class AppDownloadManager(
     fileName: String,
     meta: DownloadMetadata,
     headers: Map<String, String> = emptyMap(),
+    subtitles: List<PlaybackSubtitleTrack> = emptyList(),
   ) {
     scope.launch {
       runCatching {
-        if (!directory.exists()) directory.mkdirs()
-        check(directory.isDirectory && directory.canWrite()) {
-          context.getString(R.string.downloads_location_invalid)
+        val reservation = outputReservations.reserve(directory, fileName)
+        try {
+          val queuedAt = System.currentTimeMillis()
+          val id = dao.insert(
+            DownloadItemEntity(
+              url = url,
+              dirPath = directory.absolutePath,
+              fileName = reservation.fileName,
+              // Auth headers ride along for the worker, encoded as simple lines.
+              stagingPath = encodeHeaders(headers),
+              status = AppDownloadStatus.QUEUED.name,
+              source = meta.source,
+              title = meta.title,
+              posterUrl = meta.posterUrl,
+              sourceUrl = meta.sourceUrl,
+              jellyfinServerId = meta.jellyfinServerId,
+              jellyfinItemId = meta.jellyfinItemId,
+              jellyfinSeriesName = meta.jellyfinSeriesName,
+              seasonNumber = meta.seasonNumber,
+              episodeNumber = meta.episodeNumber,
+              isAudio = meta.isAudio,
+              timeQueued = queuedAt,
+            ),
+          )
+          enqueueSubtitleSidecars(directory, reservation.fileName, subtitles, id, queuedAt)
+        } finally {
+          withContext(NonCancellable) { outputReservations.release(reservation) }
         }
-        dao.insert(
-          DownloadItemEntity(
-            url = url,
-            dirPath = directory.absolutePath,
-            fileName = fileName,
-            // Auth headers ride along for the worker, encoded as simple lines.
-            stagingPath = encodeHeaders(headers),
-            status = AppDownloadStatus.QUEUED.name,
-            source = meta.source,
-            title = meta.title,
-            posterUrl = meta.posterUrl,
-            sourceUrl = meta.sourceUrl,
-            jellyfinServerId = meta.jellyfinServerId,
-            jellyfinItemId = meta.jellyfinItemId,
-            jellyfinSeriesName = meta.jellyfinSeriesName,
-            seasonNumber = meta.seasonNumber,
-            episodeNumber = meta.episodeNumber,
-            isAudio = meta.isAudio,
-          ),
-        )
         DirectDownloadService.start(context)
       }.onFailure { error ->
+        if (error is CancellationException) throw error
         Log.e(TAG, "Failed to enqueue download for $url", error)
         mainHandler.post {
           Toast
@@ -149,14 +167,18 @@ class AppDownloadManager(
 
   /** Runs queued rows sequentially until the queue drains. Called from the service. */
   suspend fun drainQueue(onUpdate: (ActiveSnapshot) -> Unit) {
-    while (true) {
-      val next =
-        dao.getAll()
-          .filter { it.status == AppDownloadStatus.QUEUED.name }
-          .minByOrNull { it.timeQueued } ?: break
-      runDownload(next, onUpdate)
+    try {
+      while (true) {
+        currentCoroutineContext().ensureActive()
+        val next =
+          dao.getAll()
+            .filter { it.status == AppDownloadStatus.QUEUED.name }
+            .minByOrNull { it.timeQueued } ?: break
+        runDownload(next, onUpdate)
+      }
+    } finally {
+      _activeSnapshot.value = null
     }
-    _activeSnapshot.value = null
   }
 
   fun queuedCount(): Int = downloads.value.count { it.status == AppDownloadStatus.QUEUED }
@@ -176,11 +198,22 @@ class AppDownloadManager(
 
     val directory = File(entity.dirPath)
     val finalFile = File(directory, entity.fileName)
-    val partFile = File(directory, entity.fileName + PART_SUFFIX)
+    val partFile = partialFile(entity)
 
     val result =
       runCatching {
         if (!directory.exists()) directory.mkdirs()
+        val legacyPart = File(directory, entity.fileName + PART_SUFFIX)
+        if (!partFile.exists() && legacyPart.isFile) {
+          val owners = dao.getAll().count {
+            File(it.dirPath).canonicalPath == directory.canonicalPath && it.fileName.equals(entity.fileName, ignoreCase = true)
+          }
+          if (owners == 1 && !finalFile.exists()) {
+            java.nio.file.Files.move(legacyPart.toPath(), partFile.toPath())
+          } else {
+            Log.w(TAG, "Leaving ambiguous legacy partial download untouched for item $id")
+          }
+        }
         var resumeFrom = if (partFile.isFile) partFile.length() else 0L
 
         val requestBuilder = Request.Builder().url(entity.url).get()
@@ -194,6 +227,11 @@ class AppDownloadManager(
             resumeFrom = 0
           }
           check(response.isSuccessful) { "HTTP ${response.code}" }
+          if (resumeFrom > 0) {
+            val rangeStart = response.header("Content-Range")
+              ?.substringAfter("bytes ", "")?.substringBefore('-')?.toLongOrNull()
+            check(rangeStart == resumeFrom) { "Server returned an incorrect download resume range" }
+          }
           val body = response.body
           val totalBytes =
             body.contentLength().takeIf { it > 0 }?.plus(resumeFrom) ?: 0L
@@ -207,6 +245,7 @@ class AppDownloadManager(
             FileOutputStream(partFile, resumeFrom > 0).use { output ->
               val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
               while (true) {
+                currentCoroutineContext().ensureActive()
                 if (id in cancelledIds) throw CancelledDownloadException()
                 val read = input.read(buffer)
                 if (read < 0) break
@@ -243,7 +282,8 @@ class AppDownloadManager(
             }
           }
 
-          check(partFile.renameTo(finalFile)) { "Could not finalize file in download folder" }
+          if (id in cancelledIds || dao.findById(id) == null) throw CancelledDownloadException()
+          DownloadOutputReservations.publish(partFile, finalFile)
           totalBytes.takeIf { it > 0 } ?: finalFile.length()
         }
       }
@@ -263,6 +303,7 @@ class AppDownloadManager(
         }
         notifyCompletedMedia(context, finalFile)
       }.onFailure { error ->
+        if (error is CancellationException) throw error
         when {
           error is CancelledDownloadException || id in cancelledIds -> {
             runCatching { partFile.delete() }
@@ -289,10 +330,12 @@ class AppDownloadManager(
    * Fetches external subtitle tracks as sidecar files named `<videoBaseName>.<label>.<ext>`.
    * Failures are logged and skipped: subtitles must never block a video download.
    */
-  fun enqueueSubtitleSidecars(
+  private fun enqueueSubtitleSidecars(
     directory: File,
     videoFileName: String,
     tracks: List<PlaybackSubtitleTrack>,
+    downloadId: Long,
+    queuedAt: Long,
   ) {
     if (tracks.isEmpty()) return
     val baseName = videoFileName.substringBeforeLast('.')
@@ -312,11 +355,23 @@ class AppDownloadManager(
             check(response.isSuccessful) { "HTTP ${response.code}" }
             val body = response.body.bytes()
             check(body.isNotEmpty()) { "Empty subtitle body" }
+            if (dao.findById(downloadId) == null) return@forEachIndexed
             if (!directory.exists()) directory.mkdirs()
-            target.writeBytes(body)
+            Files.write(target.toPath(), body, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+            val owner = "$downloadId:$queuedAt"
+            synchronized(sidecarOwnership) {
+              val names = sidecarOwnership.getStringSet(owner, emptySet()).orEmpty() + target.name
+              check(sidecarOwnership.edit().putStringSet(owner, names).commit()) { "Could not record subtitle ownership" }
+            }
+            if (dao.findById(downloadId) == null) {
+              if (!target.delete()) Log.w(TAG, "Could not remove subtitle from deleted download $downloadId")
+              sidecarOwnership.edit().remove(owner).apply()
+              return@forEachIndexed
+            }
           }
           Log.d(TAG, "Saved subtitle sidecar: ${target.name}")
         }.onFailure { error ->
+          if (error is CancellationException) throw error
           Log.w(TAG, "Subtitle sidecar failed for ${track.url}: ${error.message}")
         }
       }
@@ -325,16 +380,37 @@ class AppDownloadManager(
 
   /** Sidecar subtitle files saved next to a completed download. */
   fun sidecarSubtitles(download: AppDownload): List<File> {
+    val owned = ownedSidecars(download).filter(File::isFile)
     val baseName = download.entity.fileName.substringBeforeLast('.')
-    return download.file.parentFile
-      ?.listFiles()
-      ?.filter { file ->
+    val siblings = download.file.parentFile?.listFiles().orEmpty()
+    val mediaFiles = siblings.filter {
+      it.isFile && it.extension.lowercase() in (FileTypeUtils.VIDEO_EXTENSIONS + FileTypeUtils.AUDIO_EXTENSIONS)
+    }
+    if (mediaFiles.any { it.name != download.entity.fileName && it.nameWithoutExtension.equals(baseName, ignoreCase = true) }) {
+      Log.w(TAG, "Subtitle ownership is ambiguous for download ${download.entity.id}")
+      return owned
+    }
+    val longerBases = mediaFiles.map { it.nameWithoutExtension }.filter { it.startsWith("$baseName.", ignoreCase = true) }
+    val inferred = siblings.filter { file ->
         file.isFile &&
           file.name != download.entity.fileName &&
           !file.name.endsWith(PART_SUFFIX) &&
-          file.nameWithoutExtension.startsWith(baseName) &&
+          (file.nameWithoutExtension.equals(baseName, ignoreCase = true) || file.nameWithoutExtension.startsWith("$baseName.", ignoreCase = true)) &&
+          longerBases.none { file.nameWithoutExtension.equals(it, ignoreCase = true) || file.nameWithoutExtension.startsWith("$it.", ignoreCase = true) } &&
           file.extension.lowercase() in SUBTITLE_EXTENSIONS
-      }.orEmpty()
+      }
+    return (owned + inferred).distinctBy(File::getAbsolutePath)
+  }
+
+  private fun ownedSidecars(download: AppDownload): List<File> {
+    val directory = download.file.parentFile ?: return emptyList()
+    val owner = "${download.id}:${download.entity.timeQueued}"
+    return sidecarOwnership.getStringSet(owner, emptySet()).orEmpty().mapNotNull { name ->
+      if (File(name).name != name) {
+        Log.w(TAG, "Ignoring invalid subtitle ownership record for download ${download.id}")
+        null
+      } else File(directory, name)
+    }
   }
 
   fun cancel(id: Long) {
@@ -369,14 +445,22 @@ class AppDownloadManager(
     scope.launch {
       val entity = download.entity
       if (download.isActive) cancelledIds.add(entity.id)
-      runCatching { File(entity.dirPath, entity.fileName + PART_SUFFIX).delete() }
+      dao.delete(entity.id)
+      runCatching { partialFile(entity).delete() }
       if (deleteFile) {
-        sidecarSubtitles(download).forEach { runCatching { it.delete() } }
+        ownedSidecars(download).forEach {
+          runCatching {
+            if (it.exists() && !it.delete()) Log.w(TAG, "Could not delete owned subtitle ${it.name}")
+          }.onFailure { error -> Log.w(TAG, "Could not delete owned subtitle ${it.name}", error) }
+        }
         runCatching { download.file.delete() }
       }
-      dao.delete(entity.id)
+      sidecarOwnership.edit().remove("${download.id}:${entity.timeQueued}").apply()
     }
   }
+
+  private fun partialFile(entity: DownloadItemEntity): File =
+    File(entity.dirPath, ".mpvrx-download-${entity.id}-${entity.timeQueued}$PART_SUFFIX")
 
   /** Completed, still-on-disk download for a Jellyfin item, if any. */
   fun playableForJellyfinItem(itemId: String): AppDownload? =

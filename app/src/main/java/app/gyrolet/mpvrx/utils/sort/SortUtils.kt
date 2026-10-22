@@ -140,7 +140,14 @@ object SortUtils {
         when {
           numA != null && numB != null -> {
             // Both numeric
-            val cmp = numA.value.compareTo(numB.value)
+            val lengthComparison = (numA.exclusiveEndIndex - numA.significantStart)
+              .compareTo(numB.exclusiveEndIndex - numB.significantStart)
+            if (lengthComparison != 0) return lengthComparison
+            var cmp = 0
+            for (offset in 0 until numA.exclusiveEndIndex - numA.significantStart) {
+              cmp = a[numA.significantStart + offset].digitToInt().compareTo(b[numB.significantStart + offset].digitToInt())
+              if (cmp != 0) break
+            }
             if (cmp != 0) return cmp
             // Numbers equal => advance past them and continue
             ia = numA.exclusiveEndIndex
@@ -160,7 +167,7 @@ object SortUtils {
     }
 
     private data class ParsedNumber(
-      val value: Int,
+      val significantStart: Int,
       val exclusiveEndIndex: Int,
     )
 
@@ -184,12 +191,9 @@ object SortUtils {
 
       if (!hasDigit) return null
 
-      val numStr = s.substring(start, i)
-      return try {
-        ParsedNumber(numStr.toInt(), i)
-      } catch (_: Exception) {
-        null
-      }
+      var significantStart = start
+      while (significantStart < i && s[significantStart].digitToInt() == 0) significantStart++
+      return ParsedNumber(significantStart, i)
     }
   }
 

@@ -17,17 +17,24 @@ import app.gyrolet.mpvrx.preferences.YtdlPreferences
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.utils.media.HttpUtils
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Downloads HLS / extractor-backed links (YouTube, m3u8, ...) with the bundled yt-dlp
@@ -37,6 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class YtdlpDownloadEngine(
   private val context: Context,
   private val preferences: YtdlPreferences,
+  private val outputReservations: DownloadOutputReservations,
 ) {
   enum class JobState { QUEUED, RUNNING, SUCCESS, FAILED, CANCELLED }
 
@@ -59,6 +67,14 @@ class YtdlpDownloadEngine(
   }
 
   private val nextId = AtomicInteger(1)
+  private data class JobFiles(
+    val reservation: DownloadOutputReservations.Reservation,
+    var published: File? = null,
+  )
+  private data class Removal(val job: Job, val deleteFiles: Boolean)
+  private val jobFiles = ConcurrentHashMap<Int, JobFiles>()
+  private val removals = ConcurrentHashMap<Int, Removal>()
+  private val cleanupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val _jobs = MutableStateFlow<List<Job>>(emptyList())
   val jobs: StateFlow<List<Job>> = _jobs.asStateFlow()
 
@@ -129,9 +145,9 @@ class YtdlpDownloadEngine(
   ) {
     val job = _jobs.value.firstOrNull { it.id == id } ?: return
     if (job.isActive) cancel(id)
-    if (deleteFiles || job.state != JobState.SUCCESS) deleteArtifacts(job)
-    if (!job.isActive) cleanupWorkingDirectory(id)
+    removals[id] = Removal(job, deleteFiles)
     _jobs.update { current -> current.filterNot { it.id == id } }
+    if (activeJobId != id) cleanupScope.launch { finishRemoval(id) }
   }
 
   /** Runs queued jobs sequentially until the queue drains. Called from the service. */
@@ -145,6 +161,28 @@ class YtdlpDownloadEngine(
   }
 
   private suspend fun runJob(
+    id: Int,
+    onJobUpdate: (Job) -> Unit,
+  ) {
+    activeJobId = id
+    try {
+      runJobInternal(id, onJobUpdate)
+    } catch (error: CancellationException) {
+      activeProcess?.destroyForcibly()
+      updateJob(id) { it.copy(state = JobState.CANCELLED, detail = "") }
+      throw error
+    } catch (error: Exception) {
+      Log.e(TAG, "Could not prepare or finalize yt-dlp download $id", error)
+      updateJob(id) { it.copy(state = JobState.FAILED, error = error.message ?: "Download failed") }
+      currentJob(id)?.let(onJobUpdate)
+    } finally {
+      activeProcess = null
+      activeJobId = -1
+      withContext(NonCancellable + Dispatchers.IO) { finishRemoval(id) }
+    }
+  }
+
+  private suspend fun runJobInternal(
     id: Int,
     onJobUpdate: (Job) -> Unit,
   ) {
@@ -206,8 +244,12 @@ class YtdlpDownloadEngine(
       return
     }
 
-    val temporaryDirectory = workingDirectory(id).apply { mkdirs() }
-    val outputBaseName = DownloadLocations.sanitizeName(job.title)
+    val temporaryDirectory = workingDirectory(id)
+    check(temporaryDirectory.isDirectory || temporaryDirectory.mkdirs()) { "Could not create download working directory" }
+    val files = jobFiles[id] ?: JobFiles(
+      outputReservations.reserve(File(job.directory), "${DownloadLocations.sanitizeName(job.title)}.mp4"),
+    ).also { jobFiles[id] = it }
+    val outputBaseName = files.reservation.baseName
     val outputTemplate =
       if (job.mergeSeparateStreams) {
         "$outputBaseName.f%(format_id)s.%(ext)s"
@@ -218,7 +260,7 @@ class YtdlpDownloadEngine(
       buildCommand(
         url = job.url,
         outputTemplate = outputTemplate,
-        outputDirectory = if (job.mergeSeparateStreams) temporaryDirectory.absolutePath else job.directory,
+        outputDirectory = temporaryDirectory.absolutePath,
         temporaryDirectory = temporaryDirectory.absolutePath,
         formatSelector = job.formatSelector,
       )
@@ -260,7 +302,6 @@ class YtdlpDownloadEngine(
       }
 
     activeProcess = null
-    activeJobId = -1
 
     result
       .onSuccess { exitCode ->
@@ -275,15 +316,17 @@ class YtdlpDownloadEngine(
             }
           exitCode == 0 -> {
             val sourceArtifacts =
-              (observedArtifacts.asSequence() + discoverArtifactFiles(job).map(File::getAbsolutePath)).toSet()
+              observedArtifacts.toSet()
             val resolvedResult =
               runCatching {
-                if (job.mergeSeparateStreams) {
+                val temporaryOutput = if (job.mergeSeparateStreams) {
                   updateJob(id) { it.copy(progressPercent = 99f, detail = "") }
+                  val mergedOutput = File(temporaryDirectory, "merged.mp4")
+                  check(!mergedOutput.exists() || mergedOutput.delete()) { "Could not reset owned merge output" }
                   YtdlpMediaMerger.merge(
                     context = context,
                     candidates = discoverSeparateStreamFiles(job).toList(),
-                    outputFile = File(job.directory, "$outputBaseName.mp4"),
+                    outputFile = mergedOutput,
                   )
                 } else {
                   printedOutput
@@ -295,10 +338,12 @@ class YtdlpDownloadEngine(
                     ?: findNewestOutput(job)?.let(::File)
                     ?: throw IllegalStateException("yt-dlp finished without a playable output file")
                 }
+                currentCoroutineContext().ensureActive()
+                check(!cancelRequested && currentJob(id) != null) { "Download was cancelled before publication" }
+                val output = File(job.directory, "$outputBaseName.${temporaryOutput.extension}")
+                DownloadOutputReservations.publish(temporaryOutput, output).also { files.published = it }
               }
             resolvedResult.onSuccess { resolved ->
-              val artifacts = sourceArtifacts + resolved.absolutePath
-              cleanupIntermediateArtifacts(job, artifacts, resolved)
               cleanupWorkingDirectory(id)
               updateJob(id) {
                 it.copy(
@@ -306,14 +351,15 @@ class YtdlpDownloadEngine(
                   progressPercent = 100f,
                   detail = "",
                   outputFile = resolved.absolutePath,
-                  artifactFiles = it.artifactFiles + artifacts,
+                  artifactFiles = setOf(resolved.absolutePath),
                 )
               }
               AppDownloadManager.notifyCompletedMedia(context, resolved)
             }.onFailure { error ->
+              if (error is CancellationException) throw error
               updateJob(id) {
                 it.copy(
-                  state = JobState.FAILED,
+                  state = if (cancelRequested) JobState.CANCELLED else JobState.FAILED,
                   progressPercent = 0f,
                   detail = "",
                   error = error.message ?: "Could not finalize downloaded media",
@@ -423,7 +469,7 @@ class YtdlpDownloadEngine(
   private fun startProcess(command: List<String>): Process = YtdlpManager.startPythonProcess(command, context)
 
   private fun findNewestOutput(job: Job): String? {
-    return File(job.directory)
+    return workingDirectory(job.id)
       .listFiles()
       ?.filter { isFinalOutputCandidate(job, it) }
       ?.maxByOrNull { it.lastModified() }
@@ -435,7 +481,7 @@ class YtdlpDownloadEngine(
     file: File,
   ): Boolean {
     if (!file.isFile || file.extension.lowercase() !in PLAYABLE_EXTENSIONS) return false
-    val prefix = "${DownloadLocations.sanitizeName(job.title)}."
+    val prefix = "${jobFiles[job.id]?.reservation?.baseName ?: return false}."
     if (!file.name.startsWith(prefix)) return false
     return !file.name.removePrefix(prefix).contains('.')
   }
@@ -446,55 +492,28 @@ class YtdlpDownloadEngine(
   ): File? =
     runCatching {
       val rawPath = path.trim().removeSurrounding("\"")
-      val candidate = File(rawPath).let { if (it.isAbsolute) it else File(job.directory, rawPath) }.canonicalFile
-      val outputDirectory = File(job.directory).canonicalFile
-      candidate.takeIf { it.parentFile == outputDirectory }
+      val candidate = File(rawPath).let { if (it.isAbsolute) it else File(workingDirectory(job.id), rawPath) }.canonicalFile
+      candidate.takeIf { it.parentFile == workingDirectory(job.id).canonicalFile }
     }.getOrNull()
 
-  private fun cleanupIntermediateArtifacts(
-    job: Job,
-    artifacts: Set<String>,
-    finalOutput: File,
-  ) {
-    (artifacts.asSequence().mapNotNull { resolveJobOutput(job, it) } + discoverArtifactFiles(job))
-      .asSequence()
-      .distinctBy(File::getAbsolutePath)
-      .filterNot { it == finalOutput }
-      .forEach { file -> runCatching { file.delete() } }
-  }
-
-  private fun deleteArtifacts(job: Job) {
-    (
-      (job.artifactFiles + listOfNotNull(job.outputFile))
-        .asSequence()
-        .mapNotNull { resolveJobOutput(job, it) } +
-        discoverArtifactFiles(job)
-    )
-      .distinctBy(File::getAbsolutePath)
-      .forEach { file -> runCatching { file.delete() } }
-  }
-
-  private fun discoverArtifactFiles(job: Job): Sequence<File> {
-    val fileNamePrefix = "${DownloadLocations.sanitizeName(job.title)}."
-    return File(job.directory)
-      .listFiles()
-      ?.asSequence()
-      ?.filter { file ->
-        file.isFile &&
-          file.name.startsWith(fileNamePrefix) &&
-          (
-            file.extension.lowercase() in JOB_ARTIFACT_EXTENSIONS ||
-              file.name.endsWith(".part", ignoreCase = true) ||
-              file.name.endsWith(".ytdl", ignoreCase = true)
-          )
-      }.orEmpty()
+  private suspend fun finishRemoval(id: Int) {
+    val removal = removals.remove(id) ?: return
+    val files = jobFiles.remove(id)
+    try {
+      if (removal.deleteFiles || removal.job.state != JobState.SUCCESS) {
+        files?.published?.let { output ->
+          if (output.exists() && !output.delete()) Log.w(TAG, "Could not delete owned download ${output.name}")
+        }
+      }
+      cleanupWorkingDirectory(id)
+    } finally {
+      files?.reservation?.let { outputReservations.release(it) }
+    }
   }
 
   private fun discoverSeparateStreamFiles(job: Job): Sequence<File> {
-    val fileNamePrefix = "${DownloadLocations.sanitizeName(job.title)}.f"
-    return sequenceOf(File(job.directory), workingDirectory(job.id))
-      .filter(File::isDirectory)
-      .flatMap { directory -> directory.walkTopDown().maxDepth(2) }
+    val fileNamePrefix = "${jobFiles[job.id]?.reservation?.baseName ?: return emptySequence()}.f"
+    return workingDirectory(job.id).walkTopDown().maxDepth(2)
       .filter { file ->
         file.isFile &&
           file.name.startsWith(fileNamePrefix) &&
@@ -505,7 +524,10 @@ class YtdlpDownloadEngine(
   private fun workingDirectory(id: Int): File = File(context.cacheDir, "$WORK_DIRECTORY/$id")
 
   private fun cleanupWorkingDirectory(id: Int) {
-    runCatching { workingDirectory(id).deleteRecursively() }
+    val directory = workingDirectory(id)
+    if (directory.exists() && !directory.deleteRecursively()) {
+      Log.w(TAG, "Could not remove working files for download $id")
+    }
   }
 
   private fun currentJob(id: Int): Job? = _jobs.value.firstOrNull { it.id == id }
@@ -529,8 +551,6 @@ class YtdlpDownloadEngine(
     private val ALREADY_DOWNLOADED_REGEX = Regex("""\[download] (.+) has already been downloaded""")
     private val PLAYABLE_EXTENSIONS =
       setOf("mkv", "mp4", "m4v", "webm", "mov", "avi", "ts", "m2ts", "mp3", "m4a", "opus", "ogg", "flac", "wav")
-    private val JOB_ARTIFACT_EXTENSIONS =
-      PLAYABLE_EXTENSIONS + setOf("aac", "vtt", "srt", "ass", "ssa", "lrc", "json", "jpg", "jpeg", "png", "webp")
 
     fun parseProgressLine(line: String): Pair<Float, String>? {
       val match = PROGRESS_REGEX.find(line.trim()) ?: return null

@@ -13,14 +13,6 @@ internal data class VideoDimensions(
 internal object VideoAspectGeometry {
   private val cropDimensionsRegex = Regex("""^(\d+)x(\d+)""")
 
-  fun currentEffectiveDimensions(
-    fallbackWidth: Double = 1920.0,
-    fallbackHeight: Double = 1080.0,
-  ): VideoDimensions {
-    val source = currentSourceDimensions() ?: VideoDimensions(fallbackWidth, fallbackHeight)
-    return currentCropDimensions() ?: source
-  }
-
   /**
    * Returns the post-crop display aspect used by both Glow and YouTube Ambient.
    *

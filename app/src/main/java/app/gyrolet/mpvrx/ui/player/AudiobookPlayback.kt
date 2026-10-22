@@ -55,6 +55,15 @@ internal object AudiobookPlayback {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate + handler)
   private data class SaveWork(val progress: AudiobookProgress? = null, val completion: CompletableDeferred<Unit>? = null)
   private val saves = Channel<SaveWork>(Channel.UNLIMITED)
+  private data class RemoteProgress(
+    val serverId: Long,
+    val itemId: String,
+    val positionMs: Long,
+    val durationMs: Long,
+    val finished: Boolean,
+  )
+  private val pendingRemoteProgress = linkedMapOf<Long, RemoteProgress>()
+  private val remoteSyncRequests = Channel<Unit>(Channel.CONFLATED)
   private val _book = MutableStateFlow<Audiobook?>(null)
   val book = _book.asStateFlow()
   private val _chapters = MutableStateFlow<List<AudiobookChapter>>(emptyList())
@@ -73,6 +82,38 @@ internal object AudiobookPlayback {
   fun ensureStarted() {
     if (!started.compareAndSet(false, true)) return
     scope.launch(Dispatchers.IO) {
+      for (ignored in remoteSyncRequests) {
+        while (true) {
+          val progress = synchronized(pendingRemoteProgress) {
+            pendingRemoteProgress.entries.firstOrNull()?.let { entry ->
+              entry.value.also { pendingRemoteProgress.remove(entry.key) }
+            }
+          } ?: break
+          try {
+            val repository = absRepo
+            if (repository == null) {
+              Log.w("AudiobookPlayback", "Audiobookshelf progress sync is unavailable")
+              continue
+            }
+            repository.syncProgress(
+              serverId = progress.serverId,
+              itemId = progress.itemId,
+              currentTimeSeconds = progress.positionMs / 1000.0,
+              durationSeconds = progress.durationMs / 1000.0,
+              isFinished = progress.finished,
+            ).onFailure { error ->
+              if (error is CancellationException) throw error
+              Log.w("AudiobookPlayback", "Could not synchronize remote audiobook progress; local progress is saved", error)
+            }
+          } catch (cancelled: CancellationException) {
+            throw cancelled
+          } catch (error: Exception) {
+            Log.w("AudiobookPlayback", "Remote audiobook progress sync failed; local progress is saved", error)
+          }
+        }
+      }
+    }
+    scope.launch(Dispatchers.IO) {
       val savedAt = mutableMapOf<Long, Long>()
       for (work in saves) {
         try {
@@ -84,22 +125,20 @@ internal object AudiobookPlayback {
 
               val currentBook = dao.getBook(progress.item.bookId)
               val sourceKey = currentBook?.book?.sourceKey
-              if (sourceKey?.startsWith("abs:") == true) {
-                val parts = sourceKey.split(":")
+              if (currentBook != null && sourceKey?.startsWith("abs:") == true) {
+                val parts = sourceKey.split(":", limit = 3)
                 if (parts.size >= 3) {
                   val serverId = parts[1].toLongOrNull()
                   val itemId = parts[2]
                   if (serverId != null) {
                     val posMs = currentBook.positionInBook(progress.item.trackId, progress.positionMs)
                     val durMs = currentBook.durationMs
-                    val isFinished = progress.reachedEnd || (durMs > 0 && posMs >= durMs - 5000)
-                    absRepo?.syncProgress(
-                      serverId = serverId,
-                      itemId = itemId,
-                      currentTimeSeconds = posMs / 1000.0,
-                      durationSeconds = durMs / 1000.0,
-                      isFinished = isFinished,
-                    )
+                    val lastTrack = currentBook.orderedTracks.lastOrNull()?.id == progress.item.trackId
+                    val isFinished = currentBook.book.finished || (lastTrack && durMs > 0 && posMs >= durMs - 5000)
+                    synchronized(pendingRemoteProgress) {
+                      pendingRemoteProgress[progress.item.bookId] = RemoteProgress(serverId, itemId, posMs, durMs, isFinished)
+                    }
+                    remoteSyncRequests.trySend(Unit)
                   }
                 }
               }

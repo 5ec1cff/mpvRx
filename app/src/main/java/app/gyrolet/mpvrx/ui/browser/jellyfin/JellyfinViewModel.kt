@@ -1565,8 +1565,8 @@ class JellyfinViewModel(
       meta = meta,
       // Belt and braces for reverse proxies that strip query-string auth.
       headers = mapOf("X-Emby-Token" to server.accessToken),
+      subtitles = subtitleTracks,
     )
-    downloadManager.enqueueSubtitleSidecars(directory = directory, videoFileName = fileName, tracks = subtitleTracks)
     return true
   }
 

@@ -843,6 +843,10 @@
   <string name="pref_config_cache_size">Размер: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Удалить все кэшированные миниатюры видео (они будут созданы заново при просмотре папок)</string>
   <string name="pref_thumbnail_cache_size">Размер: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">Очистить кэш анимированных обложек</string>
+  <string name="pref_clear_animated_artwork_cache_summary">Удалить загруженные анимированные обложки альбомов (будут загружены снова при показе)</string>
+  <string name="pref_animated_artwork_cache_size">Размер: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">Кэш анимированных обложек очищен</string>
   <string name="pref_fonts_cache_size">Размер: %1$s · шрифтов: %2$d</string>
   <string name="pref_failed_to_clear">Не удалось очистить: %1$s</string>
   <string name="pref_export_failed">Ошибка экспорта: %1$s</string>
@@ -2784,4 +2788,16 @@
   <string name="tv_player_seek_bar">Полоса перемотки</string>
   <string name="pref_audio_animated_artwork_title">Анимированные обложки альбомов</string>
   <string name="pref_audio_animated_artwork_summary">Загружать подходящие анимированные обложки из Apple Music в полноэкранном музыкальном плеере. Название песни, имя исполнителя и альбом отправляются в Apple; используются мобильные данные. По умолчанию отключено. Если анимация недоступна, остаётся текущая обложка. Чтобы увидеть её, переключитесь с визуализатора на обложку.</string>
+  <string name="jellyfin_featured">Рекомендуемое</string>
+  <string name="jellyfin_series">Сериал</string>
+  <string name="jellyfin_movie">Фильм</string>
+  <string name="jellyfin_browse_series">Открыть сериал</string>
+  <string name="jellyfin_details">Сведения</string>
+  <string name="jellyfin_trailer">Трейлер</string>
+  <string name="jellyfin_open_trailer_error">Нет приложения для открытия трейлеров.</string>
+  <string name="jellyfin_libraries">Медиатеки</string>
+  <string name="jellyfin_continue_watching">Продолжить просмотр</string>
+  <string name="jellyfin_latest_movies">Новые фильмы</string>
+  <string name="jellyfin_latest_series">Новые сериалы</string>
+  <string name="jellyfin_search_hint">Поиск фильмов, сериалов и серий…</string>
 </resources>

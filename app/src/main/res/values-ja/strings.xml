@@ -843,6 +843,10 @@
   <string name="pref_config_cache_size">サイズ: %1$s</string>
   <string name="pref_thumbnail_cache_summary">キャッシュされた動画サムネイルをすべて削除（フォルダー閲覧時に再生成されます）</string>
   <string name="pref_thumbnail_cache_size">サイズ: %1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">アニメーションアートワークのキャッシュを消去</string>
+  <string name="pref_clear_animated_artwork_cache_summary">ダウンロード済みのアニメーションアルバムカバーを削除します（表示時に再ダウンロードされます）</string>
+  <string name="pref_animated_artwork_cache_size">サイズ: %1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">アニメーションアートワークのキャッシュを消去しました</string>
   <string name="pref_fonts_cache_size">サイズ: %1$s · %2$dフォント</string>
   <string name="pref_failed_to_clear">消去できませんでした: %1$s</string>
   <string name="pref_export_failed">エクスポートに失敗しました: %1$s</string>
@@ -2739,4 +2743,16 @@
   <string name="tv_player_seek_bar">シークバー</string>
   <string name="pref_audio_animated_artwork_title">アニメーションアルバムアート</string>
   <string name="pref_audio_animated_artwork_summary">全画面の音楽プレーヤーで、楽曲に合うアニメーションカバーを Apple Music から取得します。曲名、アーティスト名、アルバム名を Apple に送信し、モバイルデータを使用します。初期設定ではオフです。取得できない場合は現在のカバーを表示します。表示するにはビジュアライザーからカバーに切り替えてください。</string>
+  <string name="jellyfin_featured">注目の作品</string>
+  <string name="jellyfin_series">シリーズ</string>
+  <string name="jellyfin_movie">映画</string>
+  <string name="jellyfin_browse_series">シリーズを見る</string>
+  <string name="jellyfin_details">詳細</string>
+  <string name="jellyfin_trailer">予告編</string>
+  <string name="jellyfin_open_trailer_error">予告編を開くアプリがありません。</string>
+  <string name="jellyfin_libraries">ライブラリ</string>
+  <string name="jellyfin_continue_watching">視聴を続ける</string>
+  <string name="jellyfin_latest_movies">新着映画</string>
+  <string name="jellyfin_latest_series">新着シリーズ</string>
+  <string name="jellyfin_search_hint">映画、番組、エピソードを検索…</string>
 </resources>

@@ -845,6 +845,10 @@
   <string name="pref_config_cache_size">大小：%1$s</string>
   <string name="pref_thumbnail_cache_summary">删除所有缓存的视频缩略图（浏览文件夹时将重新生成）</string>
   <string name="pref_thumbnail_cache_size">大小：%1$s</string>
+  <string name="pref_clear_animated_artwork_cache_title">清除动态专辑封面缓存</string>
+  <string name="pref_clear_animated_artwork_cache_summary">删除已下载的动态专辑封面（显示时会重新下载）</string>
+  <string name="pref_animated_artwork_cache_size">大小：%1$s</string>
+  <string name="pref_animated_artwork_cache_cleared">动态专辑封面缓存已清除</string>
   <string name="pref_fonts_cache_size">大小：%1$s · %2$d 个字体</string>
   <string name="pref_failed_to_clear">清除失败：%1$s</string>
   <string name="pref_export_failed">导出失败：%1$s</string>
@@ -2737,4 +2741,16 @@
   <string name="tv_player_seek_bar">进度条</string>
   <string name="pref_audio_animated_artwork_title">动态专辑封面</string>
   <string name="pref_audio_animated_artwork_summary">在全屏音乐播放器中从 Apple Music 获取匹配的动态封面。会向 Apple 发送歌曲名称、艺人和专辑信息，并使用移动数据。默认关闭；动态封面不可用时保留现有封面。请从可视化效果切换到封面以查看动画。</string>
+  <string name="jellyfin_featured">精选</string>
+  <string name="jellyfin_series">剧集</string>
+  <string name="jellyfin_movie">电影</string>
+  <string name="jellyfin_browse_series">浏览剧集</string>
+  <string name="jellyfin_details">详情</string>
+  <string name="jellyfin_trailer">预告片</string>
+  <string name="jellyfin_open_trailer_error">没有可打开预告片的应用。</string>
+  <string name="jellyfin_libraries">媒体库</string>
+  <string name="jellyfin_continue_watching">继续观看</string>
+  <string name="jellyfin_latest_movies">最新电影</string>
+  <string name="jellyfin_latest_series">最新剧集</string>
+  <string name="jellyfin_search_hint">搜索电影、剧集和单集…</string>
 </resources>
