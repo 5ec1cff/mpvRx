@@ -82,6 +82,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.controls.components.AnimatedPlayPauseIcon
@@ -142,9 +143,13 @@ internal fun TvPlayerControls(
   val markInteraction = { lastInteraction = System.nanoTime() }
   val playFocusRequester = remember { FocusRequester() }
   val positionState = viewModel.precisePosition.collectAsState()
+  val queue by PlaybackSession.queue.collectAsState()
+  val hasPrevious = remember(queue) { viewModel.hasPrevious() }
+  val hasNext = remember(queue) { viewModel.hasNext() }
 
-  LaunchedEffect(controlsShown) {
-    if (controlsShown) {
+  // Also re-runs when a sheet/panel closes, since the controls stay shown but lose focus.
+  LaunchedEffect(controlsShown, overlayOpen) {
+    if (controlsShown && !overlayOpen) {
       // Wait for the controls to be attached before asking for focus.
       withFrameNanos { }
       runCatching { playFocusRequester.requestFocus() }
@@ -259,8 +264,6 @@ internal fun TvPlayerControls(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(TvPlayerDefaults.ButtonSpacing),
           ) {
-            val hasPrevious = viewModel.hasPrevious()
-            val hasNext = viewModel.hasNext()
             if (hasPrevious) {
               TvPlayerButton(
                 icon = Icons.RoundedFilled.SkipPrevious,

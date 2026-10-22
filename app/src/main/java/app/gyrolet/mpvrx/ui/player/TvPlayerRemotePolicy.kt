@@ -17,6 +17,8 @@ internal enum class TvPlayerRemoteAction {
   SEEK_BACKWARD,
   SEEK_FORWARD,
   TOGGLE_PLAYBACK,
+  TOGGLE_MENU,
+  TOGGLE_SUBTITLES,
 }
 
 internal object TvPlayerRemotePolicy {
@@ -46,6 +48,16 @@ internal object TvPlayerRemotePolicy {
       KeyEvent.KEYCODE_BUTTON_A,
       KeyEvent.KEYCODE_BUTTON_START,
       -> if (controlsVisible || overlayVisible) TvPlayerRemoteAction.DELEGATE else TvPlayerRemoteAction.TOGGLE_PLAYBACK
+
+      KeyEvent.KEYCODE_MENU,
+      KeyEvent.KEYCODE_SETTINGS,
+      -> TvPlayerRemoteAction.TOGGLE_MENU
+
+      KeyEvent.KEYCODE_CAPTIONS -> TvPlayerRemoteAction.TOGGLE_SUBTITLES
+
+      KeyEvent.KEYCODE_INFO,
+      KeyEvent.KEYCODE_GUIDE,
+      -> if (controlsVisible || overlayVisible) TvPlayerRemoteAction.DELEGATE else TvPlayerRemoteAction.SHOW_CONTROLS
 
       else -> TvPlayerRemoteAction.DELEGATE
     }

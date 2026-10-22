@@ -27,6 +27,7 @@ import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
@@ -380,7 +381,11 @@ fun MpvrxTheme(
         typography = typography,
         shapes = AppShapes,
         motionScheme = MotionScheme.expressive(),
-        content = { app.gyrolet.mpvrx.ui.utils.ProvideAppHaptics(content) },
+        content = {
+          ProvideTvFocusRipple {
+            app.gyrolet.mpvrx.ui.utils.ProvideAppHaptics(content)
+          }
+        },
       )
     }
   }
@@ -456,6 +461,34 @@ private const val RIPPLE_DRAGGED_ALPHA = .5f
 private const val RIPPLE_FOCUSED_ALPHA = .6f
 private const val RIPPLE_HOVERED_ALPHA = .4f
 private const val RIPPLE_PRESSED_ALPHA = .6f
+
+// The default ~10% focus tint is invisible from couch distance; rows from libraries rely on it.
+@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("DEPRECATION")
+@Composable
+private fun ProvideTvFocusRipple(content: @Composable () -> Unit) {
+  val isTelevision = app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(LocalContext.current)
+  if (!isTelevision) {
+    content()
+    return
+  }
+  CompositionLocalProvider(
+    LocalRippleConfiguration provides
+      RippleConfiguration(
+        color = MaterialTheme.colorScheme.primary,
+        rippleAlpha =
+          RippleAlpha(
+            draggedAlpha = RIPPLE_DRAGGED_ALPHA,
+            focusedAlpha = TV_RIPPLE_FOCUSED_ALPHA,
+            hoveredAlpha = RIPPLE_HOVERED_ALPHA,
+            pressedAlpha = RIPPLE_PRESSED_ALPHA,
+          ),
+      ),
+    content = content,
+  )
+}
+
+private const val TV_RIPPLE_FOCUSED_ALPHA = .32f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("DEPRECATION")

@@ -6876,6 +6876,16 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
           viewModel.showControls()
           return true
         }
+        TvPlayerRemoteAction.TOGGLE_MENU -> {
+          consumedTvRemoteKeys += keyCode
+          if ((event?.repeatCount ?: 0) == 0) toggleTvSheet(Sheets.More)
+          return true
+        }
+        TvPlayerRemoteAction.TOGGLE_SUBTITLES -> {
+          consumedTvRemoteKeys += keyCode
+          if ((event?.repeatCount ?: 0) == 0 && !viewModel.isAudioOnly.value) toggleTvSheet(Sheets.SubtitleTracks)
+          return true
+        }
         TvPlayerRemoteAction.DELEGATE -> {
           if (TvPlayerRemotePolicy.isNavigationKey(keyCode)) return super.onKeyDown(keyCode, event)
         }
@@ -7023,6 +7033,17 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         event?.let { player.onKey(it) }
         return super.onKeyDown(keyCode, event)
       }
+    }
+  }
+
+  private fun toggleTvSheet(sheet: Sheets) {
+    if (viewModel.sheetShown.value == sheet) {
+      viewModel.sheetShown.update { Sheets.None }
+      viewModel.showControls()
+    } else {
+      viewModel.panelShown.update { Panels.None }
+      viewModel.sheetShown.update { sheet }
+      viewModel.hideControls()
     }
   }
 

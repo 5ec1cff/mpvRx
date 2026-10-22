@@ -207,7 +207,9 @@ import app.gyrolet.mpvrx.ui.player.RepeatMode
 import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarWithTimers
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import app.gyrolet.mpvrx.ui.player.visualizer.AudioFeatures
 import app.gyrolet.mpvrx.ui.player.visualizer.AudioSpectrumAnalyzer
 import app.gyrolet.mpvrx.ui.player.visualizer.BlobOverlay
@@ -931,6 +933,7 @@ fun AudioPlayerControls(
   var addToPlaylistDialogOpen by rememberSaveable { mutableStateOf(false) }
   val sheetShown by viewModel.sheetShown.collectAsState()
   val isSheetOpen = sheetShown != Sheets.None || (addToPlaylistDialogOpen && !mediaPath.isNullOrBlank())
+  val tvPlayFocusRequester = rememberTvInitialFocusRequester(enabled = !isSheetOpen, requestKey = isSheetOpen)
 
   AudioSpectrumCaptureEffect(
     enabled =
@@ -1351,7 +1354,7 @@ fun AudioPlayerControls(
               } else {
                 Modifier.audioPlaybackGestures(
                   viewModel,
-                  onTap = { viewModel.toggleAudioVisualizer() },
+                  onTap = resetInactivityTimer,
                   onHold = { onOpenSheet(Sheets.VisualizerStyle) },
                 )
               },
@@ -2233,7 +2236,7 @@ fun AudioPlayerControls(
           onClick = { viewModel.pauseUnpause() },
           shape = CircleShape,
           color = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(if (isPortrait) 76.dp else 64.dp),
+          modifier = Modifier.tvInitialFocus(tvPlayFocusRequester).size(if (isPortrait) 76.dp else 64.dp),
           shadowElevation = 8.dp,
         ) {
           Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
