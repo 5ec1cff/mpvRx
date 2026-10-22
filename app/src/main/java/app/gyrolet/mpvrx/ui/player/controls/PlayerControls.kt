@@ -614,6 +614,112 @@ fun PlayerControls(
     label = "controls_edge_vignette",
   )
 
+  if (isTelevision) {
+    val tvSheetShown by viewModel.sheetShown.collectAsState()
+    val tvPanelShown by viewModel.panelShown.collectAsState()
+    val tvSubtitles by viewModel.subtitleTracks.collectAsState(persistentListOf())
+    val tvAudioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
+    val tvSpeedPresets by playerPreferences.speedPresets.collectAsState()
+    val tvSortedSpeedPresets = remember(tvSpeedPresets) { tvSpeedPresets.map { it.toFloat() }.sorted() }
+    val tvChapterStarts = remember(chapters) { chapters.map { it.start } }
+
+    CompositionLocalProvider(
+      LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
+      LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
+      LocalHidePlayerButtonsBackground provides hideBackground,
+    ) {
+      PlayerControlsContentTheme {
+        Box(
+          modifier =
+            modifier
+              .fillMaxSize()
+              .clipToBounds()
+              .onSizeChanged { playerBounds = it },
+        ) {
+          VideoOpenAnimationOverlay(
+            style = videoOpenAnim,
+            speedMultiplier = animSpeed,
+            animationState = videoOpenAnimState,
+          )
+          DoubleTapToSeekOvals(
+            amount = doubleTapSeekAmount,
+            showOvals = showDoubleTapOvals,
+            showSeekIcon = showSeekTime,
+            showSeekTime = showSeekTime,
+            rippleRequest = seekRippleRequest,
+          )
+          MediaScopesOverlay(
+            viewModel = viewModel,
+            audioTracks = scopeAudioTracks.toImmutableList(),
+            durationSeconds = seekbarDuration,
+            modifier = Modifier.fillMaxSize(),
+          )
+
+          TvPlayerControls(
+            viewModel = viewModel,
+            controlsShown = controlsShown,
+            overlayOpen = tvSheetShown != Sheets.None || tvPanelShown != Panels.None,
+            paused = paused == true,
+            mediaTitle = mediaTitle,
+            chapterTitle = currentChapter?.let(chapters::getOrNull)?.name,
+            durationSeconds = seekbarDuration,
+            chapterStarts = tvChapterStarts,
+            hasSubtitles = true,
+            hasAudioTracks = tvAudioTracks.isNotEmpty(),
+            hasChapters = chapters.isNotEmpty(),
+            showQualityButton = showVideoQualitySelector,
+            playbackSpeed = playbackSpeed ?: 1f,
+            skipSegmentLabel = currentSkippableSegment?.label,
+            showBuffering = showBufferingIndicator,
+            autoHideMillis = playerTimeToDisappear.toLong(),
+            onOpenSheet = onOpenSheet,
+          )
+
+          PlayerSheets(
+            viewModel = viewModel,
+            sheetShown = tvSheetShown,
+            subtitles = tvSubtitles.toImmutableList(),
+            onAddSubtitle = viewModel::addSubtitle,
+            onToggleSubtitle = viewModel::toggleSubtitle,
+            isSubtitleSelected = viewModel::isSubtitleSelected,
+            subtitleSelectionIndicator = viewModel::subtitleSelectionIndicator,
+            onRemoveSubtitle = viewModel::removeSubtitle,
+            audioTracks = tvAudioTracks.toImmutableList(),
+            onAddAudio = viewModel::addAudio,
+            onSelectAudio = viewModel::selectAudioTrack,
+            chapter = currentChapter?.let(chapters::getOrNull),
+            chapters = chapters.toImmutableList(),
+            onSeekToChapter = {
+              chapters.getOrNull(it)?.let(viewModel::seekToPlaybackChapter)
+            },
+            decoder = decoder,
+            onUpdateDecoder = { PlaybackSession.setPropertyString("hwdec", it.value) },
+            speed = playbackSpeed ?: playerPreferences.defaultSpeed.get(),
+            onSpeedChange = { PlaybackSession.setPropertyFloat("speed", it.toFixed(2)) },
+            onMakeDefaultSpeed = { playerPreferences.defaultSpeed.set(it.toFixed(2)) },
+            onAddSpeedPreset = { playerPreferences.speedPresets += it.toFixed(2).toString() },
+            onRemoveSpeedPreset = { playerPreferences.speedPresets -= it.toFixed(2).toString() },
+            onResetSpeedPresets = playerPreferences.speedPresets::delete,
+            speedPresets = tvSortedSpeedPresets,
+            onResetDefaultSpeed = {
+              PlaybackSession.setPropertyFloat("speed", playerPreferences.defaultSpeed.deleteAndGet().toFixed(2))
+            },
+            onStartSleepTimer = viewModel::startTimer,
+            onOpenPanel = onOpenPanel,
+            onShowSheet = onOpenSheet,
+            onDismissRequest = { onOpenSheet(Sheets.None) },
+          )
+          PlayerPanels(
+            panelShown = tvPanelShown,
+            viewModel = viewModel,
+            onDismissRequest = { onOpenPanel(Panels.None) },
+          )
+        }
+      }
+    }
+    return
+  }
+
   GestureHandler(
     viewModel = viewModel,
     externalPanelShown = showControlsDrawer && isPlayerDrawerShown,

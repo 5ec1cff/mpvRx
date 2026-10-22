@@ -260,6 +260,13 @@ object MainScreen : Screen {
         )
       }
     val navigationTabs = visibleTabs.takeIf { it.size > 1 }.orEmpty()
+    val isTelevision = app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(
+      androidx.compose.ui.platform.LocalContext.current,
+    )
+    val showTvRail = isTelevision && visibleTabs.isNotEmpty() && !isPermissionDenied
+    val tvRailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    var isTvRailFocused by remember { mutableStateOf(false) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     // Track whether the floating pill nav bar is on screen so the mini player can
     // sit at the very bottom when navigating to screens without it.
@@ -271,7 +278,8 @@ object MainScreen : Screen {
     }
     SideEffect {
       NavigationBarState.isNavBarVisible =
-        backStack.lastOrNull() == MainScreen && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied
+        !isTelevision &&
+          backStack.lastOrNull() == MainScreen && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied
       NavigationBarState.navigationBarBottomSpacing =
         if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing
     }
@@ -421,6 +429,20 @@ object MainScreen : Screen {
     BackHandler(enabled = backStack.lastOrNull() == MainScreen && shouldReturnHome) {
       onTabSelected(MainTab.HOME)
     }
+    // TV: Back from page content first moves focus to the side rail (NuvioTV behaviour); once the
+    // rail owns focus, Back falls through to the return-home handler above and then exits.
+    BackHandler(enabled = showTvRail && backStack.lastOrNull() == MainScreen && !isTvRailFocused) {
+      runCatching { tvRailFocusRequester.requestFocus() }
+    }
+    val onTvTabSelected: (MainTab) -> Unit = { tab ->
+      onTabSelected(tab)
+      val pendingJob = tabNavigationJob
+      coroutineScope.launch {
+        pendingJob?.join()
+        withFrameNanos { }
+        focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right)
+      }
+    }
 
     // Keep the app's established Haze path for the normal navigation bar. Liquid Glass uses the
     // separate Kyant layer backdrop declared with the screen state above.
@@ -454,7 +476,12 @@ object MainScreen : Screen {
       NavigationBarState.isDualPaneLayout = backStack.lastOrNull() == MainScreen && isDualPaneLayout
     }
     val contentBottomPadding =
-      if (isDualPaneLayout) NavigationBarState.bottomBarClearance else NavigationBarState.bottomOverlayClearance
+      when {
+        isTelevision -> 24.dp
+        isDualPaneLayout -> NavigationBarState.bottomBarClearance
+        else -> NavigationBarState.bottomOverlayClearance
+      }
+    val tvContentStartPadding = if (showTvRail) TvSideNavigationDefaults.CollapsedWidth else 0.dp
     val context = androidx.compose.ui.platform.LocalContext.current
     val jellyfinViewModel: app.gyrolet.mpvrx.ui.browser.jellyfin.JellyfinViewModel =
       androidx.lifecycle.viewmodel.compose.viewModel(
@@ -481,6 +508,7 @@ object MainScreen : Screen {
             modifier =
               Modifier
                 .fillMaxSize()
+                .padding(start = tvContentStartPadding)
                 .then(
                     when {
                       liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
@@ -508,6 +536,7 @@ object MainScreen : Screen {
               modifier =
                 Modifier
                   .fillMaxSize()
+                  .padding(start = tvContentStartPadding)
                   .clipToBounds()
                   .graphicsLayer { alpha = tabContentAlpha.value }
                   .nestedScroll(NavigationBarState.navScrollConnection)
@@ -520,7 +549,7 @@ object MainScreen : Screen {
                   ),
               key = { page -> visibleTabs[page].name },
               beyondViewportPageCount = if (adjacentTabsWarm) 1 else 0,
-              userScrollEnabled = !isPermissionDenied && !isDirectTabJumpInProgress,
+              userScrollEnabled = !isTelevision && !isPermissionDenied && !isDirectTabJumpInProgress,
             ) { page ->
               val tab = visibleTabs.getOrNull(page) ?: return@NavigationPager
               when (tab) {
@@ -718,13 +747,25 @@ object MainScreen : Screen {
           }
         }
 
+        if (showTvRail) {
+          TvSideNavigation(
+            tabs = visibleTabs,
+            selectedTab = selectedTab,
+            onTabSelected = onTvTabSelected,
+            onOpenSettings = { backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.PreferencesScreen) },
+            selectedItemFocusRequester = tvRailFocusRequester,
+            onRailFocusChanged = { isTvRailFocused = it },
+            modifier = Modifier.align(Alignment.CenterStart),
+          )
+        }
+
         // Animated bottom navigation bar with slide animations
         ProvideLiquidGlassBackdrop(
           backdrop = liquidLayerBackdrop,
           enabled = liquidGlassEnabled,
         ) {
           AnimatedVisibility(
-            visible = !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied,
+            visible = !isTelevision && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied,
             enter = if (navStyle == NavigationAnimStyle.None) EnterTransition.None else
               slideInVertically(
                 animationSpec = tween(duration, easing = FastOutSlowInEasing),
@@ -1125,7 +1166,7 @@ internal fun ExpressivePillNavigationBar(
 }
 
 @Composable
-private fun mainNavigationLabel(tab: MainScreen.MainTab): String =
+internal fun mainNavigationLabel(tab: MainScreen.MainTab): String =
   stringResource(when (tab) {
     MainScreen.MainTab.HOME -> R.string.ui_home
     MainScreen.MainTab.MUSIC -> R.string.ui_music
@@ -1169,7 +1210,7 @@ private fun LegacyMaterialNavigationBar(
 }
 
 @Composable
-private fun MainTabIcon(
+internal fun MainTabIcon(
   tab: MainScreen.MainTab,
   tint: Color,
   contentDescription: String?,
