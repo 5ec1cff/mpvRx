@@ -16,9 +16,12 @@ import java.util.Base64
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -32,6 +35,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.jsoup.Jsoup
 
 internal data class MotionArtworkQuery(val title: String, val artist: String, val album: String?)
 
@@ -46,6 +50,7 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
   private val json = Json { ignoreUnknownKeys = true }
   private val mutex = Mutex()
   private data class Cached(val artwork: RemoteMotionArtwork?, val expiresAt: Long)
+  private data class Lookup(val artwork: RemoteMotionArtwork?)
   private val cache = object : LinkedHashMap<MotionArtworkQuery, Cached>(16, 0.75f, true) {
     override fun removeEldestEntry(eldest: MutableMap.MutableEntry<MotionArtworkQuery, Cached>?): Boolean = size > 64
   }
@@ -59,26 +64,36 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
       val now = System.currentTimeMillis()
       cache[query]?.takeIf { it.expiresAt > now }?.let { return@withLock it.artwork }
       try {
-        val artwork = search(query)
-        cache[query] = Cached(artwork, now + if (artwork == null) 30 * MINUTE else 6 * HOUR)
+        val result = withTimeoutOrNull(30_000L) {
+          val storefront = Locale.getDefault().country.lowercase(Locale.ROOT)
+            .takeIf { it.matches(Regex("[a-z]{2}")) } ?: "us"
+          Lookup(search(query, storefront) ?: if (storefront != "us") search(query, "us") else null)
+        }
+        val artwork = result?.artwork
+        val lifetime = when {
+          result == null -> MINUTE
+          artwork == null -> 30 * MINUTE
+          else -> 6 * HOUR
+        }
+        cache[query] = Cached(artwork, System.currentTimeMillis() + lifetime)
         if (artwork == null) Log.d(TAG, "No matching animated album artwork available")
         artwork
       } catch (e: IOException) {
         Log.w(TAG, "Animated artwork lookup failed; retaining the existing cover", e)
-        if (token == null) nextTokenAttempt = System.currentTimeMillis() + 5 * MINUTE
-        cache[query] = Cached(null, now + 5 * MINUTE)
+        val retryAt = System.currentTimeMillis()
+        if (token == null && nextTokenAttempt <= retryAt) nextTokenAttempt = retryAt + MINUTE
+        cache[query] = Cached(null, System.currentTimeMillis() + MINUTE)
         null
       } catch (e: SerializationException) {
         Log.w(TAG, "Unexpected animated artwork response; retaining the existing cover", e)
-        cache[query] = Cached(null, now + 5 * MINUTE)
+        cache[query] = Cached(null, System.currentTimeMillis() + MINUTE)
         null
       }
     }
   }
 
-  private suspend fun search(query: MotionArtworkQuery): RemoteMotionArtwork? {
-    val storefront = Locale.getDefault().country.lowercase(Locale.ROOT).takeIf { it.matches(Regex("[a-z]{2}")) } ?: "us"
-    val term = listOfNotNull(query.artist, query.title, query.album).joinToString(" ")
+  private suspend fun search(query: MotionArtworkQuery, storefront: String): RemoteMotionArtwork? {
+    val term = "${query.artist} ${query.title.replace(TITLE_DECORATION, "").trim()}"
     val url = "$CATALOG/$storefront/search".toHttpUrl().newBuilder()
       .addQueryParameter("term", term)
       .addQueryParameter("types", "songs")
@@ -86,24 +101,34 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
       .addQueryParameter("include", "albums")
       .addQueryParameter("extend", "editorialVideo")
       .build().toString()
-    val root = catalog(url) ?: return null
+    val root = try {
+      catalog(url)
+    } catch (e: HttpFailure) {
+      // Device regions and catalog storefronts are not interchangeable (for example ZZ).
+      if (storefront != "us" && (e.status == 400 || e.status == 404)) return null
+      throw e
+    }
     val songs = root.obj("results")?.obj("songs")?.get("data") as? JsonArray ?: return null
     val visited = mutableSetOf<String>()
-    for (element in songs) {
-      val song = element as? JsonObject ?: continue
+    val ranked = songs.mapNotNull { element ->
+      val song = element as? JsonObject ?: return@mapNotNull null
+      val attributes = song.obj("attributes") ?: return@mapNotNull null
+      matchScore(query, attributes)?.let { it to song }
+    }.sortedByDescending { it.first }
+    for ((_, song) in ranked) {
       val attributes = song.obj("attributes") ?: continue
-      if (!matches(query, attributes)) continue
       motionArtwork(attributes)?.let { return it }
-      val albums = song.obj("relationships")?.obj("albums")?.get("data") as? JsonArray ?: continue
-      for (entry in albums) {
-        val album = entry as? JsonObject ?: continue
-        val id = album.text("id")?.takeIf { it.all(Char::isDigit) && it.isNotEmpty() } ?: continue
+      for (id in albumIds(song)) {
         if (!visited.add(id)) continue
-        if (visited.size > 3) return null
+        if (visited.size > 4) return null
         val albumUrl = "$CATALOG/$storefront/albums/$id?extend=editorialVideo"
-        val data = catalog(albumUrl)?.get("data") as? JsonArray ?: continue
+        val data = try {
+          catalog(albumUrl)["data"] as? JsonArray
+        } catch (e: HttpFailure) {
+          if (e.status != 404) throw e
+          null
+        } ?: continue
         val albumAttributes = (data.firstOrNull() as? JsonObject)?.obj("attributes") ?: continue
-        if (albumAttributes.text("name")?.let(::normalize) != attributes.text("albumName")?.let(::normalize)) continue
         if ((albumAttributes["isCompilation"] as? JsonPrimitive)?.booleanOrNull == true) continue
         motionArtwork(albumAttributes)?.let { return it }
       }
@@ -111,9 +136,9 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
     return null
   }
 
-  private suspend fun catalog(url: String): JsonObject? {
+  private suspend fun catalog(url: String): JsonObject {
     repeat(2) {
-      val bearer = anonymousToken() ?: return null
+      val bearer = anonymousToken()
       val request = Request.Builder().url(url)
         .header("Authorization", "Bearer $bearer")
         .header("Origin", "https://music.apple.com")
@@ -122,9 +147,11 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
         .build()
       try {
         return json.parseToJsonElement(get(request, 2 * 1024 * 1024)) as? JsonObject
+          ?: throw IOException("Unexpected artwork catalog response")
       } catch (e: HttpFailure) {
         if (e.status != 401) throw e
         rejectedTokens.add(bearer)
+        if (rejectedTokens.size > 8) rejectedTokens.remove(rejectedTokens.first())
         token = null
         nextTokenAttempt = 0L
         Log.w(TAG, "Anonymous artwork catalog authorization expired; refreshing")
@@ -133,34 +160,55 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
     throw IOException("Anonymous artwork catalog authorization unavailable")
   }
 
-  private suspend fun anonymousToken(): String? {
+  private suspend fun anonymousToken(): String {
     val now = System.currentTimeMillis()
     token?.takeIf { tokenExpiry > now + MINUTE }?.let { return it }
-    if (now < nextTokenAttempt) return null
-    val html = get(Request.Builder().url("https://music.apple.com/us/browse").header("User-Agent", USER_AGENT).build(), 2 * 1024 * 1024)
-    val scripts = SCRIPT.findAll(html).map { it.value }.distinct().take(3)
-    for (path in scripts) {
-      val script = get(Request.Builder().url("https://music.apple.com$path").header("User-Agent", USER_AGENT).build(), 8 * 1024 * 1024)
-      for (match in JWT.findAll(script)) {
-        val candidate = match.value
-        if (candidate in rejectedTokens) continue
-        val payload = tokenPayload(candidate) ?: continue
-        if (payload.text("iss") != "AMPWebPlay") continue
-        val expires = (payload["exp"] as? JsonPrimitive)?.longOrNull?.times(1000L) ?: continue
-        if (expires <= now + MINUTE) continue
-        token = candidate
-        tokenExpiry = expires
-        return candidate
+    if (now < nextTokenAttempt) throw IOException("Artwork catalog authorization is backing off")
+    token = null
+    tokenExpiry = 0L
+    // Apple's current HTML alone exceeds 2 MiB, before the entry bundle is fetched.
+    val page = "https://music.apple.com/us/new"
+    val html = get(Request.Builder().url(page).header("User-Agent", USER_AGENT).build(), WEB_RESPONSE_LIMIT)
+    findToken(html, now)?.let { return it }
+    val scripts = Jsoup.parse(html, page).select("script[src], link[rel=modulepreload][href]")
+      .mapNotNull { element ->
+        element.absUrl(if (element.hasAttr("src")) "src" else "href").toHttpUrlOrNull()
       }
+      .filter { it.isHttps && it.host == "music.apple.com" && it.encodedPath.startsWith("/assets/") && it.encodedPath.endsWith(".js") }
+      .distinct()
+      .sortedBy { if (it.encodedPath.substringAfterLast('/').startsWith("index")) 0 else 1 }
+      .take(4)
+    for (url in scripts) {
+      val script = try {
+        get(Request.Builder().url(url).header("User-Agent", USER_AGENT).build(), WEB_RESPONSE_LIMIT)
+      } catch (e: IOException) {
+        currentCoroutineContext().ensureActive()
+        continue
+      }
+      findToken(script, now)?.let { return it }
     }
-    nextTokenAttempt = now + 30 * MINUTE
-    Log.w(TAG, "Anonymous artwork catalog unavailable; backing off for 30 minutes")
+    nextTokenAttempt = System.currentTimeMillis() + MINUTE
+    throw IOException("No usable anonymous artwork catalog authorization")
+  }
+
+  private fun findToken(source: String, now: Long): String? {
+    for (match in JWT.findAll(source)) {
+      val candidate = match.value
+      if (candidate in rejectedTokens) continue
+      val payload = tokenPart(candidate, 1) ?: continue
+      if (payload.text("iss") != "AMPWebPlay" && tokenPart(candidate, 0)?.text("kid") != "WebPlayKid") continue
+      val expires = (payload["exp"] as? JsonPrimitive)?.longOrNull?.times(1000L) ?: continue
+      if (expires <= now + MINUTE) continue
+      token = candidate
+      tokenExpiry = expires
+      return candidate
+    }
     return null
   }
 
-  private fun tokenPayload(value: String): JsonObject? =
+  private fun tokenPart(value: String, index: Int): JsonObject? =
     try {
-      val payload = Base64.getUrlDecoder().decode(value.split('.')[1]).toString(Charsets.UTF_8)
+      val payload = Base64.getUrlDecoder().decode(value.split('.')[index]).toString(Charsets.UTF_8)
       json.parseToJsonElement(payload) as? JsonObject
     } catch (e: SerializationException) {
       Log.d(TAG, "Ignoring malformed anonymous catalog authorization payload")
@@ -172,11 +220,13 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
 
   private suspend fun get(request: Request, maxBytes: Int): String =
     http.newCall(request).awaitResponse().use { response ->
+      currentCoroutineContext().ensureActive()
       if (!response.isSuccessful) throw HttpFailure(response.code)
-      val body = response.body ?: throw IOException("Empty artwork response")
+      val body = response.body
       val source = body.source()
       source.request(maxBytes.toLong() + 1)
       if (source.buffer.size > maxBytes) throw IOException("Artwork response exceeds size limit")
+      currentCoroutineContext().ensureActive()
       source.readUtf8()
     }
 
@@ -186,23 +236,49 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
     private const val TAG = "AppleMusicArtwork"
     private const val MINUTE = 60_000L
     private const val HOUR = 60 * MINUTE
+    private const val WEB_RESPONSE_LIMIT = 8 * 1024 * 1024
     private const val CATALOG = "https://amp-api.music.apple.com/v1/catalog"
     private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
-    private val SCRIPT = Regex("""/assets/index(?:-legacy)?[~-][A-Za-z0-9_-]+\.js""")
     private val JWT = Regex("""ey[A-Za-z0-9_-]+\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+""")
+    private val ARTIST_SEPARATOR = Regex("""\s+(?:feat\.?|ft\.?|featuring|with|&|and|x)\s+|[,;]""", RegexOption.IGNORE_CASE)
+    private val FEATURED_CREDIT = Regex("""[\[(](?:feat\.?|ft\.?|featuring)\s+([^)\]]+)[\])]""", RegexOption.IGNORE_CASE)
+    private val TITLE_DECORATION = Regex(
+      """\s*[\[(](?:official\s+(?:music\s+)?(?:video|audio|visuali[sz]er)|lyric(?:s|\s+video)?|audio|video|visuali[sz]er|(?:feat\.?|ft\.?|featuring)\s+[^)\]]+)[\])]""",
+      RegexOption.IGNORE_CASE,
+    )
 
     private fun normalize(value: String): String =
       Normalizer.normalize(value, Normalizer.Form.NFKD)
         .lowercase(Locale.ROOT).replace(Regex("\\p{M}+"), "")
         .replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim()
 
-    private fun matches(query: MotionArtworkQuery, attributes: JsonObject): Boolean {
-      val title = attributes.text("name") ?: return false
-      val artist = attributes.text("artistName") ?: return false
-      val album = attributes.text("albumName") ?: return false
-      return normalize(title) == normalize(query.title) &&
-        normalize(artist) == normalize(query.artist) &&
-        (query.album.isNullOrBlank() || normalize(album) == normalize(query.album))
+    private fun matchScore(query: MotionArtworkQuery, attributes: JsonObject): Int? {
+      val title = attributes.text("name") ?: return null
+      val artist = attributes.text("artistName") ?: return null
+      val wantedTitle = normalize(query.title.replace(TITLE_DECORATION, ""))
+      if (wantedTitle.isBlank() || normalize(title.replace(TITLE_DECORATION, "")) != wantedTitle) return null
+      val wantedArtists = artistCredits(query.artist, query.title)
+      val creditedArtists = artistCredits(artist, title)
+      if (wantedArtists.isEmpty() || !wantedArtists.all { it in creditedArtists }) return null
+      // Album tags improve the ranking; different release/edition labels must not veto a song.
+      val album = query.album?.let(::normalize)?.takeIf(String::isNotBlank)
+      return if (album != null && album == attributes.text("albumName")?.let(::normalize)) 2 else 1
+    }
+
+    private fun artistCredits(artist: String, title: String): Set<String> =
+      (sequenceOf(artist) + FEATURED_CREDIT.findAll(title).map { it.groupValues[1] })
+        .flatMap { ARTIST_SEPARATOR.split(it).asSequence() }.map(::normalize).filter(String::isNotBlank).toSet()
+
+    private fun albumIds(song: JsonObject): List<String> {
+      val albums = song.obj("relationships")?.obj("albums")?.get("data") as? JsonArray
+      val ids = albums.orEmpty().mapNotNull { (it as? JsonObject)?.text("id") }.toMutableList()
+      // Search currently omits relationships even with include=albums. The web URL still
+      // identifies the actual album; the ?i= value identifies the song and must not be used.
+      val url = song.obj("attributes")?.text("url")?.toHttpUrlOrNull()
+      if (url?.host == "music.apple.com" && "album" in url.pathSegments) {
+        url.pathSegments.lastOrNull()?.let(ids::add)
+      }
+      return ids.filter { it.isNotEmpty() && it.all { char -> char in '0'..'9' } }.distinct()
     }
 
     private fun motionArtwork(attributes: JsonObject): RemoteMotionArtwork? {
@@ -214,7 +290,7 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
             .firstOrNull { value ->
               val url = value.toHttpUrlOrNull() ?: return@firstOrNull false
               url.isHttps && (url.host.endsWith(".apple.com") || url.host.endsWith(".mzstatic.com")) &&
-                url.encodedPath.endsWith(".m3u8")
+                (url.encodedPath.endsWith(".m3u8", ignoreCase = true) || url.encodedPath.endsWith(".mp4", ignoreCase = true))
             }
         }.distinct()
       return urls.takeIf { it.isNotEmpty() }?.let(::RemoteMotionArtwork)

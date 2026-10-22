@@ -658,7 +658,7 @@ private fun CoverArtCardImage(
         )
       }
     }
-    if (remoteMotionQuery != null && motionArtwork == null) {
+    if (remoteMotionQuery != null && animatedDrawable == null) {
       RemoteMotionArtwork(
         query = remoteMotionQuery,
         isPlaying = isPlaying,
@@ -839,24 +839,31 @@ fun AudioPlayerControls(
 
   val audioPreferences = koinInject<AudioPreferences>()
   val animatedAlbumArtwork by audioPreferences.animatedAlbumArtwork.collectAsState()
-  val rawAlbum by PlaybackSession.propString["metadata/by-key/Album"].collectAsState()
-  val rawAlbumAlt by PlaybackSession.propString["metadata/album"].collectAsState()
-  val motionTitle = (currentItem?.title?.takeIf(String::isNotBlank) ?: mediaTitle)
-    ?.let { cleanSongTitle(it, displayArtist) }?.trim()
-  val motionArtist = displayArtist.takeUnless {
-    it.isBlank() || it.equals("Unknown Artist", ignoreCase = true) || it.equals("<unknown>", ignoreCase = true)
-  }
   val motionQuery =
-    if (animatedAlbumArtwork && !isAudiobook && !motionTitle.isNullOrBlank() && motionArtist != null &&
+    if (animatedAlbumArtwork && !isAudiobook &&
       (playbackState.phase == PlaybackPhase.READY || playbackState.phase == PlaybackPhase.BACKGROUND)
     ) {
-      MotionArtworkQuery(
-        title = motionTitle,
-        artist = motionArtist,
-        album = (rawAlbum?.takeIf(String::isNotBlank) ?: rawAlbumAlt)?.takeUnless {
-          it.isBlank() || it.equals("Unknown Album", ignoreCase = true)
-        },
-      )
+      // One metadata observer, only while opted in. Tag names vary in case across containers;
+      // metadata/album is not the by-key lookup, and queue titles may still be raw filenames.
+      val nativeMetadata by PlaybackSession.propNode["metadata"].collectAsState()
+      remember(nativeMetadata, playbackState.generation, currentItem?.title, mediaTitle, displayArtist) {
+        // Use the event as a trigger, then take one generation-checked native snapshot.
+        // A cached metadata event from the previous file must not identify the new song.
+        PlaybackSession.readLoadedMedia(playbackState.generation) { reader ->
+          fun known(value: String?): String? = value?.trim()?.takeUnless {
+            it.isBlank() || it.equals("<unknown>", ignoreCase = true) ||
+              it.equals("Unknown Artist", ignoreCase = true) || it.equals("Unknown Album", ignoreCase = true)
+          }
+          fun tag(vararg keys: String): String? = keys.asSequence()
+            .mapNotNull { known(reader.string("metadata/by-key/$it")) }.firstOrNull()
+          val artist = tag("artist", "Artist", "ARTIST", "album_artist", "ALBUMARTIST") ?: known(displayArtist)
+          val title = (tag("title", "Title", "TITLE") ?: known(currentItem?.title) ?: known(mediaTitle))
+            ?.let { cleanSongTitle(it, artist) }?.trim()
+          if (artist != null && !title.isNullOrBlank()) {
+            MotionArtworkQuery(title = title, artist = artist, album = tag("album", "Album", "ALBUM"))
+          } else null
+        }
+      }
     } else {
       null
     }
