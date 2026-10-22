@@ -366,8 +366,42 @@ class MPVView(
     )
   }
 
-  fun getVideoOutAspect(expectedGeneration: Long = PlaybackSession.state.value.generation): Double? =
-    PlaybackSession.videoDisplayAspect(expectedGeneration)
+  fun getVideoOutAspect(): Double? {
+    // Try to get aspect from video-params/aspect first
+    val rawAspect = PlaybackSession.getPropertyDouble("video-params/aspect")
+    val rotate = PlaybackSession.getPropertyInt("video-params/rotate") ?: 0
+
+    // If aspect is not available or 0, calculate from width and height
+    val finalAspect =
+      if (rawAspect == null || rawAspect < 0.001) {
+        val width =
+          runCatching {
+            PlaybackSession.getPropertyInt("width") ?: PlaybackSession.getPropertyInt("video-params/w") ?: 0
+          }.getOrDefault(0)
+
+        val height =
+          runCatching {
+            PlaybackSession.getPropertyInt("height") ?: PlaybackSession.getPropertyInt("video-params/h") ?: 0
+          }.getOrDefault(0)
+
+        if (width > 0 && height > 0) {
+          width.toDouble() / height.toDouble()
+        } else {
+          null
+        }
+      } else {
+        rawAspect
+      }
+
+    return finalAspect?.let { aspect ->
+      if (aspect <= 0.001) {
+        return null
+      }
+      val isRotated = (rotate % 180 == 90)
+      val correctedAspect = if (isRotated) 1.0 / aspect else aspect
+      correctedAspect
+    }
+  }
 
   class TrackDelegate(
     private val name: String,
@@ -713,7 +747,6 @@ class MPVView(
       "video-params/aspect" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
       "video-params/w" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "video-params/h" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
-      "video-params/rotate" to MPVLib.MpvFormat.MPV_FORMAT_INT64,
       "container-fps" to MPVLib.MpvFormat.MPV_FORMAT_DOUBLE,
       "eof-reached" to MPVLib.MpvFormat.MPV_FORMAT_FLAG,
       "user-data/mpvrx/show_text" to MPVLib.MpvFormat.MPV_FORMAT_STRING,

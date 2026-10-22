@@ -5,7 +5,6 @@
 package app.gyrolet.mpvrx.ui.player
 
 import android.content.pm.ActivityInfo
-import app.gyrolet.mpvrx.domain.media.model.UNKNOWN_VIDEO_ROTATION
 import app.gyrolet.mpvrx.preferences.AudioPlayerOrientation
 
 /**
@@ -82,18 +81,13 @@ internal object PlayerOrientationPolicy {
     rotationDegrees: Int,
   ): Int? {
     if (width <= 0 || height <= 0) return null
-    return orientationForAspect(displayAspect(width.toDouble() / height, rotationDegrees))
+    val quarterTurned = normalizeDegrees(rotationDegrees)
+    val isQuarterTurned = quarterTurned == 90 || quarterTurned == 270
+    val aspect = if (isQuarterTurned) height.toDouble() / width else width.toDouble() / height
+    return orientationForAspect(aspect)
   }
 
-  /** Only complete source geometry can decide orientation; missing rotation is not zero. */
-  fun displayAspect(sourceAspect: Double?, rotationDegrees: Int?): Double? {
-    if (sourceAspect == null || !sourceAspect.isFinite() || sourceAspect <= 0.0 ||
-      rotationDegrees == null || rotationDegrees == UNKNOWN_VIDEO_ROTATION
-    ) return null
-    val rotation = normalizeDegrees(rotationDegrees)
-    return if (rotation == 90 || rotation == 270) 1.0 / sourceAspect else sourceAspect
-  }
-
+  /** mpv reports source geometry before rotation is applied, matching [forSourceGeometry]. */
   private fun orientationForAspect(aspect: Double?): Int? {
     if (aspect == null || !aspect.isFinite() || aspect <= 0.0) return null
     return if (aspect > 1.0) LANDSCAPE else PORTRAIT

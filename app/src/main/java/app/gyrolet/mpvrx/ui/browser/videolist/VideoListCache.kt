@@ -22,8 +22,8 @@ internal object VideoListCache {
   private const val TAG = "VideoListCache"
   private const val DIR = "video_list_cache"
   private const val MAX_FOLDERS = 64
-  // Reject snapshots that stored missing rotation as zero degrees.
-  private const val HEADER_PREFIX = "orientation_v3|"
+  // Reject snapshots whose launch rotation was read from the old MediaStore column.
+  private const val HEADER_PREFIX = "orientation_v2|"
 
   fun load(context: Context, key: String): List<Video>? =
     runCatching {

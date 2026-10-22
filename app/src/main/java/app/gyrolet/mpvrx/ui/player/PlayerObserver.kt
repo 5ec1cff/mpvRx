@@ -20,7 +20,6 @@ class PlayerObserver(
 
   private fun isVideoGeometryProperty(property: String): Boolean =
     property == "video-params/aspect" ||
-      property == "video-params/rotate" ||
       property == "video-params/w" ||
       property == "video-params/h"
 
