@@ -126,6 +126,7 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
+import app.gyrolet.mpvrx.ui.utils.popUpTo
 import app.gyrolet.mpvrx.ui.utils.calculateResponsiveGridSpans
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.media.CopyPasteOps
@@ -883,9 +884,17 @@ fun FileSystemBrowserScreen(path: String? = null) {
                   }
                 },
                 onBreadcrumbClick = { component ->
-                  // Navigate to the breadcrumb by popping until we reach it
-                  // or pushing if it's a new path
-                  backstack.navigateTo(FileSystemDirectoryScreen(component.fullPath))
+                  val target = FileSystemDirectoryScreen(component.fullPath)
+                  when {
+                    !ZipArchiveMedia.isBrowserPath(component.fullPath) -> backstack.navigateTo(target)
+                    component.fullPath == path -> Unit
+                    // Unwind to an ancestor already on the stack instead of stacking duplicates.
+                    target in backstack -> backstack.popUpTo { it == target }
+                    // The archive root is hosted by its playlist page, not a directory screen.
+                    ZipArchiveMedia.isArchiveRoot(component.fullPath) ->
+                      backstack.popUpTo { !(it is FileSystemDirectoryScreen && ZipArchiveMedia.isBrowserPath(it.path)) }
+                    else -> backstack.navigateTo(target)
+                  }
                 },
                 selectionManager = selectionManager,
                 modifier = Modifier,
@@ -1235,6 +1244,13 @@ suspend fun searchRecursively(
 
   try {
     Log.d("FileSystemBrowserScreen", "Scanning directory: $directoryPath for query: $query")
+    if (ZipArchiveMedia.isBrowserPath(directoryPath)) {
+      // One central-directory read covers every nested ZIP folder.
+      return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        ZipArchiveMedia.allMedia(context, directoryPath, includeAudio = true).getOrDefault(emptyList())
+      }.filter { it.displayName.contains(query, ignoreCase = true) }
+        .map { video -> FileSystemItem.VideoFile(video.displayName, video.path, video.dateModified * 1000L, video) }
+    }
     // Scan the current directory
     val items =
       app.gyrolet.mpvrx.repository.MediaFileRepository
@@ -1294,7 +1310,7 @@ private suspend fun collectVideosForSelectionInfo(
     val path = pending.removeFirst()
     if (!visited.add(path)) continue
     val items = if (ZipArchiveMedia.isBrowserPath(path)) {
-      ZipArchiveMedia.scan(context, path, includeAudio = false)
+      ZipArchiveMedia.scan(context, path, includeAudio = true)
     } else {
       app.gyrolet.mpvrx.repository.MediaFileRepository.scanDirectory(context, path)
     }.getOrThrow()

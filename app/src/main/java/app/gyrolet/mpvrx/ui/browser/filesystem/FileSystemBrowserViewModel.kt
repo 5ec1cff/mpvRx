@@ -658,7 +658,7 @@ class FileSystemBrowserViewModel(
           // Update breadcrumbs for real paths
           // Similar to Fossify's Breadcrumbs.setBreadcrumb()
           _breadcrumbs.value = if (ZipArchiveMedia.isBrowserPath(path)) {
-            ZipArchiveMedia.breadcrumbs(getApplication(), path)
+            withContext(Dispatchers.IO) { ZipArchiveMedia.breadcrumbs(getApplication(), path) }
           } else {
             MediaFileRepository.getPathComponents(path)
           }
@@ -669,7 +669,8 @@ class FileSystemBrowserViewModel(
           // Always show only videos (showAllFileTypes = false)
           val scanResult =
             if (ZipArchiveMedia.isBrowserPath(path)) {
-              ZipArchiveMedia.scan(getApplication(), path, includeAudio = false)
+              // ZIP imports accept audio too, so the archive browser must list it as well.
+              withContext(Dispatchers.IO) { ZipArchiveMedia.scan(getApplication(), path, includeAudio = true) }
             } else {
               MediaFileRepository.scanDirectory(
                 getApplication(),
