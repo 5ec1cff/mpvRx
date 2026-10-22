@@ -1119,12 +1119,28 @@ fun VideoSortDialog(
   )
 }
 
+private val ARCHIVE_UNSUPPORTED_TOGGLES =
+  setOf(
+    "Thumbnails",
+    "Duration",
+    "Total Duration",
+    "Resolution",
+    "Framerate",
+    "Codec support",
+    "Subtitle",
+    "Progress Bar",
+    "Folder Thumbnails",
+  )
+
 @Composable
 fun FileSystemSortDialog(
   isOpen: Boolean,
   onDismiss: () -> Unit,
   isAtRoot: Boolean = true,
   onMetadataFieldEnabled: (() -> Unit)? = null,
+  // ZIP entries are read from the archive's directory only; they cannot be probed for media
+  // metadata or thumbnails, so options that depend on it would silently show nothing.
+  isArchive: Boolean = false,
 ) {
   val browserPreferences = koinInject<BrowserPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
@@ -1445,6 +1461,8 @@ fun FileSystemSortDialog(
             ),
           )
         }
+      }.let { toggles ->
+        if (isArchive) toggles.filterNot { it.label in ARCHIVE_UNSUPPORTED_TOGGLES } else toggles
       },
     manualGridToggle =
       VisibilityToggle(

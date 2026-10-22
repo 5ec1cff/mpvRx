@@ -103,6 +103,7 @@ import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionGridGap
 import app.gyrolet.mpvrx.ui.browser.cards.MediaSelectionListGap
 import app.gyrolet.mpvrx.ui.browser.cards.mediaSelectionNeighbors
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
+import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBarActionButton
 import app.gyrolet.mpvrx.ui.browser.components.ExpressiveScrollBar
 import app.gyrolet.mpvrx.ui.browser.components.fastScrollGlyph
 import app.gyrolet.mpvrx.ui.browser.filesystem.FileSystemBrowserScreen
@@ -526,96 +527,72 @@ data class PlaylistDetailScreen(
             onDeleteClick = { deleteDialogOpen.value = true },
             additionalActions = {
               when {
-                // Show done button when in reorder mode
                 isReorderMode -> {
-                  IconButton(
+                  BrowserTopBarActionButton(
+                    icon = Icons.RoundedFilled.Check,
+                    contentDescription =
+                      androidx.compose.ui.res.stringResource(
+                        app.gyrolet.mpvrx.R.string.ui_done_reordering,
+                      ),
                     onClick = { isReorderMode = false },
-                  ) {
-                    Icon(
-                      imageVector = Icons.RoundedFilled.Check,
+                    tint = MaterialTheme.colorScheme.primary,
+                  )
+                }
+                !selectionManager.isInSelectionMode && videos.isNotEmpty() -> {
+                  BrowserTopBarActionButton(
+                    icon = Icons.RoundedFilled.Search,
+                    contentDescription =
+                      androidx.compose.ui.res.stringResource(
+                        app.gyrolet.mpvrx.R.string.ui_search_videos_2,
+                      ),
+                    onClick = { isSearching = true },
+                  )
+
+                  // M3U playlists keep source order, so they cannot be reordered.
+                  if (playlist?.isM3uPlaylist != true) {
+                    BrowserTopBarActionButton(
+                      icon = Icons.RoundedFilled.SwapVert,
                       contentDescription =
                         androidx.compose.ui.res.stringResource(
-                          app.gyrolet.mpvrx.R.string.ui_done_reordering,
+                          app.gyrolet.mpvrx.R.string.ui_reorder_playlist,
                         ),
-                      tint = MaterialTheme.colorScheme.primary,
+                      onClick = {
+                        selectedM3UFilter = M3U_FILTER_ALL
+                        searchQuery = ""
+                        isSearching = false
+                        browserPreferences.playlistItemSortType.set(PlaylistSortType.Original)
+                        browserPreferences.playlistItemSortOrder.set(SortOrder.Ascending)
+                        isReorderMode = true
+                      },
                     )
                   }
-                }
-                // Show reorder button and play button when not in selection mode
-                !selectionManager.isInSelectionMode && videos.isNotEmpty() -> {
-                  Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                  ) {
-                    // Search button
-                    IconButton(
-                      onClick = { isSearching = true },
-                    ) {
-                      Icon(
-                        imageVector = Icons.RoundedFilled.Search,
-                        contentDescription =
-                          androidx.compose.ui.res.stringResource(
-                            app.gyrolet.mpvrx.R.string.ui_search_videos_2,
-                          ),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                      )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
 
-                    // Reorder button (hide for M3U playlists)
-                    if (playlist?.isM3uPlaylist != true) {
-                      IconButton(
-                        onClick = {
-                          selectedM3UFilter = M3U_FILTER_ALL
-                          searchQuery = ""
-                          isSearching = false
-                          browserPreferences.playlistItemSortType.set(PlaylistSortType.Original)
-                          browserPreferences.playlistItemSortOrder.set(SortOrder.Ascending)
-                          isReorderMode = true
-                        },
-                      ) {
-                        Icon(
-                          imageVector = Icons.RoundedFilled.SwapVert,
-                          contentDescription =
-                            androidx.compose.ui.res.stringResource(
-                              app.gyrolet.mpvrx.R.string.ui_reorder_playlist,
-                            ),
-                          tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                      }
-                      Spacer(modifier = Modifier.width(4.dp))
-                    }
+                  BrowserTopBarActionButton(
+                    icon = Icons.RoundedFilled.PlayArrow,
+                    contentDescription =
+                      androidx.compose.ui.res
+                        .stringResource(app.gyrolet.mpvrx.R.string.ui_play),
+                    onClick = {
+                      val mostRecentlyPlayedItem =
+                        videoItems
+                          .filter { it.playlistItem.lastPlayedAt > 0 }
+                          .maxByOrNull { it.playlistItem.lastPlayedAt }
 
-                    IconButton(
-                      onClick = {
-                        val mostRecentlyPlayedItem =
-                          videoItems
-                            .filter { it.playlistItem.lastPlayedAt > 0 }
-                            .maxByOrNull { it.playlistItem.lastPlayedAt }
+                      val itemToPlay = mostRecentlyPlayedItem ?: videoItems.firstOrNull()
+                      val startIndex =
+                        itemToPlay?.let { candidate ->
+                          videoItems.indexOfFirst { it.playlistItem.id == candidate.playlistItem.id }
+                        } ?: -1
 
-                        val itemToPlay = mostRecentlyPlayedItem ?: videoItems.firstOrNull()
-                        val startIndex =
-                          itemToPlay?.let { candidate ->
-                            videoItems.indexOfFirst { it.playlistItem.id == candidate.playlistItem.id }
-                          } ?: -1
-
-                        if (itemToPlay != null && startIndex >= 0) {
-                          coroutineScope.launch {
-                            viewModel.updatePlayHistory(itemToPlay.video.path)
-                          }
-                          launchPlaylistPlayback(itemToPlay, startIndex)
+                      if (itemToPlay != null && startIndex >= 0) {
+                        coroutineScope.launch {
+                          viewModel.updatePlayHistory(itemToPlay.video.path)
                         }
-                      },
-                      modifier = Modifier.padding(end = 20.dp),
-                    ) {
-                      Icon(
-                        imageVector = Icons.RoundedFilled.PlayArrow,
-                        contentDescription =
-                          androidx.compose.ui.res
-                            .stringResource(app.gyrolet.mpvrx.R.string.ui_play),
-                        tint = MaterialTheme.colorScheme.primary,
-                      )
-                    }
-                  }
+                        launchPlaylistPlayback(itemToPlay, startIndex)
+                      }
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                  )
                 }
               }
             },
@@ -1195,6 +1172,7 @@ private fun PlaylistVideoListContent(
                         androidx.compose.ui.res.stringResource(
                           app.gyrolet.mpvrx.R.string.ui_drag_to_reorder,
                         ),
+                      modifier = Modifier.size(24.dp),
                       tint = MaterialTheme.colorScheme.primary,
                     )
                   }

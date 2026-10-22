@@ -89,6 +89,8 @@ object ZipArchiveMedia {
     var videoCount: Int = 0,
     var totalSize: Long = 0L,
     var hasSubfolders: Boolean = false,
+    // Newest playable entry inside the folder, so Date sorting orders ZIP folders meaningfully.
+    var lastModified: Long = 0L,
   )
 
   private suspend fun resolveZipPath(context: Context, uri: Uri): String =
@@ -345,6 +347,26 @@ object ZipArchiveMedia {
     }
   }
 
+  /**
+   * Modification time of the archive itself. `File(content://...)` always reports 0, so picked
+   * archives ask their document provider instead.
+   */
+  private fun archiveModifiedMillis(
+    context: Context,
+    archivePath: String,
+    archiveFile: File,
+  ): Long {
+    if (archiveFile.isAbsolute) return archiveFile.lastModified().coerceAtLeast(0L)
+    val uri = Uri.parse(archivePath)
+    if (uri.scheme != "content") return 0L
+    return runCatching {
+      context.contentResolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_LAST_MODIFIED), null, null, null)?.use { cursor ->
+        val column = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED)
+        if (column >= 0 && cursor.moveToFirst() && !cursor.isNull(column)) cursor.getLong(column) else null
+      }
+    }.getOrNull()?.coerceAtLeast(0L) ?: 0L
+  }
+
   private fun archiveDisplayName(
     context: Context,
     uri: Uri,
@@ -449,11 +471,12 @@ object ZipArchiveMedia {
     val location = parseBrowserPath(virtualPath) ?: throw IOException("Invalid ZIP folder")
     val archiveFile = File(location.archivePath)
     val archiveName = archiveDisplayName(context, Uri.parse(location.archivePath), archiveFile.takeIf(File::isAbsolute))
+    val archiveModified = archiveModifiedMillis(context, location.archivePath, archiveFile)
     val prefix = location.directory.takeIf(String::isNotEmpty)?.plus('/') ?: ""
     readEntries(context, location.archivePath).mapNotNull { entry ->
       val fullPath = normalizedEntryName(entry) ?: return@mapNotNull null
       if (entry.isDirectory || !fullPath.startsWith(prefix) || !isPlayable(fullPath, includeAudio)) return@mapNotNull null
-      videoItem(context, location.archivePath, archiveName, archiveFile.lastModified(), entry, fullPath, virtualPath).video
+      videoItem(context, location.archivePath, archiveName, archiveModified, entry, fullPath, virtualPath).video
     }
   }
 
@@ -465,6 +488,7 @@ object ZipArchiveMedia {
     val location = parseBrowserPath(virtualPath) ?: throw IOException("Invalid ZIP folder")
     val archiveFile = File(location.archivePath)
     val archiveName = archiveDisplayName(context, Uri.parse(location.archivePath), archiveFile.takeIf(File::isAbsolute))
+    val archiveModified = archiveModifiedMillis(context, location.archivePath, archiveFile)
 
     val prefix = location.directory.takeIf(String::isNotEmpty)?.plus('/') ?: ""
     val folders = linkedMapOf<String, FolderStats>()
@@ -486,12 +510,13 @@ object ZipArchiveMedia {
         if (!entry.isDirectory && isPlayable(fullPath, includeAudio)) {
           stats.videoCount++
           stats.totalSize += entry.size.coerceAtLeast(0L)
+          stats.lastModified = maxOf(stats.lastModified, entry.time.takeIf { it > 0L } ?: archiveModified)
         }
         continue
       }
 
       if (!entry.isDirectory && isPlayable(fullPath, includeAudio)) {
-        videos.putIfAbsent(fullPath, videoItem(context, location.archivePath, archiveName, archiveFile.lastModified(), entry, fullPath, virtualPath))
+        videos.putIfAbsent(fullPath, videoItem(context, location.archivePath, archiveName, archiveModified, entry, fullPath, virtualPath))
       }
     }
 
@@ -504,7 +529,7 @@ object ZipArchiveMedia {
           FileSystemItem.Folder(
             name = name,
             path = browserPath(location.archivePath, childDirectory),
-            lastModified = archiveFile.lastModified(),
+            lastModified = stats.lastModified.takeIf { it > 0L } ?: archiveModified,
             videoCount = stats.videoCount,
             totalSize = stats.totalSize,
             hasSubfolders = stats.hasSubfolders,

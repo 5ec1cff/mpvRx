@@ -89,6 +89,31 @@ private fun Modifier.browserTopBarFocus(enabled: Boolean = true): Modifier =
   tvFocusHighlight(CircleShape, enabled = enabled, focusedScale = 1.06f)
 
 /**
+ * Top-bar action matching the built-in [BrowserTopBar] actions (touch target, spacing, 24dp icon,
+ * TV focus), for screens that add their own actions via `additionalActions`.
+ */
+@Composable
+fun BrowserTopBarActionButton(
+  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  contentDescription: String?,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  tint: Color = MaterialTheme.colorScheme.secondary.onWallpaper(),
+) {
+  IconButton(
+    onClick = onClick,
+    modifier = modifier.padding(horizontal = 2.dp).browserTopBarFocus(),
+  ) {
+    Icon(
+      icon,
+      contentDescription = contentDescription,
+      modifier = Modifier.size(24.dp),
+      tint = tint,
+    )
+  }
+}
+
+/**
  * Unified top bar for browser screens that switches between normal and selection modes
  */
 @OptIn(ExperimentalMaterial3Api::class)

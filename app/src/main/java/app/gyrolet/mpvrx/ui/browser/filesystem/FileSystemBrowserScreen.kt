@@ -812,7 +812,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 isLoading = isSearchLoading,
                 videoFilesWithPlayback = videoFilesWithPlayback,
                 newVideoIds = newVideoIds,
-                showSubtitleIndicator = showSubtitleIndicator,
+                showSubtitleIndicator = showSubtitleIndicator && !isArchiveBrowser,
+                archiveMode = isArchiveBrowser,
                 isAtRoot = isAppRoot,
                 navigationBarHeight = navigationBarHeight,
                 isFabVisible = isFabVisible, // Pass FAB visibility state
@@ -842,7 +843,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 breadcrumbs = breadcrumbs,
                 playlistMode = playlistMode,
                 itemsWereDeletedOrMoved = itemsWereDeletedOrMoved,
-                showSubtitleIndicator = showSubtitleIndicator,
+                showSubtitleIndicator = showSubtitleIndicator && !isArchiveBrowser,
+                archiveMode = isArchiveBrowser,
                 navigationBarHeight = navigationBarHeight,
                 onRefresh = { viewModel.refresh() },
                 onFolderClick = { folder ->
@@ -1005,6 +1007,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
       onDismiss = { sortDialogOpen.value = false },
       isAtRoot = isAppRoot,
       onMetadataFieldEnabled = viewModel::refresh,
+      isArchive = isArchiveBrowser,
     )
 
     if (deleteDialogOpen) {
@@ -1399,6 +1402,7 @@ private fun FileSystemBrowserContent(
   modifier: Modifier = Modifier,
   isInSelectionMode: Boolean = false,
   pinnedVideoPaths: Set<String> = emptySet(),
+  archiveMode: Boolean = false,
 ) {
   val swipeScope = rememberCoroutineScope()
   val swipeActions = rememberVideoSwipeActions { swipeScope.launch { onRefresh() } }
@@ -1446,20 +1450,21 @@ private fun FileSystemBrowserContent(
       thumbnailGenerator,
       swipeLeft,
       swipeRight,
+      archiveMode,
     ) {
       VideoCardUiConfig(
         unlimitedNameLines = unlimitedNameLines,
-        showThumbnails = showVideoThumbnails,
+        showThumbnails = showVideoThumbnails && !archiveMode,
         showSizeChip = showSizeChip,
-        showResolutionChip = showResolutionChip,
-        showFramerateInResolution = showFramerateInResolution,
-        showCodecSupportIndicator = showCodecSupportIndicator,
-        showProgressBar = showProgressBar,
+        showResolutionChip = showResolutionChip && !archiveMode,
+        showFramerateInResolution = showFramerateInResolution && !archiveMode,
+        showCodecSupportIndicator = showCodecSupportIndicator && !archiveMode,
+        showProgressBar = showProgressBar && !archiveMode,
         showDateChip = showDateChip,
         showUnplayedOldVideoLabel = showUnplayedOldVideoLabel,
         unplayedOldVideoDays = unplayedOldVideoDays,
         showExtensionField = showExtensionField,
-        showDurationField = showDurationField,
+        showDurationField = showDurationField && !archiveMode,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
         thumbnailGenerator = thumbnailGenerator,
@@ -1468,7 +1473,16 @@ private fun FileSystemBrowserContent(
       )
     }
 
-  val folderCardUiConfig = rememberFolderCardUiConfig()
+  // ZIP entries carry no probed metadata or thumbnails; suppress fields that would stay empty.
+  val baseFolderCardUiConfig = rememberFolderCardUiConfig()
+  val folderCardUiConfig =
+    remember(baseFolderCardUiConfig, archiveMode) {
+      if (archiveMode) {
+        baseFolderCardUiConfig.copy(showTotalDurationChip = false, showFolderThumbnails = false)
+      } else {
+        baseFolderCardUiConfig
+      }
+    }
 
   // Calculate thumbnail dimensions for list mode
   val thumbWidthDp = 160.dp
@@ -1875,6 +1889,7 @@ private fun FileSystemSearchContent(
   onFolderClick: (FileSystemItem.Folder) -> Unit,
   onChanged: () -> Unit,
   modifier: Modifier = Modifier,
+  archiveMode: Boolean = false,
 ) {
   val swipeActions = rememberVideoSwipeActions(onChanged = onChanged)
   val swipePlaybackInfo = rememberSwipePlaybackInfo(
@@ -1922,20 +1937,21 @@ private fun FileSystemSearchContent(
       thumbnailGenerator,
       swipeLeft,
       swipeRight,
+      archiveMode,
     ) {
       VideoCardUiConfig(
         unlimitedNameLines = unlimitedNameLines,
-        showThumbnails = showVideoThumbnails,
+        showThumbnails = showVideoThumbnails && !archiveMode,
         showSizeChip = showSizeChip,
-        showResolutionChip = showResolutionChip,
-        showFramerateInResolution = showFramerateInResolution,
-        showCodecSupportIndicator = showCodecSupportIndicator,
-        showProgressBar = showProgressBar,
+        showResolutionChip = showResolutionChip && !archiveMode,
+        showFramerateInResolution = showFramerateInResolution && !archiveMode,
+        showCodecSupportIndicator = showCodecSupportIndicator && !archiveMode,
+        showProgressBar = showProgressBar && !archiveMode,
         showDateChip = showDateChip,
         showUnplayedOldVideoLabel = showUnplayedOldVideoLabel,
         unplayedOldVideoDays = unplayedOldVideoDays,
         showExtensionField = showExtensionField,
-        showDurationField = showDurationField,
+        showDurationField = showDurationField && !archiveMode,
         centerGridTitles = centerGridTitles,
         thumbnailQuality = thumbnailQuality,
         thumbnailGenerator = thumbnailGenerator,
@@ -1944,7 +1960,16 @@ private fun FileSystemSearchContent(
       )
     }
 
-  val folderCardUiConfig = rememberFolderCardUiConfig()
+  // ZIP entries carry no probed metadata or thumbnails; suppress fields that would stay empty.
+  val baseFolderCardUiConfig = rememberFolderCardUiConfig()
+  val folderCardUiConfig =
+    remember(baseFolderCardUiConfig, archiveMode) {
+      if (archiveMode) {
+        baseFolderCardUiConfig.copy(showTotalDurationChip = false, showFolderThumbnails = false)
+      } else {
+        baseFolderCardUiConfig
+      }
+    }
 
   val mediaLayoutMode by browserPreferences.mediaLayoutMode.collectAsState()
   val isGridMode = mediaLayoutMode == app.gyrolet.mpvrx.preferences.MediaLayoutMode.GRID
