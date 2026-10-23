@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresApi
 import java.io.File
@@ -42,6 +43,7 @@ internal object CrashMonitor {
   private const val MAX_TRACE_BYTES = 512 * 1024
   private const val MAX_TOMBSTONE_TEXT = 96 * 1024
   private const val MAX_EXITS = 16
+  private const val SESSION_MARKER = "visible-session"
 
   private val startedActivities = AtomicInteger(0)
   private val worker = Executors.newSingleThreadExecutor { runnable -> Thread(runnable, "crash-monitor").apply { isDaemon = true } }
@@ -79,11 +81,13 @@ internal object CrashMonitor {
     application.registerActivityLifecycleCallbacks(
       object : Application.ActivityLifecycleCallbacks {
         override fun onActivityStarted(activity: Activity) {
-          startedActivities.incrementAndGet()
+          if (startedActivities.incrementAndGet() == 1) markSessionVisible(application, visible = true)
         }
 
         override fun onActivityStopped(activity: Activity) {
-          startedActivities.updateAndGet { (it - 1).coerceAtLeast(0) }
+          if (startedActivities.updateAndGet { (it - 1).coerceAtLeast(0) } == 0) {
+            markSessionVisible(application, visible = false)
+          }
         }
 
         override fun onActivityCreated(
@@ -114,10 +118,121 @@ internal object CrashMonitor {
 
   /** Records abnormal exits of earlier sessions. Runs off the main thread. */
   fun recordPreviousExits(context: Context) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
     val appContext = context.applicationContext
     worker.execute {
-      runCatching { recordExits(appContext) }.onFailure { Log.w(TAG, "Could not read previous exits", it) }
+      runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) recordExits(appContext) else recordUnexplainedExit(appContext)
+      }.onFailure { Log.w(TAG, "Could not read previous exits", it) }
+    }
+  }
+
+  /**
+   * Whether the app died abnormally after [since], for callers that must react before anything
+   * else runs: from the platform's exit history on Android 11+, and on older versions from a
+   * session that ended on screen without a reported exception. Synchronous and cheap.
+   */
+  fun diedAbnormallySince(
+    context: Context,
+    since: Long,
+  ): Boolean =
+    runCatching {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        crashedSince(context, since)
+      } else {
+        previousVisibleSession(context) != null
+      }
+    }.getOrDefault(false)
+
+  /** A crash this process has already reported must not also count as an unexplained death. */
+  fun clearSessionMarker(context: Context) {
+    runCatching { sessionMarker(context).delete() }
+  }
+
+  // Android 10 and older keep no exit history. This marker exists only while the app is on screen,
+  // so finding one from another process means it died in use without a Java exception: a native
+  // crash (decoder, renderer, libmpv) or an app-not-responding kill. The boot count rules out
+  // reboots and power loss.
+  private fun sessionMarker(context: Context): File = File(context.noBackupFilesDir, SESSION_MARKER)
+
+  private fun markSessionVisible(
+    context: Context,
+    visible: Boolean,
+  ) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return
+    worker.execute {
+      runCatching {
+        val marker = sessionMarker(context)
+        if (visible) {
+          marker.writeText("${Process.myPid()} ${bootCount(context)} ${System.currentTimeMillis()}")
+        } else {
+          marker.delete()
+        }
+      }
+    }
+  }
+
+  private data class VisibleSession(
+    val processId: Int,
+    val visibleSince: Long,
+  )
+
+  private fun previousVisibleSession(context: Context): VisibleSession? {
+    val parts = sessionMarker(context).takeIf(File::isFile)?.readText()?.trim()?.split(' ') ?: return null
+    val processId = parts.getOrNull(0)?.toIntOrNull() ?: return null
+    val boot = parts.getOrNull(1)?.toIntOrNull()
+    if (processId == Process.myPid() || boot == null || boot != bootCount(context)) return null
+    return VisibleSession(processId, parts.getOrNull(2)?.toLongOrNull() ?: 0L)
+  }
+
+  private fun bootCount(context: Context): Int =
+    runCatching { Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT) }.getOrDefault(-1)
+
+  private fun recordUnexplainedExit(context: Context) {
+    val session = previousVisibleSession(context)
+    sessionMarker(context).delete()
+    if (session == null) return
+    val details =
+      buildString {
+        appendLine("=== Closed unexpectedly while in use ===")
+        if (session.visibleSince > 0L) {
+          appendLine("On screen since: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ROOT).format(Date(session.visibleSince))}")
+        }
+        appendLine("Process: ${context.packageName} (pid ${session.processId})")
+        appendLine()
+        appendLine(
+          "The app stopped while it was on screen, without a Java exception. Android " +
+            "${Build.VERSION.RELEASE} keeps no exit reason, but this is almost always a native crash " +
+            "(video decoder, renderer or libmpv) or the app being closed because it stopped responding. " +
+            "Logs from that session follow if Android still has them.",
+        )
+      }
+    CrashReportStore.captureExits(
+      context = context,
+      summary = "Closed unexpectedly while in use",
+      details = details,
+      processId = session.processId,
+    )
+  }
+
+  @RequiresApi(Build.VERSION_CODES.R)
+  private fun crashedSince(
+    context: Context,
+    since: Long,
+  ): Boolean {
+    val activityManager = context.getSystemService(ActivityManager::class.java) ?: return false
+    val crashProcess = "${context.packageName}:crash"
+    return activityManager.getHistoricalProcessExitReasons(context.packageName, 0, MAX_EXITS).any { exit ->
+      exit.timestamp >= since &&
+        exit.pid != Process.myPid() &&
+        exit.processName != crashProcess &&
+        when (exit.reason) {
+          ApplicationExitInfo.REASON_CRASH,
+          ApplicationExitInfo.REASON_CRASH_NATIVE,
+          ApplicationExitInfo.REASON_ANR,
+          ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+          -> true
+          else -> false
+        }
     }
   }
 

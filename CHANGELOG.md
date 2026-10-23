@@ -4,6 +4,31 @@ These notes are written in plain English and focus on what changed for real use.
 
 ## Unreleased
 
+### Music Player
+
+- **Live expansion from the mini player:** Tapping or swiping up the music mini player grows it into the full player inside the app instead of opening a separate screen. The motion is drawn from the live player rather than a saved snapshot, follows your finger in both directions, can be caught mid-way, and supports predictive back to collapse it again.
+- **Uninterrupted playback while expanding:** Playback stays with the background service the whole time, so expanding or collapsing never re-attaches the player or pauses the audio. Lyrics, the queue and the sleep timer stay as you left them between visits. Video and Android TV still use the full player screen.
+
+### Player
+
+- **Regular controls when glass is off for HDR:** With Liquid Glass on and "Liquid glass in HDR mode" off, turning on HDR output now switches every player control, slider, sheet and panel to its regular look, exactly as with Liquid Glass off, instead of glass buttons that could no longer show the video behind them. The same applies whenever HDR output is controlled by mpv.conf.
+
+### Jellyfin
+
+- **Expressive featured carousel:** The home banner is now a Material 3 multi-browse carousel. The next title peeks beside the current one, slides grow and shrink as they move, text fades in only once a slide is wide enough, and tapping a peeking slide brings it forward.
+- **Library carousel:** Three or more libraries scroll as a carousel of artwork tiles; one or two stay as cards.
+- **Consistent spacing:** Section titles, rows, grids, lists, search and tabs share one screen gutter that widens on tablets, so everything lines up on the same edge. Rows scroll edge to edge while their first card stays aligned with the title.
+- **Cleaner cards:** Artwork corners follow their card's corners, list rows use the same tonal cards as episodes, artists show round artwork, and the library card no longer shows a square background behind its rounded artwork.
+- **Clearer states:** The connect, empty-folder, no-results and connection-error screens use the app's shared expressive layout, and every Jellyfin label and accessibility description is translated.
+
+### Settings Restore
+
+- **Damaged backups no longer crash the app:** Restoring a configuration folder skips damaged or mismatched entries instead of failing, and reports how many were skipped. If restored settings still crash the app, including native player crashes and freezes, they are reverted automatically on the next launch.
+
+### Crash Reporting
+
+- **Nothing goes unreported:** Startup crashes, out-of-memory errors, crashes in the background, native crashes, freezes (ANRs) and system kills while the app is in use all produce a crash report. On Android 10 and older, which keep no exit history, the app now also reports when it closed unexpectedly while on screen, with the logs Android still has from that session.
+
 ### Tree Browser
 
 - **Immediate file actions:** Deleting or moving files and folders updates Tree mode immediately; renames appear before storage work finishes. Failed or cancelled items return, successful changes remain applied through stale scans, and operation refreshes keep the current list on screen.

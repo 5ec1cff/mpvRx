@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.gyrolet.mpvrx.preferences.preference.defaultSharedPreferences
+import app.gyrolet.mpvrx.presentation.crash.CrashMonitor
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -94,6 +95,12 @@ internal object SettingsRestoreGuard {
     if (armedAt <= 0L) return
     if (System.currentTimeMillis() - armedAt > MAX_GUARD_AGE_MS) {
       disarm(context)
+      return
+    }
+    // Native crashes and ANRs never reach the exception handler; the exit record still shows them.
+    if (CrashMonitor.diedAbnormallySince(context, armedAt)) {
+      Log.w(TAG, "The app died with freshly restored settings; reverting them")
+      revert(context)
       return
     }
     val launches = state.getInt(KEY_UNVERIFIED_LAUNCHES, 0) + 1

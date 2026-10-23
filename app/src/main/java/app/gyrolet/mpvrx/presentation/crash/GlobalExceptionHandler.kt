@@ -39,6 +39,8 @@ class GlobalExceptionHandler(
       val reportId = runCatching { CrashReportStore.capture(context, t, e, presented = canPresent) }
         .onFailure { Log.e(TAG, "Unable to save crash report", it) }
         .getOrNull()
+      // Reported here, so the next launch must not count it again as an unexplained death.
+      if (reportId != null) CrashMonitor.clearSessionMarker(context)
       if (canPresent || reportId == null) {
         val stack = runCatching { e.stackTraceToString() }.getOrDefault(e.toString())
         val intent = Intent(context, activity).apply {
