@@ -2832,5 +2832,20 @@
   <string name="jellyfin_continue_watching">Continue watching</string>
   <string name="jellyfin_latest_movies">Latest movies</string>
   <string name="jellyfin_latest_series">Latest series</string>
+  <string name="jellyfin_top_picks">Top picks for you</string>
+  <string name="jellyfin_top_picks_subtitle">Popular and trending on your server</string>
+  <string name="jellyfin_music_subtitle">Albums and tracks</string>
+  <string name="jellyfin_connect_message">Stream your library with mpvRx hardware decoding, no transcoding needed.</string>
+  <string name="jellyfin_empty_folder_message">There\'s no media in this folder yet.</string>
+  <string name="jellyfin_no_results_message">Nothing matched “%1$s”. Try another title or category.</string>
+  <string name="jellyfin_filter_all">All</string>
+  <string name="jellyfin_play_random">Play random</string>
+  <string name="jellyfin_switch_server">Switch server</string>
+  <string name="jellyfin_error_title">Couldn\'t reach this server</string>
+  <string name="jellyfin_auth_error_message">Your session expired or this account isn\'t authorized. Sign in again to continue.</string>
+  <string name="jellyfin_reauthenticate">Sign in again</string>
+  <string name="jellyfin_cast">Cast</string>
+  <string name="jellyfin_more_like_this">More like this</string>
+  <string name="jellyfin_watched">Watched</string>
   <string name="jellyfin_search_hint">Search movies, shows, and episodes…</string>
 </resources>

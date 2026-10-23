@@ -2806,5 +2806,20 @@
   <string name="jellyfin_continue_watching">Продолжить просмотр</string>
   <string name="jellyfin_latest_movies">Новые фильмы</string>
   <string name="jellyfin_latest_series">Новые сериалы</string>
+  <string name="jellyfin_top_picks">Рекомендуем вам</string>
+  <string name="jellyfin_top_picks_subtitle">Популярное на вашем сервере</string>
+  <string name="jellyfin_music_subtitle">Альбомы и треки</string>
+  <string name="jellyfin_connect_message">Смотрите медиатеку с аппаратным декодированием mpvRx, без перекодирования.</string>
+  <string name="jellyfin_empty_folder_message">В этой папке пока нет медиафайлов.</string>
+  <string name="jellyfin_no_results_message">Ничего не найдено по запросу «%1$s». Попробуйте другое название или категорию.</string>
+  <string name="jellyfin_filter_all">Все</string>
+  <string name="jellyfin_play_random">Случайное воспроизведение</string>
+  <string name="jellyfin_switch_server">Сменить сервер</string>
+  <string name="jellyfin_error_title">Не удалось подключиться к серверу</string>
+  <string name="jellyfin_auth_error_message">Сеанс истёк или у этой учётной записи нет доступа. Войдите снова, чтобы продолжить.</string>
+  <string name="jellyfin_reauthenticate">Войти снова</string>
+  <string name="jellyfin_cast">В ролях</string>
+  <string name="jellyfin_more_like_this">Похожее</string>
+  <string name="jellyfin_watched">Просмотрено</string>
   <string name="jellyfin_search_hint">Поиск фильмов, сериалов и серий…</string>
 </resources>

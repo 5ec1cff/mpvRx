@@ -2678,5 +2678,20 @@
   <string name="jellyfin_continue_watching">देखना जारी रखें</string>
   <string name="jellyfin_latest_movies">नई फ़िल्में</string>
   <string name="jellyfin_latest_series">नई सीरीज़</string>
+  <string name="jellyfin_top_picks">आपके लिए चुनिंदा</string>
+  <string name="jellyfin_top_picks_subtitle">आपके सर्वर पर लोकप्रिय और ट्रेंडिंग</string>
+  <string name="jellyfin_music_subtitle">एल्बम और ट्रैक</string>
+  <string name="jellyfin_connect_message">mpvRx हार्डवेयर डिकोडिंग के साथ अपनी लाइब्रेरी चलाएँ, बिना ट्रांसकोडिंग के।</string>
+  <string name="jellyfin_empty_folder_message">इस फ़ोल्डर में अभी कोई मीडिया नहीं है।</string>
+  <string name="jellyfin_no_results_message">“%1$s” से कुछ मेल नहीं खाया। कोई दूसरा शीर्षक या श्रेणी आज़माएँ।</string>
+  <string name="jellyfin_filter_all">सभी</string>
+  <string name="jellyfin_play_random">रैंडम चलाएँ</string>
+  <string name="jellyfin_switch_server">सर्वर बदलें</string>
+  <string name="jellyfin_error_title">इस सर्वर तक नहीं पहुँच सके</string>
+  <string name="jellyfin_auth_error_message">आपका सत्र समाप्त हो गया या यह खाता अधिकृत नहीं है। जारी रखने के लिए फिर से साइन इन करें।</string>
+  <string name="jellyfin_reauthenticate">फिर से साइन इन करें</string>
+  <string name="jellyfin_cast">कलाकार</string>
+  <string name="jellyfin_more_like_this">ऐसे और भी</string>
+  <string name="jellyfin_watched">देखा गया</string>
   <string name="jellyfin_search_hint">फ़िल्में, सीरीज़ और एपिसोड खोजें…</string>
 </resources>

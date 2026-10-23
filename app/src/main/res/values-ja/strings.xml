@@ -2758,5 +2758,20 @@
   <string name="jellyfin_continue_watching">視聴を続ける</string>
   <string name="jellyfin_latest_movies">新着映画</string>
   <string name="jellyfin_latest_series">新着シリーズ</string>
+  <string name="jellyfin_top_picks">あなたへのおすすめ</string>
+  <string name="jellyfin_top_picks_subtitle">サーバーで人気・話題の作品</string>
+  <string name="jellyfin_music_subtitle">アルバムとトラック</string>
+  <string name="jellyfin_connect_message">mpvRx のハードウェアデコードでライブラリを再生できます。トランスコードは不要です。</string>
+  <string name="jellyfin_empty_folder_message">このフォルダーにはまだメディアがありません。</string>
+  <string name="jellyfin_no_results_message">「%1$s」に一致する結果はありません。別のタイトルやカテゴリーをお試しください。</string>
+  <string name="jellyfin_filter_all">すべて</string>
+  <string name="jellyfin_play_random">ランダム再生</string>
+  <string name="jellyfin_switch_server">サーバーを切り替え</string>
+  <string name="jellyfin_error_title">このサーバーに接続できません</string>
+  <string name="jellyfin_auth_error_message">セッションの有効期限が切れたか、このアカウントには権限がありません。続けるには再度サインインしてください。</string>
+  <string name="jellyfin_reauthenticate">再度サインイン</string>
+  <string name="jellyfin_cast">キャスト</string>
+  <string name="jellyfin_more_like_this">おすすめの類似作品</string>
+  <string name="jellyfin_watched">視聴済み</string>
   <string name="jellyfin_search_hint">映画、番組、エピソードを検索…</string>
 </resources>

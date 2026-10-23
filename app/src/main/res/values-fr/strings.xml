@@ -2774,5 +2774,20 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="jellyfin_continue_watching">Reprendre la lecture</string>
   <string name="jellyfin_latest_movies">Films récents</string>
   <string name="jellyfin_latest_series">Séries récentes</string>
+  <string name="jellyfin_top_picks">Sélection pour vous</string>
+  <string name="jellyfin_top_picks_subtitle">Populaire et tendance sur votre serveur</string>
+  <string name="jellyfin_music_subtitle">Albums et titres</string>
+  <string name="jellyfin_connect_message">Diffusez votre bibliothèque avec le décodage matériel de mpvRx, sans transcodage.</string>
+  <string name="jellyfin_empty_folder_message">Ce dossier ne contient encore aucun média.</string>
+  <string name="jellyfin_no_results_message">Aucun résultat pour « %1$s ». Essayez un autre titre ou une autre catégorie.</string>
+  <string name="jellyfin_filter_all">Tout</string>
+  <string name="jellyfin_play_random">Lecture aléatoire</string>
+  <string name="jellyfin_switch_server">Changer de serveur</string>
+  <string name="jellyfin_error_title">Impossible de joindre ce serveur</string>
+  <string name="jellyfin_auth_error_message">Votre session a expiré ou ce compte n\'est pas autorisé. Reconnectez-vous pour continuer.</string>
+  <string name="jellyfin_reauthenticate">Se reconnecter</string>
+  <string name="jellyfin_cast">Distribution</string>
+  <string name="jellyfin_more_like_this">Titres similaires</string>
+  <string name="jellyfin_watched">Vu</string>
   <string name="jellyfin_search_hint">Rechercher des films, séries et épisodes…</string>
 </resources>

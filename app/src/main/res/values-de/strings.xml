@@ -2774,5 +2774,20 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="jellyfin_continue_watching">Weiterschauen</string>
   <string name="jellyfin_latest_movies">Neueste Filme</string>
   <string name="jellyfin_latest_series">Neueste Serien</string>
+  <string name="jellyfin_top_picks">Empfehlungen für dich</string>
+  <string name="jellyfin_top_picks_subtitle">Beliebt und angesagt auf deinem Server</string>
+  <string name="jellyfin_music_subtitle">Alben und Titel</string>
+  <string name="jellyfin_connect_message">Streame deine Mediathek mit mpvRx-Hardwaredekodierung, ganz ohne Transkodierung.</string>
+  <string name="jellyfin_empty_folder_message">In diesem Ordner gibt es noch keine Medien.</string>
+  <string name="jellyfin_no_results_message">Nichts passt zu „%1$s“. Versuche einen anderen Titel oder eine andere Kategorie.</string>
+  <string name="jellyfin_filter_all">Alle</string>
+  <string name="jellyfin_play_random">Zufällig abspielen</string>
+  <string name="jellyfin_switch_server">Server wechseln</string>
+  <string name="jellyfin_error_title">Server nicht erreichbar</string>
+  <string name="jellyfin_auth_error_message">Deine Sitzung ist abgelaufen oder dieses Konto ist nicht berechtigt. Melde dich erneut an, um fortzufahren.</string>
+  <string name="jellyfin_reauthenticate">Erneut anmelden</string>
+  <string name="jellyfin_cast">Besetzung</string>
+  <string name="jellyfin_more_like_this">Ähnliche Titel</string>
+  <string name="jellyfin_watched">Angesehen</string>
   <string name="jellyfin_search_hint">Filme, Serien und Episoden suchen…</string>
 </resources>

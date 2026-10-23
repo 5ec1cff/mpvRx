@@ -2756,5 +2756,20 @@
   <string name="jellyfin_continue_watching">继续观看</string>
   <string name="jellyfin_latest_movies">最新电影</string>
   <string name="jellyfin_latest_series">最新剧集</string>
+  <string name="jellyfin_top_picks">为你精选</string>
+  <string name="jellyfin_top_picks_subtitle">你服务器上的热门内容</string>
+  <string name="jellyfin_music_subtitle">专辑和曲目</string>
+  <string name="jellyfin_connect_message">使用 mpvRx 硬件解码播放你的媒体库，无需转码。</string>
+  <string name="jellyfin_empty_folder_message">此文件夹中还没有媒体。</string>
+  <string name="jellyfin_no_results_message">没有与“%1$s”匹配的结果。请尝试其他标题或类别。</string>
+  <string name="jellyfin_filter_all">全部</string>
+  <string name="jellyfin_play_random">随机播放</string>
+  <string name="jellyfin_switch_server">切换服务器</string>
+  <string name="jellyfin_error_title">无法连接到此服务器</string>
+  <string name="jellyfin_auth_error_message">会话已过期或此账号无权访问。请重新登录以继续。</string>
+  <string name="jellyfin_reauthenticate">重新登录</string>
+  <string name="jellyfin_cast">演员表</string>
+  <string name="jellyfin_more_like_this">更多类似内容</string>
+  <string name="jellyfin_watched">已观看</string>
   <string name="jellyfin_search_hint">搜索电影、剧集和单集…</string>
 </resources>

@@ -2746,5 +2746,20 @@
   <string name="jellyfin_continue_watching">Продовжити перегляд</string>
   <string name="jellyfin_latest_movies">Нові фільми</string>
   <string name="jellyfin_latest_series">Нові серіали</string>
+  <string name="jellyfin_top_picks">Рекомендації для вас</string>
+  <string name="jellyfin_top_picks_subtitle">Популярне на вашому сервері</string>
+  <string name="jellyfin_music_subtitle">Альбоми й треки</string>
+  <string name="jellyfin_connect_message">Дивіться медіатеку з апаратним декодуванням mpvRx, без перекодування.</string>
+  <string name="jellyfin_empty_folder_message">У цій теці поки немає медіафайлів.</string>
+  <string name="jellyfin_no_results_message">Нічого не знайдено за запитом «%1$s». Спробуйте іншу назву чи категорію.</string>
+  <string name="jellyfin_filter_all">Усі</string>
+  <string name="jellyfin_play_random">Випадкове відтворення</string>
+  <string name="jellyfin_switch_server">Змінити сервер</string>
+  <string name="jellyfin_error_title">Не вдалося підключитися до сервера</string>
+  <string name="jellyfin_auth_error_message">Сеанс завершився або цей обліковий запис не має доступу. Увійдіть знову, щоб продовжити.</string>
+  <string name="jellyfin_reauthenticate">Увійти знову</string>
+  <string name="jellyfin_cast">У ролях</string>
+  <string name="jellyfin_more_like_this">Схоже</string>
+  <string name="jellyfin_watched">Переглянуто</string>
   <string name="jellyfin_search_hint">Пошук фільмів, серіалів і епізодів…</string>
 </resources>

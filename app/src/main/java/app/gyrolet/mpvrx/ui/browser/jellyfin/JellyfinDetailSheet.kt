@@ -202,14 +202,16 @@ fun JellyfinDetailSheet(
           if ((item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist") && seasons.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
               Text(
-                text = "Albums",
+                text = stringResource(R.string.ui_albums),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
               )
+              // Scrolls to the sheet edges while the first album stays aligned with the title.
               LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 0.dp),
+                modifier = Modifier.bleedHorizontally(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
+                contentPadding = PaddingValues(horizontal = 16.dp),
               ) {
                 items(seasons, key = { it.id }) { album ->
                   JellyfinMusicCard(
@@ -1023,7 +1025,7 @@ fun JellyfinDetailSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
           ) {
             Text(
-              text = "Cast",
+              text = stringResource(R.string.jellyfin_cast),
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onSurface,
@@ -1031,8 +1033,8 @@ fun JellyfinDetailSheet(
 
             LazyRow(
               horizontalArrangement = Arrangement.spacedBy(14.dp),
-              contentPadding = PaddingValues(vertical = 4.dp),
-              modifier = Modifier.fillMaxWidth(),
+              contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+              modifier = Modifier.bleedHorizontally(20.dp).fillMaxWidth(),
             ) {
               items(cast, key = { "${it.id}|${it.role ?: ""}" }) { person ->
                 Column(
@@ -1300,15 +1302,16 @@ fun JellyfinDetailSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
           ) {
             Text(
-              text = "More Like This",
+              text = stringResource(R.string.jellyfin_more_like_this),
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onSurface,
             )
 
             LazyRow(
-              horizontalArrangement = Arrangement.spacedBy(12.dp),
-              contentPadding = PaddingValues(bottom = 8.dp),
+              modifier = Modifier.bleedHorizontally(20.dp),
+              horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
+              contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 8.dp),
             ) {
               items(similarItems, key = { it.id }) { similarItem ->
                 JellyfinPosterCard(

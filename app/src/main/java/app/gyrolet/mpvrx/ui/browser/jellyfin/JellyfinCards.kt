@@ -48,18 +48,17 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.focusGroup
-import androidx.compose.foundation.gestures.snapping.SnapPosition
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PageSize
-import androidx.compose.foundation.pager.PagerDefaults
-import androidx.compose.foundation.pager.PagerSnapDistance
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.carousel.CarouselDefaults
+import androidx.compose.material3.carousel.CarouselItemScope
+import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
+import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import android.content.Intent
@@ -91,8 +90,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -186,10 +187,14 @@ private fun buildStarSubtitle(
 }
 
 // ============================================================================
-// Hero Featured Carousel Banner (Material 3 Expressive)
+// Hero Featured Carousel (Material 3 Expressive multi-browse carousel)
 // ============================================================================
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+private val HeroPeekWidth = 56.dp
+private val HeroMaxItemWidth = 960.dp
+private const val HERO_AUTO_ADVANCE_MS = 5_000L
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JellyfinHeroBanner(
   items: List<JellyfinItem>,
@@ -201,7 +206,7 @@ fun JellyfinHeroBanner(
 ) {
   if (items.isEmpty()) return
 
-  val pagerState = key(server.id) { rememberPagerState { items.size } }
+  val carouselState = key(server.id) { rememberCarouselState { items.size } }
   val scope = rememberCoroutineScope()
   val context = LocalContext.current
   val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -212,16 +217,17 @@ fun JellyfinHeroBanner(
   var hasFocus by remember { mutableStateOf(false) }
   val canAutoAdvance = autoAdvance && pageActive && lifecycle.isAtLeast(Lifecycle.State.STARTED) &&
     !isTelevision && !reduceMotion && !hasFocus
-  val artworkColors = LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme
+  val gutter = jellyfinGutter()
+  val currentItem = carouselState.currentItem.coerceIn(0, items.lastIndex)
 
-  LaunchedEffect(pagerState, items.size) {
-    if (pagerState.currentPage >= items.size) pagerState.scrollToPage(items.lastIndex)
+  LaunchedEffect(carouselState, items.size) {
+    if (carouselState.currentItem > items.lastIndex) carouselState.scrollToItem(items.lastIndex)
   }
 
-  LaunchedEffect(pagerState, pagerState.currentPage, pagerState.isScrollInProgress, canAutoAdvance, items.size) {
-    if (items.size > 1 && canAutoAdvance && !pagerState.isScrollInProgress) {
-      delay(5000L)
-      pagerState.animateScrollToPage((pagerState.currentPage + 1) % items.size)
+  LaunchedEffect(carouselState, currentItem, carouselState.isScrollInProgress, canAutoAdvance, items.size) {
+    if (items.size > 1 && canAutoAdvance && !carouselState.isScrollInProgress) {
+      delay(HERO_AUTO_ADVANCE_MS)
+      carouselState.animateScrollToItem((currentItem + 1) % items.size)
     }
   }
 
@@ -230,7 +236,7 @@ fun JellyfinHeroBanner(
   val heroHeight = (when {
     isTelevision -> 360.dp
     isLandscape -> 300.dp
-    else -> 460.dp
+    else -> 440.dp
   }) * configuration.fontScale.coerceAtLeast(1f)
 
   Column(
@@ -239,362 +245,39 @@ fun JellyfinHeroBanner(
         .fillMaxWidth()
         .onFocusChanged { hasFocus = it.hasFocus }
         .focusGroup(),
-    verticalArrangement = Arrangement.spacedBy(12.dp),
+    verticalArrangement = Arrangement.spacedBy(JellyfinSpacing.HeaderGap),
   ) {
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-    val pageWidth = (maxWidth - 48.dp).coerceIn(1.dp, 960.dp)
-    // Keep the leading gutter outside the scrolling viewport, including after the first card.
-    // Matching the trailing space to the page width keeps the last card aligned there too.
-    HorizontalPager(
-      state = pagerState,
-      pageSize = PageSize.Fixed(pageWidth),
-      pageSpacing = 12.dp,
-      contentPadding = PaddingValues(end = (maxWidth - 20.dp - pageWidth).coerceAtLeast(0.dp)),
-      snapPosition = SnapPosition.Start,
-      flingBehavior = PagerDefaults.flingBehavior(pagerState, pagerSnapDistance = PagerSnapDistance.atMost(1)),
-      key = { items[it].id },
-      modifier = Modifier.fillMaxWidth().padding(start = 20.dp).height(heroHeight),
-    ) { page ->
-      val item = items.getOrNull(page) ?: return@HorizontalPager
-      val backdropUrl =
-        remember(server.serverUrl, item.id, item.backdropImageTag, item.primaryImageTag, server.accessToken) {
-          if (!item.backdropImageTag.isNullOrBlank()) {
-            JellyfinClient.getBackdropUrl(
-              serverUrl = server.serverUrl,
-              itemId = item.id,
-              imageTag = item.backdropImageTag,
-              maxWidth = 1280,
-              token = server.accessToken,
-            )
-          } else {
-            JellyfinClient.getImageUrl(
-              serverUrl = server.serverUrl,
-              itemId = item.id,
-              imageTag = item.primaryImageTag,
-              maxWidth = 800,
-              token = server.accessToken,
-            )
-          }
-        }
-
-      val logoUrl =
-        remember(server.serverUrl, item.id, item.logoImageTag, item.parentLogoImageTag, item.parentLogoItemId, server.accessToken) {
-          if (!item.logoImageTag.isNullOrBlank()) {
-            JellyfinClient.getLogoUrl(
-              serverUrl = server.serverUrl,
-              itemId = item.id,
-              imageTag = item.logoImageTag,
-              maxWidth = 800,
-              token = server.accessToken,
-            )
-          } else if (!item.parentLogoImageTag.isNullOrBlank() && !item.parentLogoItemId.isNullOrBlank()) {
-            JellyfinClient.getLogoUrl(
-              serverUrl = server.serverUrl,
-              itemId = item.parentLogoItemId,
-              imageTag = item.parentLogoImageTag,
-              maxWidth = 800,
-              token = server.accessToken,
-            )
-          } else null
-        }
-
-      Box(
-        modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.extraLarge)
-          .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-      ) {
-        // High-res backdrop artwork
-        RemoteImage(
-          url = backdropUrl,
-          contentDescription = null,
-          contentScale = ContentScale.Crop,
-          modifier = Modifier.fillMaxSize(),
+    // The gutter sits outside the carousel, so slides morph against the same edge every row uses
+    // and nothing scrolls into the screen margin.
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = gutter)) {
+      HorizontalMultiBrowseCarousel(
+        state = carouselState,
+        preferredItemWidth = (maxWidth - HeroPeekWidth).coerceIn(1.dp, HeroMaxItemWidth),
+        modifier = Modifier.fillMaxWidth().height(heroHeight),
+        itemSpacing = JellyfinSpacing.CarouselItemGap,
+        flingBehavior = CarouselDefaults.singleAdvanceFlingBehavior(carouselState),
+      ) { index ->
+        val item = items.getOrNull(index) ?: return@HorizontalMultiBrowseCarousel
+        JellyfinHeroSlide(
+          item = item,
+          server = server,
+          isCurrent = index == currentItem,
+          onPlay = { onPlay(item) },
+          onDetails = { onDetails(item) },
+          onReveal = { scope.launch { carouselState.animateScrollToItem(index) } },
         )
-
-        Box(
-          modifier =
-            Modifier
-              .fillMaxSize()
-              .background(
-                Brush.verticalGradient(
-                  0.0f to Color.Black.copy(alpha = 0.28f),
-                  0.25f to Color.Transparent,
-                  0.6f to Color.Black.copy(alpha = 0.65f),
-                  1.0f to Color.Black.copy(alpha = 0.96f),
-                ),
-              ),
-        )
-
-        Surface(
-          modifier = Modifier.align(Alignment.TopStart).padding(20.dp),
-          shape = CircleShape,
-          color = Color.Black.copy(alpha = 0.45f),
-          contentColor = Color.White,
-        ) {
-          Text(
-            stringResource(R.string.jellyfin_featured),
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-          )
-        }
-
-        // Hero Info Overlay
-        Column(
-          modifier =
-            Modifier
-              .fillMaxSize()
-              .padding(horizontal = 20.dp, vertical = 24.dp),
-          verticalArrangement = Arrangement.Bottom,
-        ) {
-          // Title / Logo (matches AFinity)
-          if (!logoUrl.isNullOrBlank()) {
-            Box(
-              modifier =
-                Modifier
-                  .fillMaxWidth(0.85f)
-                  .heightIn(min = 44.dp, max = 96.dp)
-                  .padding(bottom = 6.dp),
-              contentAlignment = Alignment.BottomStart,
-            ) {
-              RemoteImage(
-                url = logoUrl,
-                contentDescription = item.name,
-                contentScale = ContentScale.Fit,
-                alignment = Alignment.BottomStart,
-                modifier =
-                  Modifier
-                    .fillMaxHeight()
-                    .wrapContentWidth(Alignment.Start),
-              )
-            }
-          } else {
-            Text(
-              text = item.name,
-              style = MaterialTheme.typography.headlineMedium,
-              fontWeight = FontWeight.ExtraBold,
-              color = Color.White,
-              maxLines = 2,
-              overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.padding(bottom = 4.dp),
-            )
-          }
-
-          // Genres / Tagline
-          val metaText =
-            when {
-              item.genres.isNotEmpty() -> item.genresString
-              !item.taglines.isEmpty() -> item.taglines.first()
-              item.isSeries -> stringResource(R.string.jellyfin_series)
-              else -> stringResource(R.string.jellyfin_movie)
-            }
-
-          if (metaText.isNotBlank()) {
-            Text(
-              text = metaText,
-              style = MaterialTheme.typography.bodySmall,
-              color = Color.White.copy(alpha = 0.8f),
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.padding(bottom = 8.dp),
-            )
-          }
-
-          // Badges Row (Rating, Year, Resolution)
-          FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(bottom = 12.dp),
-          ) {
-            // Type Pill (Featured)
-            Surface(
-              shape = CircleShape,
-              color = artworkColors.primary,
-            ) {
-              Text(
-                text = stringResource(if (item.isSeries) R.string.jellyfin_series else R.string.jellyfin_movie),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
-                color = artworkColors.onPrimary,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-              )
-            }
-
-            // Rating Pill
-            item.communityRating?.let { rating ->
-              Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color.Black.copy(alpha = 0.6f),
-              ) {
-                Row(
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                  Icon(
-                    imageVector = Icons.RoundedFilled.Star,
-                    contentDescription = null,
-                    tint = Color(0xFFFFC107),
-                    modifier = Modifier.size(12.dp),
-                  )
-                  Text(
-                    text = "%.1f".format(rating),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                  )
-                }
-              }
-            }
-
-            // Rotten Tomatoes / Critic Rating Pill
-            item.criticRating?.let { critic ->
-              Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color.Black.copy(alpha = 0.6f),
-              ) {
-                Row(
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                  Text(
-                    text = "🍅",
-                    style = MaterialTheme.typography.labelSmall,
-                  )
-                  Text(
-                    text = "${critic.roundToInt()}%",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                  )
-                }
-              }
-            }
-
-            // Year Pill
-            item.productionYear?.let { year ->
-              Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color.Black.copy(alpha = 0.6f),
-              ) {
-                Text(
-                  text = year.toString(),
-                  style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                  color = Color.White,
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-              }
-            }
-
-            // Quality Badge (4K / HDR)
-            item.qualityBadge?.let { badge ->
-              Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = Color.Black.copy(alpha = 0.6f),
-              ) {
-                Text(
-                  text = badge,
-                  style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                  // Always-dark accent: colorScheme.primary is too dark for the black scrim in light mode.
-                  color = (LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme).primary,
-                  modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                )
-              }
-            }
-          }
-
-          // Action Buttons Row
-          Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Button(
-              onClick = { onPlay(item) },
-              enabled = page == pagerState.currentPage,
-              modifier = Modifier.weight(1f).heightIn(min = 52.dp).tvFocusHighlight(CircleShape),
-              shape = CircleShape,
-              colors = ButtonDefaults.buttonColors(containerColor = artworkColors.primary, contentColor = artworkColors.onPrimary),
-              contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-              Icon(
-                imageVector = if (item.isSeries && item.progressPercent <= 0.05f) Icons.RoundedFilled.Tv else Icons.RoundedFilled.PlayArrow,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-              )
-              Spacer(modifier = Modifier.width(6.dp))
-              Text(
-                text =
-                  when {
-                    item.progressPercent > 0.05f -> stringResource(R.string.player_resume_action)
-                    item.isSeries -> stringResource(R.string.jellyfin_browse_series)
-                    else -> stringResource(R.string.ui_play)
-                  },
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-              )
-            }
-
-            FilledTonalIconButton(
-              onClick = { onDetails(item) },
-              enabled = page == pagerState.currentPage,
-              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
-              shape = CircleShape,
-              colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
-              ),
-            ) {
-              Icon(
-                imageVector = Icons.RoundedFilled.Info,
-                contentDescription = stringResource(R.string.jellyfin_details),
-                modifier = Modifier.size(24.dp),
-              )
-            }
-
-            // Trailer Icon Button
-            FilledTonalIconButton(
-              onClick = {
-                val rawUrl = item.remoteTrailerUrl?.takeIf { it.isNotBlank() }
-                val trailerUrl = if (!rawUrl.isNullOrBlank()) {
-                  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) rawUrl
-                  else "https://www.youtube.com/watch?v=$rawUrl"
-                } else {
-                  "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${item.name} trailer", "UTF-8")}"
-                }
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl)).apply {
-                  addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                try {
-                  context.startActivity(intent)
-                } catch (_: ActivityNotFoundException) {
-                  Toast.makeText(context, R.string.jellyfin_open_trailer_error, Toast.LENGTH_LONG).show()
-                }
-              },
-              enabled = page == pagerState.currentPage,
-              shape = CircleShape,
-              modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
-              colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
-              ),
-            ) {
-              Icon(
-                imageVector = Icons.RoundedFilled.Movie,
-                contentDescription = stringResource(R.string.jellyfin_trailer),
-                modifier = Modifier.size(24.dp),
-              )
-            }
-          }
-        }
       }
-    }
     }
 
     if (items.size > 1) {
       Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = gutter),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
       ) {
         FilledTonalIconButton(
           modifier = Modifier.tvFocusHighlight(CircleShape),
-          onClick = { scope.launch { pagerState.animateScrollToPage((pagerState.currentPage - 1 + items.size) % items.size) } },
+          onClick = { scope.launch { carouselState.animateScrollToItem((currentItem - 1 + items.size) % items.size) } },
         ) {
           Icon(
             if (isRtl) Icons.RoundedFilled.ChevronRight else Icons.RoundedFilled.ChevronLeft,
@@ -602,17 +285,375 @@ fun JellyfinHeroBanner(
           )
         }
         SlidingWormDotsIndicator(
-          selectedItem = pagerState.currentPage,
+          selectedItem = currentItem,
           pageCount = items.size,
         )
         FilledTonalIconButton(
           modifier = Modifier.tvFocusHighlight(CircleShape),
-          onClick = { scope.launch { pagerState.animateScrollToPage((pagerState.currentPage + 1) % items.size) } },
+          onClick = { scope.launch { carouselState.animateScrollToItem((currentItem + 1) % items.size) } },
         ) {
           Icon(
             if (isRtl) Icons.RoundedFilled.ChevronLeft else Icons.RoundedFilled.ChevronRight,
             stringResource(R.string.pref_gesture_media_next),
           )
+        }
+      }
+    }
+  }
+}
+
+/**
+ * One hero slide. Its content is laid out at full size and revealed by the carousel mask; text and
+ * actions fade out as the slide narrows into a peek, and tapping a peek brings it forward.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun CarouselItemScope.JellyfinHeroSlide(
+  item: JellyfinItem,
+  server: JellyfinServer,
+  isCurrent: Boolean,
+  onPlay: () -> Unit,
+  onDetails: () -> Unit,
+  onReveal: () -> Unit,
+) {
+  val context = LocalContext.current
+  val artworkColors = LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme
+  val drawInfo = carouselItemDrawInfo
+  val backdropUrl =
+    remember(server.serverUrl, item.id, item.backdropImageTag, item.primaryImageTag, server.accessToken) {
+      if (!item.backdropImageTag.isNullOrBlank()) {
+        JellyfinClient.getBackdropUrl(
+          serverUrl = server.serverUrl,
+          itemId = item.id,
+          imageTag = item.backdropImageTag,
+          maxWidth = 1280,
+          token = server.accessToken,
+        )
+      } else {
+        JellyfinClient.getImageUrl(
+          serverUrl = server.serverUrl,
+          itemId = item.id,
+          imageTag = item.primaryImageTag,
+          maxWidth = 800,
+          token = server.accessToken,
+        )
+      }
+    }
+
+  val logoUrl =
+    remember(server.serverUrl, item.id, item.logoImageTag, item.parentLogoImageTag, item.parentLogoItemId, server.accessToken) {
+      if (!item.logoImageTag.isNullOrBlank()) {
+        JellyfinClient.getLogoUrl(
+          serverUrl = server.serverUrl,
+          itemId = item.id,
+          imageTag = item.logoImageTag,
+          maxWidth = 800,
+          token = server.accessToken,
+        )
+      } else if (!item.parentLogoImageTag.isNullOrBlank() && !item.parentLogoItemId.isNullOrBlank()) {
+        JellyfinClient.getLogoUrl(
+          serverUrl = server.serverUrl,
+          itemId = item.parentLogoItemId,
+          imageTag = item.parentLogoImageTag,
+          maxWidth = 800,
+          token = server.accessToken,
+        )
+      } else null
+    }
+
+  Box(
+    modifier =
+      Modifier
+        .fillMaxSize()
+        .maskClip(MaterialTheme.shapes.extraLarge)
+        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        .clickable(
+          onClickLabel = stringResource(R.string.jellyfin_details),
+          onClick = { if (isCurrent) onDetails() else onReveal() },
+        ),
+  ) {
+    RemoteImage(
+      url = backdropUrl,
+      contentDescription = null,
+      contentScale = ContentScale.Crop,
+      modifier = Modifier.fillMaxSize(),
+    )
+
+    Box(
+      modifier =
+        Modifier
+          .fillMaxSize()
+          .background(
+            Brush.verticalGradient(
+              0.0f to Color.Black.copy(alpha = 0.28f),
+              0.25f to Color.Transparent,
+              0.6f to Color.Black.copy(alpha = 0.65f),
+              1.0f to Color.Black.copy(alpha = 0.96f),
+            ),
+          ),
+    )
+
+    Box(
+      modifier =
+        Modifier
+          .fillMaxSize()
+          .graphicsLayer {
+            val range = drawInfo.maxSize - drawInfo.minSize
+            val reveal = if (range > 0f) ((drawInfo.size - drawInfo.minSize) / range).coerceIn(0f, 1f) else 1f
+            alpha = ((reveal - 0.6f) / 0.4f).coerceIn(0f, 1f)
+          },
+    ) {
+      Surface(
+        modifier = Modifier.align(Alignment.TopStart).padding(20.dp),
+        shape = CircleShape,
+        color = Color.Black.copy(alpha = 0.45f),
+        contentColor = Color.White,
+      ) {
+        Text(
+          stringResource(R.string.jellyfin_featured),
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+        )
+      }
+
+      Column(
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.Bottom,
+      ) {
+        // Title / Logo (matches AFinity)
+        if (!logoUrl.isNullOrBlank()) {
+          Box(
+            modifier =
+              Modifier
+                .fillMaxWidth(0.85f)
+                .heightIn(min = 44.dp, max = 96.dp)
+                .padding(bottom = 6.dp),
+            contentAlignment = Alignment.BottomStart,
+          ) {
+            RemoteImage(
+              url = logoUrl,
+              contentDescription = item.name,
+              contentScale = ContentScale.Fit,
+              alignment = Alignment.BottomStart,
+              modifier =
+                Modifier
+                  .fillMaxHeight()
+                  .wrapContentWidth(Alignment.Start),
+            )
+          }
+        } else {
+          Text(
+            text = item.name,
+            style = MaterialTheme.typography.headlineMediumEmphasized,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(bottom = 4.dp),
+          )
+        }
+
+        // Genres / Tagline
+        val metaText =
+          when {
+            item.genres.isNotEmpty() -> item.genresString
+            !item.taglines.isEmpty() -> item.taglines.first()
+            item.isSeries -> stringResource(R.string.jellyfin_series)
+            else -> stringResource(R.string.jellyfin_movie)
+          }
+
+        if (metaText.isNotBlank()) {
+          Text(
+            text = metaText,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.8f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(bottom = 8.dp),
+          )
+        }
+        // Badges Row (Rating, Year, Resolution)
+        FlowRow(
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalArrangement = Arrangement.spacedBy(6.dp),
+          modifier = Modifier.padding(bottom = 12.dp),
+        ) {
+          // Type Pill (Featured)
+          Surface(
+            shape = CircleShape,
+            color = artworkColors.primary,
+          ) {
+            Text(
+              text = stringResource(if (item.isSeries) R.string.jellyfin_series else R.string.jellyfin_movie),
+              style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+              color = artworkColors.onPrimary,
+              modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            )
+          }
+
+          // Rating Pill
+          item.communityRating?.let { rating ->
+            Surface(
+              shape = RoundedCornerShape(6.dp),
+              color = Color.Black.copy(alpha = 0.6f),
+            ) {
+              Row(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+              ) {
+                Icon(
+                  imageVector = Icons.RoundedFilled.Star,
+                  contentDescription = null,
+                  tint = Color(0xFFFFC107),
+                  modifier = Modifier.size(12.dp),
+                )
+                Text(
+                  text = "%.1f".format(rating),
+                  style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                  color = Color.White,
+                )
+              }
+            }
+          }
+
+          // Rotten Tomatoes / Critic Rating Pill
+          item.criticRating?.let { critic ->
+            Surface(
+              shape = RoundedCornerShape(6.dp),
+              color = Color.Black.copy(alpha = 0.6f),
+            ) {
+              Row(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+              ) {
+                Text(
+                  text = "🍅",
+                  style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                  text = "${critic.roundToInt()}%",
+                  style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                  color = Color.White,
+                )
+              }
+            }
+          }
+
+          // Year Pill
+          item.productionYear?.let { year ->
+            Surface(
+              shape = RoundedCornerShape(6.dp),
+              color = Color.Black.copy(alpha = 0.6f),
+            ) {
+              Text(
+                text = year.toString(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = Color.White,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+              )
+            }
+          }
+
+          // Quality Badge (4K / HDR)
+          item.qualityBadge?.let { badge ->
+            Surface(
+              shape = RoundedCornerShape(6.dp),
+              color = Color.Black.copy(alpha = 0.6f),
+            ) {
+              Text(
+                text = badge,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                // Always-dark accent: colorScheme.primary is too dark for the black scrim in light mode.
+                color = (LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme).primary,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+              )
+            }
+          }
+        }
+
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(10.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Button(
+            onClick = onPlay,
+            enabled = isCurrent,
+            modifier = Modifier.weight(1f).heightIn(min = 52.dp).tvFocusHighlight(CircleShape),
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(containerColor = artworkColors.primary, contentColor = artworkColors.onPrimary),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+          ) {
+            Icon(
+              imageVector = if (item.isSeries && item.progressPercent <= 0.05f) Icons.RoundedFilled.Tv else Icons.RoundedFilled.PlayArrow,
+              contentDescription = null,
+              modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+              text =
+                when {
+                  item.progressPercent > 0.05f -> stringResource(R.string.player_resume_action)
+                  item.isSeries -> stringResource(R.string.jellyfin_browse_series)
+                  else -> stringResource(R.string.ui_play)
+                },
+              fontWeight = FontWeight.Bold,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+            )
+          }
+
+          FilledTonalIconButton(
+            onClick = onDetails,
+            enabled = isCurrent,
+            modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
+            shape = CircleShape,
+            colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+              containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
+            ),
+          ) {
+            Icon(
+              imageVector = Icons.RoundedFilled.Info,
+              contentDescription = stringResource(R.string.jellyfin_details),
+              modifier = Modifier.size(24.dp),
+            )
+          }
+
+          FilledTonalIconButton(
+            onClick = {
+              val rawUrl = item.remoteTrailerUrl?.takeIf { it.isNotBlank() }
+              val trailerUrl = if (!rawUrl.isNullOrBlank()) {
+                if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) rawUrl
+                else "https://www.youtube.com/watch?v=$rawUrl"
+              } else {
+                "https://www.youtube.com/results?search_query=${java.net.URLEncoder.encode("${item.name} trailer", "UTF-8")}"
+              }
+              val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              }
+              try {
+                context.startActivity(intent)
+              } catch (_: ActivityNotFoundException) {
+                Toast.makeText(context, R.string.jellyfin_open_trailer_error, Toast.LENGTH_LONG).show()
+              }
+            },
+            enabled = isCurrent,
+            shape = CircleShape,
+            modifier = Modifier.size(52.dp).tvFocusHighlight(CircleShape),
+            colors = androidx.compose.material3.IconButtonDefaults.filledTonalIconButtonColors(
+              containerColor = Color.White.copy(alpha = 0.16f), contentColor = Color.White,
+            ),
+          ) {
+            Icon(
+              imageVector = Icons.RoundedFilled.Movie,
+              contentDescription = stringResource(R.string.jellyfin_trailer),
+              modifier = Modifier.size(24.dp),
+            )
+          }
         }
       }
     }
@@ -678,6 +719,7 @@ private fun SlidingWormDotsIndicator(
 // Section Header with Optional "See All" Action
 // ============================================================================
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun JellyfinSectionHeader(
   title: String,
@@ -689,47 +731,47 @@ fun JellyfinSectionHeader(
     modifier =
       modifier
         .fillMaxWidth()
-        .padding(horizontal = 20.dp, vertical = 6.dp),
-    horizontalArrangement = Arrangement.SpaceBetween,
+        .padding(horizontal = jellyfinGutter())
+        .heightIn(min = 40.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-      Box(Modifier.width(5.dp).height(28.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-      Column(Modifier.weight(1f)) {
+    // The title starts on the same edge as the cards below it.
+    Column(Modifier.weight(1f).semantics { heading() }) {
+      Text(
+        text = title,
+        style = MaterialTheme.typography.titleLargeEmphasized,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+      if (!subtitle.isNullOrBlank()) {
         Text(
-          text = title,
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onSurface,
+          text = subtitle,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
         )
-        if (!subtitle.isNullOrBlank()) {
-          Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
       }
     }
 
     if (onSeeAll != null) {
       FilledTonalButton(
         onClick = onSeeAll,
-        modifier = Modifier.tvFocusHighlight(CircleShape),
+        modifier = Modifier.heightIn(min = 40.dp).tvFocusHighlight(CircleShape),
         shape = CircleShape,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 10.dp),
       ) {
         Text(
           text = stringResource(R.string.profile_view_all),
-          style = MaterialTheme.typography.labelMedium,
-          fontWeight = FontWeight.SemiBold,
-          color = MaterialTheme.colorScheme.primary,
+          style = MaterialTheme.typography.labelLarge,
         )
+        Spacer(Modifier.width(4.dp))
         Icon(
           imageVector = if (LocalLayoutDirection.current == LayoutDirection.Rtl) Icons.RoundedFilled.ChevronLeft else Icons.RoundedFilled.ChevronRight,
           contentDescription = null,
-          tint = MaterialTheme.colorScheme.primary,
-          modifier = Modifier.size(16.dp),
+          modifier = Modifier.size(18.dp),
         )
       }
     }
@@ -756,7 +798,7 @@ fun JellyfinHorizontalSection(
 
   Column(
     modifier = modifier.fillMaxWidth(),
-    verticalArrangement = Arrangement.spacedBy(8.dp),
+    verticalArrangement = Arrangement.spacedBy(JellyfinSpacing.HeaderGap),
   ) {
     JellyfinSectionHeader(
       title = title,
@@ -764,9 +806,11 @@ fun JellyfinHorizontalSection(
       onSeeAll = onSeeAll,
     )
 
+    // Rows scroll edge to edge; the content padding lines the first card up with the title.
+    val gutter = jellyfinGutter()
     LazyRow(
-      horizontalArrangement = Arrangement.spacedBy(16.dp),
-      contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+      horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
+      contentPadding = PaddingValues(horizontal = gutter, vertical = 4.dp),
     ) {
       items(items, key = { it.id }) { item ->
         if (isContinueWatching) {
@@ -826,23 +870,25 @@ fun JellyfinResumeCard(
       }
     }
 
+  // The artwork sits inside the tonal card, so its corners follow the card's, inset by its padding.
+  val artworkShape = RoundedCornerShape(JellyfinSpacing.inner(28.dp))
   val posterBorderModifier =
     if (isSelected) {
-      Modifier.clip(RoundedCornerShape(24.dp)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp))
+      Modifier.clip(artworkShape).border(2.dp, MaterialTheme.colorScheme.primary, artworkShape)
     } else {
-      Modifier.clip(RoundedCornerShape(24.dp))
+      Modifier.clip(artworkShape)
     }
 
   Column(
     modifier = modifier.width(280.dp).clip(MaterialTheme.shapes.extraLarge)
-      .background(MaterialTheme.colorScheme.surfaceContainerLow).padding(8.dp),
+      .background(MaterialTheme.colorScheme.surfaceContainerLow).padding(JellyfinSpacing.CardPadding),
   ) {
     Box(
       modifier =
         Modifier
           .fillMaxWidth()
           .aspectRatio(16f / 9f)
-          .tvFocusHighlight(RoundedCornerShape(24.dp), focusedScale = 1.03f)
+          .tvFocusHighlight(artworkShape, focusedScale = 1.03f)
           .then(posterBorderModifier)
           .background(MaterialTheme.colorScheme.surfaceContainerHighest)
           .tvContextMenu(onLongClick)
@@ -884,7 +930,7 @@ fun JellyfinResumeCard(
           Box(contentAlignment = Alignment.Center) {
             Icon(
               imageVector = Icons.RoundedFilled.PlayArrow,
-              contentDescription = "Play",
+              contentDescription = stringResource(R.string.ui_play),
               tint = Color.White,
               modifier = Modifier.size(24.dp),
             )
@@ -922,18 +968,18 @@ fun JellyfinResumeCard(
       val remaining = item.formattedRemainingDuration
       if (remaining.isNotBlank()) {
         Surface(
-          shape = RoundedCornerShape(4.dp),
+          shape = CircleShape,
           color = Color.Black.copy(alpha = 0.75f),
           modifier =
             Modifier
-              .padding(6.dp)
+              .padding(8.dp)
               .align(Alignment.BottomEnd),
         ) {
           Text(
             text = remaining,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             color = Color.White,
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
           )
         }
       }
@@ -954,7 +1000,7 @@ fun JellyfinResumeCard(
       modifier =
         Modifier
           .fillMaxWidth()
-          .padding(top = 6.dp),
+          .padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 2.dp),
       horizontalAlignment = Alignment.Start,
     ) {
       val title = item.seriesName ?: item.name
@@ -1049,14 +1095,15 @@ fun JellyfinPosterCard(
       .semantics { selected = isSelected }
       .tvContextMenu(onLongClick)
       .mediaCardClickable(onClick = onClick, onLongClick = onLongClick)
-      .padding(8.dp),
+      .padding(JellyfinSpacing.CardPadding),
   ) {
     Box(
       modifier =
         Modifier
           .fillMaxWidth()
           .aspectRatio(2f / 3f)
-          .clip(RoundedCornerShape(12.dp))
+          // Concentric with the card's resting 16 dp corners.
+          .clip(RoundedCornerShape(JellyfinSpacing.inner(16.dp)))
           .background(MaterialTheme.colorScheme.surfaceContainerHighest),
     ) {
       if (!posterImageTag.isNullOrBlank()) {
@@ -1135,7 +1182,7 @@ fun JellyfinPosterCard(
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Check,
-            contentDescription = "Selected",
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(3.dp),
           )
@@ -1152,7 +1199,7 @@ fun JellyfinPosterCard(
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Check,
-            contentDescription = "Played",
+            contentDescription = stringResource(R.string.jellyfin_watched),
             tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(3.dp),
           )
@@ -1164,7 +1211,7 @@ fun JellyfinPosterCard(
       modifier =
         Modifier
           .fillMaxWidth()
-          .padding(top = 6.dp),
+          .padding(start = 2.dp, end = 2.dp, top = 8.dp),
       horizontalAlignment = Alignment.Start,
     ) {
       val title = if (item.type == "Episode" && !item.seriesName.isNullOrBlank()) item.seriesName else item.name
@@ -1236,11 +1283,13 @@ fun JellyfinMusicCard(
       )
     }
 
+  val isArtist = item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist"
+  val artworkShape = if (isArtist) CircleShape else MaterialTheme.shapes.large
   val posterBorderModifier =
     if (isSelected) {
-      Modifier.clip(RoundedCornerShape(8.dp)).border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+      Modifier.clip(artworkShape).border(2.dp, MaterialTheme.colorScheme.primary, artworkShape)
     } else {
-      Modifier.clip(RoundedCornerShape(8.dp))
+      Modifier.clip(artworkShape)
     }
 
   Column(
@@ -1251,7 +1300,7 @@ fun JellyfinMusicCard(
         Modifier
           .fillMaxWidth()
           .aspectRatio(1f)
-          .tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.03f)
+          .tvFocusHighlight(artworkShape, focusedScale = 1.03f)
           .then(posterBorderModifier)
           .background(MaterialTheme.colorScheme.surfaceContainerHighest)
           .tvContextMenu(onLongClick)
@@ -1293,7 +1342,7 @@ fun JellyfinMusicCard(
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Check,
-            contentDescription = "Selected",
+            contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(3.dp),
           )
@@ -1305,8 +1354,8 @@ fun JellyfinMusicCard(
       modifier =
         Modifier
           .fillMaxWidth()
-          .padding(top = 6.dp),
-      horizontalAlignment = Alignment.Start,
+          .padding(top = 8.dp),
+      horizontalAlignment = if (isArtist) Alignment.CenterHorizontally else Alignment.Start,
     ) {
       Text(
         text = item.name,
@@ -1314,13 +1363,12 @@ fun JellyfinMusicCard(
         fontWeight = FontWeight.SemiBold,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Start,
+        textAlign = if (isArtist) TextAlign.Center else TextAlign.Start,
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.fillMaxWidth(),
       )
-      val isArtist = item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist"
       if (!isArtist) {
-        val subtitle = item.seriesName ?: item.productionYear?.toString() ?: "Music"
+        val subtitle = item.seriesName ?: item.productionYear?.toString() ?: stringResource(R.string.ui_music)
         Text(
           text = subtitle,
           style = MaterialTheme.typography.bodySmall,
@@ -1348,20 +1396,22 @@ fun JellyfinGenreChipRow(
 ) {
   if (genres.isEmpty()) return
 
+  // Scrolls edge to edge; the inner padding starts the first chip on the screen gutter.
   Row(
     modifier =
       modifier
         .fillMaxWidth()
         .horizontalScroll(rememberScrollState())
-        .padding(horizontal = 16.dp, vertical = 6.dp),
+        .padding(horizontal = jellyfinGutter(), vertical = 6.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     FilterChip(
       selected = selectedGenre == null,
       onClick = { onSelectGenre(null) },
-      label = { Text("All", fontWeight = if (selectedGenre == null) FontWeight.Bold else FontWeight.Normal) },
-      shape = RoundedCornerShape(12.dp),
+      label = { Text(stringResource(R.string.jellyfin_filter_all), fontWeight = if (selectedGenre == null) FontWeight.Bold else FontWeight.Normal) },
+      modifier = Modifier.tvFocusHighlight(CircleShape),
+      shape = CircleShape,
       colors =
         FilterChipDefaults.filterChipColors(
           selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1375,7 +1425,8 @@ fun JellyfinGenreChipRow(
         selected = isSelected,
         onClick = { onSelectGenre(if (isSelected) null else genre) },
         label = { Text(genre, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.tvFocusHighlight(CircleShape),
+        shape = CircleShape,
         colors =
           FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1390,14 +1441,12 @@ fun JellyfinGenreChipRow(
 // Library Card (Directory Card)
 // ============================================================================
 
+/** Artwork URL and type icon shared by both library presentations. */
 @Composable
-fun JellyfinLibraryCard(
+private fun rememberLibraryArtwork(
   item: JellyfinItem,
   server: JellyfinServer,
-  onClick: () -> Unit,
-  modifier: Modifier = Modifier,
-  cardWidth: androidx.compose.ui.unit.Dp = 248.dp,
-) {
+): Pair<String?, app.gyrolet.mpvrx.ui.icons.AppIcon> {
   val imageUrl =
     remember(server.serverUrl, item.id, item.primaryImageTag, item.backdropImageTag, server.accessToken) {
       if (!item.primaryImageTag.isNullOrBlank()) {
@@ -1437,71 +1486,66 @@ fun JellyfinLibraryCard(
       colType == "music" || item.type.lowercase() == "audio" -> Icons.RoundedFilled.Audiotrack
       else -> Icons.RoundedFilled.Folder
     }
+  return imageUrl.takeIf { !item.primaryImageTag.isNullOrBlank() || !item.backdropImageTag.isNullOrBlank() } to icon
+}
+
+@Composable
+private fun LibraryArtwork(
+  item: JellyfinItem,
+  url: String?,
+  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  modifier: Modifier = Modifier,
+) {
+  Box(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+    if (url != null) {
+      RemoteImage(
+        url = url,
+        contentDescription = item.name,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize(),
+      )
+    } else {
+      Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(40.dp).align(Alignment.Center),
+      )
+    }
+  }
+}
+
+@Composable
+fun JellyfinLibraryCard(
+  item: JellyfinItem,
+  server: JellyfinServer,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  cardWidth: androidx.compose.ui.unit.Dp = 248.dp,
+) {
+  val (url, icon) = rememberLibraryArtwork(item, server)
+  val cardShape = MaterialTheme.shapes.extraLarge
+  val artworkShape = RoundedCornerShape(JellyfinSpacing.inner(28.dp))
 
   Column(
     modifier =
       modifier
         .width(cardWidth)
-        .tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.02f)
-        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-        .clickable(onClick = onClick),
+        .tvFocusHighlight(cardShape, focusedScale = 1.02f)
+        .clip(cardShape)
+        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+        .clickable(onClick = onClick)
+        .padding(JellyfinSpacing.CardPadding),
   ) {
-    Card(
-      modifier =
-        Modifier
-          .fillMaxWidth()
-          .aspectRatio(16f / 9f)
-          .clip(MaterialTheme.shapes.extraLarge),
-      shape = MaterialTheme.shapes.extraLarge,
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-    ) {
-      Box(modifier = Modifier.fillMaxSize()) {
-        if (!item.primaryImageTag.isNullOrBlank() || !item.backdropImageTag.isNullOrBlank()) {
-          RemoteImage(
-            url = imageUrl,
-            contentDescription = item.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-          )
-        } else {
-          Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              imageVector = icon,
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(40.dp),
-            )
-          }
-        }
-
-        Surface(
-          shape = CircleShape,
-          color = Color.Black.copy(alpha = 0.65f),
-          modifier =
-            Modifier
-              .padding(8.dp)
-              .align(Alignment.BottomEnd),
-        ) {
-          Box(
-            modifier = Modifier.padding(5.dp),
-            contentAlignment = Alignment.Center,
-          ) {
-            Icon(
-              imageVector = icon,
-              contentDescription = null,
-              tint = Color.White,
-              modifier = Modifier.size(15.dp),
-            )
-          }
-        }
-      }
+    Box {
+      LibraryArtwork(
+        item = item,
+        url = url,
+        icon = icon,
+        modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(artworkShape),
+      )
+      LibraryTypeBadge(icon, Modifier.align(Alignment.BottomEnd).padding(8.dp))
     }
-
-    Spacer(modifier = Modifier.height(12.dp))
-
     Text(
       text = item.name,
       style = MaterialTheme.typography.titleSmall,
@@ -1509,8 +1553,112 @@ fun JellyfinLibraryCard(
       color = MaterialTheme.colorScheme.onSurface,
       maxLines = 1,
       overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+      modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 10.dp, bottom = 6.dp),
     )
+  }
+}
+
+@Composable
+private fun LibraryTypeBadge(
+  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  modifier: Modifier = Modifier,
+) {
+  Surface(
+    shape = CircleShape,
+    color = Color.Black.copy(alpha = 0.65f),
+    modifier = modifier,
+  ) {
+    Icon(
+      imageVector = icon,
+      contentDescription = null,
+      tint = Color.White,
+      modifier = Modifier.padding(6.dp).size(16.dp),
+    )
+  }
+}
+
+/**
+ * The server's libraries. Three or more become a Material 3 multi-browse carousel of artwork tiles
+ * that grow and shrink as they scroll; fewer stay as fixed cards, since a carousel would only squeeze them.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JellyfinLibrariesCarousel(
+  libraries: List<JellyfinItem>,
+  server: JellyfinServer,
+  onOpen: (JellyfinItem) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  if (libraries.isEmpty()) return
+  val gutter = jellyfinGutter()
+  if (libraries.size < 3) {
+    LazyRow(
+      modifier = modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
+      contentPadding = PaddingValues(horizontal = gutter, vertical = 4.dp),
+    ) {
+      items(libraries, key = { it.id }) { library ->
+        JellyfinLibraryCard(item = library, server = server, onClick = { onOpen(library) })
+      }
+    }
+    return
+  }
+
+  val state = key(server.id) { rememberCarouselState { libraries.size } }
+  HorizontalMultiBrowseCarousel(
+    state = state,
+    preferredItemWidth = 248.dp,
+    modifier = modifier.fillMaxWidth().padding(horizontal = gutter).height(160.dp),
+    itemSpacing = JellyfinSpacing.CarouselItemGap,
+  ) { index ->
+    val library = libraries.getOrNull(index) ?: return@HorizontalMultiBrowseCarousel
+    val (url, icon) = rememberLibraryArtwork(library, server)
+    val drawInfo = carouselItemDrawInfo
+    Box(
+      modifier =
+        Modifier
+          .fillMaxSize()
+          .maskClip(MaterialTheme.shapes.extraLarge)
+          .clickable { onOpen(library) },
+    ) {
+      LibraryArtwork(item = library, url = url, icon = icon, modifier = Modifier.fillMaxSize())
+      Box(
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.8f))),
+      )
+      // The label only shows once the tile is wide enough to read it.
+      Row(
+        modifier =
+          Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth()
+            .padding(16.dp)
+            .graphicsLayer {
+              val range = drawInfo.maxSize - drawInfo.minSize
+              val reveal = if (range > 0f) ((drawInfo.size - drawInfo.minSize) / range).coerceIn(0f, 1f) else 1f
+              alpha = ((reveal - 0.5f) / 0.5f).coerceIn(0f, 1f)
+            },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Icon(
+          imageVector = icon,
+          contentDescription = null,
+          tint = Color.White,
+          modifier = Modifier.size(18.dp),
+        )
+        Text(
+          text = library.name,
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+          color = Color.White,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+    }
   }
 }
 
@@ -1638,7 +1786,7 @@ fun JellyfinEpisodeCard(
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Check,
-              contentDescription = "Played",
+              contentDescription = stringResource(R.string.jellyfin_watched),
               tint = MaterialTheme.colorScheme.onPrimary,
               modifier = Modifier.padding(2.dp),
             )
@@ -1716,7 +1864,7 @@ fun JellyfinEpisodeCard(
       IconButton(onClick = onPlay) {
         Icon(
           imageVector = Icons.RoundedFilled.PlayArrow,
-          contentDescription = "Play",
+          contentDescription = stringResource(R.string.ui_play),
           tint = MaterialTheme.colorScheme.primary,
           modifier = Modifier.size(26.dp),
         )
@@ -1869,27 +2017,31 @@ fun JellyfinListItemCard(
 
   val backgroundColor =
     if (isSelected) {
-      MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+      MaterialTheme.colorScheme.secondaryContainer
     } else {
-      Color.Transparent
+      MaterialTheme.colorScheme.surfaceContainerLow
     }
+  // Same tonal card as episode rows; the poster's corners stay concentric with the card's.
+  val cardShape = RoundedCornerShape(24.dp)
+  val listPadding = 10.dp
 
   Surface(
     modifier =
       modifier
         .fillMaxWidth()
-        .tvFocusHighlight(RoundedCornerShape(8.dp), focusedScale = 1.02f)
-        .clip(RoundedCornerShape(8.dp))
+        .tvFocusHighlight(cardShape, focusedScale = 1.02f)
+        .clip(cardShape)
+        .semantics { selected = isSelected }
         .tvContextMenu(onLongClick)
         .combinedClickable(
           onClick = onClick,
           onLongClick = onLongClick,
         ),
-    shape = RoundedCornerShape(8.dp),
+    shape = cardShape,
     color = backgroundColor,
   ) {
     Row(
-      modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+      modifier = Modifier.padding(listPadding),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -1897,7 +2049,7 @@ fun JellyfinListItemCard(
         modifier =
           Modifier
             .size(width = 84.dp, height = 120.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(JellyfinSpacing.inner(24.dp, listPadding)))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
       ) {
         if (!item.primaryImageTag.isNullOrBlank()) {
@@ -1954,7 +2106,7 @@ fun JellyfinListItemCard(
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Check,
-              contentDescription = "Selected",
+              contentDescription = null,
               tint = MaterialTheme.colorScheme.onPrimary,
               modifier = Modifier.padding(3.dp),
             )
@@ -1971,7 +2123,7 @@ fun JellyfinListItemCard(
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Check,
-              contentDescription = "Played",
+              contentDescription = stringResource(R.string.jellyfin_watched),
               tint = MaterialTheme.colorScheme.onPrimary,
               modifier = Modifier.padding(2.dp),
             )

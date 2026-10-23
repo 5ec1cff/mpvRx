@@ -2836,5 +2836,20 @@
   <string name="jellyfin_continue_watching">متابعة المشاهدة</string>
   <string name="jellyfin_latest_movies">أحدث الأفلام</string>
   <string name="jellyfin_latest_series">أحدث المسلسلات</string>
+  <string name="jellyfin_top_picks">مختارات لك</string>
+  <string name="jellyfin_top_picks_subtitle">الأكثر رواجًا على خادمك</string>
+  <string name="jellyfin_music_subtitle">الألبومات والمقاطع</string>
+  <string name="jellyfin_connect_message">شغّل مكتبتك بفك الترميز عبر العتاد في mpvRx دون الحاجة إلى تحويل الترميز.</string>
+  <string name="jellyfin_empty_folder_message">لا توجد وسائط في هذا المجلد بعد.</string>
+  <string name="jellyfin_no_results_message">لا توجد نتائج مطابقة لـ ”%1$s“. جرّب عنوانًا أو فئة أخرى.</string>
+  <string name="jellyfin_filter_all">الكل</string>
+  <string name="jellyfin_play_random">تشغيل عشوائي</string>
+  <string name="jellyfin_switch_server">تبديل الخادم</string>
+  <string name="jellyfin_error_title">تعذّر الوصول إلى هذا الخادم</string>
+  <string name="jellyfin_auth_error_message">انتهت صلاحية جلستك أو أن هذا الحساب غير مصرّح له. سجّل الدخول مجددًا للمتابعة.</string>
+  <string name="jellyfin_reauthenticate">تسجيل الدخول مجددًا</string>
+  <string name="jellyfin_cast">طاقم التمثيل</string>
+  <string name="jellyfin_more_like_this">عناوين مشابهة</string>
+  <string name="jellyfin_watched">تمت المشاهدة</string>
   <string name="jellyfin_search_hint">ابحث عن الأفلام والمسلسلات والحلقات…</string>
 </resources>

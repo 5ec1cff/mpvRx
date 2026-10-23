@@ -44,8 +44,9 @@ fun EmptyState(
   title: String,
   message: String,
   modifier: Modifier = Modifier,
+  action: (@Composable () -> Unit)? = null,
 ) {
-  BrowserStateContent(icon = icon, title = title, message = message, modifier = modifier)
+  BrowserStateContent(icon = icon, title = title, message = message, modifier = modifier, action = action)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -56,6 +57,7 @@ internal fun BrowserStateContent(
   message: String,
   modifier: Modifier = Modifier,
   loading: Boolean = false,
+  action: (@Composable () -> Unit)? = null,
 ) {
   val reduceMotion = AppMotion.shouldReduceMotion()
   val scrollState = rememberScrollState()
@@ -108,6 +110,8 @@ internal fun BrowserStateContent(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
+
+      action?.invoke()
     }
   }
 }

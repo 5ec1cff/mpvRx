@@ -2774,5 +2774,20 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="jellyfin_continue_watching">Seguir viendo</string>
   <string name="jellyfin_latest_movies">Películas recientes</string>
   <string name="jellyfin_latest_series">Series recientes</string>
+  <string name="jellyfin_top_picks">Recomendados para ti</string>
+  <string name="jellyfin_top_picks_subtitle">Lo más popular en tu servidor</string>
+  <string name="jellyfin_music_subtitle">Álbumes y canciones</string>
+  <string name="jellyfin_connect_message">Reproduce tu biblioteca con la decodificación por hardware de mpvRx, sin transcodificar.</string>
+  <string name="jellyfin_empty_folder_message">Aún no hay contenido en esta carpeta.</string>
+  <string name="jellyfin_no_results_message">Nada coincide con «%1$s». Prueba con otro título o categoría.</string>
+  <string name="jellyfin_filter_all">Todo</string>
+  <string name="jellyfin_play_random">Reproducción aleatoria</string>
+  <string name="jellyfin_switch_server">Cambiar servidor</string>
+  <string name="jellyfin_error_title">No se pudo conectar con este servidor</string>
+  <string name="jellyfin_auth_error_message">Tu sesión caducó o esta cuenta no tiene autorización. Vuelve a iniciar sesión para continuar.</string>
+  <string name="jellyfin_reauthenticate">Volver a iniciar sesión</string>
+  <string name="jellyfin_cast">Reparto</string>
+  <string name="jellyfin_more_like_this">Similares</string>
+  <string name="jellyfin_watched">Visto</string>
   <string name="jellyfin_search_hint">Buscar películas, series y episodios…</string>
 </resources>
