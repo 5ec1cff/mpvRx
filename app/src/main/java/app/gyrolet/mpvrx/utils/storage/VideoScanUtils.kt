@@ -49,29 +49,6 @@ object VideoScanUtils : KoinComponent {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.MediaColumns.ORIENTATION else "rotation"
 
   /**
-   * MediaStore rotation in degrees, or null when the provider cannot be trusted to have set it.
-   *
-   * A non-zero value always came from the container. A zero is only meaningful on API 30+, where
-   * the modern scanner fills ORIENTATION for video from the container. On older providers the
-   * column is absent or left at its default, so 0 there would be a guess that opens
-   * quarter-turned phone recordings in landscape.
-   */
-  private fun readTrustedRotation(
-    cursor: android.database.Cursor,
-    column: Int,
-  ): Int? {
-    if (column < 0 || cursor.isNull(column)) return null
-    val degrees = runCatching { cursor.getInt(column) }.getOrNull() ?: return null
-    val normalized = ((degrees % 360) + 360) % 360
-    if (normalized % 90 != 0) return null
-    return when {
-      normalized != 0 -> normalized
-      Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> 0
-      else -> null
-    }
-  }
-
-  /**
    * Direct children only. The old `LIKE 'folder/%'` returned the whole subtree, so opening a storage
    * root marshalled every media row in the library across Binder just to discard all but a few.
    * The NOT LIKE pattern needs at least one more '/' after the folder than a direct child path has,
@@ -189,26 +166,23 @@ object VideoScanUtils : KoinComponent {
     val selectionArgs = directChildSelectionArgs(normalizedFolderKey)
 
     try {
+      fun queryVideos(projection: Array<String>) =
+        context.contentResolver.query(
+          MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+          projection,
+          selection,
+          selectionArgs,
+          "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
+        )
       val cursor =
         try {
-          context.contentResolver.query(
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            projectionWithRotation,
-            selection,
-            selectionArgs,
-            "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
-          )
-        } catch (_: RuntimeException) {
-          // Some Android MediaStore providers reject the optional rotation column
-          // (IllegalArgumentException or SQLiteException depending on the provider).
-          // Retry without it so the entire folder scan is not discarded.
-          context.contentResolver.query(
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            baseProjection,
-            selection,
-            selectionArgs,
-            "${MediaStore.Video.Media.DISPLAY_NAME} ASC",
-          )
+          queryVideos(projectionWithRotation)
+        } catch (error: RuntimeException) {
+          // Providers reject the optional rotation column with IllegalArgumentException (strict
+          // projection) or SQLiteException (no such column). Retry without it so the entire folder
+          // scan is not discarded.
+          if (error !is IllegalArgumentException && error !is android.database.sqlite.SQLiteException) throw error
+          queryVideos(baseProjection)
         }
       cursor?.use { cursor ->
           val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
@@ -247,7 +221,10 @@ object VideoScanUtils : KoinComponent {
             val mimeType = cursor.getString(mimeTypeColumn) ?: "video/*"
             val width = cursor.getInt(widthColumn)
             val height = cursor.getInt(heightColumn)
-            val rotation = readTrustedRotation(cursor, rotationColumn)
+            val rawRotation =
+              if (rotationColumn >= 0 && !cursor.isNull(rotationColumn)) cursor.getInt(rotationColumn) else 0
+            val normalizedRotation = ((rawRotation % 360) + 360) % 360
+            val rotation = if (normalizedRotation % 90 == 0) normalizedRotation else 0
 
             val uri =
               Uri.withAppendedPath(

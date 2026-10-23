@@ -21,8 +21,7 @@ class PlayerObserver(
   private fun isVideoGeometryProperty(property: String): Boolean =
     property == "video-params/aspect" ||
       property == "video-params/w" ||
-      property == "video-params/h" ||
-      property == "video-params/rotate"
+      property == "video-params/h"
 
   private fun shouldBypassUiThread(property: String): Boolean =
     isVideoGeometryProperty(property) ||

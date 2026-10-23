@@ -1535,9 +1535,6 @@ class PlayerActivity :
         viewModel.isAudioOnly.collect { isAudioOnly ->
           if (isAudioOnly) {
             applyPlaybackBrightnessPolicy(isAudio = true)
-            // A video-mode launch without trusted geometry holds its orientation until mpv reports
-            // the source; an audio-only result never will, so switch to the audio preference now.
-            setOrientation()
             viewModel.showControls()
             binding.player.visibility = View.INVISIBLE
             try {
@@ -4464,10 +4461,6 @@ class PlayerActivity :
         if (!mpvInitialized || player.isExiting || isFinishing) return
         scheduleVideoParamRefresh(reloadShaders = true)
       }
-      "video-params/rotate" -> {
-        if (!mpvInitialized || player.isExiting || isFinishing) return
-        scheduleVideoParamRefresh(reloadShaders = false)
-      }
     }
   }
 
@@ -4696,18 +4689,11 @@ class PlayerActivity :
         delay(100)
         if (!mpvInitialized || player.isExiting || isFinishing) return@launch
 
-        // Pin the read to the file that is loaded now. Observer events from the previous file can
-        // still be queued when the next request starts, and their geometry must not rotate it.
-        val generation = PlaybackSession.loadedMediaGeneration()
-        val geometry =
-          if (generation > 0L) {
-            withContext(playbackRenderDispatcher) { VideoDisplayGeometry.read(generation) }
-          } else {
-            null
+        val aspect =
+          withContext(playbackRenderDispatcher) {
+            player.getVideoOutAspect()
           }
-        if (generation > 0L && !PlaybackSession.isCurrentGeneration(generation)) return@launch
-        val aspect = geometry?.displayAspect
-        Log.d(TAG, "Coalesced video params refresh, geometry: $geometry, display aspect: $aspect")
+        Log.d(TAG, "Coalesced video params refresh, aspect: $aspect")
         PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
         pipHelper.updatePictureInPictureParams()
 
@@ -4947,9 +4933,12 @@ class PlayerActivity :
     if (playerPreferences.orientation.get() != PlayerOrientation.Video) {
       setOrientation()
     }
-    // The demuxer's geometry (with container rotation) is readable from FILE_LOADED, well before
-    // the decoder publishes video-params, so orientation and PiP can settle without a frame.
-    scheduleVideoParamRefresh(reloadShaders = false)
+    lifecycleScope.launch {
+      delay(100)
+      if (PlaybackSession.isCurrentGeneration(loadGeneration) && mpvInitialized && !player.isExiting && !isFinishing) {
+        setOrientation()
+      }
+    }
 
     applySubtitlePreferences()
     applyVideoFilterPreferences()
@@ -6710,8 +6699,8 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         PlayerOrientationPolicy.forAudioPreference(audioPreferences.audioOrientation.get())
       } else {
         val preference = playerPreferences.orientation.get()
-        // A custom aspect ratio is already represented in the effective video geometry.
-        // Do not freeze "Video" orientation just because a custom ratio was saved earlier.
+        // A saved custom ratio is re-applied to every file and is already part of mpv's reported
+        // aspect, so it must not freeze "Video" orientation for all later videos.
         PlayerOrientationPolicy.forPreference(preference) {
           (sourceAspect ?: player.getVideoOutAspect())?.also { aspect ->
             PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
@@ -6759,11 +6748,8 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    * not recreate the Activity; it relayouts the window mid-transition.
    *
    * Use only geometry already supplied by the launch intent. Missing metadata must not delay
-   * playback: MediaMetadataRetriever can stall on the same files as thumbnail extraction. When the
-   * rotation is unknown the current orientation is held instead of guessed — assuming 0 is exactly
-   * what opened portrait phone recordings in landscape and then flipped them. mpv's demuxer reports
-   * the real rotation at FILE_LOADED, before the first frame, and [scheduleVideoParamRefresh] /
-   * [handleFileLoaded] apply it.
+   * playback: MediaMetadataRetriever can stall on the same files as thumbnail extraction. The
+   * normal mpv video-parameter observer applies the orientation once the source geometry arrives.
    */
   private fun applyInitialVideoOrientation(sourceIntent: Intent) {
     if (isTelevision) {
@@ -6774,16 +6760,9 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
 
     val width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
     val height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-    // Absent means unknown, not 0: browser rows only carry the extra when a trusted source set it.
-    val rotation =
-      if (sourceIntent.hasExtra(EXTRA_VIDEO_ROTATION)) {
-        VideoDisplayGeometry.normalizeQuarterTurn(sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0))
-      } else {
-        null
-      }
-    val initialOrientation =
-      rotation?.let { PlayerOrientationPolicy.forSourceGeometry(width, height, it) }
-        ?: ActivityInfo.SCREEN_ORIENTATION_LOCKED
+    // Zero is a valid container rotation, not a reason to probe the file again.
+    val rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0)
+    val initialOrientation = PlayerOrientationPolicy.forSourceGeometry(width, height, rotation) ?: return
     if (requestedOrientation != initialOrientation) requestedOrientation = initialOrientation
   }
 

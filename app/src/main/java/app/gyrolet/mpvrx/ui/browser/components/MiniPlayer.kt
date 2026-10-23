@@ -121,7 +121,6 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
 import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
-import app.gyrolet.mpvrx.ui.player.VideoDisplayGeometry
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
 import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
@@ -556,15 +555,15 @@ private fun MiniPlayerContent(
     val progressColor = MaterialTheme.colorScheme.primary
 
     if (isVideoMode) {
-      // Calculate aspect ratio for video surface container. mpv reports the pre-rotation shape, so
-      // a quarter-turned phone recording must be inverted to match what the surface shows.
+      // mpv reports the pre-rotation shape; quarter-turned phone recordings are shown inverted,
+      // matching the PiP aspect calculation.
       val sourceAspect = videoAspectRaw?.toFloat()?.takeIf { it.isFinite() && it > 0f }
         ?: if ((videoWidth ?: 0L) > 0L && (videoHeight ?: 0L) > 0L) {
           videoWidth!!.toFloat() / videoHeight!!.toFloat()
         } else {
           16f / 9f
         }
-      val rotation = videoRotate?.let { VideoDisplayGeometry.normalizeQuarterTurn(it) } ?: 0
+      val rotation = ((videoRotate ?: 0) % 360 + 360) % 360
       val aspect = if (rotation == 90 || rotation == 270) 1f / sourceAspect else sourceAspect
 
       // Constrain aspect ratio between 0.5 (portrait) and 2.4 (ultrawide)

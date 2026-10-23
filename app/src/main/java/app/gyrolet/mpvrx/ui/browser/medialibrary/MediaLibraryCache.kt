@@ -28,11 +28,18 @@ import app.gyrolet.mpvrx.utils.storage.MediaStoreGenerationGuard
 internal object MediaLibraryCache {
   private const val TAG = "MediaLibraryCache"
   private const val PREFS = "media_library_cache"
-  // v4: rotation is nullable; older snapshots stored an unknown rotation as a trusted 0.
-  private const val KEY_VIDEOS = "videos_v4"
-  private const val KEY_SCAN_OPTIONS = "scan_options_v4"
-  private const val KEY_GENERATION = "generation_v4"
-  private const val KEY_METADATA = "metadata_v4"
+  // Rescan snapshots written before the standard MediaStore orientation column was used.
+  private const val KEY_VIDEOS = "videos_v3"
+  private const val KEY_SCAN_OPTIONS = "scan_options_v3"
+  private const val KEY_GENERATION = "generation_v3"
+  private const val KEY_METADATA = "metadata_v3"
+
+  // Unreadable snapshots from other encodings (v4 was the reverted nullable-rotation format). They
+  // would otherwise be parsed into memory with this preferences file on every cold start.
+  private val OBSOLETE_KEYS =
+    listOf(2, 4).flatMap { version ->
+      listOf("videos_v$version", "scan_options_v$version", "generation_v$version", "metadata_v$version")
+    }
 
   // ASCII unit/record separators, escaped rather than embedded as literal control characters
   // so the source stays readable. Both are pathological in a filename.
@@ -62,7 +69,7 @@ internal object MediaLibraryCache {
       video.isAudio.toString(),
       video.width.toString(),
       video.height.toString(),
-      video.rotation?.toString().orEmpty(),
+      video.rotation.toString(),
       video.fps.toString(),
       video.hasEmbeddedSubtitles.toString(),
       video.subtitleCodec,
@@ -89,6 +96,7 @@ internal object MediaLibraryCache {
         .putString(KEY_SCAN_OPTIONS, scanOptionsKey)
         .putString(KEY_GENERATION, observedGeneration)
         .putBoolean(KEY_METADATA, metadataEnriched)
+        .also { editor -> OBSOLETE_KEYS.forEach(editor::remove) }
         .apply()
     }.onFailure { error ->
       Log.w(TAG, "Could not persist media library cache", error)
@@ -124,6 +132,7 @@ internal object MediaLibraryCache {
         .remove(KEY_SCAN_OPTIONS)
         .remove(KEY_GENERATION)
         .remove(KEY_METADATA)
+        .also { editor -> OBSOLETE_KEYS.forEach(editor::remove) }
         .apply()
     }.onFailure { error ->
       Log.w(TAG, "Could not clear media library cache", error)
@@ -141,7 +150,7 @@ internal object MediaLibraryCache {
     val isAudio = parts[13].toBooleanStrictOrNull() ?: return null
     val width = parts[14].toIntOrNull() ?: return null
     val height = parts[15].toIntOrNull() ?: return null
-    val rotation = if (parts[16].isEmpty()) null else parts[16].toIntOrNull() ?: return null
+    val rotation = parts[16].toIntOrNull() ?: return null
     val fps = parts[17].toFloatOrNull() ?: return null
     val hasEmbeddedSubtitles = parts[18].toBooleanStrictOrNull() ?: return null
 
