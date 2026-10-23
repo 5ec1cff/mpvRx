@@ -34,6 +34,8 @@ import app.gyrolet.mpvrx.preferences.AdvancedPreferences
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
+import app.gyrolet.mpvrx.preferences.SettingsRestoreGuard
+import android.widget.Toast
 import app.gyrolet.mpvrx.presentation.crash.CrashActivity
 import app.gyrolet.mpvrx.presentation.crash.GlobalExceptionHandler
 import app.gyrolet.mpvrx.domain.network.NetworkImageRepository
@@ -136,6 +138,10 @@ class App :
 
     configureDebugStrictMode()
 
+    // Before anything reads them: restored settings that kept the app from starting are reverted.
+    runCatching { SettingsRestoreGuard.onProcessStart(this) }
+      .onFailure { Log.w(TAG, "Could not check restored settings", it) }
+
     // Initialize Koin
     startKoin {
       androidContext(this@App)
@@ -161,6 +167,9 @@ class App :
     PlaybackSession.addObserver(PlaybackPerformanceTrace)
     startPlaybackPerformanceTracing()
     Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
+    SettingsRestoreGuard.consumeRevertedSource(this)?.let { source ->
+      Toast.makeText(this, getString(R.string.settings_restore_reverted, source), Toast.LENGTH_LONG).show()
+    }
     startIdleMpvCoreReaper()
     startWidgetUpdates()
     startWatchStatsTracking()
@@ -378,6 +387,8 @@ class App :
   }
 
   override fun onActivityResumed(activity: Activity) {
+    // Restored settings count as working once a screen has stayed up with them for a while.
+    SettingsRestoreGuard.onScreenShown(activity)
     if (BuildConfig.ENABLE_UPDATE_FEATURE) {
       applicationScope.launch(Dispatchers.IO) {
         runCatching { app.gyrolet.mpvrx.domain.update.UpdateInstaller.onForeground(this@App) }
@@ -404,7 +415,7 @@ class App :
     if (activity is PlayerActivity) PlaybackPerformanceTrace.begin("ON_PAUSE")
   }
 
-  override fun onActivityPaused(activity: Activity) = Unit
+  override fun onActivityPaused(activity: Activity) = SettingsRestoreGuard.onScreenHidden()
 
   override fun onActivityPostPaused(activity: Activity) {
     if (activity is PlayerActivity) PlaybackPerformanceTrace.end("ON_PAUSE")

@@ -2334,6 +2334,11 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="onboarding_configuration_restoring">Recherche de sauvegardes des réglages…</string>
   <string name="onboarding_configuration_no_backup">Dossier configuré. Les téléchargements utiliseront Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Réglages restaurés depuis %1$s. Les téléchargements utiliseront Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Réglages restaurés depuis %1$s. %2$d entrée endommagée a été ignorée. Les téléchargements utiliseront Configuration/Downloads.</item>
+    <item quantity="other">Réglages restaurés depuis %1$s. %2$d entrées endommagées ont été ignorées. Les téléchargements utiliseront Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Les réglages restaurés depuis %1$s ont provoqué un plantage ; ils ont donc été annulés.</string>
   <string name="onboarding_configuration_restore_failed">La configuration du dossier a échoué : %1$s</string>
   <string name="navbar_glow_title">Éclat du verre</string>
   <string name="navbar_glow_summary">Afficher l’éclairage du bord et l’éclat au toucher de la barre de navigation</string>

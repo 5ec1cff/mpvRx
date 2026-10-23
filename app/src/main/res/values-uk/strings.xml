@@ -2352,6 +2352,13 @@
   <string name="onboarding_configuration_restoring">Перевірка резервних копій налаштувань…</string>
   <string name="onboarding_configuration_no_backup">Папку налаштовано. Завантаження використовуватимуть Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Відновлено налаштування з %1$s. Завантаження використовуватимуть Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Відновлено налаштування з %1$s. Пропущено %2$d пошкоджений запис. Завантаження використовуватимуть Configuration/Downloads.</item>
+    <item quantity="few">Відновлено налаштування з %1$s. Пропущено %2$d пошкоджені записи. Завантаження використовуватимуть Configuration/Downloads.</item>
+    <item quantity="many">Відновлено налаштування з %1$s. Пропущено %2$d пошкоджених записів. Завантаження використовуватимуть Configuration/Downloads.</item>
+    <item quantity="other">Відновлено налаштування з %1$s. Пропущено %2$d пошкодженого запису. Завантаження використовуватимуть Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Налаштування, відновлені з %1$s, спричинили збій, тому їх скасовано.</string>
   <string name="onboarding_configuration_restore_failed">Не вдалося завершити налаштування папки: %1$s</string>
   <string name="navbar_glow_title">Світіння скла</string>
   <string name="navbar_glow_summary">Підсвічування краю та дотиків панелі навігації</string>

@@ -2334,6 +2334,11 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="onboarding_configuration_restoring">Verificando backups de ajustes…</string>
   <string name="onboarding_configuration_no_backup">Pasta configurada. Os downloads usarão Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Ajustes restaurados de %1$s. Os downloads usarão Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Ajustes restaurados de %1$s. %2$d entrada danificada foi ignorada. Os downloads usarão Configuration/Downloads.</item>
+    <item quantity="other">Ajustes restaurados de %1$s. %2$d entradas danificadas foram ignoradas. Os downloads usarão Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Os ajustes restaurados de %1$s causaram uma falha, por isso foram revertidos.</string>
   <string name="onboarding_configuration_restore_failed">Não foi possível concluir a configuração da pasta: %1$s</string>
   <string name="navbar_glow_title">Brilho do vidro</string>
   <string name="navbar_glow_summary">Mostrar iluminação da borda e brilho ao tocar na barra de navegação</string>

@@ -2334,6 +2334,11 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="onboarding_configuration_restoring">Buscando copias de ajustes…</string>
   <string name="onboarding_configuration_no_backup">Carpeta configurada. Las descargas usarán Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Ajustes restaurados desde %1$s. Las descargas usarán Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Ajustes restaurados desde %1$s. Se omitió %2$d entrada dañada. Las descargas usarán Configuration/Downloads.</item>
+    <item quantity="other">Ajustes restaurados desde %1$s. Se omitieron %2$d entradas dañadas. Las descargas usarán Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Los ajustes restaurados desde %1$s provocaron un cierre inesperado, así que se revirtieron.</string>
   <string name="onboarding_configuration_restore_failed">No se pudo completar la configuración de la carpeta: %1$s</string>
   <string name="navbar_glow_title">Brillo del cristal</string>
   <string name="navbar_glow_summary">Mostrar luz del borde y brillo al tocar la barra de navegación</string>

@@ -2584,6 +2584,11 @@
   <string name="onboarding_configuration_restoring">Checking for settings backups…</string>
   <string name="onboarding_configuration_no_backup">Folder configured. Downloads will use Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Restored settings from %1$s. Downloads will use Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Restored settings from %1$s. Skipped %2$d damaged entry. Downloads will use Configuration/Downloads.</item>
+    <item quantity="other">Restored settings from %1$s. Skipped %2$d damaged entries. Downloads will use Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Settings restored from %1$s caused a crash, so they were reverted.</string>
   <string name="onboarding_configuration_restore_failed">Folder setup could not be completed: %1$s</string>
   <string name="navbar_glow_title">Glass Glow</string>
   <string name="navbar_glow_summary">Show navbar rim lighting and touch glow</string>

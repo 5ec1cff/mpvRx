@@ -2327,6 +2327,10 @@
   <string name="onboarding_configuration_restoring">設定バックアップを確認しています…</string>
   <string name="onboarding_configuration_no_backup">フォルダーを設定しました。ダウンロードは Configuration/Downloads を使用します。</string>
   <string name="onboarding_configuration_restored">%1$s から設定を復元しました。ダウンロードは Configuration/Downloads を使用します。</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="other">%1$s から設定を復元しました。破損した %2$d 件の項目をスキップしました。ダウンロードは Configuration/Downloads を使用します。</item>
+  </plurals>
+  <string name="settings_restore_reverted">%1$s から復元した設定が原因でクラッシュしたため、元に戻しました。</string>
   <string name="onboarding_configuration_restore_failed">フォルダーの設定を完了できませんでした: %1$s</string>
   <string name="navbar_glow_title">ガラスの輝き</string>
   <string name="navbar_glow_summary">ナビゲーションバーの縁の光とタッチ時の輝きを表示</string>

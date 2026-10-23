@@ -2348,6 +2348,13 @@
   <string name="onboarding_configuration_restoring">Проверка резервных копий настроек…</string>
   <string name="onboarding_configuration_no_backup">Папка настроена. Загрузки будут сохраняться в Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Настройки восстановлены из %1$s. Загрузки будут сохраняться в Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Настройки восстановлены из %1$s. Пропущена %2$d повреждённая запись. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="few">Настройки восстановлены из %1$s. Пропущены %2$d повреждённые записи. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="many">Настройки восстановлены из %1$s. Пропущено %2$d повреждённых записей. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="other">Настройки восстановлены из %1$s. Пропущено %2$d повреждённой записи. Загрузки будут сохраняться в Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Настройки, восстановленные из %1$s, вызвали сбой, поэтому они были отменены.</string>
   <string name="onboarding_configuration_restore_failed">Не удалось завершить настройку папки: %1$s</string>
   <string name="navbar_glow_title">Свечение стекла</string>
   <string name="navbar_glow_summary">Подсветка края и касаний панели навигации</string>

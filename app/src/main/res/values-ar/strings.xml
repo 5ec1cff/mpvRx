@@ -2360,6 +2360,15 @@
   <string name="onboarding_configuration_restoring">جارٍ البحث عن نسخ الإعدادات…</string>
   <string name="onboarding_configuration_no_backup">تم إعداد المجلد. ستستخدم التنزيلات Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">تمت استعادة الإعدادات من %1$s. ستستخدم التنزيلات Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="zero">تمت استعادة الإعدادات من %1$s. لم يتم تخطي أي إدخال تالف (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="one">تمت استعادة الإعدادات من %1$s. تم تخطي إدخال تالف واحد (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="two">تمت استعادة الإعدادات من %1$s. تم تخطي إدخالين تالفين (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="few">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخالات تالفة. ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="many">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخالًا تالفًا. ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="other">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخال تالف. ستستخدم التنزيلات Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">تسببت الإعدادات المستعادة من %1$s في تعطل التطبيق، لذا تم التراجع عنها.</string>
   <string name="onboarding_configuration_restore_failed">تعذر إكمال إعداد المجلد: %1$s</string>
   <string name="navbar_glow_title">توهج الزجاج</string>
   <string name="navbar_glow_summary">إظهار إضاءة حافة شريط التنقل وتوهج اللمس</string>

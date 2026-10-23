@@ -6,6 +6,7 @@ package app.gyrolet.mpvrx.presentation.crash
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import app.gyrolet.mpvrx.preferences.SettingsRestoreGuard
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.system.exitProcess
 
@@ -19,6 +20,9 @@ class GlobalExceptionHandler(
   override fun uncaughtException(t: Thread, e: Throwable) {
     if (!handlingCrash.compareAndSet(false, true)) exitProcess(10)
     try {
+      // Settings restored moments ago are the likeliest cause; put them back before relaunching.
+      runCatching { SettingsRestoreGuard.revertAfterCrash(context) }
+        .onFailure { Log.e("GlobalExceptionHandler", "Unable to revert restored settings", it) }
       val reportId = runCatching { CrashReportStore.capture(context, t, e) }
         .onFailure { Log.e("GlobalExceptionHandler", "Unable to save crash report", it) }
         .getOrNull()

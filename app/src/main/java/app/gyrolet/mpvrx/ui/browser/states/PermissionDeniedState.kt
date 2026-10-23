@@ -256,7 +256,17 @@ fun PermissionDeniedState(
                 context.getString(R.string.onboarding_configuration_no_backup)
               } else {
                 restoredSettings = true
-                context.getString(R.string.onboarding_configuration_restored, result.fileName)
+                val skipped = result.importStats.failed
+                if (skipped > 0) {
+                  context.resources.getQuantityString(
+                    R.plurals.onboarding_configuration_restored_partial,
+                    skipped,
+                    result.fileName,
+                    skipped,
+                  )
+                } else {
+                  context.getString(R.string.onboarding_configuration_restored, result.fileName)
+                }
               }
             },
             onFailure = { error ->

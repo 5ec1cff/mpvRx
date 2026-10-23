@@ -25,6 +25,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.shareIn
+import java.util.concurrent.ConcurrentHashMap
 
 /** The app's default preferences file, identical to androidx PreferenceManager.getDefaultSharedPreferences. */
 fun Context.defaultSharedPreferences(): SharedPreferences =
@@ -49,32 +50,33 @@ class AndroidPreferenceStore(
   override fun getString(
     key: String,
     defaultValue: String,
-  ): Preference<String> = StringPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<String> = StringPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.STRING) }
 
   override fun getLong(
     key: String,
     defaultValue: Long,
-  ): Preference<Long> = LongPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<Long> = LongPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.LONG) }
 
   override fun getInt(
     key: String,
     defaultValue: Int,
-  ): Preference<Int> = IntPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<Int> = IntPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.INT) }
 
   override fun getFloat(
     key: String,
     defaultValue: Float,
-  ): Preference<Float> = FloatPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<Float> = FloatPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.FLOAT) }
 
   override fun getBoolean(
     key: String,
     defaultValue: Boolean,
-  ): Preference<Boolean> = BooleanPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<Boolean> = BooleanPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.BOOLEAN) }
 
   override fun getStringSet(
     key: String,
     defaultValue: Set<String>,
-  ): Preference<Set<String>> = StringSetPrimitive(sharedPreferences, keyFlow, key, defaultValue)
+  ): Preference<Set<String>> =
+    StringSetPrimitive(sharedPreferences, keyFlow, key, defaultValue).also { declare(key, PreferenceKind.STRING_SET) }
 
   override fun <T> getObject(
     key: String,
@@ -89,9 +91,41 @@ class AndroidPreferenceStore(
       defaultValue = defaultValue,
       serializer = serializer,
       deserializer = deserializer,
-    )
+    ).also { declare(key, PreferenceKind.STRING) { text -> deserializer(text) } }
 
   override fun getAll(): Map<String, *> = sharedPreferences.all ?: emptyMap<String, Any>()
+
+  // What each preference reads its key as, so restoring a backup can reject values of the wrong
+  // kind or unreadable structured text instead of storing them for some screen to trip over.
+  private class Declaration(
+    val kind: PreferenceKind,
+    val textValidator: ((String) -> Unit)?,
+  )
+
+  private val declarations = ConcurrentHashMap<String, Declaration>()
+
+  private fun declare(
+    key: String,
+    kind: PreferenceKind,
+    textValidator: ((String) -> Unit)? = null,
+  ) {
+    declarations[key] = Declaration(kind, textValidator)
+  }
+
+  override fun declaredKind(key: String): PreferenceKind? = declarations[key]?.kind
+
+  override fun acceptsStoredText(
+    key: String,
+    value: String,
+  ): Boolean {
+    val validator = declarations[key]?.textValidator ?: return true
+    return try {
+      validator(value)
+      true
+    } catch (_: Exception) {
+      false
+    }
+  }
 }
 
 private val SharedPreferences.keyFlow

@@ -48,6 +48,24 @@ interface PreferenceStore {
   ): Preference<T>
 
   fun getAll(): Map<String, *>
+
+  /** The kind the app reads [key] as, or null if no preference declared it. */
+  fun declaredKind(key: String): PreferenceKind? = null
+
+  /** Whether [value] loads for a structured preference stored as text under [key]. */
+  fun acceptsStoredText(
+    key: String,
+    value: String,
+  ): Boolean = true
+}
+
+enum class PreferenceKind {
+  STRING,
+  INT,
+  LONG,
+  FLOAT,
+  BOOLEAN,
+  STRING_SET,
 }
 
 inline fun <reified T : Enum<T>> PreferenceStore.getEnum(

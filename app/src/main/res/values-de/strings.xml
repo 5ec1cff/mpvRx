@@ -2334,6 +2334,11 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="onboarding_configuration_restoring">Einstellungssicherungen werden geprüft…</string>
   <string name="onboarding_configuration_no_backup">Ordner eingerichtet. Downloads verwenden Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Einstellungen aus %1$s wiederhergestellt. Downloads verwenden Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Einstellungen aus %1$s wiederhergestellt. %2$d beschädigter Eintrag wurde übersprungen. Downloads verwenden Configuration/Downloads.</item>
+    <item quantity="other">Einstellungen aus %1$s wiederhergestellt. %2$d beschädigte Einträge wurden übersprungen. Downloads verwenden Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Die aus %1$s wiederhergestellten Einstellungen haben einen Absturz verursacht und wurden zurückgesetzt.</string>
   <string name="onboarding_configuration_restore_failed">Ordnereinrichtung konnte nicht abgeschlossen werden: %1$s</string>
   <string name="navbar_glow_title">Glasleuchten</string>
   <string name="navbar_glow_summary">Randlicht und Berührungsleuchten der Navigationsleiste anzeigen</string>
