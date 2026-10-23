@@ -31,17 +31,37 @@ internal data class VideoDisplayGeometry(
      * Reads geometry for [generation]'s loaded file, or null if it is unknown or superseded.
      *
      * Order of trust:
-     * 1. `video-params`: the decoder's output, with container rotation and `--video-rotate`
-     *    already combined by mpv.
-     * 2. The selected video track's demuxer fields, available as soon as the file is opened and
-     *    still present while the video output is detached for background playback or PiP exit.
+     * 1. Decoder output, unless it reports rotation 0 while the demuxer reports a real rotation
+     *    and their unrotated frame axes agree. Some MediaCodec paths lose the container angle.
+     * 2. The selected video track's demuxer fields while the decoder is unavailable (such as
+     *    before the first frame, during background playback, or on PiP exit).
      *
      * Top-level `width`/`height` are deliberately never used: they carry no rotation, so pairing
      * them with an assumed rotation of 0 is what opened portrait phone videos in landscape.
      */
     fun read(generation: Long = PlaybackSession.loadedMediaGeneration()): VideoDisplayGeometry? =
       PlaybackSession.readLoadedMedia(generation) { reader ->
-        fromDecoder(reader) ?: fromDemuxer(reader)
+        val decoder = fromDecoder(reader)
+        if (decoder == null) {
+          fromDemuxer(reader)
+        } else if (decoder.rotation != 0) {
+          decoder
+        } else {
+          // Hardware decoders can report 0 even when the container requests a quarter-turn.
+          // Do not substitute container rotation if the decoder has already swapped the frame
+          // dimensions: in that case the rotation has been physically applied.
+          val containerRotation = reader.int("current-tracks/video/demux-rotation") ?: 0
+          val expectedRotation = applyUserRotation(containerRotation, reader.string("video-rotate"))
+          if (expectedRotation == null || expectedRotation == 0) {
+            decoder
+          } else {
+            val demuxer = fromDemuxer(reader)
+            val axesAgree = demuxer != null &&
+              ((decoder.width > decoder.height && demuxer.width > demuxer.height) ||
+                (decoder.width < decoder.height && demuxer.width < demuxer.height))
+            if (axesAgree) demuxer else decoder
+          }
+        }
       }
 
     private fun fromDecoder(reader: PlaybackSession.PropertyReader): VideoDisplayGeometry? {

@@ -6710,11 +6710,8 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         PlayerOrientationPolicy.forAudioPreference(audioPreferences.audioOrientation.get())
       } else {
         val preference = playerPreferences.orientation.get()
-        // A hand-set aspect ratio is a deliberate override of the picture's shape, so keep the
-        // current orientation rather than rotating to the source geometry behind the user's back.
-        if (preference == PlayerOrientation.Video && hasCustomAspectRatio()) {
-          return
-        }
+        // A custom aspect ratio is already represented in the effective video geometry.
+        // Do not freeze "Video" orientation just because a custom ratio was saved earlier.
         PlayerOrientationPolicy.forPreference(preference) {
           (sourceAspect ?: player.getVideoOutAspect())?.also { aspect ->
             PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
@@ -6750,9 +6747,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       } ?: return
     if (requestedOrientation != target) requestedOrientation = target
   }
-
-  private fun hasCustomAspectRatio(): Boolean =
-    playerPreferences.lastCustomAspectRatio.get() > 0f
 
   /**
    * Orientation for "Video" mode before mpv exists, so the window opens the right way round.
