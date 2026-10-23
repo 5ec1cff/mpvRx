@@ -1655,6 +1655,9 @@
     <string name="ui_sort_descending">अवरोही क्रम में क्रमबद्ध करें</string>
     <string name="ui_no_matching_episodes">कोई मेल खाता एपिसोड नहीं</string>
     <string name="ui_buffering">बफ़र हो रहा है…</string>
+    <string name="player_opening_stream">स्ट्रीम खोली जा रही है…</string>
+    <string name="player_buffering_percent">बफ़र हो रहा है %1$d%%</string>
+    <string name="player_buffering_seconds">बफ़र हो रहा है · %1$s से. तैयार</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">मीडिया</string>
     <string name="ui_saved_media">सहेजे गए लिंक</string>

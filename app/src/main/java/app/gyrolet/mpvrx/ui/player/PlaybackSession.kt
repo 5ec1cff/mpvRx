@@ -60,9 +60,21 @@ data class PlaybackSessionState(
   val paused: Boolean = true,
   val currentItem: PlaybackItem? = null,
   val error: String? = null,
-  /** The current network media is waiting for its cache, rather than merely loading or restarting. */
-  val isBuffering: Boolean = false,
-)
+  /** Why the current network media is waiting for data, or null while it plays (or is local). */
+  val bufferingReason: BufferingReason? = null,
+) {
+  val isBuffering: Boolean
+    get() = bufferingReason != null
+}
+
+/** What a playing network stream is waiting for. File opening is reported by the player screen. */
+enum class BufferingReason {
+  /** mpv paused playback until enough media is cached. */
+  CACHE,
+
+  /** A seek is waiting for the stream to deliver data at the new position. */
+  SEEKING,
+}
 
 data class PlaybackPositionRestoreOverride(
   val positionSeconds: Double?,
@@ -145,7 +157,7 @@ object PlaybackSession : MPVLib.EventObserver {
     MPVLib.removeObserver(observer)
   }
 
-  private val BUFFERING_STATUS_PROPERTIES = setOf("pause", "paused-for-cache", "demuxer-via-network", "eof-reached")
+  private val BUFFERING_STATUS_PROPERTIES = setOf("pause", "paused-for-cache", "seeking", "demuxer-via-network", "eof-reached")
   private const val SEEK_AUDIO_RESTORE_DELAY_MS = 60L
   private const val SEEK_AUDIO_FALLBACK_RESTORE_MS = 750L
   private const val PLAYBACK_TRANSITION_AUDIO_RESTORE_DELAY_MS = 180L
@@ -2070,17 +2082,22 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           loadedItem.stableId == current.currentItem?.stableId &&
           loadedItem.playableUri == current.currentItem?.playableUri &&
           !current.paused
-      val buffering =
-        canBuffer &&
-          MPVLib.getPropertyBoolean("paused-for-cache") == true &&
-          MPVLib.getPropertyBoolean("eof-reached") != true &&
-          activeFileUsesNetworkLocked()
-      if (buffering) {
+      // Cheap flag reads first; the network check only runs while something is actually waiting.
+      val waiting =
+        when {
+          !canBuffer -> null
+          MPVLib.getPropertyBoolean("paused-for-cache") == true -> BufferingReason.CACHE
+          MPVLib.getPropertyBoolean("seeking") == true -> BufferingReason.SEEKING
+          else -> null
+        }
+      val reason =
+        waiting?.takeIf { MPVLib.getPropertyBoolean("eof-reached") != true && activeFileUsesNetworkLocked() }
+      if (reason == BufferingReason.CACHE) {
         // Never label a new stall with a previous file's cached fill values.
         propInt.emit("cache-buffering-state", MPVLib.getPropertyInt("cache-buffering-state"))
         propDouble.emit("demuxer-cache-duration", MPVLib.getPropertyDouble("demuxer-cache-duration"))
       }
-      updateState { it.copy(isBuffering = buffering) }
+      updateState { it.copy(bufferingReason = reason) }
     }
   }
 
@@ -2621,7 +2638,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           next.currentItem?.stableId != previous.currentItem?.stableId ||
           next.currentItem?.playableUri != previous.currentItem?.playableUri)
       ) {
-        next.copy(isBuffering = false)
+        next.copy(bufferingReason = null)
       } else {
         next
       }

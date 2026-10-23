@@ -1747,6 +1747,9 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
     <string name="ui_sort_descending">Ordre décroissant</string>
     <string name="ui_no_matching_episodes">Aucun épisode correspondant</string>
     <string name="ui_buffering">Mise en mémoire tampon…</string>
+    <string name="player_opening_stream">Ouverture du flux…</string>
+    <string name="player_buffering_percent">Mise en mémoire tampon %1$d %%</string>
+    <string name="player_buffering_seconds">Mise en mémoire tampon · %1$s s prêtes</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Médias</string>
     <string name="ui_saved_media">Liens enregistrés</string>

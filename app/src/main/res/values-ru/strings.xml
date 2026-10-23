@@ -1761,6 +1761,9 @@
     <string name="ui_sort_descending">По убыванию</string>
     <string name="ui_no_matching_episodes">Нет подходящих эпизодов</string>
     <string name="ui_buffering">Буферизация…</string>
+    <string name="player_opening_stream">Открытие потока…</string>
+    <string name="player_buffering_percent">Буферизация %1$d %%</string>
+    <string name="player_buffering_seconds">Буферизация · готово %1$s с</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Медиа</string>
     <string name="ui_saved_media">Сохранённые ссылки</string>

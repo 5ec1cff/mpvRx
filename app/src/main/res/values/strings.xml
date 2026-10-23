@@ -942,6 +942,9 @@
   <string name="ui_sort_descending">Sort Descending</string>
   <string name="ui_no_matching_episodes">No matching episodes</string>
   <string name="ui_buffering">Buffering…</string>
+  <string name="player_opening_stream">Opening stream…</string>
+  <string name="player_buffering_percent">Buffering %1$d%%</string>
+  <string name="player_buffering_seconds">Buffering · %1$s s ready</string>
   <string name="torrent_picker_choose_title">Choose what to play</string>
   <plurals name="torrent_picker_playable_count">
     <item quantity="one">%1$d playable file</item>

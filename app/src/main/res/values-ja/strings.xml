@@ -1740,6 +1740,9 @@
     <string name="ui_sort_descending">降顺で並べ替え</string>
     <string name="ui_no_matching_episodes">一致するエピソードはありません</string>
     <string name="ui_buffering">バッファリング中…</string>
+    <string name="player_opening_stream">ストリームを開いています…</string>
+    <string name="player_buffering_percent">バッファリング中 %1$d%%</string>
+    <string name="player_buffering_seconds">バッファリング中 · %1$s 秒準備済み</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">メディア</string>
     <string name="ui_saved_media">保存されたリンク</string>

@@ -1747,6 +1747,9 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
     <string name="ui_sort_descending">Ordem decrescente</string>
     <string name="ui_no_matching_episodes">Nenhum episódio correspondente</string>
     <string name="ui_buffering">Armazenando em buffer…</string>
+    <string name="player_opening_stream">Abrindo transmissão…</string>
+    <string name="player_buffering_percent">Carregando buffer %1$d%%</string>
+    <string name="player_buffering_seconds">Carregando buffer · %1$s s prontos</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Mídia</string>
     <string name="ui_saved_media">Links Salvos</string>

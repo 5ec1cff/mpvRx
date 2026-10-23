@@ -1747,6 +1747,9 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
     <string name="ui_sort_descending">Absteigend sortieren</string>
     <string name="ui_no_matching_episodes">Keine passenden Episoden</string>
     <string name="ui_buffering">Puffern…</string>
+    <string name="player_opening_stream">Stream wird geöffnet…</string>
+    <string name="player_buffering_percent">Puffern %1$d %%</string>
+    <string name="player_buffering_seconds">Puffern · %1$s s bereit</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Medien</string>
     <string name="ui_saved_media">Gespeicherte Links</string>

@@ -1765,6 +1765,9 @@
     <string name="ui_sort_descending">降序排列</string>
     <string name="ui_no_matching_episodes">没有匹配的剧集</string>
     <string name="ui_buffering">正在缓冲…</string>
+    <string name="player_opening_stream">正在打开串流…</string>
+    <string name="player_buffering_percent">正在缓冲 %1$d%%</string>
+    <string name="player_buffering_seconds">正在缓冲 · 已就绪 %1$s 秒</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">媒体</string>
     <string name="ui_saved_media">已保存链接</string>

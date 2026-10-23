@@ -809,6 +809,9 @@
   <string name="ui_sort_descending">За спаданням</string>
   <string name="ui_no_matching_episodes">Немає відповідних серій</string>
   <string name="ui_buffering">Буферизація…</string>
+  <string name="player_opening_stream">Відкриття потоку…</string>
+  <string name="player_buffering_percent">Буферизація %1$d %%</string>
+  <string name="player_buffering_seconds">Буферизація · готово %1$s с</string>
   <string name="torrent_picker_choose_title">Виберіть, що відтворити</string>
   <plurals name="torrent_picker_playable_count">
     <item quantity="one">Знайдено %1$d відтворюване відео</item>
