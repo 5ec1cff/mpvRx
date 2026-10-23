@@ -11,6 +11,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 ### Player
 
+- **Ambience rendering fixed:** Corrected shader errors that could turn playback blue or corrupt the picture when enabling Glow, Ambilight, Cinema, Echo or Mirror on OpenGL ES. Vignette fading now uses defined shader math across GPU drivers.
+
 - **Regular controls when glass is off for HDR:** With Liquid Glass on and "Liquid glass in HDR mode" off, turning on HDR output now switches every player control, slider, sheet and panel to its regular look, exactly as with Liquid Glass off, instead of glass buttons that could no longer show the video behind them. The same applies whenever HDR output is controlled by mpv.conf.
 
 ### Jellyfin

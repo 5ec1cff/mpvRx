@@ -245,7 +245,7 @@ private val GLSL_VIDEO_PROLOGUE =
 private val GLSL_AMBIENT_EPILOGUE =
   """
     highp float vig_r = length(uv - 0.5) * 2.0;
-    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), VIGNETTE_STR);
+    ambient_rgb *= mix(1.0, 1.0 - smoothstep(0.1, 1.3, vig_r), VIGNETTE_STR);
     ambient_rgb *= OPACITY;
 
     // FIX 7 (part a): dither before quantisation to the 8-bit swapchain so the
@@ -348,7 +348,8 @@ $GLSL_VIDEO_PROLOGUE
         );
         mediump vec3 sample_rgb = HOOKED_tex(clamp(sample_origin + offset, safe_min, safe_max)).rgb;
 
-        mediump float weight = mediump float(tap.z) * (1.0 + luma(sample_rgb) * 2.0);
+        // Precision qualifies the variable, never a constructor expression (GLSL ES).
+        mediump float weight = tap.z * (1.0 + luma(sample_rgb) * 2.0);
 
         acc_color += sample_rgb * weight;
         acc_weight += weight;

@@ -174,8 +174,10 @@ mediump vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 inv_s
     mediump vec3 c10 = HOOKED_tex(vec2(p1.x, p0.y)).rgb;
     mediump vec3 c01 = HOOKED_tex(vec2(p0.x, p1.y)).rgb;
     mediump vec3 c11 = HOOKED_tex(vec2(p1.x, p1.y)).rgb;
-    mediump vec2 g0_m = mediump vec2(g0);
-    mediump vec2 g1_m = mediump vec2(g1);
+    // Assignment applies the destination precision; precision-qualified constructors
+    // are invalid GLSL ES and break every FX mode, including video pass-through.
+    mediump vec2 g0_m = g0;
+    mediump vec2 g1_m = g1;
     return (c00 * g0_m.x + c10 * g1_m.x) * g0_m.y + (c01 * g0_m.x + c11 * g1_m.x) * g1_m.y;
 }
 
@@ -271,7 +273,7 @@ mediump vec3 bspline_tex(highp vec2 sample_uv, highp vec2 size, highp vec2 inv_s
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
     highp float vig_r = length(uv - 0.5) * 2.0;
-    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+    ambient_rgb *= mix(1.0, 1.0 - smoothstep(0.1, 1.3, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
@@ -369,7 +371,7 @@ $vignetteLine$opacityLine
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
     highp float vig_r = length(uv - 0.5) * 2.0;
-    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+    ambient_rgb *= mix(1.0, 1.0 - smoothstep(0.1, 1.3, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
@@ -478,7 +480,7 @@ $vignetteLine$opacityLine
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
     highp float vig_r = length(uv - 0.5) * 2.0;
-    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+    ambient_rgb *= mix(1.0, 1.0 - smoothstep(0.1, 1.3, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
@@ -593,7 +595,7 @@ $vignetteLine$opacityLine
     val warmthLine = if (abs(warmthVal) > 0.0001) "    col = apply_warmth(col, ${f(warmthVal)});\n" else ""
     val vignetteLine = if (vignetteVal > 0.0001) """
     highp float vig_r = length(uv - 0.5) * 2.0;
-    ambient_rgb *= mix(1.0, smoothstep(1.3, 0.1, vig_r), ${f(vignetteVal)});
+    ambient_rgb *= mix(1.0, 1.0 - smoothstep(0.1, 1.3, vig_r), ${f(vignetteVal)});
 """ else ""
     val opacityLine = if (abs(opacityVal - 1.0) > 0.0001) "    ambient_rgb *= ${f(opacityVal)};\n" else ""
 
