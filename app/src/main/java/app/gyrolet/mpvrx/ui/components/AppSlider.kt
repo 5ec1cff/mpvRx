@@ -1,6 +1,7 @@
 package app.gyrolet.mpvrx.ui.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.progressSemantics
@@ -20,8 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidSlider
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidSliderThumb
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidSliderTrack
@@ -32,7 +31,6 @@ import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,8 +46,7 @@ fun AppSlider(
   interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
   onInteractionChange: (Boolean) -> Unit = {},
 ) {
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val glassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val glassEnabled = liquidGlassActive()
   if (!glassEnabled ||
     !valueRange.start.isFinite() ||
     !valueRange.endInclusive.isFinite() ||
@@ -168,8 +165,7 @@ fun AppRangeSlider(
   onValueChangeFinished: (() -> Unit)? = null,
   colors: SliderColors = SliderDefaults.colors(),
 ) {
-  val preferences = koinInject<AppearancePreferences>()
-  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val glassEnabled = liquidGlassActive()
   val state = remember(steps, valueRange) { RangeSliderState(value.start, value.endInclusive, steps, valueRange) }
   if (
     !glassEnabled ||

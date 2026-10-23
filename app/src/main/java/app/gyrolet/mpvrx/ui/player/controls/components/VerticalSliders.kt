@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,8 +32,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
@@ -45,7 +44,6 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
-import org.koin.compose.koinInject
 
 fun percentage(
   value: Float,
@@ -128,8 +126,7 @@ private fun GlassSliderPanel(
   modifier: Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val enableLiquidGlass = liquidGlassActive()
   val glassSettings = rememberLiquidGlassSettings()
   val playerBackdrop = LocalKyantPlayerBackdrop.current ?: rememberLayerBackdrop()
   val sliderShape = AppShapeScale.extraLarge

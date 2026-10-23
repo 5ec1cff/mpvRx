@@ -1,6 +1,7 @@
 package app.gyrolet.mpvrx.ui.preferences.components
 
 import androidx.compose.foundation.layout.Box
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -13,13 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.components.AppSlider
 import app.gyrolet.mpvrx.ui.preferences.ExpressivePreferenceItem
 import me.zhanghai.compose.preference.LocalPreferenceTheme
 import me.zhanghai.compose.preference.Preference
-import org.koin.compose.koinInject
 
 @Composable
 fun AppSliderPreference(
@@ -36,8 +34,7 @@ fun AppSliderPreference(
   summary: (@Composable () -> Unit)? = null,
   valueText: (@Composable () -> Unit)? = null,
 ) {
-  val preferences = koinInject<AppearancePreferences>()
-  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val glassEnabled = liquidGlassActive()
   if (!glassEnabled) {
     ExpressivePreferenceItem(modifier = modifier) {
       me.zhanghai.compose.preference.SliderPreference(

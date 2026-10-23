@@ -56,6 +56,23 @@ val LocalKyantPlayerBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 /** Prevent HDR playback from refracting the sampled video across player glass surfaces. */
 internal val LocalPlayerHdrOutputEnabled = staticCompositionLocalOf { false }
 
+/**
+ * False inside the video player while the video sits on a native surface Liquid Glass cannot
+ * sample (HDR output without "Liquid glass in HDR"); null everywhere else, where the preference
+ * alone decides.
+ */
+internal val LocalPlayerLiquidGlassActive = staticCompositionLocalOf<Boolean?> { null }
+
+/**
+ * Whether Liquid Glass applies here. Player components read this instead of the raw preference,
+ * so they fall back to their regular, non-glass form whenever the player turns glass off.
+ */
+@Composable
+fun liquidGlassActive(): Boolean {
+    val enabled by koinInject<AppearancePreferences>().liquidGlassEnabled.collectAsState()
+    return enabled && LocalPlayerLiquidGlassActive.current != false
+}
+
 object LiquidControlColors {
     val accent: Color
         @Composable get() = MaterialTheme.colorScheme.primary

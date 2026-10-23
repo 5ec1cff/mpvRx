@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls.components
 
 import androidx.compose.animation.AnimatedContent
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -40,14 +41,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.spacing
 import dev.vivvvek.seeker.Segment
 import `is`.xyz.mpv.Utils
-import org.koin.compose.koinInject
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -57,8 +55,7 @@ fun CurrentChapter(
   onClick: () -> Unit = {},
   onLongClick: () -> Unit = {},
 ) {
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val enableLiquidGlass = liquidGlassActive()
 
   val chapterContent: @Composable () -> Unit = {
     AnimatedContent(

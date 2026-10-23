@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -74,7 +75,6 @@ import app.gyrolet.mpvrx.domain.framecapture.FolderWriteResult
 import app.gyrolet.mpvrx.domain.framecapture.FrameCapture
 import app.gyrolet.mpvrx.domain.framecapture.FrameCaptureRepository
 import app.gyrolet.mpvrx.domain.framecapture.SnapshotImageLoader
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.framecapture.SnapshotFolderRow
@@ -461,8 +461,7 @@ private fun FrameReviewOverlay(
 ) {
   val configuration = LocalConfiguration.current
   val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val glassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val glassEnabled = liquidGlassActive()
   val backdrop = LocalKyantPlayerBackdrop.current
   val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
   val headerGlassModifier =

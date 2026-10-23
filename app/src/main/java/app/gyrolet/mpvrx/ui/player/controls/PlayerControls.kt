@@ -188,6 +188,9 @@ import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsContainer
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerHdrOutputEnabled
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerLiquidGlassActive
+import app.gyrolet.mpvrx.ui.player.shouldUseTextureRendering
+import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.abs
@@ -378,8 +381,18 @@ fun PlayerControls(
   val aiEnabled by aiPreferences.enabled.collectAsState()
   val realtimeSubsEnabled by aiPreferences.realtimeSubsEnabled.collectAsState()
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
-  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val liquidGlassPreference by appearancePreferences.liquidGlassEnabled.collectAsState()
   val liquidGlassInHdr by appearancePreferences.liquidGlassInHdr.collectAsState()
+  val hdrOutputPreference by koinInject<DecoderPreferences>().hdrScreenOutput.collectAsState()
+  // Glass needs the video on the Compose-recordable renderer, so this mirrors the renderer choice.
+  // When HDR output keeps the video on a native surface ("Liquid glass in HDR" off, or HDR owned by
+  // mpv.conf), every player control uses its regular form, exactly as with Liquid Glass off.
+  val enableLiquidGlass =
+    shouldUseTextureRendering(
+      liquidGlass = liquidGlassPreference,
+      hdrOutput = hdrOutputPreference,
+      liquidGlassInHdr = liquidGlassInHdr,
+    )
   val forceDarkButtonBackground by appearancePreferences.forceDarkPlayerButtonsBackground.collectAsState()
   val portraitPlaybackControlsPosition by
     appearancePreferences.portraitPlaybackControlsPosition.collectAsState()
@@ -707,6 +720,7 @@ fun PlayerControls(
 
     CompositionLocalProvider(
       LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
+      LocalPlayerLiquidGlassActive provides enableLiquidGlass,
       LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
       LocalHidePlayerButtonsBackground provides hideBackground,
     ) {
@@ -845,6 +859,7 @@ fun PlayerControls(
   CompositionLocalProvider(
     LocalKyantPlayerBackdrop provides playerKyantBackdrop,
     LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
+    LocalPlayerLiquidGlassActive provides enableLiquidGlass,
     LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
     LocalHidePlayerButtonsBackground provides hideBackground,
   ) {

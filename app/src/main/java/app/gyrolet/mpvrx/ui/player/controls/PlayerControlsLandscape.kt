@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls
 
 import androidx.compose.foundation.BorderStroke
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +39,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -75,8 +75,7 @@ fun TopLeftPlayerControlsLandscape(
   PlayerButtonTheme(hideBackground) {
     val playlistModeEnabled = viewModel.hasPlaylistSupport()
     val clickEvent = LocalPlayerButtonsClickEvent.current
-    val appearancePreferences = koinInject<AppearancePreferences>()
-    val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+    val enableLiquidGlass = liquidGlassActive()
 
     Column(
       modifier = Modifier.width(IntrinsicSize.Max),

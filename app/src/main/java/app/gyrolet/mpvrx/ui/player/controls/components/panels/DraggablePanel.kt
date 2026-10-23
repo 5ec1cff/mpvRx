@@ -12,6 +12,7 @@
 package app.gyrolet.mpvrx.ui.player.controls.components.panels
 
 import android.content.res.Configuration
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -62,9 +63,6 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurface
 import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.player.controls.panelCardsColors
 import kotlin.math.roundToInt
 
@@ -88,8 +86,7 @@ fun DraggablePanel(
 ) {
   var offsetX by remember { mutableFloatStateOf(0f) }
   var panelWidth by remember { mutableIntStateOf(0) }
-  val preferences = koinInject<AppearancePreferences>()
-  val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val liquidGlassEnabled = liquidGlassActive()
 
   val configuration = LocalConfiguration.current
   val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT

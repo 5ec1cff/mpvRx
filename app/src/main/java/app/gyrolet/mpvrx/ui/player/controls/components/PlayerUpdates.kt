@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls.components
 
 import android.content.res.Configuration.ORIENTATION_PORTRAIT
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -66,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
 import app.gyrolet.mpvrx.R
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
@@ -83,7 +83,6 @@ import com.kyant.shapes.Capsule
 import `is`.xyz.mpv.Utils
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
-import org.koin.compose.koinInject
 
 private val compactSpeedIndicatorWidth = 32.dp
 
@@ -160,8 +159,7 @@ fun PlayerUpdate(
   val controlsOffset = rememberPlayerUpdateOffset()
   val backdrop = LocalKyantPlayerBackdrop.current
   val glassSettings = rememberLiquidGlassSettings()
-  val preferences = koinInject<AppearancePreferences>()
-  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val glassEnabled = liquidGlassActive()
   val reducedMotion = AppMotion.shouldReduceMotion()
   val renderGlass = glassEnabled && backdrop != null
   // Capture composable-context colors before entering DrawScope lambdas

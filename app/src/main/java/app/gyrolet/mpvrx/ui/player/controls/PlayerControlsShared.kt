@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.ui.player.controls
 
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 
 import android.content.Context
 import android.content.Intent
@@ -61,7 +62,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AdvancedPreferences
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.MpvConfigControlledFeatures
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerClockFormat
@@ -128,8 +128,7 @@ fun RenderPlayerButton(
     val advancedPreferences = koinInject<AdvancedPreferences>()
     val playerPreferences = koinInject<PlayerPreferences>()
     val statisticsPage by advancedPreferences.enabledStatisticsPage.collectAsState()
-    val appearancePreferences = org.koin.compose.koinInject<AppearancePreferences>()
-    val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+    val enableLiquidGlass = liquidGlassActive()
     when (button) {
     PlayerButton.BACK_ARROW -> {
       ControlsButton(
