@@ -1799,6 +1799,10 @@
   <string name="ui_script_file_not_found">Script file not found</string>
   <string name="ui_search_models">Search models...</string>
   <string name="ui_portrait_playback_buttons">Portrait playback buttons</string>
+  <string name="ui_landscape_playback_buttons">Landscape playback buttons</string>
+  <string name="ui_portrait_seekbar_position">Portrait seekbar position</string>
+  <string name="ui_landscape_seekbar_position">Landscape seekbar position</string>
+  <string name="pref_player_buttons_opacity">Player buttons opacity</string>
   <string name="ui_time_network_clock">Time + Network clock</string>
   <string name="ui_show_media_info_in_chooser">Show Media Info in chooser</string>
   <string name="ui_show_media_info_in_system">Show Media Info in system \"Open with\" / sharing menus to analyze files from other apps.</string>

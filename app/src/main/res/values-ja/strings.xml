@@ -1436,6 +1436,10 @@
   <string name="ui_script_file_not_found">スクリプトファイルが見つかりません</string>
   <string name="ui_search_models">モデルを検索...</string>
   <string name="ui_portrait_playback_buttons">縦向き再生ボタン</string>
+  <string name="ui_landscape_playback_buttons">横向き再生ボタン</string>
+  <string name="ui_portrait_seekbar_position">縦向きのシークバーの位置</string>
+  <string name="ui_landscape_seekbar_position">横向きのシークバーの位置</string>
+  <string name="pref_player_buttons_opacity">プレーヤーボタンの不透明度</string>
   <string name="ui_time_network_clock">時刻 + ネットワーク時計</string>
   <string name="ui_show_media_info_in_chooser">選択画面にメディア情報を表示</string>
   <string name="ui_show_media_info_in_system">他のアプリのファイルを解析できるよう、システムの「アプリで開く」／共有メニューにメディア情報を表示します。</string>

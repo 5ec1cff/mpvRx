@@ -34,6 +34,9 @@ internal val LocalForceDarkPlayerButtonsBackground = staticCompositionLocalOf { 
 @Suppress("CompositionLocalAllowlist")
 internal val LocalHidePlayerButtonsBackground = staticCompositionLocalOf { false }
 
+@Suppress("CompositionLocalAllowlist")
+internal val LocalPlayerButtonsOpacity = staticCompositionLocalOf { 1f }
+
 @Composable
 private fun playerButtonColorScheme(
   forceDark: Boolean =

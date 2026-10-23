@@ -1443,6 +1443,10 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="ui_script_file_not_found">Skriptdatei nicht gefunden</string>
   <string name="ui_search_models">Modelle suchen...</string>
   <string name="ui_portrait_playback_buttons">Wiedergabeschaltflächen im Hochformat</string>
+  <string name="ui_landscape_playback_buttons">Wiedergabeschaltflächen im Querformat</string>
+  <string name="ui_portrait_seekbar_position">Position der Suchleiste im Hochformat</string>
+  <string name="ui_landscape_seekbar_position">Position der Suchleiste im Querformat</string>
+  <string name="pref_player_buttons_opacity">Deckkraft der Player-Schaltflächen</string>
   <string name="ui_time_network_clock">Zeit- + Netzwerkuhr</string>
   <string name="ui_show_media_info_in_chooser">Medieninformationen in der Auswahl anzeigen</string>
   <string name="ui_show_media_info_in_system">Medieninformationen in den Systemmenüs "Öffnen mit" / Teilen anzeigen, um Dateien aus anderen Apps zu analysieren.</string>

@@ -104,7 +104,14 @@ class AppearancePreferences(
   val showNetworkThumbnails = preferenceStore.getBoolean("show_network_thumbnails", false)
   val seekbarStyle = preferenceStore.getEnum("seekbar_style", SeekbarStyle.Thick)
   val portraitPlaybackControlsPosition =
-    preferenceStore.getEnum("portrait_playback_controls_position", PortraitPlaybackControlsPosition.Center)
+    preferenceStore.getEnum("portrait_playback_controls_position", PlaybackControlsPosition.Center)
+  val landscapePlaybackControlsPosition =
+    preferenceStore.getEnum("landscape_playback_controls_position", PlaybackControlsPosition.Center)
+  val portraitSeekbarPlacement =
+    preferenceStore.getEnum("portrait_seekbar_placement", SeekbarPlacement.AboveButtons)
+  val landscapeSeekbarPlacement =
+    preferenceStore.getEnum("landscape_seekbar_placement", SeekbarPlacement.BelowButtons)
+  val playerButtonsOpacity = preferenceStore.getFloat("player_buttons_opacity", 1f)
   val showMusicTab = preferenceStore.getBoolean("show_music_tab", true)
   val showProfileTab = preferenceStore.getBoolean("show_profile_tab", true)
   val profileName = preferenceStore.getString("profile_name", "")
@@ -248,11 +255,18 @@ class AppearancePreferences(
       .toList()
 }
 
-enum class PortraitPlaybackControlsPosition(
+enum class PlaybackControlsPosition(
   val displayName: String,
 ) {
   Center("Center of screen"),
-  BelowSeekbar("Between seekbar and controls"),
+  BelowSeekbar("Below seekbar"),
+}
+
+enum class SeekbarPlacement(
+  val displayName: String,
+) {
+  AboveButtons("Above layout buttons"),
+  BelowButtons("Below layout buttons"),
 }
 
 @Composable

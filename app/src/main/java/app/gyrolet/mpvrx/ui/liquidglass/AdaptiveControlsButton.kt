@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
 import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
+import app.gyrolet.mpvrx.ui.player.controls.components.LocalPlayerButtonsOpacity
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonBorderColor
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContainerColor
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
@@ -136,8 +138,11 @@ fun AdaptiveControlsContainer(
     if (enabled) resolvedTint else resolvedTint.copy(alpha = resolvedTint.alpha * PlayerButtonAlpha.DISABLED_CONTENT)
   val renderLiquidGlass = liquidGlassEnabled && useGlass && !hideBackground
   val buttonShape = if (horizontalPadding != null && horizontalPadding > 0.dp) Capsule() else CircleShape
+  val opacity = LocalPlayerButtonsOpacity.current
   val controlModifier =
-    modifier
+    // Outermost so caller-supplied backgrounds (e.g. the play button shadow) fade with the button.
+    (if (opacity < 1f) Modifier.graphicsLayer { alpha = opacity } else Modifier)
+      .then(modifier)
       // LiquidButton already clips its glass to the capsule. Clipping again here, over the larger
       // minimum touch target, would cut its drop shadow into a hard-edged halo.
       .tvFocusHighlight(buttonShape, isInteractive && enabled, clipToShape = !renderLiquidGlass)
