@@ -22,17 +22,34 @@ private val Thread.stableId: Long
   get() = if (Build.VERSION.SDK_INT >= 36) threadId() else id
 
 internal object CrashReportStore {
-  // Called by the app's native exception handler, before the crashing process exits.
+  private const val EXCEPTION_FILE = "exception.txt"
+  private const val METADATA_FILE = "metadata.json"
+  private const val MAX_PREVIEW_CHARS = 32 * 1024
+
+  /** A captured crash whose recovery screen has not been shown yet. */
+  data class PendingReport(
+    val reportId: String,
+    val exceptionClass: String,
+    val thread: String,
+    val preview: String,
+  )
+
+  /**
+   * Called by the app's exception handler, before the crashing process exits. [presented] says
+   * whether the recovery screen can open right away; a crash while the app is in the background
+   * cannot start it, so the report is shown the next time the app is opened instead.
+   */
   fun capture(
     context: Context,
     thread: Thread,
     throwable: Throwable,
+    presented: Boolean = true,
   ): String {
     val directory = reportDirectory(context)
-    val metadata = AtomicFile(File(directory, "metadata.json"))
+    val metadata = AtomicFile(File(directory, METADATA_FILE))
     metadata.delete()
     val reportId = UUID.randomUUID().toString()
-    writeAtomically(File(directory, "exception.txt")) { writer ->
+    writeAtomically(File(directory, EXCEPTION_FILE)) { writer ->
       writer.appendLine("mpvRx crash report")
       writer.appendLine("Report ID: $reportId")
       writer.appendLine("Captured: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ROOT).format(Date())}")
@@ -65,9 +82,90 @@ internal object CrashReportStore {
         .put("reportId", reportId)
         .put("processId", Process.myPid())
         .put("throwableClass", throwable.javaClass.name)
-        .put("completed", false),
+        .put("thread", thread.name)
+        .put("completed", false)
+        .put("presented", presented),
     )
     return reportId
+  }
+
+  /**
+   * Records process deaths no exception handler can see (native crashes, ANRs, the system killing
+   * the visible app), found from the platform's exit history on the next launch. A crash report
+   * that was never shown keeps its place; these exits are appended to it.
+   */
+  fun captureExits(
+    context: Context,
+    summary: String,
+    details: String,
+    processId: Int,
+  ): String {
+    val directory = reportDirectory(context)
+    val existing = pendingReport(context)
+    val previous =
+      existing?.let { runCatching { AtomicFile(File(directory, EXCEPTION_FILE)).readFully().toString(Charsets.UTF_8) }.getOrNull() }
+    val reportId = existing?.reportId ?: UUID.randomUUID().toString()
+    writeAtomically(File(directory, EXCEPTION_FILE)) { writer ->
+      if (previous != null) {
+        writer.append(previous)
+        writer.appendLine()
+      } else {
+        writer.appendLine("mpvRx crash report")
+        writer.appendLine("Report ID: $reportId")
+        writer.appendLine("Captured: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ROOT).format(Date())}")
+        writer.appendLine()
+        writer.appendLine(deviceInfo())
+        writer.appendLine()
+      }
+      writer.append(details)
+    }
+    if (existing == null) {
+      writeMetadata(
+        directory,
+        JSONObject()
+          .put("reportId", reportId)
+          .put("processId", processId)
+          .put("throwableClass", summary)
+          .put("thread", "")
+          .put("completed", false)
+          .put("presented", false),
+      )
+    }
+    return reportId
+  }
+
+  /** The newest crash whose recovery screen never opened, if any. */
+  fun pendingReport(context: Context): PendingReport? {
+    val directory = reportDirectory(context)
+    val metadata =
+      runCatching {
+        AtomicFile(File(directory, METADATA_FILE)).openRead().bufferedReader().use { JSONObject(it.readText()) }
+      }.getOrNull() ?: return null
+    if (metadata.optBoolean("completed") || metadata.optBoolean("presented", true)) return null
+    val reportId = metadata.optString("reportId").takeIf(String::isNotBlank) ?: return null
+    val preview =
+      runCatching {
+        AtomicFile(File(directory, EXCEPTION_FILE)).openRead().bufferedReader().use { reader ->
+          val buffer = CharArray(MAX_PREVIEW_CHARS)
+          val read = reader.read(buffer)
+          if (read > 0) String(buffer, 0, read) else ""
+        }
+      }.getOrDefault("")
+    return PendingReport(reportId, metadata.optString("throwableClass"), metadata.optString("thread"), preview)
+  }
+
+  /** Marks [reportId] as shown, so it is presented at most once. */
+  fun markPresented(
+    context: Context,
+    reportId: String,
+  ) {
+    val directory = reportDirectory(context)
+    val metadata =
+      runCatching {
+        AtomicFile(File(directory, METADATA_FILE)).openRead().bufferedReader().use { JSONObject(it.readText()) }
+      }.getOrNull() ?: return
+    if (metadata.optString("reportId") != reportId) return
+    writeMetadata(directory, metadata.put("presented", true))
   }
 
   private fun writeThrowable(

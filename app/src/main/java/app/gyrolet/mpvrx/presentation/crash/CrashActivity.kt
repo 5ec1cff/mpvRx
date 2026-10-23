@@ -113,7 +113,8 @@ class CrashActivity : AppCompatActivity() {
   }
 
   private fun closeApplication() {
-    finishAffinity()
+    // A crash from an earlier session is shown over the running app; closing returns to it.
+    if (intent.getBooleanExtra(EXTRA_PREVIOUS_SESSION, false)) finish() else finishAffinity()
   }
 
   private fun restartApplication() {
@@ -174,6 +175,9 @@ class CrashActivity : AppCompatActivity() {
   }
 
   companion object {
+    /** Set when the report belongs to a crash the user did not see when it happened. */
+    const val EXTRA_PREVIOUS_SESSION = "crash_previous_session"
+
     suspend fun shareLogs(
       deviceInfo: String,
       exceptionString: String? = null,
