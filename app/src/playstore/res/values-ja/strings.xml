@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">ストリームURLを貼り付けるか、最近のリンクから保存してコレクションを作成します。</string>
   <string name="pref_section_p2p_streaming">ストリーミング</string>
-  <string name="pref_network_summary">ストリーミング、HLS プロキシ</string>
 </resources>

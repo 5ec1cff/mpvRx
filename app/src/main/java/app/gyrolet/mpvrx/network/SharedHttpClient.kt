@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
  * The single OkHttp instance every call site derives from via [OkHttpClient.newBuilder].
  *
  * Deriving instead of constructing shares one [Dispatcher] thread pool and one [ConnectionPool],
- * so sockets and TLS sessions are reused across WebDAV, Jellyfin, HLS proxying, script HTTP and
+ * so sockets and TLS sessions are reused across WebDAV, Jellyfin, Xtream streaming, script HTTP and
  * update checks instead of each subsystem paying its own handshake and thread cost.
  */
 object SharedHttpClient {

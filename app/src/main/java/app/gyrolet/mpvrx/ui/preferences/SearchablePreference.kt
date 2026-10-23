@@ -1704,13 +1704,14 @@ object SearchablePreferences {
         anchorItemIndex = 7,
         SearchEntrySpec(R.string.pref_mpv_conf_overrides_title, listOf("mpv", "config", "override", "ownership")),
       )
-      addSearchEntries(
-        category = "Network",
-        screen = NetworkConfigurationPreferencesScreen,
-        anchorItemIndex = 1,
-        SearchEntrySpec(R.string.pref_enable_p2p_streaming_title, listOf("p2p", "torrent", "streaming", "enable")),
-        SearchEntrySpec(R.string.pref_enable_hls_proxy_title, listOf("hls", "proxy", "streaming", "network")),
-      )
+      if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+        addSearchEntries(
+          category = "Network",
+          screen = NetworkConfigurationPreferencesScreen,
+          anchorItemIndex = 1,
+          SearchEntrySpec(R.string.pref_enable_p2p_streaming_title, listOf("p2p", "torrent", "streaming", "enable")),
+        )
+      }
       addSearchEntries(
         category = "Advanced",
         screen = CustomButtonScreen,

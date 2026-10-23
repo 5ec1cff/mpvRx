@@ -1762,8 +1762,6 @@
     <string name="pref_autoplay_next_audio_title">تشغيل الصوت التالي تلقائياً</string>
     <string name="pref_autoplay_next_audio_summary">تشغيل المقطع الصوتي التالي تلقائياً عند انتهاء المقطع الحالي</string>
     <string name="pref_autoplay_next_audio_summary_disabled">البقاء في المقطع الصوتي الحالي عند انتهائه</string>
-    <string name="pref_enable_hls_proxy_title">تفعيل وكيل بث HLS</string>
-    <string name="pref_enable_hls_proxy_summary">معالجة تدفقات HLS التكيفية وتقسيم مسارات الصوت والفيديو</string>
     <string name="ui_recent_streams">روابط البث الأخيرة</string>
     <string name="ui_play_now">تشغيل</string>
     <string name="ui_no_saved_media_title">لا توجد روابط محفوظة</string>

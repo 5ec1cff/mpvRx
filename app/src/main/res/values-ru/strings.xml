@@ -1750,8 +1750,6 @@
     <string name="pref_autoplay_next_audio_title">Автовоспроизведение следующего аудио</string>
     <string name="pref_autoplay_next_audio_summary">Автоматически воспроизводить следующий аудиотрек по окончании текущего</string>
     <string name="pref_autoplay_next_audio_summary_disabled">Оставаться на текущем аудиотреке по его окончании</string>
-    <string name="pref_enable_hls_proxy_title">Включить прокси потоковой передачи HLS</string>
-    <string name="pref_enable_hls_proxy_summary">Нормализовать адаптивные манифесты HLS и обрабатывать раздельные аудио/видеопотоки</string>
     <string name="ui_recent_streams">Недавние ссылки на трансляции</string>
     <string name="ui_play_now">Воспроизвести</string>
     <string name="ui_no_saved_media_title">Нет сохранённых ссылок</string>

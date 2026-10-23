@@ -1736,8 +1736,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
     <string name="pref_autoplay_next_audio_title">Reproduzir próximo áudio automaticamente</string>
     <string name="pref_autoplay_next_audio_summary">Reproduzir automaticamente a próxima faixa de áudio quando a atual terminar</string>
     <string name="pref_autoplay_next_audio_summary_disabled">Permanecer na faixa de áudio atual quando terminar</string>
-    <string name="pref_enable_hls_proxy_title">Ativar proxy de streaming HLS</string>
-    <string name="pref_enable_hls_proxy_summary">Normalizar manifestos adaptativos HLS e processar fluxos de áudio/vídeo separados</string>
     <string name="ui_recent_streams">Links de transmissão recentes</string>
     <string name="ui_play_now">Reproduzir</string>
     <string name="ui_no_saved_media_title">Nenhum link salvo</string>

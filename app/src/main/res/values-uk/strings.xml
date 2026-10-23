@@ -199,8 +199,6 @@
   <string name="pref_enable_lua_scripts_summary">Завантажувати скрипти з каталогу конфігурації MPV</string>
   <string name="pref_enable_p2p_streaming_title">Увімкнути P2P-потокове відтворення торрентів</string>
   <string name="pref_enable_p2p_streaming_summary">Відтворювати медіа за magnet-посиланнями та torrent-файлами</string>
-  <string name="pref_enable_hls_proxy_title">Увімкнути проксі HLS-потоків</string>
-  <string name="pref_enable_hls_proxy_summary">Нормалізувати адаптивні маніфести HLS та обробляти розділені потоки аудіо/відео</string>
   <string name="pref_manage_lua_scripts_title">Керування скриптами</string>
   <string name="pref_manage_lua_scripts_summary">Керувати увімкненими скриптами</string>
   <string name="pref_clear_config_cache_title">Очистити кеш конфігурації</string>

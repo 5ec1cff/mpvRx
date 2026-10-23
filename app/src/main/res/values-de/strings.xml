@@ -1736,8 +1736,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
     <string name="pref_autoplay_next_audio_title">Nächstes Audio automatisch abspielen</string>
     <string name="pref_autoplay_next_audio_summary">Nächsten Audiotrack automatisch abspielen, wenn der aktuelle endet</string>
     <string name="pref_autoplay_next_audio_summary_disabled">Beim aktuellen Audiotrack bleiben, wenn er endet</string>
-    <string name="pref_enable_hls_proxy_title">HLS-Streaming-Proxy aktivieren</string>
-    <string name="pref_enable_hls_proxy_summary">Adaptive HLS-Manifeste normalisieren und getrennte Audio-/Videostreams verarbeiten</string>
     <string name="ui_recent_streams">Aktuelle Stream-Links</string>
     <string name="ui_play_now">Abspielen</string>
     <string name="ui_no_saved_media_title">Keine Links gespeichert</string>

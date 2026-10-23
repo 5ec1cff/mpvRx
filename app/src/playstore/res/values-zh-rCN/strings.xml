@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">粘贴流媒体 URL 或从最近链接保存以建立您的媒体库。</string>
   <string name="pref_section_p2p_streaming">流媒体播放</string>
-  <string name="pref_network_summary">流媒体播放、HLS 代理</string>
 </resources>

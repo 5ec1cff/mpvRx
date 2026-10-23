@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">Вставте URL потоку або збережіть із нещодавніх посилань для створення власної колекції.</string>
   <string name="pref_section_p2p_streaming">Потокове передавання</string>
-  <string name="pref_network_summary">Потокове передавання та HLS-проксі</string>
 </resources>

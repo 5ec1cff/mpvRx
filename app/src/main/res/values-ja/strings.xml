@@ -1729,8 +1729,6 @@
     <string name="pref_autoplay_next_audio_title">次の音声を自動再生</string>
     <string name="pref_autoplay_next_audio_summary">現在のトラック終了時に次の音声トラックを自動的に再生します</string>
     <string name="pref_autoplay_next_audio_summary_disabled">終了時に現在の音声トラックにとどまります</string>
-    <string name="pref_enable_hls_proxy_title">HLSストリーミングプロキシを有効化</string>
-    <string name="pref_enable_hls_proxy_summary">適応型HLSマニフェストを正規化し、分離された音声/動画ストリームを処理します</string>
     <string name="ui_recent_streams">最近のストリームリンク</string>
     <string name="ui_play_now">再生</string>
     <string name="ui_no_saved_media_title">保存されたリンクはありません</string>

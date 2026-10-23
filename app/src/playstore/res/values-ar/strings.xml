@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">الصق رابط بث أو احفظ من الروابط الأخيرة لبناء مجموعتك.</string>
   <string name="pref_section_p2p_streaming">البث</string>
-  <string name="pref_network_summary">البث ووكيل HLS</string>
 </resources>

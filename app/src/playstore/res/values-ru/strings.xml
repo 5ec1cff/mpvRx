@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">Вставьте URL потока или сохраните из недавних ссылок для создания коллекции.</string>
   <string name="pref_section_p2p_streaming">Стриминг</string>
-  <string name="pref_network_summary">Стриминг и HLS-прокси</string>
 </resources>

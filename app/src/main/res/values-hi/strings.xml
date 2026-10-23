@@ -1644,8 +1644,6 @@
     <string name="pref_autoplay_next_audio_title">अगला ऑडियो स्वतः चलाएं</string>
     <string name="pref_autoplay_next_audio_summary">वर्तमान ट्रैक समाप्त होने पर स्वचालित रूप से अगला ऑडियो ट्रैक चलाएं</string>
     <string name="pref_autoplay_next_audio_summary_disabled">वर्तमान ऑडियो ट्रैक समाप्त होने पर उसी पर बने रहें</string>
-    <string name="pref_enable_hls_proxy_title">HLS स्ट्रीमिंग प्रॉक्सी सक्षम करें</string>
-    <string name="pref_enable_hls_proxy_summary">अनुकूली HLS मैनिफ़ेस्ट को सामान्य करें और अलग-अलग ऑडियो/वीडियो स्ट्रीम संभालें</string>
     <string name="ui_recent_streams">हालिया स्ट्रीम लिंक</string>
     <string name="ui_play_now">चलाएं</string>
     <string name="ui_no_saved_media_title">कोई लिंक सहेजा नहीं गया</string>

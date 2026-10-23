@@ -16,7 +16,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Surface
-import app.gyrolet.mpvrx.data.network.proxy.HlsStreamingProxy
 import app.gyrolet.mpvrx.data.network.proxy.NetworkStreamingProxy
 import app.gyrolet.mpvrx.data.network.proxy.XtreamStreamingProxy
 import app.gyrolet.mpvrx.domain.network.NetworkPlaybackUri
@@ -207,7 +206,6 @@ object PlaybackSession : MPVLib.EventObserver {
 
   private data class NetworkStreamRegistration(
     val proxy: NetworkStreamingProxy? = null,
-    val hlsProxy: HlsStreamingProxy? = null,
     val xtreamProxy: XtreamStreamingProxy? = null,
     val streamId: String,
     val archiveDescriptor: android.os.ParcelFileDescriptor? = null,
@@ -2528,22 +2526,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       return ResolvedPlayable(uri, NetworkStreamRegistration(proxy = proxy, streamId = streamId))
     }
 
-    if (M3uPlaybackPolicy.shouldProxyHls(item.playableUri, item.mimeType)) {
-      val hlsProxy = HlsStreamingProxy.getInstance()
-      val streamId = "hls-${streamSequence.incrementAndGet()}"
-      val headers = resolveHttpHeaders(item.playableUri, item.headers)
-      val userAgent = PlaybackHttpHeaders.userAgent(headers)
-      val uri =
-        hlsProxy.registerStream(
-          streamId = streamId,
-          sourceUrl = item.playableUri,
-          headers = headers,
-          userAgent = userAgent,
-        )
-      Log.d(TAG, "Routing HLS stream through HlsStreamingProxy: $uri")
-      return ResolvedPlayable(uri, NetworkStreamRegistration(hlsProxy = hlsProxy, streamId = streamId))
-    }
-
     // fd:// descriptors are single-use: mpv consumes and closes them on their first load. Replays
     // of queue items or persisted sessions must re-open a fresh descriptor from the content URI.
     if (item.playableUri.startsWith("fd://") && item.originalUri.startsWith("content://")) {
@@ -2588,7 +2570,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     runCatching {
       registration.archiveDescriptor?.close()
       registration.proxy?.unregisterStream(registration.streamId)
-      registration.hlsProxy?.unregisterStream(registration.streamId)
       registration.xtreamProxy?.unregisterStream(registration.streamId)
     }.onFailure { error -> Log.w(TAG, "Failed to release network stream", error) }
   }

@@ -2,5 +2,4 @@
 <resources>
   <string name="ui_no_saved_media_description">Fügen Sie eine Stream-URL ein oder speichern Sie aus den letzten Links, um Ihre Mediensammlung aufzubauen.</string>
   <string name="pref_section_p2p_streaming">Streaming</string>
-  <string name="pref_network_summary">Streaming und HLS-Proxy</string>
 </resources>

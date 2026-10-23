@@ -48,7 +48,6 @@ object NetworkConfigurationPreferencesScreen : Screen {
     val backStack = LocalBackStack.current
     val preferences = koinInject<AdvancedPreferences>()
     val enableP2pStreaming by preferences.enableP2pStreaming.collectAsState()
-    val enableHlsProxy by preferences.enableHlsProxy.collectAsState()
 
     Scaffold(
       topBar = {
@@ -86,10 +85,9 @@ object NetworkConfigurationPreferencesScreen : Screen {
           // followed by P2P, matching the order in which users choose a stream source.
           if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) YtdlpManagerSections()
 
-          PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
-          ExpressivePreferenceGroup {
-            val p2pAvailable = !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD
-            if (p2pAvailable) {
+          if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+            PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
+            ExpressivePreferenceGroup {
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_enable_p2p_streaming_title),
                 value = enableP2pStreaming,
@@ -97,18 +95,9 @@ object NetworkConfigurationPreferencesScreen : Screen {
                 title = { Text(stringResource(R.string.pref_enable_p2p_streaming_title)) },
                 summary = { Text(stringResource(R.string.pref_enable_p2p_streaming_summary), color = MaterialTheme.colorScheme.outline) },
                 groupIndex = 0,
-                groupSize = 2,
+                groupSize = 1,
               )
             }
-            SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_enable_hls_proxy_title),
-                value = enableHlsProxy,
-                onValueChange = preferences.enableHlsProxy::set,
-                title = { Text(stringResource(R.string.pref_enable_hls_proxy_title)) },
-                summary = { Text(stringResource(R.string.pref_enable_hls_proxy_summary), color = MaterialTheme.colorScheme.outline) },
-                groupIndex = if (p2pAvailable) 1 else 0,
-                groupSize = if (p2pAvailable) 2 else 1,
-              )
           }
         }
       }

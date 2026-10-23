@@ -68,16 +68,12 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
   }
 
   private class StreamInfo(
-    val registrationId: String,
     val reference: XtreamPlaybackUri.Reference,
     val headers: Map<String, String>,
     val mimeType: String,
   ) {
     @Volatile
     var sourceUrl: String? = null
-
-    @Volatile
-    var hlsRegistrationId: String? = null
   }
 
   private class HeadResponse(
@@ -118,7 +114,7 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
     mimeType: String = "application/octet-stream",
   ): String {
     val token = generateToken()
-    val info = StreamInfo(streamId, reference, headers, sanitizeMimeType(mimeType))
+    val info = StreamInfo(reference, headers, sanitizeMimeType(mimeType))
     streamsByToken[token] = info
     tokenByRegistration.put(streamId, token)?.let { oldToken ->
       streamsByToken.remove(oldToken)?.let(::release)
@@ -147,7 +143,7 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
     val sourceUrl = resolveSource(info) ?: return upstreamFailure(headOnly)
 
     if (info.reference.extension.equals("m3u8", ignoreCase = true)) {
-      return redirectToHls(info, sourceUrl, headOnly)
+      return redirectToSource(sourceUrl, headOnly)
     }
 
     return proxyHttp(session, info, sourceUrl, headOnly)
@@ -164,26 +160,12 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
     return sourceUrl
   }
 
-  private fun redirectToHls(
-    info: StreamInfo,
+  /** Let mpv load the original manifest so relative segment URLs use the upstream base. */
+  private fun redirectToSource(
     sourceUrl: String,
     headOnly: Boolean,
-  ): Response {
-    val hlsProxy = HlsStreamingProxy.getInstance()
-    val registrationId = "${info.registrationId}-hls"
-    val target =
-      hlsProxy.registerStream(
-        streamId = registrationId,
-        sourceUrl = sourceUrl,
-        headers = info.headers,
-        userAgent = headerValue(info.headers, "User-Agent"),
-      )
-    synchronized(info) {
-      info.hlsRegistrationId?.takeIf { it != registrationId }?.let(hlsProxy::unregisterStream)
-      info.hlsRegistrationId = registrationId
-    }
-    return textResponse(Response.Status.REDIRECT, "", headOnly).apply { addHeader("Location", target) }
-  }
+  ): Response =
+    textResponse(Response.Status.REDIRECT, "", headOnly).apply { addHeader("Location", sourceUrl) }
 
   private fun proxyHttp(
     session: IHTTPSession,
@@ -204,7 +186,7 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
       if (isHlsResponse(upstream)) {
         val hlsSourceUrl = upstream.request.url.toString()
         upstream.close()
-        redirectToHls(info, hlsSourceUrl, headOnly)
+        redirectToSource(hlsSourceUrl, headOnly)
       } else {
         upstreamResponse(upstream, info.mimeType, headOnly)
       }
@@ -286,8 +268,6 @@ class XtreamStreamingProxy private constructor() : NanoHTTPD("127.0.0.1", 0), Ko
 
   private fun release(info: StreamInfo) {
     info.sourceUrl = null
-    info.hlsRegistrationId?.let(HlsStreamingProxy.getInstance()::unregisterStream)
-    info.hlsRegistrationId = null
   }
 
   private fun generateToken(): String {

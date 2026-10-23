@@ -330,13 +330,17 @@ object PreferencesScreen : Screen {
         title = stringResource(R.string.ui_network),
         tint = colorScheme.onSurfaceVariant,
         items =
-          listOf(
-            SettingsDestination(
-              title = stringResource(R.string.ui_network),
-              summary = stringResource(R.string.pref_network_summary),
-              icon = Icons.RoundedFilled.Language,
-              screen = NetworkConfigurationPreferencesScreen,
-            ),
+          listOfNotNull(
+            if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP || !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+              SettingsDestination(
+                title = stringResource(R.string.ui_network),
+                summary = stringResource(R.string.pref_network_summary),
+                icon = Icons.RoundedFilled.Language,
+                screen = NetworkConfigurationPreferencesScreen,
+              )
+            } else {
+              null
+            },
             SettingsDestination(
               title = stringResource(R.string.pref_media_servers_title),
               summary = stringResource(R.string.pref_media_servers_summary),

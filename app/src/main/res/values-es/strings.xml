@@ -1736,8 +1736,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
     <string name="pref_autoplay_next_audio_title">Reproducir siguiente audio automáticamente</string>
     <string name="pref_autoplay_next_audio_summary">Reproducir automáticamente la siguiente pista de audio al terminar la actual</string>
     <string name="pref_autoplay_next_audio_summary_disabled">Permanecer en la pista de audio actual cuando termine</string>
-    <string name="pref_enable_hls_proxy_title">Habilitar proxy de transmisión HLS</string>
-    <string name="pref_enable_hls_proxy_summary">Normalizar manifiestos HLS adaptativos y gestionar transmisiones de audio/vídeo separadas</string>
     <string name="ui_recent_streams">Enlaces de transmisión recientes</string>
     <string name="ui_play_now">Reproducir</string>
     <string name="ui_no_saved_media_title">No hay enlaces guardados</string>
