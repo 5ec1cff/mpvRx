@@ -1446,7 +1446,7 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="ui_landscape_playback_buttons">Botões de reprodução em paisagem</string>
   <string name="ui_portrait_seekbar_position">Posição da barra de progresso em retrato</string>
   <string name="ui_landscape_seekbar_position">Posição da barra de progresso em paisagem</string>
-  <string name="pref_player_buttons_opacity">Opacidade dos botões do player</string>
+  <string name="pref_player_buttons_opacity">Opacidade do fundo dos botões do player</string>
   <string name="ui_time_network_clock">Relógio de hora + rede</string>
   <string name="ui_show_media_info_in_chooser">Mostrar informações da mídia no seletor</string>
   <string name="ui_show_media_info_in_system">Mostrar Informações da mídia nos menus do sistema "Abrir com" / compartilhamento para analisar arquivos de outros apps.</string>

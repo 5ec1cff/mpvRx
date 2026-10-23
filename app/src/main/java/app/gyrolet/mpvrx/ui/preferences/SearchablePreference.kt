@@ -1523,7 +1523,7 @@ object SearchablePreferences {
         category = "Appearance",
         screen = PlayerControlsPreferencesScreen,
         anchorItemIndex = 7,
-        SearchEntrySpec(R.string.pref_player_buttons_opacity, listOf("opacity", "transparency", "transparent", "alpha", "buttons", "player")),
+        SearchEntrySpec(R.string.pref_player_buttons_opacity, listOf("opacity", "transparency", "transparent", "alpha", "background", "buttons", "player")),
         SearchEntrySpec(R.string.ui_time_network_clock, listOf("clock", "time", "network", "format", "12 hour", "24 hour")),
       )
 

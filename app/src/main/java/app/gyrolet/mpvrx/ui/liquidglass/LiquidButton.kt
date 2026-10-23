@@ -10,8 +10,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +31,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -68,6 +71,7 @@ fun LiquidButton(
   horizontalPadding: Dp = 16.dp,
   spacing: Dp = 8.dp,
   onLongClickLabel: String? = null,
+  backgroundAlpha: Float = 1f,
   content: @Composable RowScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
@@ -175,30 +179,62 @@ fun LiquidButton(
         )
     }
 
-  Row(
-    modifier =
-      modifier
-        .then(glassModifier)
-        .combinedClickable(
-          enabled = enabled,
-          interactionSource = interactionSource,
-          indication = if (animatePress) null else ripple(),
-          role = Role.Button,
-          onClick = onClick,
-          onLongClick = onLongClick,
-          onLongClickLabel = onLongClickLabel,
-        ).then(
-          if (animatePress) {
-            Modifier
-              .then(interactiveHighlight.modifier)
-              .then(interactiveHighlight.gestureModifier)
-          } else {
-            Modifier
-          },
-        ).height(height)
-        .padding(horizontal = horizontalPadding),
-    horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
-    verticalAlignment = Alignment.CenterVertically,
-    content = content,
-  )
+  val interactionModifier =
+    Modifier
+      .combinedClickable(
+        enabled = enabled,
+        interactionSource = interactionSource,
+        indication = if (animatePress) null else ripple(),
+        role = Role.Button,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
+      ).then(
+        if (animatePress) {
+          Modifier
+            .then(interactiveHighlight.modifier)
+            .then(interactiveHighlight.gestureModifier)
+        } else {
+          Modifier
+        },
+      )
+
+  if (backgroundAlpha >= 1f) {
+    Row(
+      modifier =
+        modifier
+          .then(glassModifier)
+          .then(interactionModifier)
+          .height(height)
+          .padding(horizontal = horizontalPadding),
+      horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+      verticalAlignment = Alignment.CenterVertically,
+      content = content,
+    )
+  } else {
+    // Only the glass fades: it gets its own layer behind the content, so icons stay fully opaque.
+    // ModulateAlpha avoids an offscreen buffer that would cut the glass shadow off at the bounds.
+    Box(
+      modifier = modifier.then(interactionModifier).height(height),
+      contentAlignment = Alignment.Center,
+      propagateMinConstraints = true,
+    ) {
+      Spacer(
+        Modifier
+          .matchParentSize()
+          .graphicsLayer {
+            alpha = backgroundAlpha.coerceIn(0f, 1f)
+            compositingStrategy = CompositingStrategy.ModulateAlpha
+          }.then(glassModifier),
+      )
+      Row(
+        modifier =
+          (if (animatePress) Modifier.graphicsLayer(pressTransform) else Modifier)
+            .padding(horizontal = horizontalPadding),
+        horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+      )
+    }
+  }
 }

@@ -68,8 +68,8 @@ enum class HdrToysProfile(
       ),
     shaderOptions =
       listOf(
-        "spatial_stable_iterations" to "0",
-        "temporal_stable_window" to "0",
+        "spatial_stable_level" to "0",
+        "temporal_stable_duration" to "0",
         "enable_metering" to "1",
       ),
   ),

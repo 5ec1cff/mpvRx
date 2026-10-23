@@ -1470,7 +1470,7 @@
   <string name="ui_landscape_playback_buttons">أزرار تشغيل الوضع الأفقي</string>
   <string name="ui_portrait_seekbar_position">موضع شريط التقديم في الوضع العمودي</string>
   <string name="ui_landscape_seekbar_position">موضع شريط التقديم في الوضع الأفقي</string>
-  <string name="pref_player_buttons_opacity">شفافية أزرار المشغل</string>
+  <string name="pref_player_buttons_opacity">شفافية خلفية أزرار المشغل</string>
   <string name="ui_time_network_clock">ساعة الوقت + الشبكة</string>
   <string name="ui_show_media_info_in_chooser">إظهار معلومات الوسائط في أداة الاختيار</string>
   <string name="ui_show_media_info_in_system">إظهار معلومات الوسائط في قوائم النظام "فتح باستخدام" / المشاركة لتحليل الملفات من التطبيقات الأخرى.</string>

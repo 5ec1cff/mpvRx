@@ -1358,7 +1358,7 @@
   <string name="ui_landscape_playback_buttons">लैंडस्केप प्लेबैक बटन</string>
   <string name="ui_portrait_seekbar_position">पोर्ट्रेट सीकबार की स्थिति</string>
   <string name="ui_landscape_seekbar_position">लैंडस्केप सीकबार की स्थिति</string>
-  <string name="pref_player_buttons_opacity">प्लेयर बटन की अपारदर्शिता</string>
+  <string name="pref_player_buttons_opacity">प्लेयर बटन पृष्ठभूमि की अपारदर्शिता</string>
   <string name="ui_time_network_clock">समय + नेटवर्क घड़ी</string>
   <string name="ui_show_media_info_in_chooser">चूज़र में मीडिया जानकारी दिखाएं</string>
   <string name="ui_show_media_info_in_system">दूसरे ऐप्स से फाइलें विश्लेषण करने के लिए सिस्टम \"Open with\" / शेयरिंग मेनू में मीडिया जानकारी दिखाएं।</string>

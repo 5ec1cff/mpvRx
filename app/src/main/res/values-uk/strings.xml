@@ -1640,7 +1640,7 @@
   <string name="ui_landscape_playback_buttons">Кнопки відтворення в альбомному режимі</string>
   <string name="ui_portrait_seekbar_position">Положення смуги перемотування в портретному режимі</string>
   <string name="ui_landscape_seekbar_position">Положення смуги перемотування в альбомному режимі</string>
-  <string name="pref_player_buttons_opacity">Непрозорість кнопок плеєра</string>
+  <string name="pref_player_buttons_opacity">Непрозорість фону кнопок плеєра</string>
   <string name="ui_time_network_clock">Годинник часу та мережі</string>
   <string name="ui_show_media_info_in_chooser">Показувати відомості про медіа в діалозі вибору</string>
   <string name="ui_show_media_info_in_system">Показувати пункт «Відомості про медіа» в системному меню «Відкрити за допомогою» та меню надсилання для аналізу файлів з інших додатків.</string>

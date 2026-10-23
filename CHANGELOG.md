@@ -15,6 +15,14 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Regular controls when glass is off for HDR:** With Liquid Glass on and "Liquid glass in HDR mode" off, turning on HDR output now switches every player control, slider, sheet and panel to its regular look, exactly as with Liquid Glass off, instead of glass buttons that could no longer show the video behind them. The same applies whenever HDR output is controlled by mpv.conf.
 
+- **Videos open the right way round again:** Rolled back the recent rotation rework that could open portrait phone recordings sideways or leave the picture misaligned. Rotation from the media library is read as before, the player uses the video's own rotation until the first frame appears instead of assuming none, and the mini player shows rotated videos at the right shape.
+
+- **Buttons beside play/pause in landscape:** With play/pause placed below the seekbar, the left and right button groups now sit on either side of it in the same row instead of taking a row of their own. If they do not fit, they scroll sideways and fade out at the edge that has more buttons.
+
+- **Button background opacity:** The player button opacity setting now fades only the button backgrounds, so icons and labels stay fully visible.
+
+- **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
+
 ### Jellyfin
 
 - **Expressive featured carousel:** The home banner is now a Material 3 multi-browse carousel. The next title peeks beside the current one, slides grow and shrink as they move, text fades in only once a slide is wide enough, and tapping a peeking slide brings it forward.

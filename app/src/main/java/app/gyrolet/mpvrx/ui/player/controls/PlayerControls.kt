@@ -115,6 +115,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -161,6 +162,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.LocalForceDarkPlayerButto
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalPlayerButtonsOpacity
 import app.gyrolet.mpvrx.ui.player.controls.components.MediaScopesOverlay
+import app.gyrolet.mpvrx.ui.player.controls.components.fadingHorizontalScroll
 import app.gyrolet.mpvrx.ui.player.controls.components.MultipleSpeedPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.ResumeAvailablePlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.ResumedFromPlayerUpdate
@@ -1002,17 +1004,38 @@ fun PlayerControls(
           val seekbarAboveButtons =
             (if (isPortrait) portraitSeekbarPlacement else landscapeSeekbarPlacement) ==
               SeekbarPlacement.AboveButtons
+          // Landscape puts the layout buttons beside play/pause instead of in a row of their own.
+          val buttonsBesidePlayback = playbackBelowSeekbar && !isPortrait
+          // Fixed lines, not links to play/pause: that row leaves the layout entirely while buffering,
+          // and anything anchored to it would collapse.
+          val sharedPlaybackRowCenter = createGuidelineFromBottom(spacing.medium + SharedPlaybackRowHeight / 2)
+          val sharedPlaybackRowCenterX = createGuidelineFromStart(0.5f)
+          val sharedRowSideInset =
+            if (buttonsBesidePlayback) {
+              val hasPlaylistControls =
+                playlistMode && (playlistItems.size > 1 || viewModel.getPlaylistTotalCount() > 1)
+              sharedPlaybackRowHalfWidth(hasPlaylistControls) + spacing.medium
+            } else {
+              0.dp
+            }
           // Bottom-to-top chain; the playback row always sits directly under the seekbar.
           val bottomStack =
             buildList {
-              if (seekbarAboveButtons) {
-                add(BottomSlot.Buttons)
-                if (playbackBelowSeekbar) add(BottomSlot.Playback)
-                add(BottomSlot.Seekbar)
-              } else {
-                if (playbackBelowSeekbar) add(BottomSlot.Playback)
-                add(BottomSlot.Seekbar)
-                add(BottomSlot.Buttons)
+              when {
+                buttonsBesidePlayback -> {
+                  add(BottomSlot.Playback)
+                  add(BottomSlot.Seekbar)
+                }
+                seekbarAboveButtons -> {
+                  add(BottomSlot.Buttons)
+                  if (playbackBelowSeekbar) add(BottomSlot.Playback)
+                  add(BottomSlot.Seekbar)
+                }
+                else -> {
+                  if (playbackBelowSeekbar) add(BottomSlot.Playback)
+                  add(BottomSlot.Seekbar)
+                  add(BottomSlot.Buttons)
+                }
               }
             }
 
@@ -1026,6 +1049,15 @@ fun PlayerControls(
           val bottomClusterTopRef = refOf(topBottomSlot)
 
           fun ConstrainScope.linkInBottomStack(slot: BottomSlot) {
+            if (buttonsBesidePlayback) {
+              if (slot == BottomSlot.Seekbar) {
+                bottom.linkTo(sharedPlaybackRowCenter, SharedPlaybackRowHeight / 2 + spacing.small)
+              } else {
+                top.linkTo(sharedPlaybackRowCenter)
+                bottom.linkTo(sharedPlaybackRowCenter)
+              }
+              return
+            }
             val index = bottomStack.indexOf(slot)
             if (index <= 0) {
               bottom.linkTo(parent.bottom, if (isPortrait) spacing.large else spacing.medium)
@@ -1812,6 +1844,8 @@ is PlayerUpdates.FrameInfo -> {
           ) {
             val interaction = remember { MutableInteractionSource() }
             val buttonShadow = PlaySkipButtonShadowBrush
+            // The shadow stands in for the button background, so it follows the background opacity.
+            val buttonShadowAlpha = LocalPlayerButtonsOpacity.current
 
             val hasPlaylistControls =
               playlistMode && (playlistItems.size > 1 || viewModel.getPlaylistTotalCount() > 1)
@@ -1834,7 +1868,7 @@ is PlayerUpdates.FrameInfo -> {
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasPrevious())
                       .then(
                         if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape)
+                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
                         } else {
                           Modifier
                         },
@@ -1876,7 +1910,7 @@ is PlayerUpdates.FrameInfo -> {
                       .tvFocusHighlight(CircleShape)
                       .then(
                         if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape)
+                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
                         } else {
                           Modifier
                         },
@@ -1909,7 +1943,7 @@ is PlayerUpdates.FrameInfo -> {
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasNext())
                       .then(
                         if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape)
+                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
                         } else {
                           Modifier
                         },
@@ -1952,7 +1986,7 @@ is PlayerUpdates.FrameInfo -> {
                     .tvFocusHighlight(CircleShape)
                     .then(
                       if (hideBackground && !enableLiquidGlass) {
-                        Modifier.background(brush = buttonShadow, shape = CircleShape)
+                        Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
                       } else {
                         Modifier
                       },
@@ -2227,6 +2261,10 @@ is PlayerUpdates.FrameInfo -> {
                     width = Dimension.fillToConstraints
                   } else {
                     end.linkTo(parent.end, spacing.large)
+                    if (buttonsBesidePlayback) {
+                      start.linkTo(sharedPlaybackRowCenterX, sharedRowSideInset)
+                      width = Dimension.fillToConstraints
+                    }
                   }
                 }.onGloballyPositioned { coordinates ->
                   bottomRightControlsTopPx = coordinates.positionInParent().y.roundToInt()
@@ -2252,6 +2290,7 @@ is PlayerUpdates.FrameInfo -> {
                 activity = playerActivity,
               )
             } else {
+              val rowScrollState = rememberScrollState()
               BottomRightPlayerControlsLandscape(
                 buttons = bottomRightButtons,
                 showVideoQualitySelector = showVideoQualitySelector && !landscapeHasConfiguredQualityButton,
@@ -2269,6 +2308,19 @@ is PlayerUpdates.FrameInfo -> {
                 onOpenPanel = onOpenPanel,
                 viewModel = viewModel,
                 activity = playerActivity,
+                // Beside play/pause the group keeps its buttons at the screen edge and scrolls toward the centre.
+                modifier =
+                  if (buttonsBesidePlayback) {
+                    Modifier.fillMaxWidth().fadingHorizontalScroll(rowScrollState, reverseScrolling = true)
+                  } else {
+                    Modifier
+                  },
+                horizontalArrangement =
+                  if (buttonsBesidePlayback) {
+                    Arrangement.spacedBy(spacing.extraSmall, Alignment.End)
+                  } else {
+                    Arrangement.spacedBy(spacing.extraSmall)
+                  },
               )
             }
           }
@@ -2293,9 +2345,14 @@ is PlayerUpdates.FrameInfo -> {
                   linkInBottomStack(BottomSlot.Buttons)
                   start.linkTo(parent.start, spacing.large)
                   width = Dimension.fillToConstraints
-                  end.linkTo(bottomRightControls.start, spacing.small)
+                  if (buttonsBesidePlayback) {
+                    end.linkTo(sharedPlaybackRowCenterX, sharedRowSideInset)
+                  } else {
+                    end.linkTo(bottomRightControls.start, spacing.small)
+                  }
                 },
           ) {
+            val rowScrollState = rememberScrollState()
             BottomLeftPlayerControlsLandscape(
               buttons = bottomLeftButtons,
               chapters = chapters,
@@ -2312,6 +2369,12 @@ is PlayerUpdates.FrameInfo -> {
               onOpenPanel = onOpenPanel,
               viewModel = viewModel,
               activity = playerActivity,
+              modifier =
+                if (buttonsBesidePlayback) {
+                  Modifier.fillMaxWidth().fadingHorizontalScroll(rowScrollState)
+                } else {
+                  Modifier
+                },
             )
           }
         }
@@ -2929,6 +2992,13 @@ private fun OutlinedText(
 }
 
 private enum class BottomSlot { Buttons, Playback, Seekbar }
+
+// Tallest control in the shared landscape playback row: the 64dp play/pause button.
+private val SharedPlaybackRowHeight = 64.dp
+
+// Half the play/pause row: 64dp play/pause, plus 56dp previous/next spaced 24dp in a playlist.
+private fun sharedPlaybackRowHalfWidth(hasPlaylistControls: Boolean): Dp =
+  if (hasPlaylistControls) (64.dp + (56.dp + 24.dp) * 2) / 2 else 64.dp / 2
 
 internal const val MIN_PLAYER_BUTTONS_OPACITY = 0.2f
 

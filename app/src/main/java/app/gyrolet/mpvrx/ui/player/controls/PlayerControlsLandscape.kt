@@ -325,11 +325,14 @@ fun BottomRightPlayerControlsLandscape(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
+  modifier: Modifier = Modifier,
+  horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
 ) {
   PlayerButtonTheme(hideBackground) {
     Row(
+      modifier = modifier,
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+      horizontalArrangement = horizontalArrangement,
     ) {
       buttons.forEach { button ->
         RenderPlayerButton(
@@ -381,9 +384,11 @@ fun BottomLeftPlayerControlsLandscape(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
+  modifier: Modifier = Modifier,
 ) {
   PlayerButtonTheme(hideBackground) {
     Row(
+      modifier = modifier,
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
     ) {

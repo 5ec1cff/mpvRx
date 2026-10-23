@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -138,11 +137,10 @@ fun AdaptiveControlsContainer(
     if (enabled) resolvedTint else resolvedTint.copy(alpha = resolvedTint.alpha * PlayerButtonAlpha.DISABLED_CONTENT)
   val renderLiquidGlass = liquidGlassEnabled && useGlass && !hideBackground
   val buttonShape = if (horizontalPadding != null && horizontalPadding > 0.dp) Capsule() else CircleShape
-  val opacity = LocalPlayerButtonsOpacity.current
+  // The opacity setting applies to the button background only; icons and labels stay fully opaque.
+  val backgroundOpacity = LocalPlayerButtonsOpacity.current.coerceIn(0f, 1f)
   val controlModifier =
-    // Outermost so caller-supplied backgrounds (e.g. the play button shadow) fade with the button.
-    (if (opacity < 1f) Modifier.graphicsLayer { alpha = opacity } else Modifier)
-      .then(modifier)
+    modifier
       // LiquidButton already clips its glass to the capsule. Clipping again here, over the larger
       // minimum touch target, would cut its drop shadow into a hard-edged halo.
       .tvFocusHighlight(buttonShape, isInteractive && enabled, clipToShape = !renderLiquidGlass)
@@ -167,13 +165,19 @@ fun AdaptiveControlsContainer(
         spacing = spacing,
         horizontalPadding = horizontalPadding ?: 8.dp,
         backdrop = backdrop,
+        backgroundAlpha = backgroundOpacity,
         content = content,
       )
     }
   } else {
     Surface(
       shape = CircleShape,
-      color = if (hideBackground || !useGlass) Color.Transparent else resolvedSurface,
+      color =
+        if (hideBackground || !useGlass) {
+          Color.Transparent
+        } else {
+          resolvedSurface.copy(alpha = resolvedSurface.alpha * backgroundOpacity)
+        },
       contentColor = contentTint,
       tonalElevation = 0.dp,
       shadowElevation = 0.dp,
@@ -181,7 +185,8 @@ fun AdaptiveControlsContainer(
         if (hideBackground || !useGlass) {
           null
         } else {
-          BorderStroke(1.dp, playerButtonBorderColor())
+          val borderColor = playerButtonBorderColor()
+          BorderStroke(1.dp, borderColor.copy(alpha = borderColor.alpha * backgroundOpacity))
         },
       modifier =
         controlModifier
