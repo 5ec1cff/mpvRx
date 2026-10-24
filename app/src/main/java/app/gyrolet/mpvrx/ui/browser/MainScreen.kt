@@ -27,6 +27,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +45,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -57,6 +60,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -783,6 +787,19 @@ object MainScreen : Screen {
                 .align(Alignment.BottomStart),
           ) {
             Box(Modifier.fillMaxWidth()) {
+              // The legacy bar is edge-to-edge, but its controls must stay above the system
+              // navigation area. Paint that bottom inset with the same surface as the bar
+              // so content cannot peek through below it (gesture and 3-button modes).
+              if (legacyNavigationBar) {
+                Spacer(
+                  modifier =
+                    Modifier
+                      .align(Alignment.BottomCenter)
+                      .fillMaxWidth()
+                      .windowInsetsBottomHeight(WindowInsets.safeDrawing)
+                      .background(NavigationBarDefaults.containerColor),
+                )
+              }
               Box(Modifier.matchParentSize()) {
                 // Haze only runs while its navigation surface is visible.
                 if (!liquidGlassEnabled && progressiveNavigationBlur && !legacyNavigationBar) {

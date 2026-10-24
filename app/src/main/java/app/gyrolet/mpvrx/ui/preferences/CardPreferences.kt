@@ -213,7 +213,11 @@ fun ExpressivePreferenceTile(
     shape = shape,
     color = containerColor,
   ) {
-    content()
+    // The tile already owns the row surface and the 16dp group inset. Nested
+    // ComposePreference rows (especially sliders) must not add another inset.
+    CompositionLocalProvider(LocalInsidePreferenceCard provides true) {
+      content()
+    }
   }
 }
 
