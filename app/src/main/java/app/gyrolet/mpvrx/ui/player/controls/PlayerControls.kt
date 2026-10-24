@@ -17,6 +17,11 @@ import app.gyrolet.mpvrx.domain.torrent.formatTorrentBytes
 import app.gyrolet.mpvrx.domain.torrent.formatTorrentSpeed
 
 import android.content.res.Configuration.ORIENTATION_PORTRAIT
+import android.database.ContentObserver
+import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import android.os.Debug
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
@@ -77,6 +82,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
@@ -728,6 +734,37 @@ fun PlayerControls(
     val tvSpeedPresets by playerPreferences.speedPresets.collectAsState()
     val tvSortedSpeedPresets = remember(tvSpeedPresets) { tvSpeedPresets.map { it.toFloat() }.sorted() }
     val tvChapterStarts = remember(chapters) { chapters.map { it.start } }
+    val tvVolumeVisible by viewModel.isVolumeSliderShown.collectAsState()
+    val tvVolumeTimestamp by viewModel.volumeSliderTimestamp.collectAsState()
+    val tvVolumePercent by viewModel.currentVolumePercent.collectAsState()
+    val tvMpvVolume by PlaybackSession.propInt["volume"].collectAsState()
+    // Some TV remotes send volume keys to Android instead of to this Activity.
+    // Observe actual system-stream changes as well as the handled key events.
+    DisposableEffect(playerActivity, viewModel) {
+      val audio = playerActivity.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+      var lastVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+      val volumeObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+          val observedVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+          if (observedVolume != lastVolume) {
+            lastVolume = observedVolume
+            if (viewModel.currentVolume.value != observedVolume) {
+              viewModel.syncCurrentVolumeState()
+              viewModel.displayVolumeSlider()
+            }
+          }
+        }
+      }
+      playerActivity.contentResolver.registerContentObserver(Settings.System.CONTENT_URI, true, volumeObserver)
+      onDispose { playerActivity.contentResolver.unregisterContentObserver(volumeObserver) }
+    }
+    // The regular volume slider is below the TV-only return, so it never appears on TV.
+    LaunchedEffect(tvVolumeTimestamp) {
+      if (tvVolumeVisible && tvVolumeTimestamp > 0L) {
+        delay(1_800L)
+        viewModel.isVolumeSliderShown.value = false
+      }
+    }
 
     CompositionLocalProvider(
       LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
@@ -829,6 +866,17 @@ fun PlayerControls(
             viewModel = viewModel,
             onDismissRequest = { onOpenPanel(Panels.None) },
           )
+          AnimatedVisibility(
+            visible = tvVolumeVisible,
+            enter = fadeIn(tween(150)),
+            exit = fadeOut(tween(220)),
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp),
+          ) {
+            TvVolumeIndicator(
+              levelPercent =
+                if (tvVolumePercent >= 100 && (tvMpvVolume ?: 100) > 100) tvMpvVolume!! else tvVolumePercent,
+            )
+          }
         }
       }
     }

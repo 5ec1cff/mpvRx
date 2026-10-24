@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -606,4 +607,43 @@ private fun formatTvTime(seconds: Float): String {
   val m = (total % 3600) / 60
   val s = total % 60
   return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%02d:%02d".format(m, s)
+}
+
+
+/** Transient TV volume HUD. It stays visible even after playback controls auto-hide. */
+@Composable
+internal fun TvVolumeIndicator(
+  levelPercent: Int,
+  modifier: Modifier = Modifier,
+) {
+  Row(
+    modifier =
+      modifier
+        .clip(RoundedCornerShape(20.dp))
+        .background(Color.Black.copy(alpha = 0.84f))
+        .padding(horizontal = 22.dp, vertical = 16.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(16.dp),
+  ) {
+    Icon(
+      imageVector = if (levelPercent == 0) Icons.RoundedFilled.VolumeOff else Icons.RoundedFilled.VolumeUp,
+      contentDescription = null,
+      tint = Color.White,
+      modifier = Modifier.size(28.dp),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(
+        text = "${levelPercent}%",
+        style = MaterialTheme.typography.titleLarge,
+        color = Color.White,
+        fontWeight = FontWeight.SemiBold,
+      )
+      LinearProgressIndicator(
+        progress = { (levelPercent / 100f).coerceIn(0f, 1f) },
+        modifier = Modifier.width(172.dp).height(6.dp),
+        color = MaterialTheme.colorScheme.primary,
+        trackColor = Color.White.copy(alpha = 0.25f),
+      )
+    }
+  }
 }

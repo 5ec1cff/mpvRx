@@ -519,13 +519,14 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
         isDualPaneLayout -> NavigationBarState.bottomBarClearance
         else -> NavigationBarState.bottomOverlayClearance
       }
-    // TV: the rail owns the start edge; the other edges keep the overscan-safe margins.
+    // TV: reserve the rail on the start edge, but avoid wasting a full overscan gutter on
+    // the trailing edge. TV lists reserve their own clearance for scaled focus highlights.
     val tvContentPadding =
       if (isTelevision) {
         PaddingValues(
           start = if (showTvRail) TvSideNavigationDefaults.CollapsedWidth else TvSafeArea.Horizontal,
           top = TvSafeArea.Vertical,
-          end = TvSafeArea.Horizontal,
+          end = 12.dp,
         )
       } else {
         PaddingValues(0.dp)
