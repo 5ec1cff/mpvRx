@@ -193,9 +193,12 @@ class FolderListViewModel(
     }
 
     viewModelScope.launch {
-      combine(_allVideoFolders, blacklistFlow, pendingFolderDeletionKeys) { folders, blacklist, pendingDeletions ->
+      combine(_allVideoFolders, blacklistFlow, foldersPreferences.whitelistEnabled.changes(),
+        foldersPreferences.whitelistedFolders.changes(), pendingFolderDeletionKeys
+      ) { folders, blacklist, whitelistEnabled, whitelist, pendingDeletions ->
         folders.filter { folder ->
           folderKey(folder) !in pendingDeletions &&
+            (!whitelistEnabled || whitelist.any { app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(folder.path, it) }) &&
             blacklist.none { blacklisted ->
               app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(folder.path, blacklisted)
             }
@@ -321,7 +324,9 @@ class FolderListViewModel(
       "_m${foldersPreferences.sharedScanMarkedFolders.get()}_d${foldersPreferences.sharedScanDotFolders.get()}" +
       "_markers${foldersPreferences.hiddenFolderMarkerNames.get().sorted().joinToString(",")}" +
       "_ignore${foldersPreferences.sharedIgnoredMarkers.get().sorted().joinToString(",")}" +
-      "_audio_${browserPreferences.includeAudioBrowser.get()}_${browserPreferences.minimumAudioDurationSeconds.get()}"
+      "_audio_${browserPreferences.includeAudioBrowser.get()}_${browserPreferences.minimumAudioDurationSeconds.get()}" +
+      "_videoMin${foldersPreferences.minimumVideoDurationSeconds.get()}_sizeMin${foldersPreferences.minimumMediaFileSizeBytes.get()}" +
+      "_allowed${foldersPreferences.whitelistEnabled.get()}_${foldersPreferences.whitelistedFolders.get().sorted().joinToString(",")}"
 
   private fun serializeFoldersToJson(folders: List<VideoFolder>): String {
     // Simple JSON serialization

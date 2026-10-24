@@ -78,6 +78,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.AnnotatedString
+import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
+import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
+import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
+import app.gyrolet.mpvrx.utils.storage.MediaStoreGenerationGuard
+import app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery
+import app.gyrolet.mpvrx.ui.browser.medialibrary.MediaLibraryCache
+import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
@@ -120,6 +128,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 
+private enum class ScanFilterDialog { VideoDuration, FileSize }
+
 @Serializable
 object FoldersPreferencesScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
@@ -129,6 +139,26 @@ object FoldersPreferencesScreen : Screen {
     val backstack = LocalBackStack.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val minVideoSeconds by preferences.minimumVideoDurationSeconds.collectAsState()
+    val minFileBytes by preferences.minimumMediaFileSizeBytes.collectAsState()
+    val whitelist by preferences.whitelistedFolders.collectAsState()
+    val whitelistEnabled by preferences.whitelistEnabled.collectAsState()
+    var rescanning by remember { mutableStateOf(false) }
+    var clearingCache by remember { mutableStateOf(false) }
+    var confirmClearCache by remember { mutableStateOf(false) }
+    var scanFilterDialog by remember { mutableStateOf<ScanFilterDialog?>(null) }
+    val whitelistFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+      if (uri != null) {
+        // A MediaStore-backed folder can be selected using SAF without changing scan roots.
+        val allowedPath = ScopedHiddenFolderScanner.localPathOf(uri) ?: uri.toString()
+        preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() + allowedPath)
+        preferences.whitelistEnabled.set(true)
+        app.gyrolet.mpvrx.ui.browser.medialibrary.MediaLibraryCache.clear(context)
+        MediaStoreGenerationGuard.invalidate(context)
+        app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+        MediaLibraryEvents.notifyChanged()
+      }
+    }
 
     val blacklistedVideoFolders by preferences.blacklistedFolders.collectAsState()
     val blacklistedAudioFolders by preferences.blacklistedAudioFolders.collectAsState()
@@ -143,6 +173,8 @@ object FoldersPreferencesScreen : Screen {
     val ignoredMarkers by preferences.sharedIgnoredMarkers.collectAsState()
     fun onScanPreferenceChanged() {
       app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+      MediaLibraryCache.clear(context)
+      MediaStoreGenerationGuard.invalidate(context)
       MediaLibraryEvents.notifyChanged()
     }
     var availableFolders by remember { mutableStateOf<List<VideoFolder>>(emptyList()) }
@@ -346,6 +378,45 @@ object FoldersPreferencesScreen : Screen {
             modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
           )
 
+          // Keep scan filters lightweight. Legacy ComposePreference ListPreference (especially
+          // Long-backed file size values) must not instantiate its dialog on initial navigation.
+          PreferenceSectionHeader(
+            position = PreferenceSectionPosition.Middle,
+            title = stringResource(R.string.pref_scan_filters),
+            topPadding = 24.dp,
+          )
+          PreferenceCard {
+            ExpressivePreferenceItem {
+              me.zhanghai.compose.preference.Preference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_filter_short_videos),
+                title = { Text(stringResource(R.string.pref_filter_short_videos)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_filter_short_videos_summary) + " · " +
+                      (if (minVideoSeconds == 0) stringResource(R.string.pref_filter_no_limit) else "${minVideoSeconds}s"),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                },
+                onClick = { scanFilterDialog = ScanFilterDialog.VideoDuration },
+              )
+            }
+            PreferenceDivider()
+            ExpressivePreferenceItem {
+              me.zhanghai.compose.preference.Preference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_filter_small_files),
+                title = { Text(stringResource(R.string.pref_filter_small_files)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_filter_small_files_summary) + " · " +
+                      scanSizeLabel(minFileBytes, stringResource(R.string.pref_filter_no_limit)),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                },
+                onClick = { scanFilterDialog = ScanFilterDialog.FileSize },
+              )
+            }
+          }
+
           if (BuildConfig.SCOPED_STORAGE_ONLY) {
             // Connected section under the scan settings: each folder the user granted is one row.
             PreferenceSectionHeader(
@@ -388,7 +459,7 @@ object FoldersPreferencesScreen : Screen {
           // ── Hidden Folders ────────────────────────────────────────────
           PreferenceSectionHeader(
             position = PreferenceSectionPosition.Last,
-            title = stringResource(R.string.pref_hidden_folders_section),
+            title = stringResource(R.string.pref_storage_exclusions),
             topPadding = 24.dp,
           )
 
@@ -400,6 +471,16 @@ object FoldersPreferencesScreen : Screen {
 
           Spacer(modifier = Modifier.height(8.dp))
             }
+          }
+        }
+
+        if (!selectionState.isInSelectionMode) {
+          item(key = "blacklist-label") {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_blacklist_title),
+              topPadding = 8.dp,
+            )
           }
         }
 
@@ -491,8 +572,163 @@ object FoldersPreferencesScreen : Screen {
             }
           }
         }
+        }
+        // Whitelist is a restriction, not an extra scan root. Never modify Library Scan Folders.
+        if (!selectionState.isInSelectionMode) {
+          item(key = "whitelist") {
+            Column {
+              PreferenceSectionHeader(
+                position = PreferenceSectionPosition.Middle,
+                title = stringResource(R.string.pref_whitelist_title),
+                topPadding = 24.dp,
+              )
+              PreferenceCard {
+                SwitchPreference(
+                  value = whitelistEnabled,
+                  onValueChange = {
+                    if (it && whitelist.isEmpty()) whitelistFolderPicker.launch(null)
+                    else { preferences.whitelistEnabled.set(it); onScanPreferenceChanged() }
+                  },
+                  title = { Text(stringResource(R.string.pref_whitelist_enable)) },
+                  summary = { Text(
+                    if (whitelist.isEmpty()) stringResource(R.string.pref_whitelist_empty)
+                    else stringResource(R.string.pref_whitelist_count, whitelist.size),
+                  ) },
+                )
+              }
+              whitelist.sorted().forEach { allowedPath ->
+                Card(
+                  modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                  colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                ) {
+                  Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                  ) {
+                    Column(Modifier.weight(1f)) {
+                      Text(leafStorageName(allowedPath), style = MaterialTheme.typography.titleMedium)
+                      Text(allowedPath, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = {
+                      preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() - allowedPath)
+                      onScanPreferenceChanged()
+                    }) {
+                      Icon(Icons.RoundedFilled.RemoveCircle, contentDescription = stringResource(R.string.delete))
+                    }
+                  }
+                }
+              }
+              Card(
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                  .clickable { whitelistFolderPicker.launch(null) },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+              ) {
+                Text(
+                  stringResource(R.string.pref_whitelist_add),
+                  modifier = Modifier.fillMaxWidth().padding(18.dp),
+                  color = MaterialTheme.colorScheme.onPrimaryContainer,
+                  style = MaterialTheme.typography.titleMedium,
+                )
+              }
+            }
+          }
+          item(key = "library-maintenance") {
+            Column {
+              PreferenceSectionHeader(
+                position = PreferenceSectionPosition.Last,
+                title = stringResource(R.string.pref_library_maintenance),
+                topPadding = 24.dp,
+              )
+              PreferenceCard {
+                ExpressivePreferenceItem {
+                  me.zhanghai.compose.preference.Preference(
+                    title = { Text(stringResource(R.string.pref_library_force_rescan)) },
+                    summary = { Text(stringResource(R.string.pref_library_force_rescan_summary)) },
+                    enabled = !rescanning && !clearingCache,
+                    onClick = {
+                      rescanning = true
+                      coroutineScope.launch {
+                        val result = runCatching {
+                          withContext(Dispatchers.IO) {
+                            MediaLibraryCache.clear(context)
+                            MediaStoreGenerationGuard.invalidate(context)
+                            app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+                            UnindexedVideoDiscovery.refresh(context, force = true)
+                            app.gyrolet.mpvrx.repository.MediaFileRepository.getAllVideoFolders(
+                              context, forceFileSystemCheck = true,
+                            )
+                            MediaLibraryEvents.notifyChanged()
+                          }
+                        }
+                        rescanning = false
+                        android.widget.Toast.makeText(
+                          context,
+                          if (result.isSuccess) R.string.pref_library_rescan_done else R.string.pref_library_action_failed,
+                          android.widget.Toast.LENGTH_SHORT,
+                        ).show()
+                      }
+                    },
+                  )
+                }
+                PreferenceDivider()
+                ExpressivePreferenceItem {
+                  me.zhanghai.compose.preference.Preference(
+                    title = { Text(stringResource(R.string.pref_library_clear_cache)) },
+                    summary = { Text(stringResource(R.string.pref_library_clear_cache_summary)) },
+                    enabled = !rescanning && !clearingCache,
+                    onClick = { confirmClearCache = true },
+                  )
+                }
+              }
+            }
+          }
+        }
       }
     }
+
+    if (scanFilterDialog != null) {
+      val isDurationFilter = scanFilterDialog == ScanFilterDialog.VideoDuration
+      AlertDialog(
+        onDismissRequest = { scanFilterDialog = null },
+        title = {
+          Text(stringResource(if (isDurationFilter) R.string.pref_filter_short_videos else R.string.pref_filter_small_files))
+        },
+        text = {
+          Column {
+            if (isDurationFilter) {
+              listOf(0, 5, 15, 30, 60).forEach { seconds ->
+                ScanFilterOptionRow(
+                  label = if (seconds == 0) stringResource(R.string.pref_filter_no_limit) else "${seconds}s",
+                  selected = minVideoSeconds == seconds,
+                  onClick = {
+                    preferences.minimumVideoDurationSeconds.set(seconds)
+                    scanFilterDialog = null
+                    onScanPreferenceChanged()
+                  },
+                )
+              }
+            } else {
+              listOf(0L, 500L * 1024L, 1024L * 1024L, 5L * 1024L * 1024L).forEach { bytes ->
+                ScanFilterOptionRow(
+                  label = scanSizeLabel(bytes, stringResource(R.string.pref_filter_no_limit)),
+                  selected = minFileBytes == bytes,
+                  onClick = {
+                    preferences.minimumMediaFileSizeBytes.set(bytes)
+                    scanFilterDialog = null
+                    onScanPreferenceChanged()
+                  },
+                )
+              }
+            }
+          }
+        },
+        confirmButton = {
+          TextButton(onClick = { scanFilterDialog = null }) {
+            Text(stringResource(R.string.generic_cancel))
+          }
+        },
+      )
     }
 
     if (showAddDialog) {
@@ -503,6 +739,47 @@ object FoldersPreferencesScreen : Screen {
         onDismiss = { showAddDialog = false },
         onAddFolders = { folderPaths, scope ->
           preferences.addBlacklistedFolders(folderPaths, scope)
+        },
+      )
+    }
+
+    if (confirmClearCache) {
+      // Avoid constructing the metadata DB and thumbnail caches whenever Folder Settings opens.
+      // They are only needed when the user explicitly chooses cache maintenance.
+      val metadataCache = koinInject<VideoMetadataCacheRepository>()
+      val thumbnailRepository = koinInject<ThumbnailRepository>()
+      AlertDialog(
+        onDismissRequest = { confirmClearCache = false },
+        title = { Text(stringResource(R.string.pref_library_clear_cache)) },
+        text = { Text(stringResource(R.string.pref_library_clear_cache_confirm)) },
+        confirmButton = {
+          TextButton(onClick = {
+            confirmClearCache = false
+            clearingCache = true
+            coroutineScope.launch {
+              val result = runCatching {
+                withContext(Dispatchers.IO) {
+                  metadataCache.clearAll()
+                  thumbnailRepository.clearThumbnailCache()
+                  MediaLibraryCache.clear(context)
+                  MediaStoreGenerationGuard.invalidate(context)
+                  app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+                  MediaLibraryEvents.notifyChanged()
+                }
+              }
+              clearingCache = false
+              android.widget.Toast.makeText(
+                context,
+                if (result.isSuccess) R.string.pref_library_cache_cleared else R.string.pref_library_action_failed,
+                android.widget.Toast.LENGTH_SHORT,
+              ).show()
+            }
+          }) { Text(stringResource(R.string.generic_confirm)) }
+        },
+        dismissButton = {
+          TextButton(onClick = { confirmClearCache = false }) {
+            Text(stringResource(R.string.generic_cancel))
+          }
         },
       )
     }
@@ -1356,3 +1633,26 @@ private suspend fun scanAllMediaFolders(context: Application): List<VideoFolder>
       .distinctBy { it.path.lowercase() }
       .sortedBy { it.name.lowercase() }
   }
+
+@Composable
+private fun ScanFilterOptionRow(
+  label: String,
+  selected: Boolean,
+  onClick: () -> Unit,
+) {
+  Row(
+    modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    RadioButton(selected = selected, onClick = onClick)
+    Text(text = label, modifier = Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+  }
+}
+
+private fun scanSizeLabel(value: Long, noLimit: String): String = when (value) {
+  0L -> noLimit
+  500L * 1024L -> "500 KB"
+  1024L * 1024L -> "1 MB"
+  5L * 1024L * 1024L -> "5 MB"
+  else -> "${value / 1024L} KB"
+}

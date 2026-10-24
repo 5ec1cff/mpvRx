@@ -84,7 +84,7 @@ object VideoScanUtils : KoinComponent {
 
       // Try MediaStore first (fast)
       val keyResolver = MediaPathKeyResolver()
-      scanVideosFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, keyResolver)
+      scanVideosFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, options, keyResolver)
       if (options.includeAudio) {
         scanAudioFromMediaStore(context, normalizedFolderPath, videosMap, noMediaPathFilter, options, keyResolver)
       }
@@ -132,7 +132,8 @@ object VideoScanUtils : KoinComponent {
         scanVideosFromFileSystem(context, folder, videosMap, options, noMediaPathFilter, keyResolver)
       }
 
-      videosMap.values.sortedBy { it.displayName.lowercase(Locale.getDefault()) }
+      videosMap.values.filter { options.includesPath(it.bucketId) && options.includesMedia(it.size, it.duration, it.isAudio) }
+        .sortedBy { it.displayName.lowercase(Locale.getDefault()) }
     }
 
   /**
@@ -143,6 +144,7 @@ object VideoScanUtils : KoinComponent {
     folderPath: String,
     videosMap: MutableMap<String, Video>,
     noMediaPathFilter: NoMediaPathFilter,
+    options: MediaScanOptions,
     keyResolver: MediaPathKeyResolver,
   ) {
     val baseProjection =
@@ -216,6 +218,7 @@ object VideoScanUtils : KoinComponent {
             val title = file.nameWithoutExtension
             val size = cursor.getLong(sizeColumn)
             val duration = cursor.getLong(durationColumn)
+            if (!options.includesPath(normalizedFolderPath) || !options.includesMedia(size, duration)) continue
             val dateModified = cursor.getLong(dateModifiedColumn)
             val dateAdded = cursor.getLong(dateAddedColumn)
             val mimeType = cursor.getString(mimeTypeColumn) ?: "video/*"
@@ -408,11 +411,12 @@ object VideoScanUtils : KoinComponent {
           val title = file.nameWithoutExtension
           val stat = fileStats.getValue(file)
           val fileSize = stat.size
+          if (!options.includesPath(folder.absolutePath) || (fileSize > 0L && fileSize < options.minimumMediaFileSizeBytes)) continue
           val dateModified = stat.lastModifiedMs / 1000
           val cachedMetadata = metadataMap[path]
           val isAudio = FileTypeUtils.isAudioFile(file)
           val duration = cachedMetadata?.durationMs ?: 0L
-          if (isAudio && !options.includesAudioDuration(duration)) continue
+          if (!options.includesMedia(cachedMetadata?.sizeBytes?.takeIf { it > 0 } ?: fileSize, duration, isAudio)) continue
           val resolvedSize = cachedMetadata?.sizeBytes?.takeIf { it > 0 } ?: fileSize
           val mimeType = FileTypeUtils.getMimeTypeFromExtension(file.extension.lowercase())
 

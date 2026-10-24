@@ -33,6 +33,11 @@ class FoldersPreferences(
   val blacklistedFolders = preferenceStore.getStringSet("blacklisted_folders", emptySet())
   // Set of folder paths that should be hidden from the audio/music library
   val blacklistedAudioFolders = preferenceStore.getStringSet("blacklisted_audio_folders", emptySet())
+  /** Scan thresholds default to no limit to preserve existing libraries. */
+  val minimumVideoDurationSeconds = preferenceStore.getInt("scan_minimum_video_duration_seconds", 0)
+  val minimumMediaFileSizeBytes = preferenceStore.getLong("scan_minimum_media_file_size_bytes", 0L)
+  val whitelistedFolders = preferenceStore.getStringSet("whitelisted_folders", emptySet())
+  val whitelistEnabled = preferenceStore.getBoolean("whitelist_enabled", false)
   val pinnedFolders = preferenceStore.getStringSet("pinned_folders", emptySet())
   // Video file paths pinned to the top of their folder listing
   val pinnedVideos = preferenceStore.getStringSet("pinned_videos", emptySet())

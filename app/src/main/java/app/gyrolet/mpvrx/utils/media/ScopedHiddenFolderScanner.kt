@@ -10,6 +10,7 @@ import android.provider.DocumentsContract
 import android.util.Log
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
+import app.gyrolet.mpvrx.utils.storage.MediaScanOptions
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
@@ -138,6 +139,7 @@ object ScopedHiddenFolderScanner {
     includeDotFolders: Boolean = true,
     markerNames: Set<String> = setOf(".nomedia"),
     ignoredMarkerNames: Set<String> = emptySet(),
+    scanOptions: MediaScanOptions = MediaScanOptions(),
   ): List<VideoFolder> = withContext(Dispatchers.IO) {
     val normalizedMarkers = markerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
     val ignoredMarkers = ignoredMarkerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
@@ -151,7 +153,11 @@ object ScopedHiddenFolderScanner {
         }
         discovered[visit.bucketId] = IndexedDirectory(visit, treeUri)
         val items = mediaItems(visit.bucketId, visit.displayName, children, includeAudio, audioOnly)
-          .filter { includeDotFolders || !it.displayName.startsWith(".") }
+          .filter {
+            (includeDotFolders || !it.displayName.startsWith(".")) &&
+              scanOptions.includesPath(it.bucketId) &&
+              scanOptions.includesMedia(it.size, it.duration, it.isAudio)
+          }
         // Keep the directory in the traversal index, but only show folders with playable items.
         // Empty parents must still be descended into so their non-empty children remain visible.
         if (items.isNotEmpty()) {
@@ -271,9 +277,11 @@ object ScopedHiddenFolderScanner {
     bucketId: String,
     includeAudio: Boolean,
     grantedTreeUris: Set<String>,
+    scanOptions: MediaScanOptions = MediaScanOptions(),
   ): List<Video> = withContext(Dispatchers.IO) {
     val directory = resolveDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
     mediaItems(bucketId, directory.displayName, listChildren(context, directory.uri), includeAudio, audioOnly = false)
+      .filter { scanOptions.includesPath(it.bucketId) && scanOptions.includesMedia(it.size, it.duration, it.isAudio) }
   }
 
   /** Playable items of one listing. Names and MIME types decide the kind; nothing is opened or probed. */

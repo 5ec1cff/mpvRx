@@ -20,6 +20,10 @@ data class MediaScanOptions(
   val ignoredHiddenMarkerNames: Set<String> = emptySet(),
   val includeAudio: Boolean = false,
   val minimumAudioDurationSeconds: Int = 0,
+  val minimumVideoDurationSeconds: Int = 0,
+  val minimumMediaFileSizeBytes: Long = 0L,
+  val whitelistEnabled: Boolean = false,
+  val whitelistedPaths: Set<String> = emptySet(),
 ) {
   val normalizedHiddenFolderMarkerNames: Set<String> =
     hiddenFolderMarkerNames.mapNotNull(::normalizeHiddenMarkerName).toSet()
@@ -40,7 +44,7 @@ data class MediaScanOptions(
       val markers = normalizedHiddenFolderMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
       val active = activeHiddenMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
       return "hiddenScanV5=$includeNoMediaFolders|dot=$includeDotFolders|markers=$markers|active=$active|" +
-        "includeAudio=$includeAudio|minAudio=$minimumAudioDurationSeconds"
+        "includeAudio=$includeAudio|minAudio=$minimumAudioDurationSeconds|minVideo=$minimumVideoDurationSeconds|minSize=$minimumMediaFileSizeBytes|whitelist=$whitelistEnabled|allowed=${whitelistedPaths.sorted().joinToString(",")}"
     }
 
   val rootDiscoveryCacheKey: String
@@ -52,6 +56,18 @@ data class MediaScanOptions(
 
   // One filter per options instance, so a single scan reuses its ancestor-marker cache.
   val pathFilter: NoMediaPathFilter by lazy { NoMediaPathFilter(this) }
+
+  /** Missing duration and unknown size remain visible rather than falsely excluding media. */
+  fun includesVideoDuration(durationMs: Long): Boolean =
+    minimumVideoDurationSeconds <= 0 || durationMs <= 0L ||
+      durationMs >= minimumVideoDurationSeconds * 1000L
+
+  fun includesMedia(sizeBytes: Long, durationMs: Long, isAudio: Boolean = false): Boolean =
+    (minimumMediaFileSizeBytes <= 0L || sizeBytes <= 0L || sizeBytes >= minimumMediaFileSizeBytes) &&
+      (if (isAudio) includesAudioDuration(durationMs) else includesVideoDuration(durationMs))
+
+  fun includesPath(path: String): Boolean =
+    !whitelistEnabled || whitelistedPaths.any { isMediaPathInFolder(path, it) }
 
   fun includesAudioDuration(durationMs: Long): Boolean =
     durationMs <= 0L || minimumAudioDurationSeconds == 0 ||

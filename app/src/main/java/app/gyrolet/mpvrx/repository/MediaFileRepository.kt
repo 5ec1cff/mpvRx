@@ -138,6 +138,7 @@ object MediaFileRepository : KoinComponent {
         includeDotFolders = foldersPreferences.scanDotFolders(scope),
         markerNames = foldersPreferences.hiddenFolderMarkerNames.get(),
         ignoredMarkerNames = foldersPreferences.ignoredMarkers(scope),
+        scanOptions = currentScanOptions(includeAudioOverride, scope),
       )
     } else {
       emptyList()
@@ -261,6 +262,8 @@ object MediaFileRepository : KoinComponent {
               if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookDirectoryPath(parentPath)) continue
               val durationMs = cursor.getLong(durationColumn)
               if (minimumAudioDurationSeconds > 0 && durationMs > 0L && durationMs / 1000 < minimumAudioDurationSeconds) continue
+              if (!currentScanOptions(includeAudioOverride = true).includesPath(parentPath) ||
+                !currentScanOptions(includeAudioOverride = true).includesMedia(cursor.getLong(sizeColumn), durationMs, isAudio = true)) continue
               val key = normalizeAudioFolderKey(parentPath)
               val aggregate = aggregates.getOrPut(key) { AudioFolderAggregate(path = parentPath) }
               aggregate.size += cursor.getLong(sizeColumn)
@@ -290,6 +293,7 @@ object MediaFileRepository : KoinComponent {
           foldersPreferences.scopedHiddenFolderUris.get(),
           includeAudio = true,
           audioOnly = true,
+          scanOptions = currentScanOptions(includeAudioOverride = true),
         )
       } else {
         emptyList()
@@ -438,6 +442,7 @@ object MediaFileRepository : KoinComponent {
             bucketId,
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
             foldersPreferences.scopedHiddenFolderUris.get(),
+            scanOptions = currentScanOptions(includeAudioOverride, scope),
           ).filter { video ->
             // SAF exposes files invisible to MediaStore, including dot-prefixed media.
             // Apply the same per-view filename policy after reading the selected grant.

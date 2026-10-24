@@ -442,7 +442,7 @@ object TreeViewScanner {
         )
       val currentTimeMs = System.currentTimeMillis()
 
-      scanMediaStoreRecursive(context, allFolders, noMediaPathFilter, newBadgeConfig, currentTimeMs)
+      scanMediaStoreRecursive(context, allFolders, noMediaPathFilter, newBadgeConfig, currentTimeMs, options)
       if (options.includeAudio) {
         scanAudioMediaStoreRecursive(
           context,
@@ -475,6 +475,7 @@ object TreeViewScanner {
     noMediaPathFilter: NoMediaPathFilter,
     newBadgeConfig: NewBadgeConfig,
     currentTimeMs: Long,
+    options: MediaScanOptions,
   ) {
     val projection =
       arrayOf(
@@ -510,8 +511,9 @@ object TreeViewScanner {
 
             if (!FileTypeUtils.isVideoFile(file)) continue
             val folder = folderResolver.resolve(file.parent) ?: continue
-            if (folder.excluded) continue
+            if (folder.excluded || !options.includesPath(folder.path)) continue
             if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
+            if (!options.includesMedia(cursor.getLong(sizeColumn), cursor.getLong(durationColumn))) continue
 
             val folderPath = folder.path
             val aggregate = videosByFolder.getOrPut(folder.key) { FolderAggregate(path = folderPath) }
@@ -618,7 +620,7 @@ object TreeViewScanner {
             if (folder.excluded) continue
             if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY && !existenceCache.exists(file)) continue
             val duration = cursor.getLong(durationColumn)
-            if (!options.includesAudioDuration(duration)) continue
+            if (!options.includesPath(folder.path) || !options.includesMedia(cursor.getLong(sizeColumn), duration, isAudio = true)) continue
             audioByFolder.getOrPut(folder.key) { FolderAggregate(folder.path) }.videos +=
               VideoInfo(
                 displayName = cursor.getString(nameColumn) ?: file.name,
@@ -754,9 +756,12 @@ object TreeViewScanner {
                 continue
               }
               if (FileTypeUtils.isSupportedMediaFile(file, options)) {
+                if (!options.includesPath(directory.absolutePath) ||
+                  (stat.size > 0L && stat.size < options.minimumMediaFileSizeBytes)) continue
                 val isAudio = FileTypeUtils.isAudioFile(file)
-                val duration = if (isAudio) FileTypeUtils.getDurationMs(file) else 0L
-                if (!isAudio || options.includesAudioDuration(duration)) {
+                val duration = if (isAudio || options.minimumVideoDurationSeconds > 0)
+                  FileTypeUtils.getDurationMs(file) else 0L
+                if (options.includesMedia(stat.size, duration, isAudio)) {
                   mediaFiles.add(file)
                   mediaStats[file] = stat
                   if (isAudio) audioDurations[file] = duration

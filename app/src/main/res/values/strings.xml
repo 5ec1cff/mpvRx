@@ -2881,4 +2881,26 @@
   <string name="pref_persistent_status_micro_battery">Show micro battery icon</string>
   <string name="pref_persistent_status_est_prefix">Est.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+  <string name="pref_scan_filters">Scan filters</string>
+  <string name="pref_filter_short_videos">Filter short videos</string>
+  <string name="pref_filter_short_videos_summary">Ignore videos shorter than the selected duration during scanning</string>
+  <string name="pref_filter_small_files">Filter small files</string>
+  <string name="pref_filter_small_files_summary">Ignore files smaller than the selected size during scanning</string>
+  <string name="pref_filter_no_limit">No limit</string>
+  <string name="pref_storage_exclusions">Storage &amp; Exclusions</string>
+  <string name="pref_blacklist_title">Blacklist</string>
+  <string name="pref_whitelist_title">Whitelist</string>
+  <string name="pref_whitelist_enable">Enable whitelist</string>
+  <string name="pref_whitelist_empty">No whitelisted folders</string>
+  <string name="pref_whitelist_count">%1$d whitelisted folders</string>
+  <string name="pref_whitelist_add">Add folder to whitelist</string>
+  <string name="pref_library_maintenance">Library Maintenance</string>
+  <string name="pref_library_force_rescan">Force Rescan Library</string>
+  <string name="pref_library_force_rescan_summary">Re-index internal storage and permitted media folders</string>
+  <string name="pref_library_rescan_done">Library rescan completed</string>
+  <string name="pref_library_action_failed">Library operation failed</string>
+  <string name="pref_library_clear_cache">Clear Metadata Cache</string>
+  <string name="pref_library_clear_cache_summary">Delete cached video metadata, dimensions and thumbnail cache</string>
+  <string name="pref_library_clear_cache_confirm">Clear cached metadata and thumbnails? They will be regenerated when needed.</string>
+  <string name="pref_library_cache_cleared">Metadata and thumbnail cache cleared</string>
 </resources>
