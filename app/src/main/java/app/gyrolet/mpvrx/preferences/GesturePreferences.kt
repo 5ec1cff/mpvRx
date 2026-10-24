@@ -40,6 +40,8 @@ class GesturePreferences(
     preferenceStore.getBoolean("swipe_subtitles_to_seek_dialog", true)
   val swipeSubtitlesInvertDirection =
     preferenceStore.getBoolean("swipe_subtitles_invert_direction", false)
+  val twoFingerSpeedSwipe =
+    preferenceStore.getBoolean("two_finger_speed_swipe", true)
 
   init {
     val legacyMediaPreviousGesture =

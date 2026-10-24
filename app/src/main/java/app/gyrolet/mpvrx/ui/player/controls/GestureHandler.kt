@@ -52,11 +52,14 @@ import app.gyrolet.mpvrx.ui.player.findSubtitleGestureTarget
 import app.gyrolet.mpvrx.ui.player.draggedSubtitlePosition
 import app.gyrolet.mpvrx.ui.player.getTrackSelectionId
 import app.gyrolet.mpvrx.ui.player.isSecondarySubtitleActive
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.pow
@@ -78,6 +81,24 @@ private enum class GestureOwner {
 
 private fun nearestHoldSpeedPreset(speed: Float): Float =
   holdSpeedPresets.minByOrNull { abs(it - speed) } ?: holdSpeedPresets.first()
+
+private const val SWIPE_SPEED_STEP = 0.25f
+private const val SWIPE_SPEED_MIN = 0.5f
+private const val SWIPE_SPEED_MAX = 4f
+private const val SWIPE_SPEED_FEEDBACK_MS = 1_000L
+
+/** Next 0.25x step; 1.1x lands on 1.25x or 1x, and a speed outside 0.5x-4x never moves further out. */
+private fun swipeSpeedStep(
+  speed: Float,
+  up: Boolean,
+): Float {
+  val grid = speed / SWIPE_SPEED_STEP
+  return if (up) {
+    ((floor(grid + 0.001f) + 1f) * SWIPE_SPEED_STEP).coerceAtMost(maxOf(SWIPE_SPEED_MAX, speed))
+  } else {
+    ((ceil(grid - 0.001f) - 1f) * SWIPE_SPEED_STEP).coerceAtLeast(minOf(SWIPE_SPEED_MIN, speed))
+  }
+}
 
 @Suppress("CyclomaticComplexMethod", "MultipleEmitters")
 @Composable
@@ -143,6 +164,8 @@ fun GestureHandler(
   val secondarySubPinchZoomEnabled by subtitlesPreferences.secondarySubPinchZoom.collectAsState()
   val swipeSubtitlesToSeekDialog by gesturePreferences.swipeSubtitlesToSeekDialog.collectAsState()
   val isSwipeSubtitlesInverted by gesturePreferences.swipeSubtitlesInvertDirection.collectAsState()
+  val twoFingerSpeedSwipe by gesturePreferences.twoFingerSpeedSwipe.collectAsState()
+  var speedSwipeFeedbackJob by remember { mutableStateOf<Job?>(null) }
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
   var lastSeekRegion by remember { mutableStateOf<String?>(null) }
   var lastSeekTime by remember { mutableStateOf<Long?>(null) }
@@ -1053,8 +1076,9 @@ fun GestureHandler(
           centerVerticalSubtitlePositionGesture,
           anyPanelShown,
           allowGesturesInPanels,
+          twoFingerSpeedSwipe,
         ) {
-          if ((!pinchToZoomGesture && !pinchToZoomSubtitles && !panAndZoomEnabled) ||
+          if ((!pinchToZoomGesture && !pinchToZoomSubtitles && !panAndZoomEnabled && !twoFingerSpeedSwipe) ||
             (anyPanelShown && !allowGesturesInPanels) || areControlsLocked
           ) {
             return@pointerInput
@@ -1066,6 +1090,12 @@ fun GestureHandler(
             var prevDist = 0f
             var prevMidX = 0f
             var prevMidY = 0f
+            var startDist = 0f
+            var startMidX = 0f
+            var startMidY = 0f
+            var speedSwipeRuledOut = true
+            var speedSwipeMode = false
+            var swipedSpeed = 1f
 
             var selectedSubtitle: SubtitleGestureRegion? = null
             var isSubZoomMode = false
@@ -1148,7 +1178,38 @@ fun GestureHandler(
                     } else {
                       isSubZoomMode = false
                     }
+                    startDist = dist
+                    startMidX = midX
+                    startMidY = midY
+                    // Pinch and pan wait until this cannot be a speed swipe; zoomed-in video keeps two-finger panning.
+                    speedSwipeRuledOut =
+                      !twoFingerSpeedSwipe || isSubZoomMode || (panAndZoomEnabled && viewModel.videoZoom.value > 0f)
                   } else {
+                    if (!speedSwipeRuledOut && !speedSwipeMode) {
+                      val travelX = midX - startMidX
+                      val travelY = midY - startMidY
+                      val spread = abs(dist - startDist)
+                      if ((spread > 12.dp.toPx() && spread >= abs(travelY) / 2f) ||
+                        (abs(travelX) > 24.dp.toPx() && abs(travelX) > abs(travelY))
+                      ) {
+                        speedSwipeRuledOut = true
+                      } else if (abs(travelY) > 40.dp.toPx() && spread < abs(travelY) / 2f) {
+                        speedSwipeMode = true
+                        speedSwipeFeedbackJob?.cancel()
+                        val currentSpeed = PlaybackSession.getPropertyFloat("speed") ?: 1f
+                        swipedSpeed = swipeSpeedStep(currentSpeed, up = travelY < 0f)
+                        if (abs(swipedSpeed - currentSpeed) > 0.001f) {
+                          PlaybackSession.setPropertyFloat("speed", swipedSpeed)
+                          actionHaptics.tick()
+                        }
+                        viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(swipedSpeed) }
+                      }
+                    }
+                    if (!speedSwipeRuledOut) {
+                      pressed.forEach { it.consume() }
+                      continue
+                    }
+
                     if (isSubZoomMode) {
                       // Pinch is zoom-only: vertical midpoint drift must not move the
                       // subtitle position. Position changes only via press-and-hold
@@ -1252,7 +1313,17 @@ fun GestureHandler(
               if (linkedScaleChanged && stillSameTrack) subtitlesPreferences.secondarySubScale.set(lastCalculatedSecondarySubScale)
               if (pinchHighlightShown) viewModel.setSubtitleGestureHighlight(false)
               releaseGesture(GestureOwner.PINCH)
-              viewModel.playerUpdate.update { PlayerUpdates.None }
+              if (speedSwipeMode) {
+                val shownSpeed = PlayerUpdates.DynamicSpeedControl(swipedSpeed)
+                speedSwipeFeedbackJob?.cancel()
+                speedSwipeFeedbackJob =
+                  coroutineScope.launch {
+                    delay(SWIPE_SPEED_FEEDBACK_MS)
+                    viewModel.playerUpdate.update { if (it == shownSpeed) PlayerUpdates.None else it }
+                  }
+              } else {
+                viewModel.playerUpdate.update { PlayerUpdates.None }
+              }
             }
           }
         }.pointerInput(
