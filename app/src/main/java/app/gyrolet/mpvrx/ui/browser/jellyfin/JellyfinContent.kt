@@ -127,6 +127,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1240,7 +1241,7 @@ fun JellyfinContent(
               Modifier.animateFloatingActionButton(
                 visible = isFabShouldBeVisible,
                 alignment = Alignment.BottomEnd,
-              ),
+              ).focusableWhen(isFabShouldBeVisible),
             checked = isFabExpanded && !quickPlayFabDirect,
               onCheckedChange = {
                 if (quickPlayFabDirect) {

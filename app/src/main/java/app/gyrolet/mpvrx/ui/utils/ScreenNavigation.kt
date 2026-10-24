@@ -43,6 +43,8 @@ import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalAppWallpaperActive
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
+import app.gyrolet.mpvrx.ui.tv.TvEdgeToEdgeScreen
+import app.gyrolet.mpvrx.ui.tv.TvScreenFocusHost
 import kotlin.math.roundToInt
 import org.koin.compose.koinInject
 
@@ -101,6 +103,11 @@ internal fun ScreenNavDisplay(
    * colour for one frame before the slide started).
    */
   opaqueFrom: Screen? = null,
+  /**
+   * TV: inset every entry by the overscan-safe margins, except screens that are full-bleed media
+   * or lay out their own safe area ([TvEdgeToEdgeScreen]). Set only by the top-level host.
+   */
+  tvSafeArea: Boolean = false,
   onBack: () -> Unit = { backStack.popSafely() },
   content: @Composable (Screen) -> Unit = { it.Content() },
 ) {
@@ -146,7 +153,13 @@ internal fun ScreenNavDisplay(
           if (entryOpaque) MaterialTheme.colorScheme.background else wallpaperAwareBackgroundColor()
         CompositionLocalProvider(LocalCurrentScreen provides route) {
           Surface(Modifier.fillMaxSize(), color = entryColor) {
-            content(route)
+            // TV: predictable initial focus, focus restored on Back, and overscan-safe content.
+            TvScreenFocusHost(
+              scope = route,
+              safeArea = tvSafeArea && route !is TvEdgeToEdgeScreen,
+            ) {
+              content(route)
+            }
           }
         }
       }

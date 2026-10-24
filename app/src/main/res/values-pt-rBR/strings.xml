@@ -2760,6 +2760,8 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="ui_update_channels_summary">Versões estáveis, prévias noturnas ou compilações experimentais de CI.</string>
   <string name="update_experimental_build_format">Exp. r%1$d</string>
   <string name="tv_nav_settings">Configurações</string>
+  <string name="tv_move_up">Mover para cima</string>
+  <string name="tv_move_down">Mover para baixo</string>
   <string name="tv_player_play_pause">Reproduzir ou pausar</string>
   <string name="tv_player_subtitles">Legendas</string>
   <string name="tv_player_audio">Faixas de áudio</string>

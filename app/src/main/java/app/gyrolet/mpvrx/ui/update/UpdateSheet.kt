@@ -48,6 +48,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.update.Release
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.tv.tvScrollWhenFocusCannotMove
 import com.mikepenz.markdown.m3.Markdown
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -86,15 +87,22 @@ fun UpdateSheet(
       shouldDismissOnClickOutside = !busy,
     ),
   ) {
+    val notesScroll = rememberScrollState()
     Column(
-      modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp),
+      modifier =
+        Modifier
+          .fillMaxWidth()
+          .navigationBarsPadding()
+          .padding(horizontal = 24.dp)
+          // TV: Up/Down scroll the release notes once focus has nowhere else to go.
+          .tvScrollWhenFocusCannotMove(notesScroll),
     ) {
       SheetHeader(
         isInstallReady = state.readyToInstall,
         latestVersion = release?.let { releaseVersion(it) }.orEmpty(),
       )
       Column(
-        modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+        modifier = Modifier.weight(1f, fill = false).verticalScroll(notesScroll),
       ) {
         Spacer(Modifier.height(12.dp))
         if (state.checking) {

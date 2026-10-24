@@ -2760,6 +2760,8 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="ui_update_channels_summary">Versions stables, aperçus nocturnes ou compilations expérimentales issues de l’intégration continue.</string>
   <string name="update_experimental_build_format">Exp. r%1$d</string>
   <string name="tv_nav_settings">Paramètres</string>
+  <string name="tv_move_up">Déplacer vers le haut</string>
+  <string name="tv_move_down">Déplacer vers le bas</string>
   <string name="tv_player_play_pause">Lire ou mettre en pause</string>
   <string name="tv_player_subtitles">Sous-titres</string>
   <string name="tv_player_audio">Pistes audio</string>

@@ -47,6 +47,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.contentColorFor
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.tv.TvReorderButtons
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -251,6 +256,8 @@ object CustomButtonScreen : Screen {
     val settingsHighlight =
       rememberSettingsSearchHighlight(CustomButtonScreen, lazyListState, MaterialTheme.colorScheme.primary)
     val NON_SLOT_ITEMS_BEFORE = 1 // the Spacer item()
+    // TV: Move up / Move down replace the drag handle, which a remote cannot use.
+    val isTelevision = isTelevision()
     val reorderState =
       rememberReorderableLazyListState(lazyListState) { from, to ->
         val fromIdx = (from.index - NON_SLOT_ITEMS_BEFORE).coerceIn(0, buttonSlots.lastIndex)
@@ -338,18 +345,30 @@ object CustomButtonScreen : Screen {
               isDragging = isDragging,
               elevation = elevation,
               dragHandle = { interceptModifier ->
-                Icon(
-                  Icons.RoundedFilled.DragHandle,
-                  contentDescription =
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_drag_to_reorder,
-                    ),
-                  modifier =
-                    interceptModifier
-                      .draggableHandle()
-                      .padding(horizontal = 8.dp, vertical = 12.dp),
-                  tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                )
+                if (isTelevision) {
+                  // A remote cannot drag: explicit steps between slots instead.
+                  TvReorderButtons(
+                    canMoveUp = index > 0,
+                    canMoveDown = index < buttonSlots.lastIndex,
+                    onMoveUp = { if (index > 0) buttonSlots.add(index - 1, buttonSlots.removeAt(index)) },
+                    onMoveDown = {
+                      if (index < buttonSlots.lastIndex) buttonSlots.add(index + 1, buttonSlots.removeAt(index))
+                    },
+                  )
+                } else {
+                  Icon(
+                    Icons.RoundedFilled.DragHandle,
+                    contentDescription =
+                      androidx.compose.ui.res.stringResource(
+                        app.gyrolet.mpvrx.R.string.ui_drag_to_reorder,
+                      ),
+                    modifier =
+                      interceptModifier
+                        .draggableHandle()
+                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                  )
+                }
               },
               onSave = { updated ->
                 buttonSlots[index] = updated
@@ -524,6 +543,9 @@ fun ButtonSlotCard(
   var activeScriptField by remember { mutableStateOf<String?>(null) }
 
   val isPopulated = button != null
+  // TV: a clickable card is one focus stop that hides its buttons and editor fields from the
+  // D-pad, so the card itself is not clickable there and the slot title expands it instead.
+  val isTelevision = isTelevision()
   val sideColor =
     if (slotLabel.startsWith("L")) {
       MaterialTheme.colorScheme.primary
@@ -548,8 +570,14 @@ fun ButtonSlotCard(
         .fillMaxWidth()
         .shadow(elevation = elevation.dp, shape = shape),
     shape = shape,
-    colors = CardDefaults.cardColors(containerColor = cardColor),
+    colors =
+      CardDefaults.cardColors(
+        containerColor = cardColor,
+        disabledContainerColor = cardColor,
+        disabledContentColor = contentColorFor(cardColor),
+      ),
     onClick = { expanded = !expanded },
+    enabled = !isTelevision,
   ) {
     Column(Modifier.fillMaxWidth()) {
       // ── Header row ────────────────────────────────────────────────────
@@ -580,7 +608,20 @@ fun ButtonSlotCard(
         Spacer(Modifier.width(12.dp))
 
         // Title or empty hint
-        Column(Modifier.weight(1f)) {
+        Column(
+          Modifier
+            .weight(1f)
+            .then(
+              if (isTelevision) {
+                Modifier
+                  .tvFocusHighlight(RoundedCornerShape(12.dp))
+                  .clickable { expanded = !expanded }
+                  .padding(horizontal = 6.dp, vertical = 4.dp)
+              } else {
+                Modifier
+              },
+            ),
+        ) {
           val titleAlpha = if (isPopulated && !draftEnabled) 0.4f else 1f
           Text(
             text = draftTitle.ifBlank { if (isPopulated) button.title else "Empty slot" },

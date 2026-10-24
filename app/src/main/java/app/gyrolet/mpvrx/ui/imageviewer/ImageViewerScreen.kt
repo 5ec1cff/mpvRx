@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.domain.network.NetworkFile
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.tv.TvEdgeToEdgeScreen
+import app.gyrolet.mpvrx.ui.tv.TvPagerFocusArea
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
@@ -47,7 +49,7 @@ data class ImageViewerScreen(
   val folderPath: String,
   val items: List<ImageViewerItem>,
   val initialIndex: Int = 0,
-) : Screen {
+) : Screen, TvEdgeToEdgeScreen {
 
   @Composable
   override fun Content() {
@@ -137,6 +139,9 @@ data class ImageViewerScreen(
           modifier = Modifier.fillMaxSize(),
         )
       }
+
+      // TV: Left/Right turn pages; the overlay stays reachable with Up.
+      TvPagerFocusArea(pagerState)
 
       ImageViewerOverlay(
         title = images.getOrNull(currentIndex)?.name ?: "",

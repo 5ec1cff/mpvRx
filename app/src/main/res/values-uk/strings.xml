@@ -2732,6 +2732,8 @@
   <string name="ui_update_channels_summary">Стабільні версії, нічні попередні версії або експериментальні збірки CI.</string>
   <string name="update_experimental_build_format">Експ. r%1$d</string>
   <string name="tv_nav_settings">Налаштування</string>
+  <string name="tv_move_up">Перемістити вгору</string>
+  <string name="tv_move_down">Перемістити вниз</string>
   <string name="tv_player_play_pause">Відтворити або призупинити</string>
   <string name="tv_player_subtitles">Субтитри</string>
   <string name="tv_player_audio">Аудіодоріжки</string>

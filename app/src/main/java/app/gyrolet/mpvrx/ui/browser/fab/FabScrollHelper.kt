@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -73,7 +74,9 @@ object FabScrollHelper {
     }
   }
   /**
-   * Sets up scroll tracking for both list and grid views to control FAB visibility
+   * Sets up scroll tracking for both list and grid views to control FAB visibility.
+   * On TV the FAB never hides: lists scroll with every D-pad step, and a FAB scaled out of view
+   * would still be a focus stop the user cannot see.
    */
   @Composable
   fun trackScrollForFabVisibility(
@@ -85,11 +88,13 @@ object FabScrollHelper {
   ) {
     val latestExpanded = rememberUpdatedState(expanded)
     val latestOnExpandedChange = rememberUpdatedState(onExpandedChange)
+    val isTelevision = isTelevision()
 
     // Read rapidly changing positions inside snapshotFlow. Using them as LaunchedEffect keys
     // recomposed this helper and restarted a coroutine for every scroll pixel.
-    LaunchedEffect(listState) {
+    LaunchedEffect(listState, isTelevision) {
       isFabVisible.value = true
+      if (isTelevision) return@LaunchedEffect
       delay(STATE_CHANGE_GRACE_PERIOD_MS)
 
       var previousIndex = listState.firstVisibleItemIndex
@@ -111,8 +116,9 @@ object FabScrollHelper {
     }
 
     if (gridState != null) {
-      LaunchedEffect(gridState) {
+      LaunchedEffect(gridState, isTelevision) {
         isFabVisible.value = true
+        if (isTelevision) return@LaunchedEffect
         delay(STATE_CHANGE_GRACE_PERIOD_MS)
 
         var previousIndex = gridState.firstVisibleItemIndex

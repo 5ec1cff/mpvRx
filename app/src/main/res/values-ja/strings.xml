@@ -2744,6 +2744,8 @@
   <string name="ui_update_channels_summary">安定版、ナイトリープレビュー、実験的な CI ビルド。</string>
   <string name="update_experimental_build_format">実験版 r%1$d</string>
   <string name="tv_nav_settings">設定</string>
+  <string name="tv_move_up">上へ移動</string>
+  <string name="tv_move_down">下へ移動</string>
   <string name="tv_player_play_pause">再生または一時停止</string>
   <string name="tv_player_subtitles">字幕</string>
   <string name="tv_player_audio">音声トラック</string>

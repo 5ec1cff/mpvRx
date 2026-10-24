@@ -142,6 +142,7 @@ import app.gyrolet.mpvrx.ui.securefolder.SecureFolderGateScreen
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.calculateResponsiveGridSpans
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.media.CopyPasteOps
 import app.gyrolet.mpvrx.utils.media.MediaSearchEngine
@@ -823,7 +824,7 @@ object FolderListScreen : Screen {
                     Modifier.animateFloatingActionButton(
                       visible = isFabShouldBeVisible,
                       alignment = Alignment.BottomEnd,
-                    ),
+                    ).focusableWhen(isFabShouldBeVisible),
                   checked = isFabExpanded.value && !quickPlayFabDirect,
                   onCheckedChange = {
                     if (quickPlayFabDirect) {

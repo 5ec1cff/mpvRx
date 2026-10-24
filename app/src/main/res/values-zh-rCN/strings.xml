@@ -2742,6 +2742,8 @@
   <string name="ui_update_channels_summary">稳定版本、每夜预览版或实验性 CI 构建。</string>
   <string name="update_experimental_build_format">实验版 r%1$d</string>
   <string name="tv_nav_settings">设置</string>
+  <string name="tv_move_up">上移</string>
+  <string name="tv_move_down">下移</string>
   <string name="tv_player_play_pause">播放或暂停</string>
   <string name="tv_player_subtitles">字幕</string>
   <string name="tv_player_audio">音轨</string>

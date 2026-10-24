@@ -2818,6 +2818,8 @@
   <string name="update_install_complete">Update installed. Tap to open mpvRx.</string>
   <string name="update_download_waiting">Waiting for the network or retrying the download…</string>
   <string name="tv_nav_settings">Settings</string>
+  <string name="tv_move_up">Move up</string>
+  <string name="tv_move_down">Move down</string>
   <string name="tv_player_play_pause">Play or pause</string>
   <string name="tv_player_subtitles">Subtitles</string>
   <string name="tv_player_audio">Audio tracks</string>

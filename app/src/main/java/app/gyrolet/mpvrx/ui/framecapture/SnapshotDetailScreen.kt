@@ -58,6 +58,9 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.framecapture.VideoAvailability
 import app.gyrolet.mpvrx.domain.framecapture.VideoSource
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.ui.tv.TvEdgeToEdgeScreen
+import app.gyrolet.mpvrx.ui.tv.TvPagerFocusArea
+import app.gyrolet.mpvrx.ui.tv.tvOverscanPadding
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.imageviewer.ZoomableImage
@@ -72,7 +75,7 @@ import kotlinx.serialization.Serializable
 data class SnapshotDetailScreen(
   val captures: List<SnapshotDetailItem>,
   val initialIndex: Int = 0,
-) : Screen {
+) : Screen, TvEdgeToEdgeScreen {
 
   @Composable
   override fun Content() {
@@ -161,6 +164,9 @@ data class SnapshotDetailScreen(
           modifier = Modifier.fillMaxSize(),
         )
       }
+
+      // TV: Left/Right turn pages; Up and Down reach the top bar and the actions below.
+      TvPagerFocusArea(pagerState)
 
       SnapshotDetailOverlay(
         item = currentItem,
@@ -301,6 +307,7 @@ private fun SnapshotDetailOverlay(
             .fillMaxWidth()
             .background(topScrim)
             .windowInsetsPadding(WindowInsets.statusBars)
+            .tvOverscanPadding(bottom = false)
             .padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
@@ -348,6 +355,7 @@ private fun SnapshotDetailOverlay(
             .fillMaxWidth()
             .background(bottomScrim)
             .windowInsetsPadding(WindowInsets.navigationBars)
+            .tvOverscanPadding(top = false)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
       ) {

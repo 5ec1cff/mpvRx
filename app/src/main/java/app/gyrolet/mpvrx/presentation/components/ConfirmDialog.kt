@@ -37,6 +37,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusReq
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.tv.tvScrollWhenFocusCannotMove
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -51,14 +52,16 @@ fun ConfirmDialog(
   confirmContent: (@Composable () -> Unit)? = null,
 ) {
   val initialFocusRequester = rememberTvInitialFocusRequester(requestKey = title)
+  val messageScroll = rememberScrollState()
   AppAlertDialog(
     singleRowActions = confirmContent != null,
     onDismissRequest = onCancel,
-    modifier = modifier,
+    // TV: Up/Down scroll a long message once focus has nowhere else to go.
+    modifier = modifier.tvScrollWhenFocusCannotMove(messageScroll),
     title = { Text(title) },
     text = {
       Column(
-        modifier = Modifier.verticalScroll(rememberScrollState()),
+        modifier = Modifier.verticalScroll(messageScroll),
         verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
       ) {
         // The body keeps its connected dialog surface; present the confirmation message

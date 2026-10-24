@@ -65,6 +65,16 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Scan filters, whitelist and maintenance:** Settings > Folders can skip videos shorter than a chosen length and files smaller than a chosen size, limit the library to whitelisted folders, force a full rescan, and clear the metadata and thumbnail cache. The filters and the whitelist apply to the Library, Folders and Tree views and to folder contents alike. A whitelist with no folders restricts nothing, so removing the last folder never hides the whole library.
 
+### Android TV
+
+- **Side menu and content work together:** Right from the side menu always enters the current tab, at the item you left there where possible and otherwise at its first item, instead of jumping to whatever happened to be nearest, such as a toolbar button. Left from the edge of the content returns to the menu, and choosing a tab moves into it once it has loaded. In right-to-left languages the directions are mirrored, so the menu can be left at all.
+- **Focus stays on screen:** Focus can no longer slip into tabs or pages that are not showing, and tabs are no longer prepared in the background on TV. Every screen opens with something focused, the list rather than the toolbar where there is one, and Back returns to the folder, video or playlist you opened.
+- **Refresh button instead of pull to refresh:** Lists that refreshed with a pull gesture show a Refresh button above them on TV, and the remote's Refresh key works too. Phones and tablets keep pull to refresh.
+- **Nothing cut off at the edges:** Content stays inside the TV-safe area, so sets that crop the picture no longer hide toolbars, the side menu or the last row. Lists still scroll to the edge, and the focused item stays about a third of the way in, so the next one is always in view.
+- **Mini player:** It sits as a compact card in the bottom corner instead of covering the menu's Settings item, and its buttons can be reached with the remote. Selecting the title opens the player.
+- **No invisible focus:** Floating buttons no longer hide while a list scrolls, and a hidden one can no longer take focus. Playlist grid cards show the same focus outline as other cards.
+- **Remote instead of gestures:** Reordering a playlist, the tabs in settings or the custom player buttons shows Move up and Move down buttons instead of drag handles, and a custom button slot opens from its title so its fields and buttons can be reached. The image and snapshot viewers turn pages with Left and Right, with their buttons above and below. Release notes and long confirmations scroll with Up and Down once there is nothing else to move to.
+
 ### App Updates
 
 - **Native installation:** Stable, Preview and Experimental updates use Android installer sessions, requesting silent self-updates on Android 12+ with confirmation when Android requires it.

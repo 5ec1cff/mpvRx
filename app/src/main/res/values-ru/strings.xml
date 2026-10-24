@@ -2792,6 +2792,8 @@
   <string name="ui_update_channels_summary">Стабильные версии, ночные предварительные версии или экспериментальные сборки CI.</string>
   <string name="update_experimental_build_format">Эксп. r%1$d</string>
   <string name="tv_nav_settings">Настройки</string>
+  <string name="tv_move_up">Переместить вверх</string>
+  <string name="tv_move_down">Переместить вниз</string>
   <string name="tv_player_play_pause">Воспроизвести или приостановить</string>
   <string name="tv_player_subtitles">Субтитры</string>
   <string name="tv_player_audio">Аудиодорожки</string>

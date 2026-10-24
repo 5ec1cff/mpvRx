@@ -32,6 +32,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -86,6 +87,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ClipOp
@@ -152,6 +154,7 @@ import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalAppBackgroundBackdrop
@@ -166,9 +169,14 @@ import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
+import app.gyrolet.mpvrx.ui.tv.RegisterTvContentFocus
+import app.gyrolet.mpvrx.ui.tv.TvEdgeToEdgeScreen
+import app.gyrolet.mpvrx.ui.tv.TvFocusMemory
+import app.gyrolet.mpvrx.ui.tv.TvSafeArea
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
 
 @Serializable
-object MainScreen : Screen {
+object MainScreen : Screen, TvEdgeToEdgeScreen {
   internal enum class MainTab {
     HOME,
     MUSIC,
@@ -270,8 +278,15 @@ object MainScreen : Screen {
     )
     val showTvRail = isTelevision && visibleTabs.isNotEmpty() && !isPermissionDenied
     val tvRailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
+    // TV: follows the settled tab page, so the rail and the screen host can send focus into it.
+    val tvContentFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
     var isTvRailFocused by remember { mutableStateOf(false) }
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    var isTvScreenFocused by remember { mutableStateOf(false) }
+    RegisterTvContentFocus(tvContentFocusRequester)
+    // The exact card that was left when focus went to the rail, else the current tab's first item.
+    val focusTvContent: () -> Boolean = {
+      TvFocusMemory.restore(MainScreen) || tvContentFocusRequester.tryRequestFocus()
+    }
 
     // Track whether the floating pill nav bar is on screen so the mini player can
     // sit at the very bottom when navigating to screens without it.
@@ -444,9 +459,25 @@ object MainScreen : Screen {
       val pendingJob = tabNavigationJob
       coroutineScope.launch {
         pendingJob?.join()
-        withFrameNanos { }
-        focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right)
+        // The new tab may still be loading. Retry briefly; if it never gets anything focusable,
+        // or the user moves on first, focus simply stays where it is.
+        repeat(TV_TAB_FOCUS_ATTEMPTS) {
+          withFrameNanos { }
+          if (!isTvRailFocused || tvContentFocusRequester.tryRequestFocus()) return@launch
+          delay(TV_TAB_FOCUS_RETRY_MS)
+        }
       }
+    }
+    // Focus must never be left on nothing: if a tab change took the focused item with it, move
+    // into the tab that is now showing. Opening the screen is left to the screen host.
+    LaunchedEffect(isTelevision, pagerState) {
+      if (!isTelevision) return@LaunchedEffect
+      snapshotFlow { pagerState.settledPage }
+        .drop(1)
+        .collect {
+          withFrameNanos { }
+          if (!isTvScreenFocused && !isTvRailFocused && backStack.lastOrNull() == MainScreen) focusTvContent()
+        }
     }
 
     // Keep the app's established Haze path for the normal navigation bar. Liquid Glass uses the
@@ -482,11 +513,23 @@ object MainScreen : Screen {
     }
     val contentBottomPadding =
       when {
-        isTelevision -> 24.dp
+        // Lists still scroll to the screen edge, but their last row rests above the overscan
+        // margin, the selection bar and the mini player card.
+        isTelevision -> TvSafeArea.Vertical + NavigationBarState.bottomOverlayClearance
         isDualPaneLayout -> NavigationBarState.bottomBarClearance
         else -> NavigationBarState.bottomOverlayClearance
       }
-    val tvContentStartPadding = if (showTvRail) TvSideNavigationDefaults.CollapsedWidth else 0.dp
+    // TV: the rail owns the start edge; the other edges keep the overscan-safe margins.
+    val tvContentPadding =
+      if (isTelevision) {
+        PaddingValues(
+          start = if (showTvRail) TvSideNavigationDefaults.CollapsedWidth else TvSafeArea.Horizontal,
+          top = TvSafeArea.Vertical,
+          end = TvSafeArea.Horizontal,
+        )
+      } else {
+        PaddingValues(0.dp)
+      }
     val context = androidx.compose.ui.platform.LocalContext.current
     val jellyfinViewModel: app.gyrolet.mpvrx.ui.browser.jellyfin.JellyfinViewModel =
       androidx.lifecycle.viewmodel.compose.viewModel(
@@ -507,13 +550,18 @@ object MainScreen : Screen {
       modifier = Modifier.fillMaxSize(),
       containerColor = wallpaperAwareBackgroundColor(),
     ) { paddingValues ->
-      Box(modifier = Modifier.fillMaxSize()) {
+      Box(
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .onFocusChanged { isTvScreenFocused = it.hasFocus },
+      ) {
         if (visibleTabs.isEmpty()) {
           Box(
             modifier =
               Modifier
                 .fillMaxSize()
-                .padding(start = tvContentStartPadding)
+                .padding(tvContentPadding)
                 .then(
                     when {
                       liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
@@ -541,7 +589,7 @@ object MainScreen : Screen {
               modifier =
                 Modifier
                   .fillMaxSize()
-                  .padding(start = tvContentStartPadding)
+                  .padding(tvContentPadding)
                   .clipToBounds()
                   .graphicsLayer { alpha = tabContentAlpha.value }
                   .nestedScroll(NavigationBarState.navScrollConnection)
@@ -555,6 +603,7 @@ object MainScreen : Screen {
               key = { page -> visibleTabs[page].name },
               beyondViewportPageCount = if (adjacentTabsWarm) 1 else 0,
               userScrollEnabled = !isTelevision && !isPermissionDenied && !isDirectTabJumpInProgress,
+              activePageFocusRequester = tvContentFocusRequester.takeIf { isTelevision },
             ) { page ->
               val tab = visibleTabs.getOrNull(page) ?: return@NavigationPager
               when (tab) {
@@ -760,6 +809,7 @@ object MainScreen : Screen {
             onOpenSettings = { backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.PreferencesScreen) },
             selectedItemFocusRequester = tvRailFocusRequester,
             onRailFocusChanged = { isTvRailFocused = it },
+            onFocusContent = focusTvContent,
             modifier = Modifier.align(Alignment.CenterStart),
           )
         }
@@ -1270,6 +1320,8 @@ private val MainNavigationIconSize = 28.dp
 private val NavigationBarEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 private const val ADJACENT_TAB_WARMUP_DELAY_MS = 2_500L
 private const val ADJACENT_TAB_IDLE_MS = 1_200L
+private const val TV_TAB_FOCUS_ATTEMPTS = 6
+private const val TV_TAB_FOCUS_RETRY_MS = 100L
 
 /**
  * Bottom-navigation tab order. Home is the permanent root so Back never exits directly from another

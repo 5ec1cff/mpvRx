@@ -127,6 +127,8 @@ import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import app.gyrolet.mpvrx.ui.tv.TvReorderButtons
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 
 /**
  * Playlist detail screen showing videos in a playlist.
@@ -1119,6 +1121,8 @@ private fun PlaylistVideoListContent(
 
       // Reorderable state
       val reorderFeedback = rememberReorderFeedback()
+      // TV: a remote cannot drag, so reorder mode shows Move up / Move down instead of a handle.
+      val isTelevision = isTelevision()
       val reorderableLazyListState =
         rememberReorderableLazyListState(listState) { from, to ->
           if (isReorderMode) {
@@ -1166,7 +1170,14 @@ private fun PlaylistVideoListContent(
               ) {
                 itemContent(item, false, 1, neighbors, Modifier.weight(1f))
 
-                if (isReorderMode) {
+                if (isReorderMode && isTelevision) {
+                  TvReorderButtons(
+                    canMoveUp = index > 0,
+                    canMoveDown = index < videoItems.lastIndex,
+                    onMoveUp = { onReorder(index, index - 1) },
+                    onMoveDown = { onReorder(index, index + 1) },
+                  )
+                } else if (isReorderMode) {
                   IconButton(
                     onClick = { },
                     modifier =

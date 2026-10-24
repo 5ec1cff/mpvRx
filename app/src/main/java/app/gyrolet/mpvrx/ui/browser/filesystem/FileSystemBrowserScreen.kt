@@ -129,6 +129,8 @@ import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popUpTo
 import app.gyrolet.mpvrx.ui.utils.calculateResponsiveGridSpans
 import app.gyrolet.mpvrx.ui.utils.popSafely
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 import app.gyrolet.mpvrx.utils.media.CopyPasteOps
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import app.gyrolet.mpvrx.utils.media.OpenDocumentTreeContract
@@ -701,7 +703,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
                       .animateFloatingActionButton(
                         visible = isFabShouldBeVisible,
                         alignment = Alignment.BottomEnd,
-                      ),
+                      ).focusableWhen(isFabShouldBeVisible),
                   checked = isFabExpanded.value && !quickPlayFabDirect,
                   onCheckedChange = {
                     if (quickPlayFabDirect) {
@@ -1990,7 +1992,13 @@ private fun FileSystemSearchContent(
     }
 
   // Keep high-frequency scroll reads out of composition in large search result sets.
-  LaunchedEffect(isGridMode, listState, gridState) {
+  // On TV the FAB stays put: every D-pad step scrolls the list, and a hidden FAB still takes focus.
+  val isTelevision = isTelevision()
+  LaunchedEffect(isGridMode, listState, gridState, isTelevision) {
+    if (isTelevision) {
+      isFabVisible.value = true
+      return@LaunchedEffect
+    }
     var previousIndex = if (isGridMode) gridState.firstVisibleItemIndex else listState.firstVisibleItemIndex
     var previousOffset =
       if (isGridMode) gridState.firstVisibleItemScrollOffset else listState.firstVisibleItemScrollOffset

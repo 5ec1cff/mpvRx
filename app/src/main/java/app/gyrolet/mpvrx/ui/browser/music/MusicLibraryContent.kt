@@ -165,6 +165,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.Dispatchers
@@ -638,7 +639,7 @@ fun MusicLibraryContent(
                 Modifier.animateFloatingActionButton(
                   visible = isFabShouldBeVisible,
                   alignment = Alignment.BottomEnd,
-                ),
+                ).focusableWhen(isFabShouldBeVisible),
               checked = false,
               onCheckedChange = { showCreatePlaylistDialog = true },
             ) {
@@ -667,7 +668,7 @@ fun MusicLibraryContent(
                   Modifier.animateFloatingActionButton(
                     visible = isFabShouldBeVisible,
                     alignment = Alignment.BottomEnd,
-                  ),
+                  ).focusableWhen(isFabShouldBeVisible),
                 checked = isFabExpanded.value && !quickPlayFabDirect,
                 onCheckedChange = {
                   if (quickPlayFabDirect) {

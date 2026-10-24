@@ -53,6 +53,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,15 +66,23 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.tv.TvSafeArea
 
 internal object TvSideNavigationDefaults {
   val CollapsedWidth: Dp = 88.dp
@@ -93,6 +102,11 @@ internal object TvSideNavigationDefaults {
 /**
  * A collapsible left rail. It stays icon-only while the content owns focus and expands over the
  * content (without relaying it out) once D-pad focus enters the rail.
+ *
+ * Toward the content (Right, or Left in RTL) always calls [onFocusContent], which returns to the
+ * item that was focused there before. Geometric search from the expanded rail used to skip
+ * anything partly under it and land on a toolbar action instead. The opposite key is a no-op at
+ * the screen edge.
  */
 @Composable
 internal fun TvSideNavigation(
@@ -102,9 +116,12 @@ internal fun TvSideNavigation(
   onOpenSettings: () -> Unit,
   selectedItemFocusRequester: FocusRequester,
   onRailFocusChanged: (Boolean) -> Unit,
+  onFocusContent: () -> Boolean,
   modifier: Modifier = Modifier,
 ) {
   var expanded by remember { mutableStateOf(false) }
+  val currentOnFocusContent by rememberUpdatedState(onFocusContent)
+  val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
   val progress by animateFloatAsState(
     targetValue = if (expanded) 1f else 0f,
     animationSpec =
@@ -154,14 +171,24 @@ internal fun TvSideNavigation(
           .fillMaxHeight()
           .fillMaxWidth()
           .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical + WindowInsetsSides.Start))
-          .padding(horizontal = 12.dp, vertical = 24.dp)
+          .padding(horizontal = 12.dp, vertical = TvSafeArea.Vertical)
           .onFocusChanged { state ->
             if (expanded != state.hasFocus) {
               expanded = state.hasFocus
               onRailFocusChanged(state.hasFocus)
             }
-          }
-          .focusRestorer(selectedItemFocusRequester)
+          }.onPreviewKeyEvent { event ->
+            val towardContent = if (isRtl) Key.DirectionLeft else Key.DirectionRight
+            val towardEdge = if (isRtl) Key.DirectionRight else Key.DirectionLeft
+            when (event.key) {
+              towardContent -> {
+                if (event.type == KeyEventType.KeyDown) currentOnFocusContent()
+                true
+              }
+              towardEdge -> true
+              else -> false
+            }
+          }.focusRestorer(selectedItemFocusRequester)
           .focusGroup(),
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -178,7 +205,6 @@ internal fun TvSideNavigation(
             Modifier
               .then(if (selected) Modifier.focusRequester(selectedItemFocusRequester) else Modifier)
               .focusProperties {
-                left = FocusRequester.Cancel
                 if (index == 0) up = FocusRequester.Cancel
               },
         ) { tint ->
@@ -198,7 +224,6 @@ internal fun TvSideNavigation(
         onClick = onOpenSettings,
         modifier =
           Modifier.focusProperties {
-            left = FocusRequester.Cancel
             down = FocusRequester.Cancel
             if (lastIndex < 0) up = FocusRequester.Cancel
           },

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.tv.tvOverscanPadding
 
 @Composable
 fun ImageViewerOverlay(
@@ -65,6 +66,7 @@ fun ImageViewerOverlay(
           .fillMaxWidth()
           .background(topScrimBrush)
           .statusBarsPadding()
+          .tvOverscanPadding(bottom = false)
           .padding(horizontal = 8.dp, vertical = 8.dp),
       ) {
         Row(

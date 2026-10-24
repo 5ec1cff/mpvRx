@@ -41,12 +41,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.ui.tv.TvRefreshContainer
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
  * A reusable Box that wraps content with pull-to-refresh functionality.
+ *
+ * On TV there is no pull gesture: the content gets a D-pad reachable Refresh button and the
+ * remote's Refresh key instead (see [TvRefreshContainer]).
  *
  * @param isRefreshing Tracks refresh state.
  * @param onRefresh Invoked when refresh is triggered.
@@ -71,6 +76,10 @@ fun PullRefreshBox(
   delayAfterRefresh: Long = 800L,
   content: @Composable BoxScope.() -> Unit,
 ) {
+  if (isTelevision()) {
+    TvPullRefreshBox(isRefreshing, onRefresh, modifier, enabled, delayAfterRefresh, content)
+    return
+  }
   val coroutineScope = rememberCoroutineScope()
   val state = rememberPullToRefreshState()
   val density = LocalDensity.current
@@ -178,4 +187,37 @@ fun PullRefreshBox(
       }
     }
   }
+}
+
+/** Same refresh bookkeeping as the pull gesture, triggered by a focusable button on TV. */
+@Composable
+private fun TvPullRefreshBox(
+  isRefreshing: MutableState<Boolean>,
+  onRefresh: suspend () -> Unit,
+  modifier: Modifier,
+  enabled: Boolean,
+  delayAfterRefresh: Long,
+  content: @Composable BoxScope.() -> Unit,
+) {
+  val coroutineScope = rememberCoroutineScope()
+  val activeJob = remember { mutableStateOf<Job?>(null) }
+  TvRefreshContainer(
+    isRefreshing = isRefreshing.value,
+    onRefresh = {
+      activeJob.value?.cancel()
+      isRefreshing.value = true
+      activeJob.value =
+        coroutineScope.launch {
+          try {
+            onRefresh()
+            delay(delayAfterRefresh)
+          } finally {
+            isRefreshing.value = false
+          }
+        }
+    },
+    modifier = modifier,
+    enabled = enabled,
+    content = content,
+  )
 }

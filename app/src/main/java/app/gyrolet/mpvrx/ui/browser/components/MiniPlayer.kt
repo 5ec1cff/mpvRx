@@ -37,6 +37,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -126,6 +127,8 @@ import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -365,6 +368,7 @@ private fun MiniPlayerContent(
   val currentOnDismiss by rememberUpdatedState(onDismiss)
   val musicSheet = LocalInAppMusicSheet.current
   val useInAppSheet = isAudioOnlyItem && musicSheet?.isAvailable == true
+  val isTelevision = DeviceFormFactor.isTelevision(context)
 
   val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion, musicSheet) {
     launch@{
@@ -471,6 +475,17 @@ private fun MiniPlayerContent(
     }
   }
 
+  // TV: the title area is the "open player" button, a focus stop beside the playback buttons.
+  val tvOpenPlayer =
+    if (isTelevision) {
+      Modifier
+        .tvFocusHighlight(RoundedCornerShape(12.dp))
+        .clickable { if (!tossed) launchPlayer() }
+        .padding(horizontal = 8.dp, vertical = 4.dp)
+    } else {
+      Modifier
+    }
+
   LiquidGlassSurface(
     modifier = Modifier
       .onGloballyPositioned { coordinates ->
@@ -502,23 +517,27 @@ private fun MiniPlayerContent(
       )
       .clip(miniPlayerShape)
       .then(
-        if (useInAppSheet && musicSheet != null) {
-          // The live sheet follows the finger from the first pixel; touching down starts warming it.
-          Modifier.inAppMusicSheetDrag(
-            state = musicSheet,
-            collapsing = false,
-            enabled = !tossed,
-            onDown = musicSheet::prewarm,
-          )
-        } else {
-          Modifier.swipeUpToFullPlayer(
-            mediaId = currentItem?.stableId,
-            animateSheet = isAudioOnlyItem,
-            onExpand = { !tossed && launchPlayer() },
-          )
+        when {
+          // A remote cannot drag; the title and the buttons cover expanding and dismissing.
+          isTelevision -> Modifier
+          useInAppSheet && musicSheet != null ->
+            // The live sheet follows the finger from the first pixel; touching down starts warming it.
+            Modifier.inAppMusicSheetDrag(
+              state = musicSheet,
+              collapsing = false,
+              enabled = !tossed,
+              onDown = musicSheet::prewarm,
+            )
+          else ->
+            Modifier.swipeUpToFullPlayer(
+              mediaId = currentItem?.stableId,
+              animateSheet = isAudioOnlyItem,
+              onExpand = { !tossed && launchPlayer() },
+            )
         },
       )
-      .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion) {
+      .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion, isTelevision) {
+        if (isTelevision) return@pointerInput
         val velocityTracker = VelocityTracker()
         var armed = false
         detectHorizontalDragGestures(
@@ -546,7 +565,14 @@ private fun MiniPlayerContent(
           },
         )
       }
-      .clickable { if (!tossed) launchPlayer() },
+      .then(
+        if (isTelevision) {
+          // A clickable card is a single focus stop that hides its own buttons from the D-pad.
+          Modifier.tvFocusHighlight(miniPlayerShape, clipToShape = false).focusGroup()
+        } else {
+          Modifier.clickable { if (!tossed) launchPlayer() }
+        },
+      ),
     shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
@@ -601,7 +627,7 @@ private fun MiniPlayerContent(
 
         // Title and Status
         Column(
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(1f).then(tvOpenPlayer),
           verticalArrangement = Arrangement.Center,
         ) {
           key(currentItem?.stableId ?: currentItem?.originalUri) {
@@ -728,7 +754,7 @@ private fun MiniPlayerContent(
 
         // Title & Track Status
         Column(
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(1f).then(tvOpenPlayer),
           verticalArrangement = Arrangement.Center,
         ) {
           key(currentItem?.stableId ?: currentItem?.originalUri ?: audiobook?.book?.id) {

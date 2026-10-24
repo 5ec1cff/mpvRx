@@ -56,6 +56,7 @@ import app.gyrolet.mpvrx.ui.browser.components.NetworkMediaType
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import kotlinx.coroutines.Dispatchers
@@ -163,6 +164,7 @@ fun NetworkVideoCard(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusMemory("network:${file.path}")
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }

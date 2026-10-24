@@ -2664,6 +2664,8 @@
   <string name="ui_update_channels_summary">स्थिर संस्करण, हर रात के पूर्वावलोकन या प्रायोगिक CI बिल्ड।</string>
   <string name="update_experimental_build_format">प्रायोगिक r%1$d</string>
   <string name="tv_nav_settings">सेटिंग्स</string>
+  <string name="tv_move_up">ऊपर ले जाएँ</string>
+  <string name="tv_move_down">नीचे ले जाएँ</string>
   <string name="tv_player_play_pause">चलाएँ या रोकें</string>
   <string name="tv_player_subtitles">उपशीर्षक</string>
   <string name="tv_player_audio">ऑडियो ट्रैक</string>
