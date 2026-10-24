@@ -9,12 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.kyant.backdrop.drawBackdrop
@@ -61,10 +62,10 @@ fun LiquidGlassEditingBarSurface(
         innerShadow = {
           InnerShadow(radius = 3.dp, color = Color.White.copy(alpha = 0.16f))
         },
-        onDrawSurface = { drawRect(settings.surfaceColor(glassColor)) },
+        onDrawSurface = { drawCapsuleTint(settings.surfaceColor(glassColor)) },
       )
     } else {
-      Modifier.shadow(8.dp, shape).clip(shape).background(fallbackColor)
+      Modifier.outsideShadow(shape, radius = 8.dp).clip(shape).background(fallbackColor)
     }
 
   Box(modifier = surfaceModifier, content = content)

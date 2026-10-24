@@ -24,7 +24,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -174,7 +173,7 @@ fun LiquidButton(
       )
       Modifier
         .graphicsLayer(pressTransform)
-        .shadow(elevation = 6.dp, shape = Capsule(), clip = false)
+        .outsideShadow(Capsule(), radius = 6.dp)
         .clip(Capsule())
         .background(fill, Capsule())
         .then(

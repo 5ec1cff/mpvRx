@@ -19,7 +19,11 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Buttons beside play/pause in landscape:** With play/pause placed below the seekbar, the left and right button groups now sit on either side of it in the same row instead of taking a row of their own. If they do not fit, they scroll sideways and fade out at the edge that has more buttons.
 
-- **Button background opacity:** The setting is now a level for every player button background, including the title, chapter, speed, decoder, zoom, A-B loop and frame-navigation pills, play/pause, custom Lua buttons and the skip chip. The default keeps the usual see-through look, 100% makes all of them fully opaque and 0% fully clear; icons and labels always stay fully visible. Earlier values of the old setting are not carried over.
+- **Button background opacity:** The setting is now a level for every player button background, including the title, chapter, speed, decoder, zoom, A-B loop and frame-navigation pills, play/pause, the cast button, custom Lua buttons and the skip chip. The default keeps the usual see-through look, 100% makes all of them fully opaque and 0% fully clear; icons and labels always stay fully visible. Earlier values of the old setting are not carried over.
+
+- **Cast button matches the other buttons:** It now uses the same round button as the rest of the player, follows Liquid Glass and the hidden-background option, and no longer flashes a large square when pressed.
+
+- **No faint marks on see-through pills:** With Liquid Glass off, message pills such as "Resumed from" no longer show a faint shadow line through their background, because shadows now sit only outside the shape. The same applies to dragged queue and playlist rows, the media scopes overlay and the layout editor. Liquid Glass surfaces no longer paint a faint box past their rounded edges.
 
 - **Consistent spacing around the seekbar:** The layout buttons, play/pause row, seekbar, custom Lua buttons and skip chip now share one edge margin and one gap in every layout combination. Nothing above them jumps anymore while buffering, while the volume or brightness slider shows, or while seeking with the controls hidden.
 

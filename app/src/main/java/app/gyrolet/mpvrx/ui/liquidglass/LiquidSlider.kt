@@ -268,7 +268,7 @@ internal fun LiquidSliderTrack(
         },
         highlight = { settings.highlight(Highlight.Ambient.copy(alpha = 0.3f)) },
         innerShadow = { InnerShadow(radius = 2.dp, alpha = 0.18f) },
-        onDrawSurface = { drawRect(settings.surfaceColor(trackTint)) },
+        onDrawSurface = { drawCapsuleTint(settings.surfaceColor(trackTint)) },
       )
     } else {
       Modifier
@@ -378,7 +378,7 @@ internal fun LiquidSliderThumb(
             film,
             progress.coerceIn(0f, 1f),
           )
-        drawRect(settings.surfaceColor(thumbFilm))
+        drawCapsuleTint(settings.surfaceColor(thumbFilm))
       },
     )
   Box(modifier.then(thumbModifier).size(40.dp, 24.dp))

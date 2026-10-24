@@ -52,6 +52,7 @@ import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
 import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -344,12 +345,14 @@ data class ControlLayoutEditorScreen(
                         } else {
                           Modifier
                         },
+                      ).outsideShadow(
+                        androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                        radius = elevation.dp,
                       ),
                   shape =
                     androidx.compose.foundation.shape
                       .RoundedCornerShape(24.dp),
                   // Match chip border radius
-                  shadowElevation = elevation.dp,
                   color = Color.Transparent,
                 ) {
                   PlayerButtonChip(

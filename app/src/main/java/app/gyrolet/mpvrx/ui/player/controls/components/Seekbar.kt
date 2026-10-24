@@ -81,6 +81,7 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.graphics.drawscope.scale
 import app.gyrolet.mpvrx.ui.liquidglass.DampedDragAnimation
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -1847,7 +1848,7 @@ private fun LiquidSeekbar(
               liquidThumbFilm.copy(alpha = 0.72f - 0.28f * progress),
               progress.coerceIn(0f, 1f),
             )
-            drawRect(glassSettings.surfaceColor(film))
+            drawCapsuleTint(glassSettings.surfaceColor(film))
           },
         )
         .size(thumbWidthDp, 24.dp),

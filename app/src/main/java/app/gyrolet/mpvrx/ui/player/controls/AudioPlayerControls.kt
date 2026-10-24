@@ -122,6 +122,7 @@ import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.ui.browser.dialogs.AddToPlaylistDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.toPlaylistCandidates
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import com.kyant.backdrop.Backdrop
 import app.gyrolet.mpvrx.ui.player.resolveUri
 import app.gyrolet.mpvrx.ui.player.controls.components.MiniAudioVisualizer
@@ -3033,10 +3034,15 @@ private fun UpNextPlaylistItemRow(
 
   Surface(
     onClick = onClick,
-    modifier = Modifier.fillMaxWidth(),
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .outsideShadow(
+          RoundedCornerShape(16.dp),
+          radius = dragElevation(isDragging, app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()),
+        ),
     shape = RoundedCornerShape(16.dp),
     color = bgColor,
-    shadowElevation = dragElevation(isDragging, app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()),
   ) {
     Row(
       modifier = Modifier

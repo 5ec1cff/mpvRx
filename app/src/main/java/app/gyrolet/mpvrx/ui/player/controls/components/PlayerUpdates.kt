@@ -32,11 +32,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -51,7 +50,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -70,7 +68,9 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.composables.icons.materialsymbols.MaterialSymbols
@@ -81,6 +81,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import `is`.xyz.mpv.Utils
+import kotlin.math.roundToInt
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 
@@ -195,12 +196,12 @@ fun PlayerUpdate(
             InnerShadow(radius = 2.dp, color = Color.White.copy(alpha = 0.14f))
           },
           onDrawSurface = {
-            drawRect(glassSettings.surfaceColor(pillColor))
+            drawCapsuleTint(glassSettings.surfaceColor(pillColor))
           },
         )
     } else {
       Modifier
-        .shadow(8.dp, Capsule())
+        .outsideShadow(Capsule(), radius = 8.dp)
         .clip(Capsule())
         .background(pillColor)
     }
@@ -259,10 +260,10 @@ fun CompactSpeedIndicator(
 ) {
   val speedString = remember(currentSpeed) { currentSpeed.formatSpeed() }
 
-  PlayerUpdate(modifier) {
+  PlayerUpdate(modifier, stableWidthText = "${speedString}x") {
     AnimatedContent(
       targetState = speedString,
-      modifier = Modifier.width(compactSpeedIndicatorWidth),
+      modifier = Modifier.widthIn(min = compactSpeedIndicatorWidth),
       contentAlignment = Alignment.Center,
       transitionSpec = {
         (fadeIn(animationSpec = tween(100)) +
@@ -290,7 +291,6 @@ fun CompactSpeedIndicator(
       label = "SpeedJumpAnimation",
     ) { targetSpeed ->
       Row(
-        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
       ) {
@@ -411,12 +411,14 @@ private fun PreviewMultipleSpeedPlayerUpdate() {
   MultipleSpeedPlayerUpdate(currentSpeed = 2f)
 }
 
-private fun Float.formatSpeed(): String =
-  if (this % 1.0f == 0.0f) {
-    this.toInt().toString()
+private fun Float.formatSpeed(): String {
+  val rounded = (this * 100f).roundToInt() / 100f
+  return if (rounded % 1f == 0f) {
+    rounded.toInt().toString()
   } else {
-    String.format("%.1f", this)
+    String.format("%.2f", rounded).trimEnd('0')
   }
+}
 
 @Composable
 fun SeekPlayerUpdate(

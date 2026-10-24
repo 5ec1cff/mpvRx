@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -210,12 +211,11 @@ fun MediaScopesOverlay(
           .size(panelWidth, panelHeight)
       }
     Surface(
-      modifier = panelModifier,
+      modifier = panelModifier.outsideShadow(RoundedCornerShape(8.dp), radius = 8.dp),
       shape = RoundedCornerShape(8.dp),
       color = Color.Black.copy(alpha = if (state.expanded) 0.92f else 0.76f),
       contentColor = Color.White,
       tonalElevation = 0.dp,
-      shadowElevation = 8.dp,
     ) {
       Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {

@@ -879,7 +879,6 @@ fun RenderPlayerButton(
         buttonSize = buttonSize,
         onInvoked = clickEvent,
         contentColor = if (hideBackground) controlColor else null,
-        useGlass = enableLiquidGlass,
       )
     }
 

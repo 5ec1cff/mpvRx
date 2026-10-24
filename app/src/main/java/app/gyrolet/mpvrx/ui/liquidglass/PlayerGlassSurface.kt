@@ -88,6 +88,6 @@ internal fun Modifier.playerGlassSurface(
     highlight = { rememberedHighlight },
     shadow = { rememberedShadow },
     innerShadow = { rememberedInnerShadow },
-    onDrawSurface = { drawRect(tint) },
+    onDrawSurface = { drawShapeTint(shape, tint) },
   )
 }

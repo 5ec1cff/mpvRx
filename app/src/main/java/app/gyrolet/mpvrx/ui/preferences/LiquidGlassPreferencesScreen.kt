@@ -49,6 +49,7 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidButton
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidToggle
+import app.gyrolet.mpvrx.ui.liquidglass.drawShapeTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
@@ -246,7 +247,7 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
                 highlight = { settings.highlight(Highlight.Default) },
                 shadow = { Shadow.Default },
                 innerShadow = { InnerShadow(radius = 4.dp, alpha = 0.2f) },
-                onDrawSurface = { drawRect(settings.surfaceColor(colors.surface.copy(alpha = 0.35f))) },
+                onDrawSurface = { drawShapeTint(shape, settings.surfaceColor(colors.surface.copy(alpha = 0.35f))) },
               )
             } else {
               Modifier.background(

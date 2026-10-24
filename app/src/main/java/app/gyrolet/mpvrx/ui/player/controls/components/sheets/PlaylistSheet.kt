@@ -51,7 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.utils.ReorderFeedback
 import app.gyrolet.mpvrx.ui.utils.dragElevation
 import app.gyrolet.mpvrx.ui.utils.rememberReorderFeedback
@@ -486,10 +486,9 @@ fun PlaylistSheet(
 
                   PlaylistTrackListItem(
                     item = item,
-                    modifier = Modifier.shadow(
-                      dragElevation(isDragging, app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()),
+                    modifier = Modifier.outsideShadow(
                       rowShape,
-                      clip = false,
+                      radius = dragElevation(isDragging, app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()),
                     ),
                     thumbnailRepository = thumbnailRepository,
                     onClick = { onItemClick(item.copy(index = index)) },

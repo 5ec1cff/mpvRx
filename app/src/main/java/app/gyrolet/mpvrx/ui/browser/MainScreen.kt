@@ -154,6 +154,7 @@ import app.gyrolet.mpvrx.ui.theme.LocalAppBackgroundBackdrop
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
+import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import com.kyant.backdrop.highlight.Highlight
@@ -1107,7 +1108,7 @@ internal fun ExpressivePillNavigationBar(
                   )
                 },
                 onDrawSurface = {
-                  drawRect(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
+                  drawCapsuleTint(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
                 },
               ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f))
               .drawWithContent {

@@ -204,7 +204,7 @@ fun LiquidToggle(
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
                         // Match Kyant's original white glass thumb.
-                        drawRect(Color.White.copy(alpha = 1f - progress))
+                        drawCapsuleTint(Color.White.copy(alpha = 1f - progress))
                     }
                 )
                 .size(40f.dp, 24f.dp)
