@@ -34,6 +34,16 @@ internal data class TimedLine(
 internal fun lyricsFromSynced(lines: List<SyncedLine>): Lyrics? {
   if (lines.none { it.line.isNotBlank() }) return null
   val sorted = lines.sortedBy { it.time }
+  // Unsynced catalogues still send a stamp per line, all zero; as "synced" every line counts as
+  // already sung and the view highlights the last one.
+  if (!LyricsUtils.hasUsableTiming(sorted)) {
+    return Lyrics(
+      plain = sorted.map { it.line }.filter { it.isNotBlank() },
+      synced = null,
+      areFromRemote = true,
+      sourceType = LyricsSourceType.ONLINE,
+    )
+  }
   return Lyrics(
     plain = sorted.map { it.line },
     synced = sorted,
