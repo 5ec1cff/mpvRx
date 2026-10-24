@@ -18,7 +18,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,10 +33,10 @@ import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.player.controls.PersistentStatusHudRow
+import app.gyrolet.mpvrx.ui.player.controls.rememberHudClock
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.popSafely
-import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.ListPreference
 import org.koin.compose.koinInject
@@ -61,12 +60,8 @@ object PersistentStatusBarPreferencesScreen : Screen {
     val preferFinishTime by prefs.persistentStatusPreferFinishTime.collectAsState()
     val showSpeed by prefs.persistentStatusShowSpeed.collectAsState()
     val microBattery by prefs.persistentStatusMicroBattery.collectAsState()
-    val now by produceState(System.currentTimeMillis()) {
-      while (true) {
-        delay(30_000L)
-        value = System.currentTimeMillis()
-      }
-    }
+    val clockFormat by prefs.clockFormat.collectAsState()
+    val now = rememberHudClock()
 
     Scaffold(
       topBar = {
@@ -103,7 +98,7 @@ object PersistentStatusBarPreferencesScreen : Screen {
                   leftSlot = left, centerSlot = center, rightSlot = right,
                   preferFinishTime = preferFinishTime, showSpeed = showSpeed,
                   microBattery = microBattery, positionSeconds = 1200f, durationSeconds = 3600f,
-                  playbackSpeed = 1.5f, batteryLevel = 88, nowMillis = now,
+                  playbackSpeed = 1.5f, batteryLevel = 88, nowMillis = now, clockFormat = clockFormat,
                   modifier = Modifier.align(
                     if (position == PersistentStatusPosition.Top) Alignment.TopCenter
                     else Alignment.BottomCenter,

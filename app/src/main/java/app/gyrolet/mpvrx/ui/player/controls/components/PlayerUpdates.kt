@@ -411,7 +411,7 @@ private fun PreviewMultipleSpeedPlayerUpdate() {
   MultipleSpeedPlayerUpdate(currentSpeed = 2f)
 }
 
-private fun Float.formatSpeed(): String {
+internal fun Float.formatSpeed(): String {
   val rounded = (this * 100f).roundToInt() / 100f
   return if (rounded % 1f == 0f) {
     rounded.toInt().toString()

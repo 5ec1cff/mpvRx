@@ -1848,9 +1848,10 @@ private fun rememberTimeAndNetworkStat(
   }
 }
 
-private fun formatClock(
+internal fun formatClock(
   context: Context,
   clockFormat: PlayerClockFormat,
+  millis: Long = System.currentTimeMillis(),
 ): String {
   val use24Hour =
     when (clockFormat) {
@@ -1858,7 +1859,7 @@ private fun formatClock(
       PlayerClockFormat.TWELVE_HOUR -> false
       PlayerClockFormat.TWENTY_FOUR_HOUR -> true
     }
-  return DateFormat.format(if (use24Hour) "HH:mm" else "h:mm a", System.currentTimeMillis()).toString()
+  return DateFormat.format(if (use24Hour) "HH:mm" else "h:mm a", millis).toString()
 }
 
 private fun readNetworkBytesPerSecond(): Double {

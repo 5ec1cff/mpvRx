@@ -35,6 +35,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Two-finger swipe for speed:** Drag two fingers up to raise the playback speed or down to lower it, as in MX Player. The speed changes in 0.25x steps as you drag, from 0.5x up to 4x, and follows your fingers back if you reverse. The speed pill shows the current speed while you drag and for a moment after, including quarter steps such as 1.25x. Pinch to zoom still works, and a zoomed-in video can still be moved with two fingers. Turn it off under Settings > Gestures.
 
+- **Persistent status bar:** An optional line over the video shows the time, the battery level and the playback progress or estimated finish time, set up under Settings > Player controls. It stays in exactly the same place whether the player controls are showing or not, and does not move when the system bars appear. Its clock follows the player clock format and turns over on the minute.
+
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
 ### Jellyfin

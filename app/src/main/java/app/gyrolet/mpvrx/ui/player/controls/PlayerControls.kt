@@ -761,7 +761,6 @@ fun PlayerControls(
             preferences = playerPreferences,
             durationSeconds = seekbarDuration,
             playbackSpeed = playbackSpeed ?: 1f,
-            controlsShown = controlsShown,
           )
 
           MediaScopesOverlay(
@@ -961,7 +960,6 @@ fun PlayerControls(
       preferences = playerPreferences,
       durationSeconds = seekbarDuration,
       playbackSpeed = playbackSpeed ?: 1f,
-      controlsShown = controlsShown,
     )
 
     MediaScopesOverlay(
