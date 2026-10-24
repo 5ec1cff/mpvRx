@@ -37,6 +37,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Persistent status bar:** An optional line over the video shows the time, the battery level and the playback progress or estimated finish time, set up under Settings > Player controls. It stays in exactly the same place whether the player controls are showing or not, and does not move when the system bars appear. Its clock follows the player clock format and turns over on the minute.
 
+- **Controls appear the moment you tap:** A tap on the video now shows the controls straight away instead of after a short pause. The pause was the wait for a possible double tap; only hiding the controls still waits for it, so double-tap seeking works as before. Double-tapping to seek while the controls are hidden now leaves them showing until they fade out on their own.
+
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
 ### Jellyfin
