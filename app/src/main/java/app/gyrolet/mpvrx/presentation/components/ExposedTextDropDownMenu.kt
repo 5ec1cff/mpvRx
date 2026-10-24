@@ -9,30 +9,11 @@
 
 package app.gyrolet.mpvrx.presentation.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** String-list form of [AppComboBox], kept for existing callers. */
 @Composable
 fun ExposedTextDropDownMenu(
   selectedValue: String,
@@ -43,51 +24,15 @@ fun ExposedTextDropDownMenu(
   leadingIcon: (@Composable () -> Unit)? = null,
   enabled: Boolean = true,
 ) {
-  var expanded by remember { mutableStateOf(false) }
-
-  ExposedDropdownMenuBox(
-    expanded = expanded,
-    onExpandedChange = { if (enabled) expanded = !expanded },
+  AppComboBox(
+    options = options,
+    selected = selectedValue,
+    onSelect = onValueChangedEvent,
+    optionLabel = { it },
     modifier = modifier,
-  ) {
-    OutlinedTextField(
-      readOnly = true,
-      enabled = enabled,
-      value = selectedValue,
-      onValueChange = {},
-      label = { Text(text = label) },
-      trailingIcon = {
-        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-      },
-      leadingIcon = leadingIcon,
-      colors = OutlinedTextFieldDefaults.colors(),
-      modifier =
-        Modifier
-          .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = enabled)
-          .fillMaxWidth(),
-    )
-
-    ExposedDropdownMenu(
-      shape = RoundedCornerShape(24.dp),
-      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
-      border = BorderStroke(1.dp, androidx.compose.material3.MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
-      expanded = expanded,
-      onDismissRequest = { expanded = false },
-      modifier = Modifier.heightIn(max = 300.dp),
-    ) {
-      options.forEachIndexed { index, option ->
-        AppDropdownMenuItem(
-          text = { Text(text = option) },
-          selected = option == selectedValue,
-          index = index,
-          itemCount = options.size,
-          modifier = Modifier.fillMaxWidth().semantics { selected = option == selectedValue },
-          onClick = {
-            expanded = false
-            onValueChangedEvent(option)
-          },
-        )
-      }
-    }
-  }
+    label = label,
+    valueText = selectedValue,
+    enabled = enabled,
+    leadingIcon = leadingIcon,
+  )
 }

@@ -14,6 +14,7 @@ package app.gyrolet.mpvrx.ui.preferences
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -31,17 +32,27 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog as AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -58,6 +69,7 @@ import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import androidx.compose.material3.Text
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
@@ -92,7 +104,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.BuildConfig
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.RadioButton
 import app.gyrolet.mpvrx.preferences.BlacklistScope
@@ -100,12 +111,16 @@ import app.gyrolet.mpvrx.preferences.FoldersPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxChip
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBar
+import app.gyrolet.mpvrx.ui.browser.components.BrowserTopBarActionButton
 import app.gyrolet.mpvrx.ui.browser.selection.SelectionState
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
@@ -173,15 +188,6 @@ object FoldersPreferencesScreen : Screen {
         ).show()
       }
     }
-    val whitelistFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-      if (uri != null) {
-        // A MediaStore-backed folder can be selected using SAF without changing scan roots.
-        val allowedPath = ScopedHiddenFolderScanner.localPathOf(uri) ?: uri.toString()
-        preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() + allowedPath)
-        preferences.whitelistEnabled.set(true)
-        onScanPreferenceChanged()
-      }
-    }
 
     val blacklistedVideoFolders by preferences.blacklistedFolders.collectAsState()
     val blacklistedAudioFolders by preferences.blacklistedAudioFolders.collectAsState()
@@ -194,11 +200,6 @@ object FoldersPreferencesScreen : Screen {
     val scanMarkers by preferences.sharedScanMarkedFolders.collectAsState()
     val scanDotFolders by preferences.sharedScanDotFolders.collectAsState()
     val ignoredMarkers by preferences.sharedIgnoredMarkers.collectAsState()
-    var availableFolders by remember { mutableStateOf<List<VideoFolder>>(emptyList()) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var selectionState by remember { mutableStateOf(SelectionState<String>()) }
-    var showClearAllDialog by remember { mutableStateOf(false) }
     var discoveredHiddenFolders by remember { mutableStateOf<List<HiddenFolderCandidate>>(emptyList()) }
     var discoveringHiddenFolders by remember { mutableStateOf(true) }
     var discoveryRefresh by remember { mutableStateOf(0) }
@@ -275,9 +276,10 @@ object FoldersPreferencesScreen : Screen {
     val (settingsListState, settingsHighlight) =
       rememberSettingsSearchList(FoldersPreferencesScreen, MaterialTheme.colorScheme.primary)
 
-    val allBlacklistedFolders = remember(blacklistedVideoFolders, blacklistedAudioFolders) {
-      (blacklistedVideoFolders + blacklistedAudioFolders).toList().sorted()
-    }
+    val blacklistedFolderCount = (blacklistedVideoFolders + blacklistedAudioFolders).size
+    // The Play Store build adds its folder-access card above the shared hidden-scan rows.
+    val mediaGroupOffset = if (BuildConfig.SCOPED_STORAGE_ONLY) 1 else 0
+    val mediaGroupSize = mediaGroupOffset + HIDDEN_SCAN_ROW_COUNT + SCAN_FILTER_ROW_COUNT
 
     Scaffold(
       topBar = {
@@ -321,7 +323,7 @@ object FoldersPreferencesScreen : Screen {
             // SAF scanning remains restricted to folders explicitly selected by the user.
             PlayStoreHiddenFolderCard(
               enabled = includeNoMediaFolders,
-              shape = rememberConnectedShape(0, 6, ConnectedLayout.Vertical),
+              shape = rememberConnectedShape(0, mediaGroupSize, ConnectedLayout.Vertical),
               onEnabledChange = { enabled ->
                 preferences.includeNoMediaFolders.set(enabled)
                 onScanPreferenceChanged()
@@ -333,11 +335,9 @@ object FoldersPreferencesScreen : Screen {
           // One unified compact group; these settings apply to Library, Tree AND Folders.
           HiddenScanSettingsCard(
             enabled = includeNoMediaFolders,
-            shape = rememberConnectedShape(
-              if (BuildConfig.SCOPED_STORAGE_ONLY) 1 else 0,
-              if (BuildConfig.SCOPED_STORAGE_ONLY) 6 else 5,
-              ConnectedLayout.Vertical,
-            ),
+            shape = rememberConnectedShape(mediaGroupOffset, mediaGroupSize, ConnectedLayout.Vertical),
+            groupOffset = mediaGroupOffset,
+            groupSize = mediaGroupSize,
             showMasterToggle = !BuildConfig.SCOPED_STORAGE_ONLY,
             onEnabledChange = { preferences.includeNoMediaFolders.set(it); onScanPreferenceChanged() },
             libraryModeEnabled = libraryModeEnabled,
@@ -364,6 +364,25 @@ object FoldersPreferencesScreen : Screen {
               onScanPreferenceChanged()
             },
             modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
+          )
+          // Scan filters finish the Media Library group; they open a list of limits.
+          SettingsNavigationRow(
+            title = stringResource(R.string.pref_filter_short_videos),
+            summary = stringResource(R.string.pref_filter_short_videos_summary) + " · " +
+              scanDurationLabel(minVideoSeconds, noLimitLabel),
+            shape = rememberConnectedShape(mediaGroupSize - 2, mediaGroupSize, ConnectedLayout.Vertical),
+            onClick = { scanFilterDialog = ScanFilterDialog.VideoDuration },
+            showChevron = false,
+            modifier = Modifier.settingsSearchTarget(R.string.pref_filter_short_videos),
+          )
+          SettingsNavigationRow(
+            title = stringResource(R.string.pref_filter_small_files),
+            summary = stringResource(R.string.pref_filter_small_files_summary) + " · " +
+              scanSizeLabel(minFileBytes, noLimitLabel),
+            shape = rememberConnectedShape(mediaGroupSize - 1, mediaGroupSize, ConnectedLayout.Vertical),
+            onClick = { scanFilterDialog = ScanFilterDialog.FileSize },
+            showChevron = false,
+            modifier = Modifier.settingsSearchTarget(R.string.pref_filter_small_files),
           )
               }
           if (BuildConfig.SCOPED_STORAGE_ONLY) {
@@ -417,11 +436,35 @@ object FoldersPreferencesScreen : Screen {
                 title = stringResource(R.string.pref_storage_exclusions),
                 topPadding = 24.dp,
               )
-              PreferenceCard {
-                FolderActionPreference(
-                  title = R.string.pref_folder_manage_filters,
-                  summary = stringResource(R.string.pref_folders_summary),
-                  onClick = { backstack.navigateTo(FolderFiltersExclusionsScreen) },
+              Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+              ) {
+                SettingsNavigationRow(
+                  title = stringResource(R.string.pref_blacklist_title),
+                  summary =
+                    if (blacklistedFolderCount == 0) {
+                      stringResource(R.string.pref_folders_empty_title)
+                    } else {
+                      stringResource(R.string.pref_blacklist_count, blacklistedFolderCount)
+                    },
+                  icon = Icons.RoundedFilled.FolderOff,
+                  shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
+                  onClick = { backstack.navigateTo(FolderBlacklistScreen) },
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_blacklist_title),
+                )
+                SettingsNavigationRow(
+                  title = stringResource(R.string.pref_whitelist_title),
+                  summary =
+                    when {
+                      !whitelistEnabled -> stringResource(R.string.pref_whitelist_disabled)
+                      whitelist.isEmpty() -> stringResource(R.string.pref_whitelist_empty)
+                      else -> stringResource(R.string.pref_whitelist_count, whitelist.size)
+                    },
+                  icon = Icons.RoundedFilled.Folder,
+                  shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
+                  onClick = { backstack.navigateTo(FolderWhitelistScreen) },
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_whitelist_title),
                 )
               }
             }
@@ -433,11 +476,16 @@ object FoldersPreferencesScreen : Screen {
                 title = stringResource(R.string.pref_library_maintenance),
                 topPadding = 24.dp,
               )
-              PreferenceCard {
-                FolderActionPreference(
-                  title = R.string.pref_library_force_rescan,
+              Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+              ) {
+                SettingsNavigationRow(
+                  title = stringResource(R.string.pref_library_force_rescan),
                   summary = stringResource(R.string.pref_library_force_rescan_summary),
-                  enabled = !libraryTaskRunning,
+                  icon = Icons.RoundedFilled.Refresh,
+                  shape = rememberConnectedShape(0, 2, ConnectedLayout.Vertical),
+                  busy = libraryTaskRunning,
                   onClick = {
                     runLibraryTask(R.string.pref_library_rescan_done) {
                       invalidateLibraryScan(context) {
@@ -448,19 +496,41 @@ object FoldersPreferencesScreen : Screen {
                       }
                     }
                   },
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_library_force_rescan),
                 )
-                PreferenceDivider()
-                FolderActionPreference(
-                  title = R.string.pref_library_clear_cache,
+                SettingsNavigationRow(
+                  title = stringResource(R.string.pref_library_clear_cache),
                   summary = stringResource(R.string.pref_library_clear_cache_summary),
+                  icon = Icons.RoundedFilled.Delete,
+                  shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
                   enabled = !libraryTaskRunning,
                   onClick = { confirmClearCache = true },
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_library_clear_cache),
                 )
               }
             }
           }
         }
       }
+    }
+    when (scanFilterDialog) {
+      ScanFilterDialog.VideoDuration -> ScanFilterOptionsDialog(
+        title = R.string.pref_filter_short_videos,
+        options = VideoDurationFilterSeconds,
+        selected = minVideoSeconds,
+        label = { scanDurationLabel(it, noLimitLabel) },
+        onSelect = { preferences.minimumVideoDurationSeconds.set(it); onScanPreferenceChanged() },
+        onDismiss = { scanFilterDialog = null },
+      )
+      ScanFilterDialog.FileSize -> ScanFilterOptionsDialog(
+        title = R.string.pref_filter_small_files,
+        options = FileSizeFilterBytes,
+        selected = minFileBytes,
+        label = { scanSizeLabel(it, noLimitLabel) },
+        onSelect = { preferences.minimumMediaFileSizeBytes.set(it); onScanPreferenceChanged() },
+        onDismiss = { scanFilterDialog = null },
+      )
+      null -> Unit
     }
     if (confirmClearCache) {
       // Resolved only here so opening Folder settings never builds the metadata and thumbnail caches.
@@ -491,9 +561,13 @@ object FoldersPreferencesScreen : Screen {
   }
 }
 
-/** Scan filtering and folder exclusions are managed separately from scan-root configuration. */
+/**
+ * Blacklisted folders on a screen of their own. The list fills the height between the toolbar and
+ * the Add button and scrolls by itself, so the button and every row stay reachable on phones and
+ * tablets alike.
+ */
 @Serializable
-object FolderFiltersExclusionsScreen : Screen {
+object FolderBlacklistScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
@@ -501,14 +575,8 @@ object FolderFiltersExclusionsScreen : Screen {
     val backstack = LocalBackStack.current
     val coroutineScope = rememberCoroutineScope()
     val preferences = koinInject<FoldersPreferences>()
-    val minVideoSeconds by preferences.minimumVideoDurationSeconds.collectAsState()
-    val minFileBytes by preferences.minimumMediaFileSizeBytes.collectAsState()
     val blacklistedVideoFolders by preferences.blacklistedFolders.collectAsState()
     val blacklistedAudioFolders by preferences.blacklistedAudioFolders.collectAsState()
-    val whitelist by preferences.whitelistedFolders.collectAsState()
-    val whitelistEnabled by preferences.whitelistEnabled.collectAsState()
-    val noLimitLabel = stringResource(R.string.pref_filter_no_limit)
-    var scanFilterDialog by remember { mutableStateOf<ScanFilterDialog?>(null) }
     var selectionState by remember { mutableStateOf(SelectionState<String>()) }
     var showClearAllDialog by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -518,19 +586,26 @@ object FolderFiltersExclusionsScreen : Screen {
       (blacklistedVideoFolders + blacklistedAudioFolders).toList().sorted()
     }
     val (listState, highlight) =
-      rememberSettingsSearchList(FolderFiltersExclusionsScreen, MaterialTheme.colorScheme.primary)
-    val whitelistPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-      if (uri != null) {
-        val folder = ScopedHiddenFolderScanner.localPathOf(uri) ?: uri.toString()
-        preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() + folder)
-        preferences.whitelistEnabled.set(true)
-        invalidateLibraryScan(context)
+      rememberSettingsSearchList(FolderBlacklistScreen, MaterialTheme.colorScheme.primary)
+
+    fun openAddDialog() {
+      showAddDialog = true
+      isLoading = true
+      coroutineScope.launch(Dispatchers.IO) {
+        try {
+          availableFolders = scanAllMediaFolders(context.applicationContext as Application)
+        } finally {
+          isLoading = false
+        }
       }
     }
+
+    BackHandler(enabled = selectionState.isInSelectionMode) { selectionState = selectionState.clear() }
+
     Scaffold(
       topBar = {
         BrowserTopBar(
-          title = stringResource(R.string.pref_folder_manage_filters),
+          title = stringResource(R.string.pref_blacklist_title),
           colors = TopAppBarDefaults.topAppBarColors(),
           forceHeadlineSmall = true,
           isInSelectionMode = selectionState.isInSelectionMode,
@@ -550,84 +625,47 @@ object FolderFiltersExclusionsScreen : Screen {
           onDeselectAll = { selectionState = selectionState.clear() },
           additionalActions = {
             if (!selectionState.isInSelectionMode && allBlacklistedFolders.isNotEmpty()) {
-              IconButton(onClick = { showClearAllDialog = true }) {
-                Icon(
-                  Icons.RoundedFilled.Clear,
-                  contentDescription = stringResource(R.string.pref_folders_clear_all),
-                  tint = MaterialTheme.colorScheme.error,
-                )
-              }
+              BrowserTopBarActionButton(
+                icon = Icons.RoundedFilled.Clear,
+                contentDescription = stringResource(R.string.pref_folders_clear_all),
+                onClick = { showClearAllDialog = true },
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.settingsSearchTarget(R.string.pref_folders_clear_all),
+              )
             }
           },
           useRemoveIcon = true,
         )
       },
+      bottomBar = {
+        if (!selectionState.isInSelectionMode) {
+          FolderListAddBar(
+            text = stringResource(R.string.pref_folders_add_folder),
+            onClick = ::openAddDialog,
+            modifier = Modifier.settingsSearchTarget(R.string.pref_folders_add_folder),
+          )
+        }
+      },
     ) { padding ->
-      ProvideExpressivePreferenceLocals {
-        LazyColumn(
-          state = listState,
-          modifier = Modifier.fillMaxSize().padding(padding).then(highlight),
-          contentPadding = PaddingValues(bottom = 24.dp),
-          verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
-        ) {
-          if (!selectionState.isInSelectionMode) {
-            item(key = "scan-filters") {
-              Column {
-                PreferenceSectionHeader(
-                  title = stringResource(R.string.pref_scan_filters),
-                  position = PreferenceSectionPosition.First,
-                  topPadding = 8.dp,
-                )
-                PreferenceCard {
-                  FolderActionPreference(
-                    title = R.string.pref_filter_short_videos,
-                    summary = stringResource(R.string.pref_filter_short_videos_summary) + " · " +
-                      scanDurationLabel(minVideoSeconds, noLimitLabel),
-                    onClick = { scanFilterDialog = ScanFilterDialog.VideoDuration },
-                  )
-                  PreferenceDivider()
-                  FolderActionPreference(
-                    title = R.string.pref_filter_small_files,
-                    summary = stringResource(R.string.pref_filter_small_files_summary) + " · " +
-                      scanSizeLabel(minFileBytes, noLimitLabel),
-                    onClick = { scanFilterDialog = ScanFilterDialog.FileSize },
-                  )
-                }
-              }
-            }
-            item(key = "storage-heading") {
-              Column {
-                PreferenceSectionHeader(
-                  title = stringResource(R.string.pref_storage_exclusions),
-                  position = PreferenceSectionPosition.Middle,
-                  topPadding = 20.dp,
-                )
-                Text(
-                  stringResource(R.string.pref_folders_summary),
-                  modifier = Modifier.padding(horizontal = 20.dp),
-                  style = MaterialTheme.typography.bodyMedium,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                PreferenceSectionHeader(
-                  title = stringResource(R.string.pref_blacklist_title),
-                  position = PreferenceSectionPosition.Middle,
-                  topPadding = 20.dp,
-                )
-              }
-            }
+      Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        if (!selectionState.isInSelectionMode) {
+          FolderListIntro(stringResource(R.string.pref_blacklist_summary))
+        }
+        if (allBlacklistedFolders.isEmpty()) {
+          Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            EmptyState(
+              icon = Icons.RoundedFilled.FolderOff,
+              title = stringResource(R.string.pref_folders_empty_title),
+              message = stringResource(R.string.pref_folders_empty_message),
+            )
           }
-          if (allBlacklistedFolders.isEmpty()) {
-            if (!selectionState.isInSelectionMode) {
-              item(key = "blacklist-empty") {
-                Text(
-                  stringResource(R.string.pref_folders_empty_message),
-                  modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                  style = MaterialTheme.typography.bodyMedium,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
-            }
-          } else {
+        } else {
+          LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth().then(highlight),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+          ) {
             itemsIndexed(allBlacklistedFolders, key = { _, path -> path }) { index, folderPath ->
               val isVideo = folderPath in blacklistedVideoFolders
               val isAudio = folderPath in blacklistedAudioFolders
@@ -636,154 +674,23 @@ object FolderFiltersExclusionsScreen : Screen {
                 isVideo -> BlacklistScope.VIDEO_ONLY
                 else -> BlacklistScope.AUDIO_ONLY
               }
-              Box(Modifier.padding(horizontal = 16.dp)) {
-                BlacklistedFolderItem(
-                  folderPath = folderPath,
-                  shape = rememberConnectedShape(index, allBlacklistedFolders.size, ConnectedLayout.Vertical),
-                  scope = scope,
-                  isSelected = selectionState.isSelected(folderPath),
-                  isInSelectionMode = selectionState.isInSelectionMode,
-                  onRemove = { preferences.removeBlacklistedFolder(folderPath) },
-                  onScopeChange = { preferences.addBlacklistedFolders(setOf(folderPath), it) },
-                  onLongClick = { selectionState = selectionState.toggle(folderPath) },
-                  onClick = {
-                    if (selectionState.isInSelectionMode) selectionState = selectionState.toggle(folderPath)
-                  },
-                )
-              }
-            }
-          }
-          if (!selectionState.isInSelectionMode) {
-            item(key = "blacklist-add") {
-              Card(
+              BlacklistedFolderItem(
+                folderPath = folderPath,
+                shape = rememberConnectedShape(index, allBlacklistedFolders.size, ConnectedLayout.Vertical),
+                scope = scope,
+                isSelected = selectionState.isSelected(folderPath),
+                isInSelectionMode = selectionState.isInSelectionMode,
+                onRemove = { preferences.removeBlacklistedFolder(folderPath) },
+                onScopeChange = { preferences.addBlacklistedFolders(setOf(folderPath), it) },
+                onLongClick = { selectionState = selectionState.toggle(folderPath) },
                 onClick = {
-                  showAddDialog = true
-                  isLoading = true
-                  coroutineScope.launch(Dispatchers.IO) {
-                    try {
-                      availableFolders = scanAllMediaFolders(context.applicationContext as Application)
-                    } finally {
-                      isLoading = false
-                    }
-                  }
+                  if (selectionState.isInSelectionMode) selectionState = selectionState.toggle(folderPath)
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-                  .settingsSearchTarget(R.string.pref_folders_add_folder),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-              ) {
-                Row(
-                  Modifier.fillMaxWidth().padding(16.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                  horizontalArrangement = Arrangement.Center,
-                ) {
-                  Icon(Icons.RoundedFilled.Add, contentDescription = null)
-                  Spacer(Modifier.size(8.dp))
-                  Text(
-                    stringResource(R.string.pref_folders_add_folder),
-                    style = MaterialTheme.typography.titleMedium,
-                  )
-                }
-              }
-            }
-            item(key = "whitelist-heading") {
-              PreferenceSectionHeader(
-                title = stringResource(R.string.pref_whitelist_title),
-                position = PreferenceSectionPosition.Last,
-                topPadding = 20.dp,
               )
-            }
-            item(key = "whitelist-toggle") {
-              PreferenceCard {
-                SwitchPreference(
-                  value = whitelistEnabled,
-                  onValueChange = { enabled ->
-                    if (enabled && whitelist.isEmpty()) whitelistPicker.launch(null)
-                    else {
-                      preferences.whitelistEnabled.set(enabled)
-                      invalidateLibraryScan(context)
-                    }
-                  },
-                  title = { Text(stringResource(R.string.pref_whitelist_enable)) },
-                  summary = {
-                    Text(
-                      if (whitelist.isEmpty()) stringResource(R.string.pref_whitelist_empty)
-                      else stringResource(R.string.pref_whitelist_count, whitelist.size),
-                    )
-                  },
-                )
-              }
-            }
-            itemsIndexed(whitelist.sorted(), key = { _, path -> "allowed:$path" }) { index, path ->
-              Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = rememberConnectedShape(index, whitelist.size + 1, ConnectedLayout.Vertical),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-              ) {
-                Row(
-                  Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-                  verticalAlignment = Alignment.CenterVertically,
-                ) {
-                  Column(Modifier.weight(1f)) {
-                    Text(leafStorageName(path), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                      path,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                  }
-                  IconButton(onClick = {
-                    preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() - path)
-                    invalidateLibraryScan(context)
-                  }) {
-                    Icon(
-                      Icons.RoundedFilled.RemoveCircle,
-                      contentDescription = stringResource(R.string.delete),
-                      tint = MaterialTheme.colorScheme.error,
-                    )
-                  }
-                }
-              }
-            }
-            item(key = "whitelist-add") {
-              Card(
-                onClick = { whitelistPicker.launch(null) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = rememberConnectedShape(whitelist.size, whitelist.size + 1, ConnectedLayout.Vertical),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-              ) {
-                Row(
-                  Modifier.fillMaxWidth().padding(16.dp),
-                  horizontalArrangement = Arrangement.Center,
-                  verticalAlignment = Alignment.CenterVertically,
-                ) {
-                  Icon(Icons.RoundedFilled.Add, contentDescription = null)
-                  Spacer(Modifier.size(8.dp))
-                  Text(stringResource(R.string.pref_whitelist_add), style = MaterialTheme.typography.titleMedium)
-                }
-              }
             }
           }
         }
       }
-    }
-    when (scanFilterDialog) {
-      ScanFilterDialog.VideoDuration -> ScanFilterOptionsDialog(
-        title = R.string.pref_filter_short_videos,
-        options = VideoDurationFilterSeconds,
-        selected = minVideoSeconds,
-        label = { scanDurationLabel(it, noLimitLabel) },
-        onSelect = { preferences.minimumVideoDurationSeconds.set(it); invalidateLibraryScan(context) },
-        onDismiss = { scanFilterDialog = null },
-      )
-      ScanFilterDialog.FileSize -> ScanFilterOptionsDialog(
-        title = R.string.pref_filter_small_files,
-        options = FileSizeFilterBytes,
-        selected = minFileBytes,
-        label = { scanSizeLabel(it, noLimitLabel) },
-        onSelect = { preferences.minimumMediaFileSizeBytes.set(it); invalidateLibraryScan(context) },
-        onDismiss = { scanFilterDialog = null },
-      )
-      null -> Unit
     }
     if (showAddDialog) {
       AddFolderDialog(
@@ -811,6 +718,225 @@ object FolderFiltersExclusionsScreen : Screen {
           }
         },
       )
+    }
+  }
+}
+
+/** Whitelisted folders on a screen of their own, laid out like [FolderBlacklistScreen]. */
+@Serializable
+object FolderWhitelistScreen : Screen {
+  @OptIn(ExperimentalMaterial3Api::class)
+  @Composable
+  override fun Content() {
+    val context = LocalContext.current
+    val backstack = LocalBackStack.current
+    val preferences = koinInject<FoldersPreferences>()
+    val whitelist by preferences.whitelistedFolders.collectAsState()
+    val whitelistEnabled by preferences.whitelistEnabled.collectAsState()
+    val sortedWhitelist = remember(whitelist) { whitelist.sorted() }
+    val (listState, highlight) =
+      rememberSettingsSearchList(FolderWhitelistScreen, MaterialTheme.colorScheme.primary)
+    val whitelistPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+      if (uri != null) {
+        // A MediaStore-backed folder can be selected using SAF without changing scan roots.
+        val folder = ScopedHiddenFolderScanner.localPathOf(uri) ?: uri.toString()
+        preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() + folder)
+        preferences.whitelistEnabled.set(true)
+        invalidateLibraryScan(context)
+      }
+    }
+
+    Scaffold(
+      topBar = {
+        BrowserTopBar(
+          title = stringResource(R.string.pref_whitelist_title),
+          colors = TopAppBarDefaults.topAppBarColors(),
+          forceHeadlineSmall = true,
+          isInSelectionMode = false,
+          selectedCount = 0,
+          totalCount = 0,
+          onCancelSelection = {},
+          onBackClick = { backstack.popSafely() },
+        )
+      },
+      bottomBar = {
+        FolderListAddBar(
+          text = stringResource(R.string.pref_whitelist_add),
+          onClick = { whitelistPicker.launch(null) },
+          modifier = Modifier.settingsSearchTarget(R.string.pref_whitelist_add),
+        )
+      },
+    ) { padding ->
+      Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        FolderListIntro(stringResource(R.string.pref_whitelist_summary))
+        ProvideExpressivePreferenceLocals {
+          PreferenceCard {
+            SwitchPreference(
+              modifier = Modifier.settingsSearchTarget(R.string.pref_whitelist_enable),
+              value = whitelistEnabled,
+              onValueChange = { enabled ->
+                if (enabled && whitelist.isEmpty()) {
+                  whitelistPicker.launch(null)
+                } else {
+                  preferences.whitelistEnabled.set(enabled)
+                  invalidateLibraryScan(context)
+                }
+              },
+              title = { Text(stringResource(R.string.pref_whitelist_enable)) },
+              summary = {
+                Text(
+                  if (whitelist.isEmpty()) {
+                    stringResource(R.string.pref_whitelist_empty)
+                  } else {
+                    stringResource(R.string.pref_whitelist_count, whitelist.size)
+                  },
+                )
+              },
+            )
+          }
+        }
+        if (sortedWhitelist.isEmpty()) {
+          Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            EmptyState(
+              icon = Icons.RoundedFilled.Folder,
+              title = stringResource(R.string.pref_whitelist_empty),
+              message = stringResource(R.string.pref_whitelist_empty_message),
+            )
+          }
+        } else {
+          LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth().then(highlight),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
+          ) {
+            itemsIndexed(sortedWhitelist, key = { _, path -> path }) { index, path ->
+              WhitelistedFolderItem(
+                folderPath = path,
+                shape = rememberConnectedShape(index, sortedWhitelist.size, ConnectedLayout.Vertical),
+                active = whitelistEnabled,
+                onRemove = {
+                  preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() - path)
+                  invalidateLibraryScan(context)
+                },
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Short explanation above a folder list; not shown while selecting. */
+@Composable
+private fun FolderListIntro(text: String) {
+  Text(
+    text = text,
+    style = MaterialTheme.typography.bodyMedium,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 4.dp),
+  )
+}
+
+/** The Add button pinned below a folder list, above the system navigation bar. */
+@Composable
+private fun FolderListAddBar(
+  text: String,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Box(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+        .padding(horizontal = 16.dp, vertical = 12.dp),
+  ) {
+    Button(
+      onClick = onClick,
+      modifier =
+        modifier
+          .fillMaxWidth()
+          .heightIn(min = 56.dp)
+          .tvFocusHighlight(CircleShape, focusedScale = 1.02f, clipToShape = false),
+      colors =
+        ButtonDefaults.buttonColors(
+          containerColor = MaterialTheme.colorScheme.primaryContainer,
+          contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+      Icon(Icons.RoundedFilled.CreateNewFolder, contentDescription = null, modifier = Modifier.size(22.dp))
+      Spacer(Modifier.width(10.dp))
+      Text(text, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+  }
+}
+
+@Composable
+private fun WhitelistedFolderItem(
+  folderPath: String,
+  shape: Shape,
+  active: Boolean,
+  onRemove: () -> Unit,
+) {
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    shape = shape,
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      FolderRowIcon(
+        icon = Icons.RoundedFilled.Folder,
+        tinted = active,
+      )
+      Spacer(Modifier.width(14.dp))
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+          text = leafStorageName(folderPath),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+          text = folderPath,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+      IconButton(
+        onClick = onRemove,
+        modifier = Modifier.tvFocusHighlight(CircleShape, focusedScale = 1.06f),
+      ) {
+        Icon(
+          imageVector = Icons.RoundedFilled.RemoveCircle,
+          contentDescription = stringResource(R.string.delete),
+          tint = MaterialTheme.colorScheme.error,
+        )
+      }
+    }
+  }
+}
+
+/** Tonal icon tile shared by the blacklist and whitelist rows; muted while the list is inactive. */
+@Composable
+private fun FolderRowIcon(
+  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  tinted: Boolean,
+) {
+  Surface(
+    shape = MaterialTheme.shapes.large,
+    color = if (tinted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+    contentColor = if (tinted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+  ) {
+    Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+      Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
     }
   }
 }
@@ -1156,6 +1282,9 @@ private fun CompactHiddenScanOption(
 private fun HiddenScanSettingsCard(
   enabled: Boolean,
   shape: Shape,
+  // Position of this card's first row in the caller's connected group, and the group's size.
+  groupOffset: Int,
+  groupSize: Int,
   showMasterToggle: Boolean,
   onEnabledChange: (Boolean) -> Unit,
   libraryModeEnabled: Boolean,
@@ -1188,8 +1317,7 @@ private fun HiddenScanSettingsCard(
   }
 
   // Each setting draws its own connected surface; avoid one oversized parent card.
-  val offset = if (BuildConfig.SCOPED_STORAGE_ONLY) 1 else 0
-  val groupSize = 5 + offset
+  val offset = groupOffset
   Column(
     modifier = modifier.fillMaxWidth(),
     verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
@@ -1407,53 +1535,51 @@ private fun BlacklistedFolderItem(
       modifier =
         Modifier
           .fillMaxWidth()
+          .tvContextMenu(onLongClick)
           .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-          .padding(16.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
+          .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-        if (isInSelectionMode) {
-          Checkbox(checked = isSelected, onCheckedChange = null, modifier = Modifier.padding(end = 8.dp))
-        }
-        Column {
-          Text(
-            text = leafStorageName(folderPath),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+      if (isInSelectionMode) {
+        Checkbox(checked = isSelected, onCheckedChange = null, modifier = Modifier.size(40.dp))
+      } else {
+        FolderRowIcon(icon = Icons.RoundedFilled.FolderOff, tinted = true)
+      }
+      Spacer(Modifier.width(14.dp))
+      Column(
+        modifier = Modifier.weight(1f),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+      ) {
+        Text(
+          text = leafStorageName(folderPath),
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.SemiBold,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+          text = folderPath,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+        if (!isInSelectionMode) {
+          Spacer(modifier = Modifier.height(4.dp))
+          AppComboBoxChip(
+            options = BlacklistScope.entries,
+            selected = scope,
+            onSelect = onScopeChange,
+            optionLabel = { blacklistScopeLabel(it) },
+            contentDescription = stringResource(R.string.folder_blacklist_scope),
           )
-          Text(
-            text = folderPath,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-          if (!isInSelectionMode) {
-            Spacer(modifier = Modifier.height(4.dp))
-            AssistChip(
-              onClick = {
-                val nextScope = when (scope) {
-                  BlacklistScope.BOTH -> BlacklistScope.VIDEO_ONLY
-                  BlacklistScope.VIDEO_ONLY -> BlacklistScope.AUDIO_ONLY
-                  BlacklistScope.AUDIO_ONLY -> BlacklistScope.BOTH
-                }
-                onScopeChange(nextScope)
-              },
-              label = {
-                Text(
-                  text = when (scope) {
-                    BlacklistScope.BOTH -> stringResource(R.string.folder_blacklist_both)
-                    BlacklistScope.VIDEO_ONLY -> stringResource(R.string.folder_blacklist_video)
-                    BlacklistScope.AUDIO_ONLY -> stringResource(R.string.folder_blacklist_audio)
-                  },
-                  style = MaterialTheme.typography.labelSmall
-                )
-              }
-            )
-          }
         }
       }
       if (!isInSelectionMode) {
-        IconButton(onClick = onRemove) {
+        IconButton(
+          onClick = onRemove,
+          modifier = Modifier.tvFocusHighlight(CircleShape, focusedScale = 1.06f),
+        ) {
           Icon(
             imageVector = Icons.RoundedFilled.RemoveCircle,
             contentDescription = stringResource(R.string.delete),
@@ -1464,6 +1590,16 @@ private fun BlacklistedFolderItem(
     }
   }
 }
+
+@Composable
+private fun blacklistScopeLabel(scope: BlacklistScope): String =
+  stringResource(
+    when (scope) {
+      BlacklistScope.BOTH -> R.string.folder_blacklist_both
+      BlacklistScope.VIDEO_ONLY -> R.string.folder_blacklist_video
+      BlacklistScope.AUDIO_ONLY -> R.string.folder_blacklist_audio
+    },
+  )
 
 @Composable
 private fun AddFolderDialog(
@@ -1689,24 +1825,6 @@ private fun <T> ScanFilterOptionsDialog(
   )
 }
 
-@Composable
-private fun FolderActionPreference(
-  @StringRes title: Int,
-  summary: String,
-  onClick: () -> Unit,
-  enabled: Boolean = true,
-) {
-  ExpressivePreferenceItem {
-    me.zhanghai.compose.preference.Preference(
-      modifier = Modifier.settingsSearchTarget(title),
-      title = { Text(stringResource(title)) },
-      summary = { Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-      enabled = enabled,
-      onClick = onClick,
-    )
-  }
-}
-
 /** Drops every cached listing, runs [rebuild], then tells open lists to reload with the new settings. */
 private inline fun invalidateLibraryScan(
   context: Context,
@@ -1721,6 +1839,10 @@ private inline fun invalidateLibraryScan(
 
 private val VideoDurationFilterSeconds = listOf(0, 5, 15, 30, 60)
 private val FileSizeFilterBytes = listOf(0L, 500L * 1024L, 1024L * 1024L, 5L * 1024L * 1024L)
+
+// Rows drawn by HiddenScanSettingsCard, and the scan-filter rows that complete its group.
+private const val HIDDEN_SCAN_ROW_COUNT = 5
+private const val SCAN_FILTER_ROW_COUNT = 2
 
 private fun scanDurationLabel(seconds: Int, noLimit: String): String = if (seconds == 0) noLimit else "${seconds}s"
 

@@ -40,9 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.fonts.GoogleFontsRepository
@@ -53,6 +51,7 @@ import app.gyrolet.mpvrx.preferences.SubtitleJustification
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
 import app.gyrolet.mpvrx.preferences.preference.deleteAndGet
 import app.gyrolet.mpvrx.presentation.components.ExpandableCard
+import app.gyrolet.mpvrx.presentation.components.AppComboBox
 import app.gyrolet.mpvrx.presentation.components.ExposedTextDropDownMenu
 import app.gyrolet.mpvrx.presentation.components.SliderItem
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -70,10 +69,6 @@ import app.gyrolet.mpvrx.utils.media.subtitleFontChoices
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.ListPreferenceType
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
-import me.zhanghai.compose.preference.preferenceTheme
 import org.koin.compose.koinInject
 
 @Composable
@@ -83,7 +78,6 @@ fun SubtitleSettingsTypographyCard(
   shape: Shape = MaterialTheme.shapes.large,
 ) {
   val context = LocalContext.current
-  val resources = LocalResources.current
   val preferences = koinInject<SubtitlesPreferences>()
   val appearancePreferences = koinInject<AppearancePreferences>()
   val googleFontsRepository = koinInject<GoogleFontsRepository>()
@@ -287,24 +281,28 @@ fun SubtitleSettingsTypographyCard(
         }
       }
       PanelConnectedTile(index = 3, itemCount = 6) {
-        ProvidePreferenceLocals(
-        theme = preferenceTheme(iconContainerMinWidth = 64.dp),
-      ) {
-        ListPreference(
-          borderStyle,
-          onValueChange = {
-            preferences.borderStyle.set(it)
-            PlaybackSession.setPropertyString("sub-border-style", it.value)
-          },
-          title = { Text(stringResource(R.string.player_sheets_subtitles_border_style)) },
-          valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
-          values = SubtitlesBorderStyle.entries,
-          enabled = !ownsAny(borderStyleOptions),
-          type = ListPreferenceType.DROPDOWN_MENU,
-          summary = { Text(stringResource(borderStyle.titleRes)) },
-          icon = { Icon(Icons.RoundedFilled.BorderStyle, null) },
-        )
-      }
+        Row(
+          modifier = Modifier.padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.small),
+          horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(
+            Icons.RoundedFilled.BorderStyle,
+            null,
+            modifier = Modifier.size(32.dp),
+          )
+          AppComboBox(
+            options = SubtitlesBorderStyle.entries,
+            selected = borderStyle,
+            onSelect = {
+              preferences.borderStyle.set(it)
+              PlaybackSession.setPropertyString("sub-border-style", it.value)
+            },
+            optionLabel = { stringResource(it.titleRes) },
+            label = stringResource(R.string.player_sheets_subtitles_border_style),
+            enabled = !ownsAny(borderStyleOptions),
+          )
+        }
       }
       PanelConnectedTile(index = 4, itemCount = 6) {
         SliderItem(

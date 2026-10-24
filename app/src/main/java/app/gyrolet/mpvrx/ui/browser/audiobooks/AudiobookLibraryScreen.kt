@@ -118,6 +118,8 @@ import app.gyrolet.mpvrx.preferences.MediaServerPreferences
 import app.gyrolet.mpvrx.preferences.SortOrder
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxChip
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxOption
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSearchField
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
@@ -327,141 +329,49 @@ fun AudiobookLibraryContent(
         } else null,
           preSearchActions = {
             if (absState.servers.isNotEmpty()) {
-              var isSourceDropdownOpen by remember { mutableStateOf(false) }
-              Box {
-                Surface(
-                  shape = RoundedCornerShape(16.dp),
-                  color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-                  modifier = Modifier
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-                    .clickable { isSourceDropdownOpen = true },
-                ) {
-                  Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                  ) {
-                    when (currentSource) {
-                      AudiobookSourceProvider.AUDIOBOOKSHELF -> {
-                        androidx.compose.material3.Icon(
-                          painter = painterResource(R.drawable.ic_audiobookshelf),
-                          contentDescription = null,
-                          modifier = Modifier.size(16.dp),
-                          tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                      }
-                      else -> {
-                        Icon(
-                          Icons.RoundedFilled.Folder,
-                          contentDescription = null,
-                          modifier = Modifier.size(16.dp),
-                          tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        )
-                      }
-                    }
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                      text = when (currentSource) {
-                        AudiobookSourceProvider.AUDIOBOOKSHELF -> absState.activeServer?.name ?: stringResource(R.string.audiobook_source_audiobookshelf)
-                        else -> stringResource(R.string.audiobook_source_local)
-                      },
-                      style = MaterialTheme.typography.labelMedium,
-                      fontWeight = FontWeight.Bold,
-                      color = MaterialTheme.colorScheme.onSecondaryContainer,
-                      modifier = Modifier.widthIn(max = 144.dp),
-                      maxLines = 1,
-                      overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Icon(
-                      Icons.RoundedFilled.ArrowDropDown,
-                      contentDescription = null,
-                      modifier = Modifier.size(16.dp),
-                      tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
+              AppComboBoxChip(
+                options = AudiobookSourceProvider.entries,
+                selected = currentSource,
+                onSelect = { mediaServerPreferences.audiobookSourceProvider.set(it) },
+                optionLabel = { source ->
+                  when (source) {
+                    AudiobookSourceProvider.AUDIOBOOKSHELF -> stringResource(R.string.audiobook_source_audiobookshelf)
+                    AudiobookSourceProvider.LOCAL -> stringResource(R.string.audiobook_source_local)
                   }
-                }
-
-                DropdownMenu(
-                  expanded = isSourceDropdownOpen,
-                  onDismissRequest = { isSourceDropdownOpen = false },
-                ) {
-                  DropdownMenuItem(
-                    text = {
-                      Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                      ) {
-                        Text(stringResource(R.string.audiobook_source_local))
-                        if (currentSource == AudiobookSourceProvider.LOCAL) {
-                          Spacer(Modifier.width(12.dp))
-                          Icon(
-                            Icons.RoundedFilled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                          )
-                        }
-                      }
-                    },
-                    leadingIcon = {
-                      Icon(Icons.RoundedFilled.Folder, contentDescription = null)
-                    },
-                    selected = currentSource == AudiobookSourceProvider.LOCAL,
-                    onClick = {
-                      mediaServerPreferences.audiobookSourceProvider.set(AudiobookSourceProvider.LOCAL)
-                      isSourceDropdownOpen = false
-                    },
+                },
+                // The connected server's name says more than the generic source name.
+                valueText =
+                  when (currentSource) {
+                    AudiobookSourceProvider.AUDIOBOOKSHELF ->
+                      absState.activeServer?.name ?: stringResource(R.string.audiobook_source_audiobookshelf)
+                    AudiobookSourceProvider.LOCAL -> stringResource(R.string.audiobook_source_local)
+                  },
+                leadingIcon = { AudiobookSourceIcon(currentSource) },
+                optionLeadingIcon = { AudiobookSourceIcon(it) },
+                footer = { dismiss ->
+                  HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
                   )
-
-                  DropdownMenuItem(
-                    text = {
-                      Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth(),
-                      ) {
-                        Text(stringResource(R.string.audiobook_source_audiobookshelf))
-                        if (currentSource == AudiobookSourceProvider.AUDIOBOOKSHELF) {
-                          Spacer(Modifier.width(12.dp))
-                          Icon(
-                            Icons.RoundedFilled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                          )
-                        }
-                      }
-                    },
+                  AppComboBoxOption(
+                    text = stringResource(R.string.pref_media_servers_title),
+                    selected = false,
+                    index = 0,
+                    itemCount = 1,
                     leadingIcon = {
-                      androidx.compose.material3.Icon(
-                        painter = painterResource(R.drawable.ic_audiobookshelf),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                      )
+                      Icon(Icons.RoundedFilled.Settings, contentDescription = null, modifier = Modifier.size(20.dp))
                     },
-                    selected = currentSource == AudiobookSourceProvider.AUDIOBOOKSHELF,
-                    onClick = {
-                      mediaServerPreferences.audiobookSourceProvider.set(AudiobookSourceProvider.AUDIOBOOKSHELF)
-                      isSourceDropdownOpen = false
-                    },
-                  )
-
-                  HorizontalDivider()
-
-                  DropdownMenuItem(
-                    text = { Text(stringResource(R.string.pref_media_servers_title)) },
-                    leadingIcon = {
-                      Icon(Icons.RoundedFilled.Settings, contentDescription = null)
+                    trailingContent = {
+                      Icon(Icons.RoundedFilled.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
                     },
                     onClick = {
-                      isSourceDropdownOpen = false
+                      dismiss()
                       backStack.navigateTo(MediaServersPreferencesScreen)
                     },
                   )
-                }
-              }
+                },
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp).widthIn(max = 200.dp),
+              )
             }
           },
           additionalActions = {
@@ -1657,5 +1567,19 @@ private fun AudiobookListRow(
         )
       }
     }
+  }
+}
+
+@Composable
+private fun AudiobookSourceIcon(source: AudiobookSourceProvider) {
+  when (source) {
+    AudiobookSourceProvider.AUDIOBOOKSHELF ->
+      androidx.compose.material3.Icon(
+        painter = painterResource(R.drawable.ic_audiobookshelf),
+        contentDescription = null,
+        modifier = Modifier.size(20.dp),
+      )
+    AudiobookSourceProvider.LOCAL ->
+      Icon(Icons.RoundedFilled.Folder, contentDescription = null, modifier = Modifier.size(20.dp))
   }
 }

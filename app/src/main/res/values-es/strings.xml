@@ -2848,9 +2848,24 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">Filtros y exclusiones</string>
   <string name="clip_audio_track">Pista de audio</string>
   <string name="clip_subtitle_track">Pista de subtítulos</string>
   <string name="clip_burn_subtitles">Incrustar subtítulos en el vídeo</string>
   <string name="clip_track_auto_off">Automático / Desactivado</string>
+  <string name="pref_blacklist_count">%1$d carpetas en la lista negra</string>
+  <string name="pref_whitelist_disabled">Lista blanca desactivada</string>
+  <string name="pref_blacklist_summary">Las carpetas de esta lista se ocultan de tu contenido. Elige para cada carpeta si se ocultan sus vídeos, su audio o ambos.</string>
+  <string name="pref_whitelist_summary">Con la lista blanca activada, solo se analizan estas carpetas y sus subcarpetas. Si no añades ninguna, no se restringe nada.</string>
+  <string name="pref_whitelist_empty_message">Toca el botón inferior para añadir carpetas que quieras analizar</string>
+  <string name="clip_section_range">Rango</string>
+  <string name="clip_section_output">Salida</string>
+  <string name="clip_set_start_here">Fijar el inicio en la posición actual</string>
+  <string name="clip_set_end_here">Fijar el fin en la posición actual</string>
+  <string name="clip_length">Duración del clip</string>
+  <string name="clip_preview">Previsualizar clip</string>
+  <string name="clip_nudge_back">0,1 s antes</string>
+  <string name="clip_nudge_forward">0,1 s después</string>
+  <string name="clip_quick_length">Duración rápida</string>
+  <string name="clip_length_seconds">%1$d s</string>
+  <string name="clip_crop_reset">Usar fotograma completo</string>
 </resources>

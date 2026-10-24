@@ -2820,9 +2820,24 @@
   <string name="pref_persistent_status_time_unknown">—</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">Фільтри та виключення</string>
   <string name="clip_audio_track">Аудіодоріжка</string>
   <string name="clip_subtitle_track">Доріжка субтитрів</string>
   <string name="clip_burn_subtitles">Вбудувати субтитри у відео</string>
   <string name="clip_track_auto_off">Автоматично / Вимк.</string>
+  <string name="pref_blacklist_count">Папок у чорному списку: %1$d</string>
+  <string name="pref_whitelist_disabled">Білий список вимкнено</string>
+  <string name="pref_blacklist_summary">Папки з цього списку приховано з ваших медіафайлів. Для кожної папки виберіть, що приховувати: відео, аудіо чи обидва.</string>
+  <string name="pref_whitelist_summary">Коли білий список увімкнено, скануються лише ці папки та їхні підпапки. Якщо папки не додано, нічого не обмежується.</string>
+  <string name="pref_whitelist_empty_message">Натисніть кнопку нижче, щоб додати папки для сканування</string>
+  <string name="clip_section_range">Діапазон</string>
+  <string name="clip_section_output">Вивід</string>
+  <string name="clip_set_start_here">Початок у поточній позиції</string>
+  <string name="clip_set_end_here">Кінець у поточній позиції</string>
+  <string name="clip_length">Тривалість кліпу</string>
+  <string name="clip_preview">Попередній перегляд кліпу</string>
+  <string name="clip_nudge_back">На 0,1 с раніше</string>
+  <string name="clip_nudge_forward">На 0,1 с пізніше</string>
+  <string name="clip_quick_length">Швидкий вибір тривалості</string>
+  <string name="clip_length_seconds">%1$d с</string>
+  <string name="clip_crop_reset">Використати повний кадр</string>
 </resources>

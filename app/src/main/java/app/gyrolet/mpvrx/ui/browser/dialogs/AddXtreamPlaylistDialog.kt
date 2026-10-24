@@ -19,8 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -46,6 +44,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxMenu
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxOption
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.data.network.XtreamServerAddress
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -148,16 +148,17 @@ fun AddXtreamPlaylistDialog(
               } else null,
               modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
             )
-            ExposedDropdownMenu(
-        shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
-        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
-        expanded = serversExpanded && serverSuggestions.isNotEmpty(),
+            AppComboBoxMenu(
+              expanded = serversExpanded && serverSuggestions.isNotEmpty(),
               onDismissRequest = { serversExpanded = false },
             ) {
-              serverSuggestions.forEach { url ->
-                DropdownMenuItem(
-                  text = { Text(url) },
-                  trailingIcon = { Text("Xtream", style = MaterialTheme.typography.labelSmall) },
+              serverSuggestions.forEachIndexed { index, url ->
+                AppComboBoxOption(
+                  text = url,
+                  selected = url == serverUrl,
+                  index = index,
+                  itemCount = serverSuggestions.size,
+                  trailingContent = { Text("Xtream", style = MaterialTheme.typography.labelSmall) },
                   onClick = { serverUrl = url; serversExpanded = false; errorMessage = null },
                 )
               }

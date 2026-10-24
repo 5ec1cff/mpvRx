@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,11 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.lyrics.LyricsProvider
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxChipAnchor
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 
@@ -51,23 +49,13 @@ fun LyricsProviderPicker(
       else -> stringResource(R.string.lyrics_provider_auto)
     }
 
-  FilterChip(
-    modifier = modifier,
-    selected = preferredProvider != null || onlineProvider != null,
+  // Opens the provider sheet, but looks and behaves like every other combobox in the app.
+  AppComboBoxChipAnchor(
+    text = label,
+    expanded = false,
     onClick = onOpenSheet,
     enabled = enabled,
-    label = { Text(label, fontWeight = FontWeight.Bold) },
-    trailingIcon = {
-      Icon(
-        imageVector = Icons.RoundedFilled.ArrowDropDown,
-        contentDescription = null,
-      )
-    },
-    colors =
-      FilterChipDefaults.filterChipColors(
-        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-      ),
+    modifier = modifier,
   )
 }
 

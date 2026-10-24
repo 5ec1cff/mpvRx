@@ -818,7 +818,7 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_add_folder,
           keywords = listOf("add", "folder", "exclude", "blacklist"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FolderBlacklistScreen,
         ),
       )
       add(
@@ -826,39 +826,57 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_clear_all,
           keywords = listOf("clear", "all", "folders", "blacklist", "reset"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FolderBlacklistScreen,
         ),
       )
       add(
         SearchablePreference(
-          titleRes = R.string.pref_folder_manage_filters,
-          keywords = listOf("scan", "filter", "blacklist", "whitelist", "excluded", "short", "size"),
+          titleRes = R.string.pref_blacklist_title,
+          summaryRes = R.string.pref_blacklist_summary,
+          keywords = listOf("blacklist", "exclude", "excluded", "hide", "folder", "audio", "video"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FoldersPreferencesScreen,
         ),
       )
       add(
         SearchablePreference(
           titleRes = R.string.pref_filter_short_videos,
-          keywords = listOf("minimum duration", "short videos", "filter"),
+          keywords = listOf("minimum duration", "short videos", "filter", "scan"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FoldersPreferencesScreen,
         ),
       )
       add(
         SearchablePreference(
           titleRes = R.string.pref_filter_small_files,
-          keywords = listOf("small files", "minimum size", "filter"),
+          keywords = listOf("small files", "minimum size", "filter", "scan"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FoldersPreferencesScreen,
         ),
       )
       add(
         SearchablePreference(
           titleRes = R.string.pref_whitelist_title,
-          keywords = listOf("include", "allow", "folder", "whitelist"),
+          summaryRes = R.string.pref_whitelist_summary,
+          keywords = listOf("include", "allow", "folder", "whitelist", "only"),
           category = "Folders",
-          screen = FolderFiltersExclusionsScreen,
+          screen = FoldersPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_enable,
+          keywords = listOf("whitelist", "enable", "only", "scan", "restrict"),
+          category = "Folders",
+          screen = FolderWhitelistScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_add,
+          keywords = listOf("whitelist", "add", "folder", "include", "allow"),
+          category = "Folders",
+          screen = FolderWhitelistScreen,
         ),
       )
       // Decoder preferences

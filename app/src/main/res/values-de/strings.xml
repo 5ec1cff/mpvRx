@@ -2848,9 +2848,24 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">Filter &amp; Ausschlüsse</string>
   <string name="clip_audio_track">Audiospur</string>
   <string name="clip_subtitle_track">Untertitelspur</string>
   <string name="clip_burn_subtitles">Untertitel in Video einbrennen</string>
   <string name="clip_track_auto_off">Automatisch / Aus</string>
+  <string name="pref_blacklist_count">%1$d gesperrte Ordner</string>
+  <string name="pref_whitelist_disabled">Positivliste deaktiviert</string>
+  <string name="pref_blacklist_summary">Ordner auf dieser Liste werden in Ihren Medien ausgeblendet. Legen Sie für jeden Ordner fest, ob Videos, Audio oder beides ausgeblendet werden.</string>
+  <string name="pref_whitelist_summary">Ist die Positivliste aktiv, werden nur diese Ordner und ihre Unterordner durchsucht. Ohne Ordner wird nichts eingeschränkt.</string>
+  <string name="pref_whitelist_empty_message">Tippen Sie unten, um Ordner hinzuzufügen, die durchsucht werden sollen</string>
+  <string name="clip_section_range">Bereich</string>
+  <string name="clip_section_output">Ausgabe</string>
+  <string name="clip_set_start_here">Start auf aktuelle Position setzen</string>
+  <string name="clip_set_end_here">Ende auf aktuelle Position setzen</string>
+  <string name="clip_length">Clip-Länge</string>
+  <string name="clip_preview">Clip-Vorschau</string>
+  <string name="clip_nudge_back">0,1 s früher</string>
+  <string name="clip_nudge_forward">0,1 s später</string>
+  <string name="clip_quick_length">Schnellauswahl</string>
+  <string name="clip_length_seconds">%1$d s</string>
+  <string name="clip_crop_reset">Vollbild verwenden</string>
 </resources>

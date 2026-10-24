@@ -2848,9 +2848,24 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">Filtros e exclusões</string>
   <string name="clip_audio_track">Faixa de áudio</string>
   <string name="clip_subtitle_track">Faixa de legendas</string>
   <string name="clip_burn_subtitles">Gravar legendas no vídeo</string>
   <string name="clip_track_auto_off">Automático / Desativado</string>
+  <string name="pref_blacklist_count">%1$d pastas na lista de bloqueio</string>
+  <string name="pref_whitelist_disabled">Lista de permissões desativada</string>
+  <string name="pref_blacklist_summary">As pastas desta lista ficam ocultas na sua mídia. Escolha para cada pasta se os vídeos, o áudio ou ambos serão ocultados.</string>
+  <string name="pref_whitelist_summary">Com a lista de permissões ativada, somente estas pastas e suas subpastas são verificadas. Sem pastas adicionadas, nada é restringido.</string>
+  <string name="pref_whitelist_empty_message">Toque no botão abaixo para adicionar pastas que você deseja verificar</string>
+  <string name="clip_section_range">Intervalo</string>
+  <string name="clip_section_output">Saída</string>
+  <string name="clip_set_start_here">Definir o início na posição atual</string>
+  <string name="clip_set_end_here">Definir o fim na posição atual</string>
+  <string name="clip_length">Duração do clipe</string>
+  <string name="clip_preview">Visualizar clipe</string>
+  <string name="clip_nudge_back">0,1 s antes</string>
+  <string name="clip_nudge_forward">0,1 s depois</string>
+  <string name="clip_quick_length">Duração rápida</string>
+  <string name="clip_length_seconds">%1$d s</string>
+  <string name="clip_crop_reset">Usar quadro inteiro</string>
 </resources>

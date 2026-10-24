@@ -11,11 +11,9 @@ package app.gyrolet.mpvrx.ui.browser.dialogs
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -33,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -43,6 +40,10 @@ import app.gyrolet.mpvrx.data.network.LocalServerDiscovery
 import app.gyrolet.mpvrx.data.network.ServerDiscoveryState
 import app.gyrolet.mpvrx.data.network.ServerSuggestion
 import app.gyrolet.mpvrx.data.network.ServerSuggestionSource
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxMenu
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxOption
+import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.icons.Icons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
@@ -113,46 +114,39 @@ internal fun NetworkServerField(
         },
         modifier = modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
       )
-      ExposedDropdownMenu(
-      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
-      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
-      expanded = expanded,
+      AppComboBoxMenu(
+        expanded = expanded,
         onDismissRequest = { expanded = false },
-        modifier = Modifier.heightIn(max = 280.dp),
       ) {
-        DropdownMenuItem(
-          text = { Text(stringResource(if (scan.isScanning) R.string.network_server_scanning else R.string.network_server_scan)) },
+        AppComboBoxOption(
+          text = stringResource(if (scan.isScanning) R.string.network_server_scanning else R.string.network_server_scan),
+          selected = false,
           enabled = !scan.isScanning,
+          leadingIcon = { Icon(Icons.RoundedFilled.Refresh, contentDescription = null, modifier = Modifier.size(20.dp)) },
           onClick = { query = ""; scanRequest++ },
         )
         if (suggestions.isEmpty()) {
-          DropdownMenuItem(
-            text = { Text(stringResource(R.string.network_server_no_matches)) },
-            onClick = {}, enabled = false,
+          AppComboBoxOption(
+            text = stringResource(R.string.network_server_no_matches),
+            selected = false,
+            enabled = false,
+            onClick = {},
           )
         }
-        suggestions.forEach { suggestion ->
-          DropdownMenuItem(
-            text = {
-              Column {
-                Text(
-                  suggestion.name.ifBlank { suggestion.authority },
-                  maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-                val sourceLabel = stringResource(when (suggestion.source) {
-                  ServerSuggestionSource.SAVED -> R.string.network_server_saved
-                  ServerSuggestionSource.DISCOVERED -> R.string.network_server_nearby
-                  ServerSuggestionSource.DEVICE -> R.string.network_server_this_device
-                  ServerSuggestionSource.LOOPBACK -> R.string.network_server_loopback
-                })
-                Text(
-                  "${suggestion.authority} · $sourceLabel",
-                  style = MaterialTheme.typography.bodySmall,
-                  maxLines = 2, overflow = TextOverflow.Ellipsis,
-                )
-              }
-            },
-            trailingIcon = {
+        suggestions.forEachIndexed { index, suggestion ->
+          val sourceLabel = stringResource(when (suggestion.source) {
+            ServerSuggestionSource.SAVED -> R.string.network_server_saved
+            ServerSuggestionSource.DISCOVERED -> R.string.network_server_nearby
+            ServerSuggestionSource.DEVICE -> R.string.network_server_this_device
+            ServerSuggestionSource.LOOPBACK -> R.string.network_server_loopback
+          })
+          AppComboBoxOption(
+            text = suggestion.name.ifBlank { suggestion.authority },
+            supportingText = "${suggestion.authority} · $sourceLabel",
+            selected = false,
+            index = index,
+            itemCount = suggestions.size,
+            trailingContent = {
               Text(
                 suggestion.protocol?.displayName?.let {
                   if (suggestion.useHttps) "$it (HTTPS)" else it

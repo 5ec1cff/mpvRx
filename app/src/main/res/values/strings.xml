@@ -2907,9 +2907,24 @@
   <string name="pref_library_cache_cleared">Metadata and thumbnail cache cleared</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">Filters &amp; Exclusions</string>
   <string name="clip_audio_track">Audio track</string>
   <string name="clip_subtitle_track">Subtitle track</string>
   <string name="clip_burn_subtitles">Burn subtitles into video</string>
   <string name="clip_track_auto_off">Automatic / Off</string>
+  <string name="pref_blacklist_count">%1$d blacklisted folders</string>
+  <string name="pref_whitelist_disabled">Whitelist disabled</string>
+  <string name="pref_blacklist_summary">Folders on this list are hidden from your media. Choose for each folder whether to hide its videos, its audio or both.</string>
+  <string name="pref_whitelist_summary">When the whitelist is on, only these folders and their subfolders are scanned. With no folders added, nothing is restricted.</string>
+  <string name="pref_whitelist_empty_message">Tap the button below to add folders you want to scan</string>
+  <string name="clip_section_range">Range</string>
+  <string name="clip_section_output">Output</string>
+  <string name="clip_set_start_here">Set start to current position</string>
+  <string name="clip_set_end_here">Set end to current position</string>
+  <string name="clip_length">Clip length</string>
+  <string name="clip_preview">Preview clip</string>
+  <string name="clip_nudge_back">0.1 s earlier</string>
+  <string name="clip_nudge_forward">0.1 s later</string>
+  <string name="clip_quick_length">Quick length</string>
+  <string name="clip_length_seconds">%1$ds</string>
+  <string name="clip_crop_reset">Use full frame</string>
 </resources>

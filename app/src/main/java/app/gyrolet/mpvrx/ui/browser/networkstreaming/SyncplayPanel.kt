@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -46,6 +44,8 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.syncplay.SyncplayManager
 import app.gyrolet.mpvrx.domain.syncplay.SyncplayConnectionFailure
 import app.gyrolet.mpvrx.domain.syncplay.SyncplayEndpoint
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxMenu
+import app.gyrolet.mpvrx.presentation.components.AppComboBoxOption
 import org.koin.compose.koinInject
 
 /**
@@ -156,16 +156,18 @@ fun SyncplayPanel(syncplayManager: SyncplayManager = koinInject()) {
             },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
           )
-          ExposedDropdownMenu(
-      shape = androidx.compose.material3.MaterialTheme.shapes.extraLargeIncreased,
-      containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh,
-      expanded = serversExpanded, onDismissRequest = { serversExpanded = false }) {
+          AppComboBoxMenu(expanded = serversExpanded, onDismissRequest = { serversExpanded = false }) {
             val endpoints = (listOf(savedCredentials.host to savedCredentials.port) +
               (8995..8999).map { "syncplay.pl" to it }).distinct()
-            endpoints.forEach { (server, serverPort) ->
-              DropdownMenuItem(
-                text = { Text("${if (':' in server) "[$server]" else server}:$serverPort") },
-                trailingIcon = { Text(stringResource(R.string.syncplay_title)) },
+            endpoints.forEachIndexed { index, (server, serverPort) ->
+              AppComboBoxOption(
+                text = "${if (':' in server) "[$server]" else server}:$serverPort",
+                selected = server == host && serverPort.toString() == port,
+                index = index,
+                itemCount = endpoints.size,
+                trailingContent = {
+                  Text(stringResource(R.string.syncplay_title), style = MaterialTheme.typography.labelSmall)
+                },
                 onClick = { host = server; port = serverPort.toString(); serversExpanded = false },
               )
             }

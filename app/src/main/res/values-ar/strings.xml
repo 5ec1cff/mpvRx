@@ -2910,9 +2910,24 @@
   <string name="pref_persistent_status_time_unknown">—</string>
 
   <!-- Folder filters and clip export tracks -->
-  <string name="pref_folder_manage_filters">عوامل التصفية والاستثناءات</string>
   <string name="clip_audio_track">المسار الصوتي</string>
   <string name="clip_subtitle_track">مسار الترجمة</string>
   <string name="clip_burn_subtitles">دمج الترجمة في الفيديو</string>
   <string name="clip_track_auto_off">تلقائي / إيقاف</string>
+  <string name="pref_blacklist_count">عدد المجلدات في القائمة السوداء: %1$d</string>
+  <string name="pref_whitelist_disabled">القائمة البيضاء معطّلة</string>
+  <string name="pref_blacklist_summary">تُخفى المجلدات في هذه القائمة من وسائطك. اختر لكل مجلد إخفاء مقاطع الفيديو أو الصوت أو كليهما.</string>
+  <string name="pref_whitelist_summary">عند تفعيل القائمة البيضاء، يتم فحص هذه المجلدات ومجلداتها الفرعية فقط. إذا لم تُضف أي مجلدات، فلن يُقيَّد شيء.</string>
+  <string name="pref_whitelist_empty_message">انقر على الزر أدناه لإضافة المجلدات التي تريد فحصها</string>
+  <string name="clip_section_range">النطاق</string>
+  <string name="clip_section_output">الإخراج</string>
+  <string name="clip_set_start_here">تعيين البداية إلى الموضع الحالي</string>
+  <string name="clip_set_end_here">تعيين النهاية إلى الموضع الحالي</string>
+  <string name="clip_length">طول المقطع</string>
+  <string name="clip_preview">معاينة المقطع</string>
+  <string name="clip_nudge_back">رجوع 0.1 ثانية</string>
+  <string name="clip_nudge_forward">تقدّم 0.1 ثانية</string>
+  <string name="clip_quick_length">مدة سريعة</string>
+  <string name="clip_length_seconds">%1$d ث</string>
+  <string name="clip_crop_reset">استخدام الإطار الكامل</string>
 </resources>
