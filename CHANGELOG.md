@@ -19,7 +19,13 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Buttons beside play/pause in landscape:** With play/pause placed below the seekbar, the left and right button groups now sit on either side of it in the same row instead of taking a row of their own. If they do not fit, they scroll sideways and fade out at the edge that has more buttons.
 
-- **Button background opacity:** The player button opacity setting now fades only the button backgrounds, so icons and labels stay fully visible.
+- **Button background opacity:** The setting is now a level for every player button background, including the title, chapter, speed, decoder, zoom, A-B loop and frame-navigation pills, play/pause, custom Lua buttons and the skip chip. The default keeps the usual see-through look, 100% makes all of them fully opaque and 0% fully clear; icons and labels always stay fully visible. Earlier values of the old setting are not carried over.
+
+- **Consistent spacing around the seekbar:** The layout buttons, play/pause row, seekbar, custom Lua buttons and skip chip now share one edge margin and one gap in every layout combination. Nothing above them jumps anymore while buffering, while the volume or brightness slider shows, or while seeking with the controls hidden.
+
+- **Videos open the right way round from the first launch:** The player no longer opens in the wrong orientation and then turns once playback starts. When the media library has no size for a video, as is common for MKV and for files opened from other apps, or no rotation, as on Android 10 and older, the player reads the size and rotation straight from the MP4, MOV, 3GP, MKV or WebM header. That read starts in the background when you tap the video, so it is normally done before the player screen appears, even from a slow SD card on first launch. If the size still cannot be found, the screen keeps its current orientation instead of guessing, and the player turns it as soon as the header or the video reports the real shape. Each launch logs how the orientation was decided, how long that took, and any later turn, so slow or wrong cases can be measured.
+
+- **mpvlib 1.1.4:** Updated native libraries, including HarfBuzz 15, FreeType 2.15, LittleCMS 2.19 and curl 8.23. The FongMi build also picks up FongMi's latest playback changes.
 
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 

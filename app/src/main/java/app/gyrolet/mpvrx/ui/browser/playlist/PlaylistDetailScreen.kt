@@ -111,6 +111,7 @@ import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.ContainerGeometryProbe
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.ui.player.PlaybackItem
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
@@ -367,8 +368,18 @@ data class PlaylistDetailScreen(
           putExtra("launch_source", if (playlist?.isM3uPlaylist == true) "m3u_playlist" else "playlist")
           putExtra("is_audio", item.video.isAudio)
           putExtra("title", item.playlistItem.fileName)
+          putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, item.video.width)
+          putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, item.video.height)
+          putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, item.video.rotation)
           buildM3UHeadersExtra(playlist, item.playlistItem)?.let { putExtra("headers", it) }
         }
+      ContainerGeometryProbe.prefetch(
+        item.video.path.takeIf { it.startsWith("/") },
+        item.video.width,
+        item.video.height,
+        item.video.rotation,
+        isAudio,
+      )
       context.startActivity(intent)
     }
 

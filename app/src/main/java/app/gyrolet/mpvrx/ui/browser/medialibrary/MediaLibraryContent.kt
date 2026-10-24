@@ -101,6 +101,7 @@ import app.gyrolet.mpvrx.ui.browser.videolist.VideoListContent
 import app.gyrolet.mpvrx.ui.browser.videolist.VideoWithPlaybackInfo
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.ContainerGeometryProbe
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.ui.player.PlaybackItem
 import app.gyrolet.mpvrx.ui.player.PreparedPlaybackLaunchStore
@@ -373,6 +374,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
         putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, video.rotation)
       }
+    ContainerGeometryProbe.prefetch(video.path, video.width, video.height, video.rotation, isAudio)
     context.startActivity(intent)
   }
 
