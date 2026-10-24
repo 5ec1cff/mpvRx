@@ -27,6 +27,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **mpvlib 1.1.4:** Updated native libraries, including HarfBuzz 15, FreeType 2.15, LittleCMS 2.19 and curl 8.23. The FongMi build also picks up FongMi's latest playback changes.
 
+- **Android TV style volume and brightness:** The volume and brightness levels now show as a single sleek capsule that fills from the bottom with the same gradient as before, with the value inside at the top and the icon inside at the bottom. Both stay readable as the level rises under them. While one is showing, the seekbar, every button row, custom Lua buttons, the skip chip and the dimmed background all step aside, so only the level sits over the video.
+
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
 ### Jellyfin

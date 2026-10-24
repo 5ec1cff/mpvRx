@@ -697,9 +697,9 @@ fun PlayerControls(
   val animSpeed by playerPreferences.animationSpeed.collectAsState()
 
   val transparentOverlay by animateFloatAsState(
-    if (controlsShown && !areControlsLocked) .8f else 0f,
+    if (controlsShown && !areControlsLocked && !areSlidersShown) .8f else 0f,
     animationSpec =
-      if (controlsShown && !areControlsLocked) {
+      if (controlsShown && !areControlsLocked && !areSlidersShown) {
         playerControlsEnterAnimationSpec((100 * animSpeed).toInt().coerceAtLeast(30))
       } else {
         playerControlsExitAnimationSpec((300 * animSpeed).toInt().coerceAtLeast(50))
@@ -710,9 +710,9 @@ fun PlayerControls(
   // Vignette behind the top and bottom bars. Fades with the bars instead of sliding, so it stays
   // anchored to the frame edges whatever animation style the bars themselves use.
   val edgeVignetteAlpha by animateFloatAsState(
-    if (controlsShown && !areControlsLocked) 1f else 0f,
+    if (controlsShown && !areControlsLocked && !areSlidersShown) 1f else 0f,
     animationSpec =
-      if (controlsShown && !areControlsLocked) {
+      if (controlsShown && !areControlsLocked && !areSlidersShown) {
         playerControlsEnterAnimationSpec((100 * animSpeed).toInt().coerceAtLeast(30))
       } else {
         playerControlsExitAnimationSpec((300 * animSpeed).toInt().coerceAtLeast(50))
@@ -1639,6 +1639,7 @@ is PlayerUpdates.FrameInfo -> {
 
           val skipChipVisible =
             currentSkippableSegment != null &&
+              !areSlidersShown &&
               ((controlsShown && !areControlsLocked) || showSkipChipAuto)
 
           AnimatedVisibility(
@@ -1987,10 +1988,12 @@ is PlayerUpdates.FrameInfo -> {
           AnimatedVisibility(
             visible =
               // Keep the seekbar visible with normal player controls. Only the hidden-controls
-              // horizontal seek gesture is governed by the user preference.
+              // horizontal seek gesture is governed by the user preference. The volume and
+              // brightness levels show on a clear frame, like Android TV's volume indicator.
               (controlsShown ||
                 if (isHorizontalSeekActive) showSeekbarDuringHorizontalSeeking else seekBarShown) &&
-                !areControlsLocked,
+                !areControlsLocked &&
+                !areSlidersShown,
             enter = buildControlsEnterV(controlsAnimStyle, reduceMotion, enterMs) { it },
             exit = buildControlsExitV(controlsAnimStyle, reduceMotion, exitMs) { it },
             modifier =
@@ -2099,7 +2102,7 @@ is PlayerUpdates.FrameInfo -> {
           }
 
           AnimatedVisibility(
-            visible = controlsShown && !areControlsLocked,
+            visible = controlsShown && !areControlsLocked && !areSlidersShown,
             enter = buildControlsEnterH(controlsAnimStyle, reduceMotion, enterMs) { -it },
             exit = buildControlsExitH(controlsAnimStyle, reduceMotion, exitMs) { -it },
             modifier =
@@ -2166,7 +2169,7 @@ is PlayerUpdates.FrameInfo -> {
           }
 
           AnimatedVisibility(
-            visible = controlsShown && !areControlsLocked && !isPortrait,
+            visible = controlsShown && !areControlsLocked && !isPortrait && !areSlidersShown,
             enter = buildControlsEnterH(controlsAnimStyle, reduceMotion, enterMs) { it },
             exit = buildControlsExitH(controlsAnimStyle, reduceMotion, exitMs) { it },
             modifier =
