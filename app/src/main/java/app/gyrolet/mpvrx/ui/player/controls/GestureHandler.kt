@@ -86,6 +86,7 @@ private const val SWIPE_SPEED_STEP = 0.25f
 private const val SWIPE_SPEED_MIN = 0.5f
 private const val SWIPE_SPEED_MAX = 4f
 private const val SWIPE_SPEED_FEEDBACK_MS = 1_000L
+private val SWIPE_SPEED_STEP_DISTANCE = 20.dp
 
 /** Next 0.25x step; 1.1x lands on 1.25x or 1x, and a speed outside 0.5x-4x never moves further out. */
 private fun swipeSpeedStep(
@@ -98,6 +99,15 @@ private fun swipeSpeedStep(
   } else {
     ((ceil(grid - 0.001f) - 1f) * SWIPE_SPEED_STEP).coerceAtLeast(minOf(SWIPE_SPEED_MIN, speed))
   }
+}
+
+private fun swipeSpeedAfter(
+  start: Float,
+  steps: Int,
+): Float {
+  var speed = start
+  repeat(abs(steps)) { speed = swipeSpeedStep(speed, up = steps > 0) }
+  return speed
 }
 
 @Suppress("CyclomaticComplexMethod", "MultipleEmitters")
@@ -1096,6 +1106,10 @@ fun GestureHandler(
             var speedSwipeRuledOut = true
             var speedSwipeMode = false
             var swipedSpeed = 1f
+            var swipeStartSpeed = 1f
+            var swipeFirstStep = 0
+            var swipeExtraSteps = 0
+            var swipeAnchorY = 0f
 
             var selectedSubtitle: SubtitleGestureRegion? = null
             var isSubZoomMode = false
@@ -1196,13 +1210,37 @@ fun GestureHandler(
                       } else if (abs(travelY) > 40.dp.toPx() && spread < abs(travelY) / 2f) {
                         speedSwipeMode = true
                         speedSwipeFeedbackJob?.cancel()
-                        val currentSpeed = PlaybackSession.getPropertyFloat("speed") ?: 1f
-                        swipedSpeed = swipeSpeedStep(currentSpeed, up = travelY < 0f)
-                        if (abs(swipedSpeed - currentSpeed) > 0.001f) {
+                        swipeStartSpeed = PlaybackSession.getPropertyFloat("speed") ?: 1f
+                        swipeFirstStep = if (travelY < 0f) 1 else -1
+                        swipeExtraSteps = 0
+                        swipeAnchorY = midY
+                        swipedSpeed = swipeSpeedAfter(swipeStartSpeed, swipeFirstStep)
+                        if (abs(swipedSpeed - swipeStartSpeed) > 0.001f) {
                           PlaybackSession.setPropertyFloat("speed", swipedSpeed)
                           actionHaptics.tick()
+                        } else {
+                          // Already at 0.5x or 4x: a step that changed nothing must not count when reversing.
+                          swipeFirstStep = 0
                         }
                         viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(swipedSpeed) }
+                      }
+                    } else if (speedSwipeMode) {
+                      val stepPx = SWIPE_SPEED_STEP_DISTANCE.toPx()
+                      val travelledSteps = (swipeAnchorY - midY) / stepPx
+                      // The extra 0.2 step of travel keeps a finger resting on a boundary from flickering.
+                      if (abs(travelledSteps - swipeExtraSteps) > 0.7f) {
+                        val nextExtraSteps = travelledSteps.roundToInt()
+                        val nextSpeed = swipeSpeedAfter(swipeStartSpeed, swipeFirstStep + nextExtraSteps)
+                        if (abs(nextSpeed - swipedSpeed) > 0.001f) {
+                          swipeExtraSteps = nextExtraSteps
+                          swipedSpeed = nextSpeed
+                          PlaybackSession.setPropertyFloat("speed", nextSpeed)
+                          actionHaptics.tick()
+                          viewModel.playerUpdate.update { PlayerUpdates.DynamicSpeedControl(nextSpeed) }
+                        } else {
+                          // Pinned at 0.5x or 4x: move the anchor with the fingers so reversing responds at once.
+                          swipeAnchorY = midY + swipeExtraSteps * stepPx
+                        }
                       }
                     }
                     if (!speedSwipeRuledOut) {

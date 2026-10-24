@@ -33,7 +33,7 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Android TV style volume and brightness:** The volume and brightness levels now show as a single sleek capsule that fills from the bottom with the same gradient as before, with the value inside at the top and the icon inside at the bottom. Both stay readable as the level rises under them. While one is showing, the seekbar, every button row, custom Lua buttons, the skip chip and the dimmed background all step aside, so only the level sits over the video.
 
-- **Two-finger swipe for speed:** Swipe up with two fingers to raise the playback speed by 0.25x, up to 4x, or down to lower it, down to 0.5x, as in MX Player. The new speed shows in the speed pill for a moment. Pinch to zoom still works, and a zoomed-in video can still be moved with two fingers. Turn it off under Settings > Gestures.
+- **Two-finger swipe for speed:** Drag two fingers up to raise the playback speed or down to lower it, as in MX Player. The speed changes in 0.25x steps as you drag, from 0.5x up to 4x, and follows your fingers back if you reverse. The speed pill shows the current speed while you drag and for a moment after, including quarter steps such as 1.25x. Pinch to zoom still works, and a zoomed-in video can still be moved with two fingers. Turn it off under Settings > Gestures.
 
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
