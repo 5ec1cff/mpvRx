@@ -755,6 +755,15 @@ fun PlayerControls(
             showSeekTime = showSeekTime,
             rippleRequest = seekRippleRequest,
           )
+          // Status HUD remains visible even after playback controls fade away.
+          PersistentStatusHud(
+            viewModel = viewModel,
+            preferences = playerPreferences,
+            durationSeconds = seekbarDuration,
+            playbackSpeed = playbackSpeed ?: 1f,
+            controlsShown = controlsShown,
+          )
+
           MediaScopesOverlay(
             viewModel = viewModel,
             audioTracks = scopeAudioTracks.toImmutableList(),
@@ -945,6 +954,15 @@ fun PlayerControls(
         )
       }
     }
+
+    // Keep this outside the controls' AnimatedVisibility / constraint layout.
+    PersistentStatusHud(
+      viewModel = viewModel,
+      preferences = playerPreferences,
+      durationSeconds = seekbarDuration,
+      playbackSpeed = playbackSpeed ?: 1f,
+      controlsShown = controlsShown,
+    )
 
     MediaScopesOverlay(
       viewModel = viewModel,

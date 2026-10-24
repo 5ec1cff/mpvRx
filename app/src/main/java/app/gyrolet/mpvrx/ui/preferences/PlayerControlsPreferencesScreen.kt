@@ -211,6 +211,31 @@ object PlayerControlsPreferencesScreen : Screen {
             }
           }
 
+          // Persistent in-video HUD controls, immediately after portrait layout controls.
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_persistent_status_title),
+              modifier = Modifier.settingsSearchTarget(R.string.pref_persistent_status_title),
+            )
+          }
+          item {
+            PreferenceCard {
+              ExpressivePreferenceItem {
+                me.zhanghai.compose.preference.Preference(
+                  title = { Text(stringResource(R.string.pref_persistent_status_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_persistent_status_summary),
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  },
+                  onClick = { backstack.navigateTo(PersistentStatusBarPreferencesScreen) },
+                )
+              }
+            }
+          }
+
           // Seekbar Section
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 

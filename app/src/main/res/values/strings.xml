@@ -2855,4 +2855,30 @@
   <string name="jellyfin_more_like_this">More like this</string>
   <string name="jellyfin_watched">Watched</string>
   <string name="jellyfin_search_hint">Search movies, shows, and episodes…</string>
+  <!-- The in-video persistent status HUD is separate from Android's status bar. -->
+  <string name="pref_persistent_status_title">Persistent status bar</string>
+  <string name="pref_persistent_status_summary">Always-visible video HUD with time, battery and playback progress</string>
+  <string name="pref_persistent_status_enable">Enable persistent status bar</string>
+  <string name="pref_persistent_status_enable_summary">Configure HUD placement and slot contents</string>
+  <string name="pref_persistent_status_preview">Live preview</string>
+  <string name="pref_persistent_status_controls">Controls</string>
+  <string name="pref_persistent_status_position_section">Position</string>
+  <string name="pref_persistent_status_display">Display</string>
+  <string name="pref_persistent_status_position">Position</string>
+  <string name="pref_persistent_status_top">Top</string>
+  <string name="pref_persistent_status_bottom">Bottom</string>
+  <string name="pref_persistent_status_left">Left slot</string>
+  <string name="pref_persistent_status_center">Center slot</string>
+  <string name="pref_persistent_status_right">Right slot</string>
+  <string name="pref_persistent_status_none">None (Hidden)</string>
+  <string name="pref_persistent_status_progress">Playback progress</string>
+  <string name="pref_persistent_status_clock">Current time</string>
+  <string name="pref_persistent_status_battery">Battery status</string>
+  <string name="pref_persistent_status_extras">Zoom &amp; extra gestures</string>
+  <string name="pref_persistent_status_finish_time">Prefer estimated finish time</string>
+  <string name="pref_persistent_status_finish_summary">Calculate remaining playback duration based on playback speed</string>
+  <string name="pref_persistent_status_speed">Show speed tag when not 1.0x</string>
+  <string name="pref_persistent_status_micro_battery">Show micro battery icon</string>
+  <string name="pref_persistent_status_est_prefix">Est.</string>
+  <string name="pref_persistent_status_time_unknown">—</string>
 </resources>
