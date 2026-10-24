@@ -46,11 +46,29 @@ data class ClipCrop(
   val rotation: Int,
 )
 
+/** A player track selected for output; it does not mutate playback track choice. */
+data class ClipTrackOption(
+  val id: Int,
+  val type: String,
+  val ordinal: Int,
+  val title: String,
+  val language: String,
+  val externalFile: String? = null,
+) {
+  val displayLabel: String
+    get() = listOfNotNull(
+      title.takeIf { it.isNotBlank() },
+      language.takeIf { it.isNotBlank() },
+    ).joinToString(" · ").ifBlank { "${type} #${id}" }
+}
+
 data class ClipRequest(
   val item: PlaybackItem,
   val startSeconds: Double,
   val endSeconds: Double,
   val crop: ClipCrop? = null,
+  val audioTrack: ClipTrackOption? = null,
+  val subtitleTrack: ClipTrackOption? = null,
 )
 
 sealed interface ClipExportState {
@@ -118,6 +136,9 @@ object ClipExportManager {
         resolvedSource = resolveSource(appContext, request.item)
         temporaryOutput = createTemporaryOutput(appContext)
 
+        val subtitleCues = request.subtitleTrack?.let { track ->
+          ClipSubtitleBurnIn.load(appContext, resolvedSource.uri, track, request.item.headers)
+        }
         val error =
           Media3ClipExporter.export(
             context = appContext,
@@ -129,6 +150,8 @@ object ClipExportManager {
             cropFrameWidth = cropFrameSize?.first ?: 0,
             cropFrameHeight = cropFrameSize?.second ?: 0,
             headers = request.item.headers,
+            audioTrack = request.audioTrack,
+            subtitleCues = subtitleCues,
             onProgress = { progress ->
               val current = _state.value as? ClipExportState.Exporting
               _state.value =

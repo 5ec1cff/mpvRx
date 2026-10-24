@@ -2828,4 +2828,11 @@
   <string name="pref_persistent_status_micro_battery">显示迷你电池图标</string>
   <string name="pref_persistent_status_est_prefix">预计</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+
+  <!-- Folder filters and clip export tracks -->
+  <string name="pref_folder_manage_filters">筛选与排除</string>
+  <string name="clip_audio_track">音轨</string>
+  <string name="clip_subtitle_track">字幕轨道</string>
+  <string name="clip_burn_subtitles">将字幕烧录到视频中</string>
+  <string name="clip_track_auto_off">自动 / 关闭</string>
 </resources>

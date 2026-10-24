@@ -2846,4 +2846,11 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_persistent_status_micro_battery">Mostrar ícone pequeno de bateria</string>
   <string name="pref_persistent_status_est_prefix">Est.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+
+  <!-- Folder filters and clip export tracks -->
+  <string name="pref_folder_manage_filters">Filtros e exclusões</string>
+  <string name="clip_audio_track">Faixa de áudio</string>
+  <string name="clip_subtitle_track">Faixa de legendas</string>
+  <string name="clip_burn_subtitles">Gravar legendas no vídeo</string>
+  <string name="clip_track_auto_off">Automático / Desativado</string>
 </resources>

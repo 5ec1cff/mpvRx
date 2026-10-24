@@ -43,6 +43,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -112,6 +115,11 @@ private data class ClipPanelState(
   val cancelling: Boolean = false,
   val progress: Int = 0,
   val cropActive: Boolean = false,
+  val audioTracks: List<ClipTrackOption> = emptyList(),
+  val subtitleTracks: List<ClipTrackOption> = emptyList(),
+  val selectedAudioId: Int? = null,
+  val selectedSubtitleId: Int? = null,
+  val burnSubtitles: Boolean = false,
 )
 
 /**
@@ -129,6 +137,11 @@ class ClipOverlayView @JvmOverloads constructor(
     var startSeconds: Double,
     var endSeconds: Double? = null,
     var crop: ClipCrop? = null,
+    val audioTracks: List<ClipTrackOption> = emptyList(),
+    val subtitleTracks: List<ClipTrackOption> = emptyList(),
+    var audioId: Int? = null,
+    var subtitleId: Int? = null,
+    var burnSubtitles: Boolean = false,
   )
 
   private var panelState by mutableStateOf(ClipPanelState())
@@ -205,6 +218,9 @@ class ClipOverlayView @JvmOverloads constructor(
       onMarkStart = ::markClipStart,
       onMarkEnd = ::markClipEnd,
       onCrop = ::enterCropMode,
+      onAudioTrackChange = ::selectClipAudio,
+      onSubtitleTrackChange = ::selectClipSubtitle,
+      onSubtitleBurnChange = ::setClipSubtitleBurn,
       onCancel = {
         if (cancelOrClose()) onDismissRequest()
       },
@@ -249,12 +265,54 @@ class ClipOverlayView @JvmOverloads constructor(
         start + DEFAULT_CLIP_SECONDS
       }
 
+    val tracks = readClipTracks()
+    val selectedAudio = PlaybackSession.getPropertyString("aid")?.toIntOrNull()
     return ClipDraft(
       itemId = itemId,
       startSeconds = start,
       endSeconds = end.coerceAtLeast(start + MIN_CLIP_SECONDS),
+      audioTracks = tracks.filter { it.type == "audio" },
+      subtitleTracks = tracks.filter { it.type == "sub" },
+      audioId = selectedAudio,
     ).also {
       draft = it
+      refreshDraftUi()
+    }
+  }
+
+  private fun readClipTracks(): List<ClipTrackOption> {
+    val count = (PlaybackSession.getPropertyInt("track-list/count") ?: 0).coerceIn(0, 128)
+    var audioOrdinal = 0
+    var subtitleOrdinal = 0
+    return (0 until count).mapNotNull { index ->
+      val type = PlaybackSession.getPropertyString("track-list/$index/type") ?: return@mapNotNull null
+      if (type != "audio" && type != "sub") return@mapNotNull null
+      val id = PlaybackSession.getPropertyInt("track-list/$index/id") ?: return@mapNotNull null
+      val title = PlaybackSession.getPropertyString("track-list/$index/title").orEmpty()
+      val language = PlaybackSession.getPropertyString("track-list/$index/lang").orEmpty()
+      val external = PlaybackSession.getPropertyString("track-list/$index/external-filename")
+        ?.takeIf { it.isNotBlank() }
+      val ordinal = if (type == "audio") audioOrdinal++ else subtitleOrdinal++
+      ClipTrackOption(id = id, type = type, ordinal = ordinal, title = title, language = language,
+        externalFile = external)
+    }
+  }
+
+  private fun selectClipAudio(id: Int?) {
+    ensureDraft()?.let { it.audioId = id; refreshDraftUi() }
+  }
+
+  private fun selectClipSubtitle(id: Int?) {
+    ensureDraft()?.let {
+      it.subtitleId = id
+      it.burnSubtitles = id != null
+      refreshDraftUi()
+    }
+  }
+
+  private fun setClipSubtitleBurn(enabled: Boolean) {
+    ensureDraft()?.let {
+      it.burnSubtitles = enabled && it.subtitleId != null
       refreshDraftUi()
     }
   }
@@ -341,6 +399,8 @@ class ClipOverlayView @JvmOverloads constructor(
           startSeconds = active.startSeconds,
           endSeconds = end,
           crop = active.crop,
+          audioTrack = active.audioTracks.firstOrNull { it.id == active.audioId },
+          subtitleTrack = if (active.burnSubtitles) active.subtitleTracks.firstOrNull { it.id == active.subtitleId } else null,
         ),
       )
     if (!accepted) toast(R.string.clip_export_busy)
@@ -517,6 +577,11 @@ class ClipOverlayView @JvmOverloads constructor(
           endSeconds = null,
           durationSeconds = 0f,
           crop = null,
+          audioTracks = emptyList(),
+          subtitleTracks = emptyList(),
+          selectedAudioId = null,
+          selectedSubtitleId = null,
+          burnSubtitles = false,
           canSave = false,
         )
       return
@@ -531,6 +596,11 @@ class ClipOverlayView @JvmOverloads constructor(
         endSeconds = active.endSeconds?.toFloat(),
         durationSeconds = duration,
         crop = active.crop,
+        audioTracks = active.audioTracks,
+        subtitleTracks = active.subtitleTracks,
+        selectedAudioId = active.audioId,
+        selectedSubtitleId = active.subtitleId,
+        burnSubtitles = active.burnSubtitles,
         canSave =
           active.endSeconds?.let { it > active.startSeconds + MIN_CLIP_SECONDS } == true &&
             ClipExportManager.state.value !is ClipExportState.Exporting,
@@ -633,6 +703,9 @@ private fun ClipEditorPanel(
   onMarkStart: () -> Unit,
   onMarkEnd: () -> Unit,
   onCrop: () -> Unit,
+  onAudioTrackChange: (Int?) -> Unit,
+  onSubtitleTrackChange: (Int?) -> Unit,
+  onSubtitleBurnChange: (Boolean) -> Unit,
   onCancel: () -> Unit,
   onSave: () -> Unit,
 ) {
@@ -668,6 +741,9 @@ private fun ClipEditorPanel(
       onMarkStart = onMarkStart,
       onMarkEnd = onMarkEnd,
       onCrop = onCrop,
+      onAudioTrackChange = onAudioTrackChange,
+      onSubtitleTrackChange = onSubtitleTrackChange,
+      onSubtitleBurnChange = onSubtitleBurnChange,
       onCancel = onCancel,
       onSave = onSave,
     )
@@ -687,6 +763,9 @@ private fun ClipEditorPanelContent(
   onMarkStart: () -> Unit,
   onMarkEnd: () -> Unit,
   onCrop: () -> Unit,
+  onAudioTrackChange: (Int?) -> Unit,
+  onSubtitleTrackChange: (Int?) -> Unit,
+  onSubtitleBurnChange: (Boolean) -> Unit,
   onCancel: () -> Unit,
   onSave: () -> Unit,
 ) {
@@ -799,6 +878,39 @@ private fun ClipEditorPanelContent(
       Text(stringResource(R.string.clip_crop))
     }
 
+    if (state.audioTracks.isNotEmpty()) {
+      ClipTrackPicker(
+        title = stringResource(R.string.clip_audio_track),
+        tracks = state.audioTracks,
+        selectedId = state.selectedAudioId,
+        onSelect = onAudioTrackChange,
+        enabled = !state.exporting,
+      )
+    }
+    if (state.subtitleTracks.isNotEmpty()) {
+      ClipTrackPicker(
+        title = stringResource(R.string.clip_subtitle_track),
+        tracks = state.subtitleTracks,
+        selectedId = state.selectedSubtitleId,
+        onSelect = onSubtitleTrackChange,
+        enabled = !state.exporting,
+      )
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Checkbox(
+          checked = state.burnSubtitles,
+          onCheckedChange = onSubtitleBurnChange,
+          enabled = !state.exporting && state.selectedSubtitleId != null,
+        )
+        Text(
+          stringResource(R.string.clip_burn_subtitles),
+          style = MaterialTheme.typography.bodyMedium,
+        )
+      }
+    }
+
     if (state.exporting) {
       Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         LinearProgressIndicator(
@@ -845,6 +957,46 @@ private fun ClipEditorPanelContent(
           AppIcon(Icons.RoundedFilled.ContentCut, contentDescription = null, modifier = Modifier.size(18.dp))
           Spacer(Modifier.width(8.dp))
           Text(stringResource(R.string.clip_save), maxLines = 1)
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun ClipTrackPicker(
+  title: String,
+  tracks: List<ClipTrackOption>,
+  selectedId: Int?,
+  onSelect: (Int?) -> Unit,
+  enabled: Boolean,
+) {
+  var expanded by remember { mutableStateOf(false) }
+  val selected = tracks.firstOrNull { it.id == selectedId }
+  Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Text(title, style = MaterialTheme.typography.labelLarge)
+    Box(Modifier.fillMaxWidth()) {
+      OutlinedButton(
+        onClick = { expanded = true },
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(
+          selected?.displayLabel ?: stringResource(R.string.clip_track_auto_off),
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+      DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenuItem(
+          text = { Text(stringResource(R.string.clip_track_auto_off)) },
+          onClick = { expanded = false; onSelect(null) },
+        )
+        tracks.forEach { track ->
+          DropdownMenuItem(
+            text = { Text(track.displayLabel) },
+            onClick = { expanded = false; onSelect(track.id) },
+          )
         }
       }
     }

@@ -2846,4 +2846,11 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_persistent_status_micro_battery">Afficher la petite icône de batterie</string>
   <string name="pref_persistent_status_est_prefix">Est.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+
+  <!-- Folder filters and clip export tracks -->
+  <string name="pref_folder_manage_filters">Filtres et exclusions</string>
+  <string name="clip_audio_track">Piste audio</string>
+  <string name="clip_subtitle_track">Piste de sous-titres</string>
+  <string name="clip_burn_subtitles">Incruster les sous-titres dans la vidéo</string>
+  <string name="clip_track_auto_off">Auto / Désactivé</string>
 </resources>

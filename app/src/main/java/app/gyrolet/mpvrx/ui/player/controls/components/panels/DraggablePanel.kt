@@ -113,7 +113,8 @@ fun DraggablePanel(
     val backdrop = LocalKyantPlayerBackdrop.current
     val panelShape = shape ?: MaterialTheme.shapes.extraLargeIncreased
     val panelColor = containerColor ?: colors.containerColor
-    val expressivePanelColor = panelColor.copy(alpha = 1f)
+    // Translucent over video in normal mode; keep any more-transparent caller override.
+    val expressivePanelColor = panelColor.copy(alpha = panelColor.alpha.coerceAtMost(0.78f))
     Surface(
       modifier =
         Modifier

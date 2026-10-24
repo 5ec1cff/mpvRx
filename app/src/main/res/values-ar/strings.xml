@@ -2908,4 +2908,11 @@
   <string name="pref_persistent_status_micro_battery">عرض رمز بطارية صغير</string>
   <string name="pref_persistent_status_est_prefix">المتوقع</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+
+  <!-- Folder filters and clip export tracks -->
+  <string name="pref_folder_manage_filters">عوامل التصفية والاستثناءات</string>
+  <string name="clip_audio_track">المسار الصوتي</string>
+  <string name="clip_subtitle_track">مسار الترجمة</string>
+  <string name="clip_burn_subtitles">دمج الترجمة في الفيديو</string>
+  <string name="clip_track_auto_off">تلقائي / إيقاف</string>
 </resources>

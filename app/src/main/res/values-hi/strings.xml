@@ -2750,4 +2750,11 @@
   <string name="pref_persistent_status_micro_battery">छोटा बैटरी आइकन दिखाएँ</string>
   <string name="pref_persistent_status_est_prefix">अनु.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
+
+  <!-- Folder filters and clip export tracks -->
+  <string name="pref_folder_manage_filters">फ़िल्टर और अपवर्जन</string>
+  <string name="clip_audio_track">ऑडियो ट्रैक</string>
+  <string name="clip_subtitle_track">उपशीर्षक ट्रैक</string>
+  <string name="clip_burn_subtitles">वीडियो में उपशीर्षक स्थायी रूप से जोड़ें</string>
+  <string name="clip_track_auto_off">स्वचालित / बंद</string>
 </resources>

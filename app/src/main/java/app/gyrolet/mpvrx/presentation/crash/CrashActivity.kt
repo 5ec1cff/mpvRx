@@ -101,7 +101,7 @@ class CrashActivity : AppCompatActivity() {
     }
     prepareReport()
     setContent {
-      MpvrxTheme {
+      MpvrxTheme(loadDownloadedFonts = false) {
         val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
         SideEffect {
           val bars = SystemBarStyle.auto(Color.Transparent.toArgb(), Color.Transparent.toArgb()) { dark }

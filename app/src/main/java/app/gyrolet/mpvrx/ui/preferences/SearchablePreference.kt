@@ -818,7 +818,7 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_add_folder,
           keywords = listOf("add", "folder", "exclude", "blacklist"),
           category = "Folders",
-          screen = FoldersPreferencesScreen,
+          screen = FolderFiltersExclusionsScreen,
         ),
       )
       add(
@@ -826,7 +826,39 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_clear_all,
           keywords = listOf("clear", "all", "folders", "blacklist", "reset"),
           category = "Folders",
-          screen = FoldersPreferencesScreen,
+          screen = FolderFiltersExclusionsScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_folder_manage_filters,
+          keywords = listOf("scan", "filter", "blacklist", "whitelist", "excluded", "short", "size"),
+          category = "Folders",
+          screen = FolderFiltersExclusionsScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_filter_short_videos,
+          keywords = listOf("minimum duration", "short videos", "filter"),
+          category = "Folders",
+          screen = FolderFiltersExclusionsScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_filter_small_files,
+          keywords = listOf("small files", "minimum size", "filter"),
+          category = "Folders",
+          screen = FolderFiltersExclusionsScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_title,
+          keywords = listOf("include", "allow", "folder", "whitelist"),
+          category = "Folders",
+          screen = FolderFiltersExclusionsScreen,
         ),
       )
       // Decoder preferences
