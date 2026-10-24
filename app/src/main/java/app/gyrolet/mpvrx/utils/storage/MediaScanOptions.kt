@@ -10,6 +10,7 @@
 package app.gyrolet.mpvrx.utils.storage
 
 import android.util.Log
+import app.gyrolet.mpvrx.domain.media.model.Video
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -44,8 +45,13 @@ data class MediaScanOptions(
       val markers = normalizedHiddenFolderMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
       val active = activeHiddenMarkerNames.sorted().joinToString("") { "${it.length}:$it" }
       return "hiddenScanV5=$includeNoMediaFolders|dot=$includeDotFolders|markers=$markers|active=$active|" +
-        "includeAudio=$includeAudio|minAudio=$minimumAudioDurationSeconds|minVideo=$minimumVideoDurationSeconds|minSize=$minimumMediaFileSizeBytes|whitelist=$whitelistEnabled|allowed=${whitelistedPaths.sorted().joinToString(",")}"
+        "includeAudio=$includeAudio|minAudio=$minimumAudioDurationSeconds|$mediaFilterKey"
     }
+
+  /** The size, duration and whitelist part of [cacheKey], for caches that key the other options themselves. */
+  val mediaFilterKey: String
+    get() = "minVideo=$minimumVideoDurationSeconds|minSize=$minimumMediaFileSizeBytes|" +
+      "whitelist=$whitelistEnabled|allowed=${whitelistedPaths.sorted().joinToString(",")}"
 
   val rootDiscoveryCacheKey: String
     get() {
@@ -62,17 +68,33 @@ data class MediaScanOptions(
     minimumVideoDurationSeconds <= 0 || durationMs <= 0L ||
       durationMs >= minimumVideoDurationSeconds * 1000L
 
+  fun includesSize(sizeBytes: Long): Boolean =
+    minimumMediaFileSizeBytes <= 0L || sizeBytes <= 0L || sizeBytes >= minimumMediaFileSizeBytes
+
+  /** Only a configured minimum makes a scan pay for decoding a file's duration. */
+  fun filtersDuration(isAudio: Boolean): Boolean =
+    if (isAudio) minimumAudioDurationSeconds > 0 else minimumVideoDurationSeconds > 0
+
   fun includesMedia(sizeBytes: Long, durationMs: Long, isAudio: Boolean = false): Boolean =
-    (minimumMediaFileSizeBytes <= 0L || sizeBytes <= 0L || sizeBytes >= minimumMediaFileSizeBytes) &&
+    includesSize(sizeBytes) &&
       (if (isAudio) includesAudioDuration(durationMs) else includesVideoDuration(durationMs))
 
-  fun includesPath(path: String): Boolean =
-    !whitelistEnabled || whitelistedPaths.any { isMediaPathInFolder(path, it) }
+  fun includesPath(path: String): Boolean = isWhitelistedMediaPath(path, whitelistEnabled, whitelistedPaths)
+
+  fun includesVideo(video: Video): Boolean =
+    includesPath(video.bucketId) && includesMedia(video.size, video.duration, video.isAudio)
 
   fun includesAudioDuration(durationMs: Long): Boolean =
     durationMs <= 0L || minimumAudioDurationSeconds == 0 ||
       durationMs >= minimumAudioDurationSeconds * 1000L
 }
+
+/** A disabled or empty whitelist restricts nothing, so removing its last folder never hides the library. */
+internal fun isWhitelistedMediaPath(
+  path: String,
+  enabled: Boolean,
+  whitelist: Set<String>,
+): Boolean = !enabled || whitelist.isEmpty() || whitelist.any { isMediaPathInFolder(path, it) }
 
 class NoMediaPathFilter(
   private val options: MediaScanOptions,

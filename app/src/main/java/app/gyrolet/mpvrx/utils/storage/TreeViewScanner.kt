@@ -756,10 +756,9 @@ object TreeViewScanner {
                 continue
               }
               if (FileTypeUtils.isSupportedMediaFile(file, options)) {
-                if (!options.includesPath(directory.absolutePath) ||
-                  (stat.size > 0L && stat.size < options.minimumMediaFileSizeBytes)) continue
+                if (!options.includesPath(directory.absolutePath) || !options.includesSize(stat.size)) continue
                 val isAudio = FileTypeUtils.isAudioFile(file)
-                val duration = if (isAudio || options.minimumVideoDurationSeconds > 0)
+                val duration = if (isAudio || options.filtersDuration(isAudio = false))
                   FileTypeUtils.getDurationMs(file) else 0L
                 if (options.includesMedia(stat.size, duration, isAudio)) {
                   mediaFiles.add(file)

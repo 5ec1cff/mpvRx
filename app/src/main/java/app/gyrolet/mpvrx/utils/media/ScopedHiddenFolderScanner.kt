@@ -153,11 +153,7 @@ object ScopedHiddenFolderScanner {
         }
         discovered[visit.bucketId] = IndexedDirectory(visit, treeUri)
         val items = mediaItems(visit.bucketId, visit.displayName, children, includeAudio, audioOnly)
-          .filter {
-            (includeDotFolders || !it.displayName.startsWith(".")) &&
-              scanOptions.includesPath(it.bucketId) &&
-              scanOptions.includesMedia(it.size, it.duration, it.isAudio)
-          }
+          .filter { (includeDotFolders || !it.displayName.startsWith(".")) && scanOptions.includesVideo(it) }
         // Keep the directory in the traversal index, but only show folders with playable items.
         // Empty parents must still be descended into so their non-empty children remain visible.
         if (items.isNotEmpty()) {
@@ -281,7 +277,7 @@ object ScopedHiddenFolderScanner {
   ): List<Video> = withContext(Dispatchers.IO) {
     val directory = resolveDirectory(context, bucketId, grantedTreeUris) ?: return@withContext emptyList()
     mediaItems(bucketId, directory.displayName, listChildren(context, directory.uri), includeAudio, audioOnly = false)
-      .filter { scanOptions.includesPath(it.bucketId) && scanOptions.includesMedia(it.size, it.duration, it.isAudio) }
+      .filter(scanOptions::includesVideo)
   }
 
   /** Playable items of one listing. Names and MIME types decide the kind; nothing is opened or probed. */

@@ -12,9 +12,11 @@
 package app.gyrolet.mpvrx.ui.preferences
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -78,7 +80,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.AnnotatedString
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository
@@ -119,6 +120,7 @@ import app.gyrolet.mpvrx.utils.media.HiddenFolderSuggestion
 import app.gyrolet.mpvrx.utils.media.openPersistedTreeDocument
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.normalizeHiddenMarkerName
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -143,20 +145,39 @@ object FoldersPreferencesScreen : Screen {
     val minFileBytes by preferences.minimumMediaFileSizeBytes.collectAsState()
     val whitelist by preferences.whitelistedFolders.collectAsState()
     val whitelistEnabled by preferences.whitelistEnabled.collectAsState()
-    var rescanning by remember { mutableStateOf(false) }
-    var clearingCache by remember { mutableStateOf(false) }
+    val noLimitLabel = stringResource(R.string.pref_filter_no_limit)
+    var libraryTaskRunning by remember { mutableStateOf(false) }
     var confirmClearCache by remember { mutableStateOf(false) }
     var scanFilterDialog by remember { mutableStateOf<ScanFilterDialog?>(null) }
+    fun onScanPreferenceChanged() = invalidateLibraryScan(context)
+    fun runLibraryTask(@StringRes doneMessage: Int, task: suspend () -> Unit) {
+      libraryTaskRunning = true
+      coroutineScope.launch {
+        val succeeded =
+          try {
+            withContext(Dispatchers.IO) { task() }
+            true
+          } catch (cancelled: CancellationException) {
+            throw cancelled
+          } catch (_: Exception) {
+            false
+          } finally {
+            libraryTaskRunning = false
+          }
+        android.widget.Toast.makeText(
+          context,
+          if (succeeded) doneMessage else R.string.pref_library_action_failed,
+          android.widget.Toast.LENGTH_SHORT,
+        ).show()
+      }
+    }
     val whitelistFolderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
       if (uri != null) {
         // A MediaStore-backed folder can be selected using SAF without changing scan roots.
         val allowedPath = ScopedHiddenFolderScanner.localPathOf(uri) ?: uri.toString()
         preferences.whitelistedFolders.set(preferences.whitelistedFolders.get() + allowedPath)
         preferences.whitelistEnabled.set(true)
-        app.gyrolet.mpvrx.ui.browser.medialibrary.MediaLibraryCache.clear(context)
-        MediaStoreGenerationGuard.invalidate(context)
-        app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
-        MediaLibraryEvents.notifyChanged()
+        onScanPreferenceChanged()
       }
     }
 
@@ -171,12 +192,6 @@ object FoldersPreferencesScreen : Screen {
     val scanMarkers by preferences.sharedScanMarkedFolders.collectAsState()
     val scanDotFolders by preferences.sharedScanDotFolders.collectAsState()
     val ignoredMarkers by preferences.sharedIgnoredMarkers.collectAsState()
-    fun onScanPreferenceChanged() {
-      app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
-      MediaLibraryCache.clear(context)
-      MediaStoreGenerationGuard.invalidate(context)
-      MediaLibraryEvents.notifyChanged()
-    }
     var availableFolders by remember { mutableStateOf<List<VideoFolder>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -307,6 +322,8 @@ object FoldersPreferencesScreen : Screen {
         )
       },
     ) { padding ->
+      // The ComposePreference rows below crash without these locals.
+      ProvideExpressivePreferenceLocals {
       // One scrolling viewport: media settings, blacklisted folders and Add all travel
       // together. A weighted inner list used to leave only two blacklist rows visible.
       LazyColumn(
@@ -378,43 +395,25 @@ object FoldersPreferencesScreen : Screen {
             modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
           )
 
-          // Keep scan filters lightweight. Legacy ComposePreference ListPreference (especially
-          // Long-backed file size values) must not instantiate its dialog on initial navigation.
           PreferenceSectionHeader(
             position = PreferenceSectionPosition.Middle,
             title = stringResource(R.string.pref_scan_filters),
             topPadding = 24.dp,
           )
           PreferenceCard {
-            ExpressivePreferenceItem {
-              me.zhanghai.compose.preference.Preference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_filter_short_videos),
-                title = { Text(stringResource(R.string.pref_filter_short_videos)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_filter_short_videos_summary) + " · " +
-                      (if (minVideoSeconds == 0) stringResource(R.string.pref_filter_no_limit) else "${minVideoSeconds}s"),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                },
-                onClick = { scanFilterDialog = ScanFilterDialog.VideoDuration },
-              )
-            }
+            FolderActionPreference(
+              title = R.string.pref_filter_short_videos,
+              summary = stringResource(R.string.pref_filter_short_videos_summary) + " · " +
+                scanDurationLabel(minVideoSeconds, noLimitLabel),
+              onClick = { scanFilterDialog = ScanFilterDialog.VideoDuration },
+            )
             PreferenceDivider()
-            ExpressivePreferenceItem {
-              me.zhanghai.compose.preference.Preference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_filter_small_files),
-                title = { Text(stringResource(R.string.pref_filter_small_files)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_filter_small_files_summary) + " · " +
-                      scanSizeLabel(minFileBytes, stringResource(R.string.pref_filter_no_limit)),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                },
-                onClick = { scanFilterDialog = ScanFilterDialog.FileSize },
-              )
-            }
+            FolderActionPreference(
+              title = R.string.pref_filter_small_files,
+              summary = stringResource(R.string.pref_filter_small_files_summary) + " · " +
+                scanSizeLabel(minFileBytes, noLimitLabel),
+              onClick = { scanFilterDialog = ScanFilterDialog.FileSize },
+            )
           }
 
           if (BuildConfig.SCOPED_STORAGE_ONLY) {
@@ -641,94 +640,62 @@ object FoldersPreferencesScreen : Screen {
                 topPadding = 24.dp,
               )
               PreferenceCard {
-                ExpressivePreferenceItem {
-                  me.zhanghai.compose.preference.Preference(
-                    title = { Text(stringResource(R.string.pref_library_force_rescan)) },
-                    summary = { Text(stringResource(R.string.pref_library_force_rescan_summary)) },
-                    enabled = !rescanning && !clearingCache,
-                    onClick = {
-                      rescanning = true
-                      coroutineScope.launch {
-                        val result = runCatching {
-                          withContext(Dispatchers.IO) {
-                            MediaLibraryCache.clear(context)
-                            MediaStoreGenerationGuard.invalidate(context)
-                            app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
-                            UnindexedVideoDiscovery.refresh(context, force = true)
-                            app.gyrolet.mpvrx.repository.MediaFileRepository.getAllVideoFolders(
-                              context, forceFileSystemCheck = true,
-                            )
-                            MediaLibraryEvents.notifyChanged()
-                          }
-                        }
-                        rescanning = false
-                        android.widget.Toast.makeText(
-                          context,
-                          if (result.isSuccess) R.string.pref_library_rescan_done else R.string.pref_library_action_failed,
-                          android.widget.Toast.LENGTH_SHORT,
-                        ).show()
+                FolderActionPreference(
+                  title = R.string.pref_library_force_rescan,
+                  summary = stringResource(R.string.pref_library_force_rescan_summary),
+                  enabled = !libraryTaskRunning,
+                  onClick = {
+                    runLibraryTask(R.string.pref_library_rescan_done) {
+                      invalidateLibraryScan(context) {
+                        UnindexedVideoDiscovery.refresh(context, force = true)
+                        app.gyrolet.mpvrx.repository.MediaFileRepository.getAllVideoFolders(
+                          context, forceFileSystemCheck = true,
+                        )
                       }
-                    },
-                  )
-                }
+                    }
+                  },
+                )
                 PreferenceDivider()
-                ExpressivePreferenceItem {
-                  me.zhanghai.compose.preference.Preference(
-                    title = { Text(stringResource(R.string.pref_library_clear_cache)) },
-                    summary = { Text(stringResource(R.string.pref_library_clear_cache_summary)) },
-                    enabled = !rescanning && !clearingCache,
-                    onClick = { confirmClearCache = true },
-                  )
-                }
+                FolderActionPreference(
+                  title = R.string.pref_library_clear_cache,
+                  summary = stringResource(R.string.pref_library_clear_cache_summary),
+                  enabled = !libraryTaskRunning,
+                  onClick = { confirmClearCache = true },
+                )
               }
             }
           }
         }
       }
+      }
     }
 
-    if (scanFilterDialog != null) {
-      val isDurationFilter = scanFilterDialog == ScanFilterDialog.VideoDuration
-      AlertDialog(
-        onDismissRequest = { scanFilterDialog = null },
-        title = {
-          Text(stringResource(if (isDurationFilter) R.string.pref_filter_short_videos else R.string.pref_filter_small_files))
-        },
-        text = {
-          Column {
-            if (isDurationFilter) {
-              listOf(0, 5, 15, 30, 60).forEach { seconds ->
-                ScanFilterOptionRow(
-                  label = if (seconds == 0) stringResource(R.string.pref_filter_no_limit) else "${seconds}s",
-                  selected = minVideoSeconds == seconds,
-                  onClick = {
-                    preferences.minimumVideoDurationSeconds.set(seconds)
-                    scanFilterDialog = null
-                    onScanPreferenceChanged()
-                  },
-                )
-              }
-            } else {
-              listOf(0L, 500L * 1024L, 1024L * 1024L, 5L * 1024L * 1024L).forEach { bytes ->
-                ScanFilterOptionRow(
-                  label = scanSizeLabel(bytes, stringResource(R.string.pref_filter_no_limit)),
-                  selected = minFileBytes == bytes,
-                  onClick = {
-                    preferences.minimumMediaFileSizeBytes.set(bytes)
-                    scanFilterDialog = null
-                    onScanPreferenceChanged()
-                  },
-                )
-              }
-            }
-          }
-        },
-        confirmButton = {
-          TextButton(onClick = { scanFilterDialog = null }) {
-            Text(stringResource(R.string.generic_cancel))
-          }
-        },
-      )
+    when (scanFilterDialog) {
+      ScanFilterDialog.VideoDuration ->
+        ScanFilterOptionsDialog(
+          title = R.string.pref_filter_short_videos,
+          options = VideoDurationFilterSeconds,
+          selected = minVideoSeconds,
+          label = { scanDurationLabel(it, noLimitLabel) },
+          onSelect = {
+            preferences.minimumVideoDurationSeconds.set(it)
+            onScanPreferenceChanged()
+          },
+          onDismiss = { scanFilterDialog = null },
+        )
+      ScanFilterDialog.FileSize ->
+        ScanFilterOptionsDialog(
+          title = R.string.pref_filter_small_files,
+          options = FileSizeFilterBytes,
+          selected = minFileBytes,
+          label = { scanSizeLabel(it, noLimitLabel) },
+          onSelect = {
+            preferences.minimumMediaFileSizeBytes.set(it)
+            onScanPreferenceChanged()
+          },
+          onDismiss = { scanFilterDialog = null },
+        )
+      null -> Unit
     }
 
     if (showAddDialog) {
@@ -744,8 +711,7 @@ object FoldersPreferencesScreen : Screen {
     }
 
     if (confirmClearCache) {
-      // Avoid constructing the metadata DB and thumbnail caches whenever Folder Settings opens.
-      // They are only needed when the user explicitly chooses cache maintenance.
+      // Resolved only here so opening Folder settings never builds the metadata and thumbnail caches.
       val metadataCache = koinInject<VideoMetadataCacheRepository>()
       val thumbnailRepository = koinInject<ThumbnailRepository>()
       AlertDialog(
@@ -755,24 +721,11 @@ object FoldersPreferencesScreen : Screen {
         confirmButton = {
           TextButton(onClick = {
             confirmClearCache = false
-            clearingCache = true
-            coroutineScope.launch {
-              val result = runCatching {
-                withContext(Dispatchers.IO) {
-                  metadataCache.clearAll()
-                  thumbnailRepository.clearThumbnailCache()
-                  MediaLibraryCache.clear(context)
-                  MediaStoreGenerationGuard.invalidate(context)
-                  app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
-                  MediaLibraryEvents.notifyChanged()
-                }
+            runLibraryTask(R.string.pref_library_cache_cleared) {
+              invalidateLibraryScan(context) {
+                metadataCache.clearAll()
+                thumbnailRepository.clearThumbnailCache()
               }
-              clearingCache = false
-              android.widget.Toast.makeText(
-                context,
-                if (result.isSuccess) R.string.pref_library_cache_cleared else R.string.pref_library_action_failed,
-                android.widget.Toast.LENGTH_SHORT,
-              ).show()
             }
           }) { Text(stringResource(R.string.generic_confirm)) }
         },
@@ -1649,10 +1602,76 @@ private fun ScanFilterOptionRow(
   }
 }
 
-private fun scanSizeLabel(value: Long, noLimit: String): String = when (value) {
-  0L -> noLimit
-  500L * 1024L -> "500 KB"
-  1024L * 1024L -> "1 MB"
-  5L * 1024L * 1024L -> "5 MB"
-  else -> "${value / 1024L} KB"
+@Composable
+private fun <T> ScanFilterOptionsDialog(
+  @StringRes title: Int,
+  options: List<T>,
+  selected: T,
+  label: (T) -> String,
+  onSelect: (T) -> Unit,
+  onDismiss: () -> Unit,
+) {
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(stringResource(title)) },
+    text = {
+      Column {
+        options.forEach { option ->
+          ScanFilterOptionRow(
+            label = label(option),
+            selected = option == selected,
+            onClick = {
+              onSelect(option)
+              onDismiss()
+            },
+          )
+        }
+      }
+    },
+    confirmButton = {
+      TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) }
+    },
+  )
 }
+
+@Composable
+private fun FolderActionPreference(
+  @StringRes title: Int,
+  summary: String,
+  onClick: () -> Unit,
+  enabled: Boolean = true,
+) {
+  ExpressivePreferenceItem {
+    me.zhanghai.compose.preference.Preference(
+      modifier = Modifier.settingsSearchTarget(title),
+      title = { Text(stringResource(title)) },
+      summary = { Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+      enabled = enabled,
+      onClick = onClick,
+    )
+  }
+}
+
+/** Drops every cached listing, runs [rebuild], then tells open lists to reload with the new settings. */
+private inline fun invalidateLibraryScan(
+  context: Context,
+  rebuild: () -> Unit = {},
+) {
+  app.gyrolet.mpvrx.repository.MediaFileRepository.clearCache()
+  MediaLibraryCache.clear(context)
+  MediaStoreGenerationGuard.invalidate(context)
+  rebuild()
+  MediaLibraryEvents.notifyChanged()
+}
+
+private val VideoDurationFilterSeconds = listOf(0, 5, 15, 30, 60)
+private val FileSizeFilterBytes = listOf(0L, 500L * 1024L, 1024L * 1024L, 5L * 1024L * 1024L)
+
+private fun scanDurationLabel(seconds: Int, noLimit: String): String = if (seconds == 0) noLimit else "${seconds}s"
+
+private fun scanSizeLabel(bytes: Long, noLimit: String): String =
+  when {
+    bytes == 0L -> noLimit
+    bytes % (1024L * 1024L) == 0L -> "${bytes / (1024L * 1024L)} MB"
+    else -> "${bytes / 1024L} KB"
+  }

@@ -57,6 +57,10 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Immediate file actions:** Deleting or moving files and folders updates Tree mode immediately; renames appear before storage work finishes. Failed or cancelled items return, successful changes remain applied through stale scans, and operation refreshes keep the current list on screen.
 
+### Media Library
+
+- **Scan filters, whitelist and maintenance:** Settings > Folders can skip videos shorter than a chosen length and files smaller than a chosen size, limit the library to whitelisted folders, force a full rescan, and clear the metadata and thumbnail cache. The filters and the whitelist apply to the Library, Folders and Tree views and to folder contents alike. A whitelist with no folders restricts nothing, so removing the last folder never hides the whole library.
+
 ### App Updates
 
 - **Native installation:** Stable, Preview and Experimental updates use Android installer sessions, requesting silent self-updates on Android 12+ with confirmation when Android requires it.

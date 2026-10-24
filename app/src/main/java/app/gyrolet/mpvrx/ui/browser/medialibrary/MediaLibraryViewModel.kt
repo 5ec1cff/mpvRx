@@ -67,10 +67,7 @@ class MediaLibraryViewModel(
   private enum class DeletionState { Pending, Confirmed }
 
   private val hiddenVideoPaths = MutableStateFlow<Map<String, DeletionState>>(emptyMap())
-  private val whitelistFlow = combine(
-    foldersPreferences.whitelistEnabled.changes(),
-    foldersPreferences.whitelistedFolders.changes(),
-  ) { enabled, paths -> enabled to paths }
+  private val whitelistFlow = foldersPreferences.whitelistChanges()
   private val loadRequests = Channel<Boolean>(Channel.CONFLATED)
   private var enrichmentJob: Job? = null
   private val _videos = MutableStateFlow<List<Video>>(emptyList())
@@ -111,10 +108,10 @@ class MediaLibraryViewModel(
     whitelistState: Pair<Boolean, Set<String>>,
   ): Boolean {
     if (video.path in hidden) return false
-    if (whitelistState.first && whitelistState.second.none { allowed ->
-        app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.bucketId, allowed) ||
-          app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.path, allowed)
-      }) return false
+    val (whitelistEnabled, whitelist) = whitelistState
+    if (!app.gyrolet.mpvrx.utils.storage.isWhitelistedMediaPath(video.bucketId, whitelistEnabled, whitelist) &&
+      !app.gyrolet.mpvrx.utils.storage.isWhitelistedMediaPath(video.path, whitelistEnabled, whitelist)
+    ) return false
     val blacklist = if (video.isAudio) audioBlacklist else videoBlacklist
     return blacklist.none { folder ->
       app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.bucketId, folder) ||
@@ -176,9 +173,7 @@ class MediaLibraryViewModel(
       "|ignored=${foldersPreferences.sharedIgnoredMarkers.get().sorted().joinToString(",")}" +
       "|uris=${foldersPreferences.scopedHiddenFolderUris.get().sorted().joinToString(",")}" +
       "|audioMin=${browserPreferences.minimumAudioDurationSeconds.get()}" +
-      "|videoMin=${foldersPreferences.minimumVideoDurationSeconds.get()}" +
-      "|sizeMin=${foldersPreferences.minimumMediaFileSizeBytes.get()}" +
-      "|allowed=${foldersPreferences.whitelistEnabled.get()}:${foldersPreferences.whitelistedFolders.get().sorted().joinToString(",")}"
+      "|${MediaFileRepository.currentScanOptions().mediaFilterKey}"
 
   /** Show a validated saved list immediately; background work must never blank it out. */
   private fun loadCachedVideos(): Boolean {
@@ -269,12 +264,8 @@ class MediaLibraryViewModel(
     currentCoroutineContext().ensureActive()
     // MediaStore can report an unknown duration until cached metadata is restored or enriched.
     // Reapply thresholds after enrichment so newly discovered short videos are excluded too.
-    val minVideoMs = foldersPreferences.minimumVideoDurationSeconds.get().toLong() * 1000L
-    val minSize = foldersPreferences.minimumMediaFileSizeBytes.get()
-    val eligible = videos.filter { video ->
-      (minSize <= 0L || video.size <= 0L || video.size >= minSize) &&
-        (video.isAudio || minVideoMs <= 0L || video.duration <= 0L || video.duration >= minVideoMs)
-    }
+    val scanOptions = MediaFileRepository.currentScanOptions(includeAudioOverride = true)
+    val eligible = videos.filter { scanOptions.includesMedia(it.size, it.duration, it.isAudio) }
     _videos.value = eligible
     val scannedPaths = eligible.mapTo(hashSetOf()) { it.path }
     hiddenVideoPaths.update { states ->

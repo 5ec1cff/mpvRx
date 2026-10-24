@@ -10,6 +10,8 @@
 package app.gyrolet.mpvrx.preferences
 
 import app.gyrolet.mpvrx.preferences.preference.PreferenceStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 enum class BlacklistScope {
   BOTH,
@@ -38,6 +40,10 @@ class FoldersPreferences(
   val minimumMediaFileSizeBytes = preferenceStore.getLong("scan_minimum_media_file_size_bytes", 0L)
   val whitelistedFolders = preferenceStore.getStringSet("whitelisted_folders", emptySet())
   val whitelistEnabled = preferenceStore.getBoolean("whitelist_enabled", false)
+
+  fun whitelistChanges(): Flow<Pair<Boolean, Set<String>>> =
+    combine(whitelistEnabled.changes(), whitelistedFolders.changes()) { enabled, folders -> enabled to folders }
+
   val pinnedFolders = preferenceStore.getStringSet("pinned_folders", emptySet())
   // Video file paths pinned to the top of their folder listing
   val pinnedVideos = preferenceStore.getStringSet("pinned_videos", emptySet())

@@ -66,7 +66,7 @@ object MediaFileRepository : KoinComponent {
   private val playbackStateRepository: PlaybackStateRepository by inject()
   private val database: MpvRxDatabase by inject()
 
-  private fun currentScanOptions(
+  internal fun currentScanOptions(
     includeAudioOverride: Boolean? = null,
     scope: HiddenScanScope = HiddenScanScope.FOLDERS,
   ): MediaScanOptions =
@@ -82,6 +82,10 @@ object MediaFileRepository : KoinComponent {
       ignoredHiddenMarkerNames = foldersPreferences.ignoredMarkers(scope),
       includeAudio = includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
       minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
+      minimumVideoDurationSeconds = foldersPreferences.minimumVideoDurationSeconds.get(),
+      minimumMediaFileSizeBytes = foldersPreferences.minimumMediaFileSizeBytes.get(),
+      whitelistEnabled = foldersPreferences.whitelistEnabled.get(),
+      whitelistedPaths = foldersPreferences.whitelistedFolders.get(),
     )
 
   private data class TreeViewNewBadgeParams(
@@ -232,6 +236,8 @@ object MediaFileRepository : KoinComponent {
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
       val aggregates = linkedMapOf<String, AudioFolderAggregate>()
+      val scanOptions =
+        currentScanOptions(includeAudioOverride = true).copy(minimumAudioDurationSeconds = minimumAudioDurationSeconds)
       try {
         val projection =
           arrayOf(
@@ -261,9 +267,8 @@ object MediaFileRepository : KoinComponent {
               val parentPath = file.parent ?: continue
               if (app.gyrolet.mpvrx.domain.audiobook.AudiobookMarkerUtils.isAudiobookDirectoryPath(parentPath)) continue
               val durationMs = cursor.getLong(durationColumn)
-              if (minimumAudioDurationSeconds > 0 && durationMs > 0L && durationMs / 1000 < minimumAudioDurationSeconds) continue
-              if (!currentScanOptions(includeAudioOverride = true).includesPath(parentPath) ||
-                !currentScanOptions(includeAudioOverride = true).includesMedia(cursor.getLong(sizeColumn), durationMs, isAudio = true)) continue
+              if (!scanOptions.includesPath(parentPath) ||
+                !scanOptions.includesMedia(cursor.getLong(sizeColumn), durationMs, isAudio = true)) continue
               val key = normalizeAudioFolderKey(parentPath)
               val aggregate = aggregates.getOrPut(key) { AudioFolderAggregate(path = parentPath) }
               aggregate.size += cursor.getLong(sizeColumn)
@@ -293,7 +298,7 @@ object MediaFileRepository : KoinComponent {
           foldersPreferences.scopedHiddenFolderUris.get(),
           includeAudio = true,
           audioOnly = true,
-          scanOptions = currentScanOptions(includeAudioOverride = true),
+          scanOptions = scanOptions,
         )
       } else {
         emptyList()
