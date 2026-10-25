@@ -115,7 +115,7 @@ object LyricsUtils {
       }
     }
 
-    return if (isSynced && syncedLines.isNotEmpty() && hasUsableTiming(syncedLines)) {
+    return if (isSynced && syncedLines.isNotEmpty()) {
       val sorted = syncedLines.sortedBy { it.time }
       val wordSynced =
         sorted.mapIndexed { index, line ->
@@ -136,22 +136,12 @@ object LyricsUtils {
       )
     } else {
       Lyrics(
-        plain =
-          plainLines.ifEmpty {
-            // Same-stamp lines were folded in as translations above; as plain text they are verses.
-            syncedLines.flatMap { it.line.lines() + listOfNotNull(it.translation) }.filter { it.isNotBlank() }
-          },
+        plain = plainLines,
         synced = null,
         areFromRemote = (sourceType == LyricsSourceType.ONLINE),
         sourceType = sourceType,
       )
     }
-  }
-
-  /** Whether line stamps can drive highlighting: several sung lines that all share one stamp cannot. */
-  fun hasUsableTiming(lines: List<SyncedLine>): Boolean {
-    val sung = lines.filter { it.line.isNotBlank() }
-    return sung.size < 2 || sung.any { it.time != sung.first().time }
   }
 
   /** Converts LRC tenths, centiseconds, or milliseconds to milliseconds. */
