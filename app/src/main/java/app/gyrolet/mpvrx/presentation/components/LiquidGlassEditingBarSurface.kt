@@ -18,6 +18,7 @@ import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
@@ -25,13 +26,15 @@ import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import org.koin.compose.koinInject
 
+/** The selection action bar's glass. It refracts [backdrop] over the app background. */
 @Composable
 fun LiquidGlassEditingBarSurface(
-  backdrop: LiquidGlassBackdrop?,
+  backdrop: Backdrop?,
   content: @Composable BoxScope.() -> Unit,
 ) {
   val preferences = koinInject<AppearancePreferences>()
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val sceneBackdrop = rememberSceneGlassBackdrop(backdrop)
   val settings = rememberLiquidGlassSettings()
   val reducedMotion = AppMotion.shouldReduceMotion()
   val shape = CircleShape
@@ -39,9 +42,9 @@ fun LiquidGlassEditingBarSurface(
   val fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)
 
   val surfaceModifier =
-    if (glassEnabled && backdrop != null) {
+    if (glassEnabled && sceneBackdrop != null) {
       Modifier.drawBackdrop(
-        backdrop = backdrop,
+        backdrop = sceneBackdrop,
         shape = { Capsule() },
         effects = {
           liquidGlassEffects(

@@ -89,9 +89,9 @@ fun AppWallpaperHost(content: @Composable () -> Unit) {
   val wallpaperBlur by preferences.customWallpaperBlur.collectAsState()
   val wallpaperAlpha by preferences.customWallpaperAlpha.collectAsState()
   val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
-  val legacyNavigationBar by preferences.legacyNavigationBar.collectAsState()
-  val backgroundBackdrop =
-    if (liquidGlassEnabled && !legacyNavigationBar) rememberLayerBackdrop() else null
+  // The navigation pill, mini player and selection bars all refract this background, so it is
+  // captured whenever glass is on, the legacy navigation bar included.
+  val backgroundBackdrop = if (liquidGlassEnabled) rememberLayerBackdrop() else null
   // Hold the UI back until the first wallpaper load finishes, so the app doesn't flash a plain
   // background and then pop the wallpaper in on launch.
   var initialWallpaperResolved by remember { mutableStateOf(wallpaperUri.isBlank()) }

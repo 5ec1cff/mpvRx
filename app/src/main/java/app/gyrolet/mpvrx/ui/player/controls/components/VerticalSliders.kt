@@ -39,7 +39,6 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
@@ -72,7 +71,9 @@ private fun LevelPill(
   val colors = MaterialTheme.colorScheme
   val enableLiquidGlass = liquidGlassActive()
   val glassSettings = rememberLiquidGlassSettings()
-  val playerBackdrop = LocalKyantPlayerBackdrop.current ?: rememberLayerBackdrop()
+  // Glass needs the player's sampled video layer. Until it exists (first frames, renderer switches)
+  // the pill keeps its regular darker form instead of drawing a glass rim around nothing.
+  val glassBackdrop = LocalKyantPlayerBackdrop.current?.takeIf { enableLiquidGlass }
   val density = LocalDensity.current
   val shape = CircleShape
   val fillSpring = spring<Float>(dampingRatio = 0.85f, stiffness = 380f)
@@ -111,9 +112,9 @@ private fun LevelPill(
       modifier
         .size(LevelPillWidth, LevelPillHeight)
         .then(
-          if (enableLiquidGlass) {
+          if (glassBackdrop != null) {
             Modifier.drawBackdrop(
-              backdrop = playerBackdrop,
+              backdrop = glassBackdrop,
               shape = { shape },
               effects = {
                 liquidGlassEffects(
@@ -131,7 +132,7 @@ private fun LevelPill(
             Modifier
           },
         ).clip(shape)
-        .background(Color.Black.copy(alpha = if (enableLiquidGlass) 0.25f else 0.45f))
+        .background(Color.Black.copy(alpha = if (glassBackdrop != null) 0.25f else 0.45f))
         .border(1.dp, Color.White.copy(alpha = 0.12f), shape),
   ) {
     Box(

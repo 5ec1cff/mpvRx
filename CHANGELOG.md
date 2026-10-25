@@ -39,6 +39,13 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
+- **Redesigned clip editor:** The clip panel now groups its controls into Range and Output sections of connected cards. A summary card at the top shows the clip length and has a Preview button that plays the clip and stops at its end. The start and end each have buttons that step 0.1 seconds back or forward, repeating while held, and a button that sets them to the current position. Quick lengths of 5, 10, 15, 30 and 60 seconds set the end from the start. The crop row shows the selected size and can reset it to the full frame, the audio and subtitle tracks are picked from drop-down lists, and a switch burns the chosen subtitles into the clip.
+
+### Liquid Glass
+
+- **The wallpaper shows through every floating bar:** With a wallpaper or an animated background on, the mini player and the selection action bar now refract the wallpaper behind them, as the navigation bar already did, instead of letting the sharp list text underneath show through the glass. This works with the legacy navigation bar too.
+- **No empty glass over the video:** Until the video can be shown through the glass, for example while its first frame loads or the renderer changes, the volume and brightness level keeps its regular darker capsule instead of an empty glass outline, and the pressed seekbar thumb refracts only the track.
+
 ### Jellyfin
 
 - **Expressive featured carousel:** The home banner is now a Material 3 multi-browse carousel. The next title peeks beside the current one, slides grow and shrink as they move, text fades in only once a slide is wide enough, and tapping a peeking slide brings it forward.
@@ -62,6 +69,11 @@ These notes are written in plain English and focus on what changed for real use.
 ### Media Library
 
 - **Scan filters, whitelist and maintenance:** Settings > Folders can skip videos shorter than a chosen length and files smaller than a chosen size, limit the library to whitelisted folders, force a full rescan, and clear the metadata and thumbnail cache. The filters and the whitelist apply to the Library, Folders and Tree views and to folder contents alike. A whitelist with no folders restricts nothing, so removing the last folder never hides the whole library.
+- **Blacklist and whitelist on their own screens:** Settings > Folders keeps the scan filters with the other media library options and opens the blacklist and the whitelist on separate screens. Each shows its folders as one connected list that scrolls within the screen, with the Add folder button always at the bottom.
+
+### Interface
+
+- **One style for drop-down lists:** Drop-down lists across the app, including the Secure Folder security question, the connection protocol, server address suggestions, Seerr resolution, Jellyfin seasons, the audiobook source, online subtitle search filters, the lyrics provider and the subtitle border style, now open the same menu. Options are connected rows with the selected one highlighted and checked. The music source picker keeps its own design.
 
 ### Android TV
 

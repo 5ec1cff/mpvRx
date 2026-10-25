@@ -26,9 +26,12 @@ import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import androidx.compose.runtime.getValue
+import app.gyrolet.mpvrx.ui.theme.LocalAppBackgroundBackdrop
 import org.koin.compose.koinInject
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
@@ -39,7 +42,7 @@ import com.kyant.shapes.RoundedRectangle
 
 typealias LiquidGlassBackdrop = LayerBackdrop
 
-internal val LocalLiquidGlassBackdrop = staticCompositionLocalOf<LiquidGlassBackdrop?> { null }
+internal val LocalLiquidGlassBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 @Composable
 fun rememberLiquidGlassBackdrop(): LiquidGlassBackdrop = rememberLayerBackdrop()
@@ -49,9 +52,26 @@ fun Modifier.captureLiquidGlassBackdrop(
   enabled: Boolean = true,
 ): Modifier = if (enabled && backdrop != null) layerBackdrop(backdrop) else this
 
+/**
+ * What a floating glass bar refracts: the app background captured at the top level (wallpaper and
+ * animated background) with the screen layer [content] drawn over it. Screens turn transparent over
+ * a wallpaper, so [content] alone leaves holes where the sharp content under the bar shows through
+ * the glass. A bar can't sample one window-wide layer instead: it would be recording itself.
+ * Returns null when [content] is null, which is how callers turn glass off.
+ */
+@Composable
+fun rememberSceneGlassBackdrop(content: Backdrop?): Backdrop? {
+  val background = LocalAppBackgroundBackdrop.current
+  return when {
+    content == null -> null
+    background == null -> content
+    else -> rememberCombinedBackdrop(background, content)
+  }
+}
+
 @Composable
 fun ProvideLiquidGlassBackdrop(
-  backdrop: LiquidGlassBackdrop,
+  backdrop: Backdrop,
   enabled: Boolean = true,
   content: @Composable () -> Unit,
 ) {
@@ -66,7 +86,10 @@ enum class LiquidGlassStyle {
   Navigation,
 }
 
-/** Kyant-backed liquid glass surface shared by mini players and floating action bars. */
+/**
+ * Kyant-backed liquid glass surface shared by mini players and floating action bars. It refracts
+ * [backdrop] over the app background (see [rememberSceneGlassBackdrop]).
+ */
 @Composable
 fun LiquidGlassSurface(
   shape: Shape,
@@ -75,7 +98,7 @@ fun LiquidGlassSurface(
   glassColor: Color,
   fallbackColor: Color,
   contentColor: Color = MaterialTheme.colorScheme.onSurface,
-  backdrop: LiquidGlassBackdrop? = LocalLiquidGlassBackdrop.current,
+  backdrop: Backdrop? = LocalLiquidGlassBackdrop.current,
   glowStrength: Float = 1f,
   cornerRadius: Dp? = null,
   content: @Composable BoxScope.() -> Unit,
@@ -83,7 +106,8 @@ fun LiquidGlassSurface(
   val glassSettings = rememberLiquidGlassSettings()
   val preferences = koinInject<AppearancePreferences>()
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
-  val renderGlass = glassEnabled && backdrop != null
+  val sceneBackdrop = rememberSceneGlassBackdrop(backdrop)
+  val renderGlass = glassEnabled && sceneBackdrop != null
   val reducedMotion = AppMotion.shouldReduceMotion()
   val blurRadius = when (style) {
     LiquidGlassStyle.MiniPlayer -> 12.dp
@@ -109,7 +133,7 @@ fun LiquidGlassSurface(
     if (renderGlass) {
       modifier
         .drawBackdrop(
-          backdrop = checkNotNull(backdrop),
+          backdrop = checkNotNull(sceneBackdrop),
           shape = { glassShape },
           effects = {
             liquidGlassEffects(
