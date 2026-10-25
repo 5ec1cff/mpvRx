@@ -10,7 +10,7 @@
 package app.gyrolet.mpvrx.ui.browser
 
 import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
+import app.gyrolet.mpvrx.ui.utils.NavigationBackHandler as BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition

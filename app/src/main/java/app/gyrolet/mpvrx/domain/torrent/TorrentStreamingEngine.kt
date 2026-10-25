@@ -69,6 +69,7 @@ class TorrentStreamingEngine(
         "divx" to "video/*",
         "f4v" to "video/mp4",
         "flv" to "video/x-flv",
+        "iso" to "application/x-iso9660-image",
         "m2ts" to "video/mp2t",
         "m2v" to "video/mpeg",
         "m4s" to "video/iso.segment",

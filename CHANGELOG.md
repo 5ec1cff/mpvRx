@@ -4,18 +4,26 @@ These notes are written in plain English and focus on what changed for real use.
 
 ## Unreleased
 
+## 3.0.2 — Android TV, Music and Playback Improvements
+
+**Release date:** October 25, 2026
+
+This release brings dedicated Android TV navigation and playback controls, a phone-to-TV remote, a live expandable music player, ISO file discovery, and improvements throughout playback, Jellyfin, library management and app updates. The notes below cover the changes since 3.0.1.
+
 ### Music Player
 
 - **Live expansion from the mini player:** Tapping or swiping up the music mini player grows it into the full player inside the app instead of opening a separate screen. The motion is drawn from the live player rather than a saved snapshot, follows your finger in both directions, can be caught mid-way, and supports predictive back to collapse it again.
 - **Uninterrupted playback while expanding:** Playback stays with the background service the whole time, so expanding or collapsing never re-attaches the player or pauses the audio. Lyrics, the queue and the sleep timer stay as you left them between visits. Video and Android TV still use the full player screen.
+- **Back returns to the mini player:** On phones and tablets, Back from the expanded music player collapses it on the first press and keeps the current browser tab or folder. Covered browser callbacks no longer intercept the player's Back gesture or send the app to Home, and the new TV focus groups stay limited to TV. Open player sheets and fullscreen lyrics still close first.
+- **Animated album artwork:** Optional Apple Music animated covers include improved song, artist and album matching, more reliable discovery and retry handling, and a still-cover fallback while loading or when the artwork surface is unavailable. Motion artwork plays without taking audio focus or enabling its audio tracks.
+- **Sharper album covers:** Fullscreen and album artwork are cached for their display size instead of enlarging the small thumbnails used in song rows.
+- **More reliable synced lyrics:** Lyrics parsing checks whether line timing is usable before treating lyrics as synchronized.
 
 ### Player
 
 - **Ambience rendering fixed:** Corrected shader errors that could turn playback blue or corrupt the picture when enabling Glow, Ambilight, Cinema, Echo or Mirror on OpenGL ES. Vignette fading now uses defined shader math across GPU drivers.
 
 - **Regular controls when glass is off for HDR:** With Liquid Glass on and "Liquid glass in HDR mode" off, turning on HDR output now switches every player control, slider, sheet and panel to its regular look, exactly as with Liquid Glass off, instead of glass buttons that could no longer show the video behind them. The same applies whenever HDR output is controlled by mpv.conf.
-
-- **Videos open the right way round again:** Rolled back the recent rotation rework that could open portrait phone recordings sideways or leave the picture misaligned. Rotation from the media library is read as before, the player uses the video's own rotation until the first frame appears instead of assuming none, and the mini player shows rotated videos at the right shape.
 
 - **Buttons beside play/pause in landscape:** With play/pause placed below the seekbar, the left and right button groups now sit on either side of it in the same row instead of taking a row of their own. If they do not fit, they scroll sideways and fade out at the edge that has more buttons.
 
@@ -29,6 +37,8 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **Videos open the right way round from the first launch:** The player no longer opens in the wrong orientation and then turns once playback starts. When the media library has no size for a video, as is common for MKV and for files opened from other apps, or no rotation, as on Android 10 and older, the player reads the size and rotation straight from the MP4, MOV, 3GP, MKV or WebM header. That read starts in the background when you tap the video, so it is normally done before the player screen appears, even from a slow SD card on first launch. If the size still cannot be found, the screen keeps its current orientation instead of guessing, and the player turns it as soon as the header or the video reports the real shape. Each launch logs how the orientation was decided, how long that took, and any later turn, so slow or wrong cases can be measured.
 
+- **Rotation stays consistent during playback:** Preserve media-library rotation handling, use the container's rotation before the first decoded frame, and keep rotated videos at the correct shape in the mini player. A saved custom aspect ratio no longer blocks automatic video orientation.
+
 - **mpvlib 1.1.4:** Updated native libraries, including HarfBuzz 15, FreeType 2.15, LittleCMS 2.19 and curl 8.23. The FongMi build also picks up FongMi's latest playback changes.
 
 - **Android TV style volume and brightness:** The volume and brightness levels now show as a single sleek capsule that fills from the bottom with the same gradient as before, with the value inside at the top and the icon inside at the bottom. Both stay readable as the level rises under them. While one is showing, the seekbar, every button row, custom Lua buttons, the skip chip and the dimmed background all step aside, so only the level sits over the video.
@@ -40,6 +50,14 @@ These notes are written in plain English and focus on what changed for real use.
 - **HDR Toys updated:** The bundled hdr-toys shaders now match the latest upstream release, including the reworked Astra tone mapping and Bottosson gamut mapping, shared BT.2390 logic and corrected BT.2446 A processing. The new BT.2446 B, BT.2407 and Annex 5 shaders are bundled too. The linear profile for EXR and HDR images passes its stability options under their current names again, so they take effect.
 
 - **Redesigned clip editor:** The clip panel now groups its controls into Range and Output sections of connected cards. A summary card at the top shows the clip length and has a Preview button that plays the clip and stops at its end. The start and end each have buttons that step 0.1 seconds back or forward, repeating while held, and a button that sets them to the current position. Quick lengths of 5, 10, 15, 30 and 60 seconds set the end from the start. The crop row shows the selected size and can reset it to the full frame, the audio and subtitle tracks are picked from drop-down lists, and a switch burns the chosen subtitles into the clip.
+
+- **Streaming headers from mpv.conf:** Referrer and custom HTTP header defaults apply to playback and playlist requests, while explicit per-media headers retain priority. The in-app HLS proxy has been removed so mpv handles stream playback directly.
+
+- **Buffering feedback during network waits:** The indicator covers opening a network item, cache stalls and seek-related waits, including when the controls are hidden, while retaining the checks that avoid misleading indicators for local playback or paused media.
+
+- **Double-tap seeking keeps controls hidden:** Restored deferred single-tap handling so double taps on either side do not bring up or toggle the player controls.
+
+- **Remote playback and downloads:** Improved Cast playback-state tracking, audiobook progress synchronization and download output-name reservations.
 
 ### Liquid Glass
 
@@ -53,6 +71,7 @@ These notes are written in plain English and focus on what changed for real use.
 - **Consistent spacing:** Section titles, rows, grids, lists, search and tabs share one screen gutter that widens on tablets, so everything lines up on the same edge. Rows scroll edge to edge while their first card stays aligned with the title.
 - **Cleaner cards:** Artwork corners follow their card's corners, list rows use the same tonal cards as episodes, artists show round artwork, and the library card no longer shows a square background behind its rounded artwork.
 - **Clearer states:** The connect, empty-folder, no-results and connection-error screens use the app's shared expressive layout, and every Jellyfin label and accessibility description is translated.
+- **Playback and artwork:** Improved subtitle handling and episode artwork fallback to the series poster. Discovery cards use more consistent poster sizes, compact gaps and whole-card selection targets.
 
 ### Settings Restore
 
@@ -60,14 +79,17 @@ These notes are written in plain English and focus on what changed for real use.
 
 ### Crash Reporting
 
-- **Nothing goes unreported:** Startup crashes, out-of-memory errors, crashes in the background, native crashes, freezes (ANRs) and system kills while the app is in use all produce a crash report. On Android 10 and older, which keep no exit history, the app now also reports when it closed unexpectedly while on screen, with the logs Android still has from that session.
+- **Broader crash reporting:** Capture reports for startup failures, out-of-memory errors, background crashes, native crashes, freezes (ANRs) and recorded system kills while the app is in use. On Android 10 and older, which keep no exit history, the app also detects an unexpected close while on screen and includes available session logs. Recovery can show a saved report on the next launch and return to the running app when dismissed.
 
 ### Tree Browser
 
 - **Immediate file actions:** Deleting or moving files and folders updates Tree mode immediately; renames appear before storage work finishes. Failed or cancelled items return, successful changes remain applied through stale scans, and operation refreshes keep the current list on screen.
+- **ZIP browsing:** Improved archive handling, date sorting and content-URI archive timestamps. ZIP entries no longer offer thumbnail or metadata fields that they cannot populate, and playlist toolbar actions use consistent icons and spacing.
 
 ### Media Library
 
+- **ISO files are visible:** Recognize `.iso` and `.ISO` as playable video files in the shared file, folder, Tree, network and archive filters. System video pickers include ISO disc-image MIME types, and direct-link detection, network MIME handling, torrent file selection and folder metadata use the same format support. ISO playback continues to use mpv's native support.
+- **New and extracted files appear sooner:** Discover readable videos before Android MediaStore finishes indexing them, prioritize known media and extraction folders, refresh folder caches consistently and avoid duplicates once indexing catches up. Refresh requests no longer queue behind optional metadata enrichment.
 - **Scan filters, whitelist and maintenance:** Settings > Folders can skip videos shorter than a chosen length and files smaller than a chosen size, limit the library to whitelisted folders, force a full rescan, and clear the metadata and thumbnail cache. The filters and the whitelist apply to the Library, Folders and Tree views and to folder contents alike. A whitelist with no folders restricts nothing, so removing the last folder never hides the whole library.
 - **Blacklist and whitelist on their own screens:** Settings > Folders keeps the scan filters with the other media library options and opens the blacklist and the whitelist on separate screens. Each shows its folders as one connected list that scrolls within the screen, with the Add folder button always at the bottom.
 
@@ -75,9 +97,15 @@ These notes are written in plain English and focus on what changed for real use.
 
 - **One style for drop-down lists:** Drop-down lists across the app, including the Secure Folder security question, the connection protocol, server address suggestions, Seerr resolution, Jellyfin seasons, the audiobook source, online subtitle search filters, the lyrics provider and the subtitle border style, now open the same menu. Options are connected rows with the selected one highlighted and checked. The music source picker keeps its own design.
 - **Legacy navigation bar makes way for the keyboard:** With Legacy navigation bar turned on, the bar now hides while the keyboard is open instead of sitting on top of it, so it no longer covers the content just above the keyboard while you type. It comes back once the keyboard has closed.
+- **Consistent choice dialogs:** Preference pickers, including Language, use the shared centered Material 3 Expressive dialog, connected option rows and selected-state styling, with visible remote focus on TV.
+- **Navigation and settings alignment:** Extended the bottom navigation surface to its full area and aligned settings sliders with their rows.
+- **Wallpaper from a link:** Download a custom wallpaper from an HTTP or HTTPS image URL in the wallpaper editor.
+- **Lighter defaults:** With no saved preference, Liquid Glass and external display projection start off, player controls use a simpler layout, and browser cards skip optional duration probes and size/path chips. Android 11 and older start with the legacy navigation bar; TV starts without video thumbnails or seasonal backdrops.
+- **Settings organization:** Moved the Advanced language and notification group below Scripts and updated search destinations.
 
 ### Android TV
 
+- **Dedicated TV layout:** Added a collapsible side navigation rail and player controls built for a remote, with a focusable seekbar, accelerating D-pad seeking, transport buttons, subtitle/audio/chapter controls, clock, buffering feedback and skip actions.
 - **Side menu and content work together:** Right from the side menu always enters the current tab, at the item you left there where possible and otherwise at its first item, instead of jumping to whatever happened to be nearest, such as a toolbar button. Left from the edge of the content returns to the menu, and choosing a tab moves into it once it has loaded. In right-to-left languages the directions are mirrored, so the menu can be left at all.
 - **Focus stays on screen:** Focus can no longer slip into tabs or pages that are not showing, and tabs are no longer prepared in the background on TV. Every screen opens with something focused, the list rather than the toolbar where there is one, and Back returns to the folder, video or playlist you opened.
 - **Refresh button instead of pull to refresh:** Lists that refreshed with a pull gesture show a Refresh button above them on TV, and the remote's Refresh key works too. Phones and tablets keep pull to refresh.
@@ -85,6 +113,15 @@ These notes are written in plain English and focus on what changed for real use.
 - **Mini player:** It sits as a compact card in the bottom corner instead of covering the menu's Settings item, and its buttons can be reached with the remote. Selecting the title opens the player.
 - **No invisible focus:** Floating buttons no longer hide while a list scrolls, and a hidden one can no longer take focus. Playlist grid cards show the same focus outline as other cards.
 - **Remote instead of gestures:** Reordering a playlist, the tabs in settings or the custom player buttons shows Move up and Move down buttons instead of drag handles, and a custom button slot opens from its title so its fields and buttons can be reached. The image and snapshot viewers turn pages with Left and Right, with their buttons above and below. Release notes and long confirmations scroll with Up and Down once there is nothing else to move to.
+- **Settings focus and TV options:** Entering a settings page moves focus into its controls, Back restores the previous row, and mobile-only settings and search results are hidden on TV without changing saved phone preferences. TV uses remote seeking and transport actions independently of touch gesture mappings.
+- **Player overlays and volume:** TV sheets, sliders and HUD controls stay inside the safe area and support D-pad adjustment. Volume key changes show the player volume indicator. Touch-only brightness, PiP, projection, video mini-player, biometric and haptic behavior are skipped on TV.
+- **Seeking feedback clears:** The TV seek indicator has its own restartable timeout and clears when another video loads, fixing the indicator remaining on screen after seeking.
+- **Jellyfin remote navigation:** Added scoped focus, D-pad handoff, focus memory and visible highlights across Jellyfin libraries, music tabs, episodes, people and Seerr. TV library cards keep a fixed width so their focus outlines remain visible.
+
+### Phone Remote for Android TV
+
+- **Control a TV from your phone:** Discover mpvRx TVs on the local network and send D-pad navigation, playback, volume and text input from the phone remote screen. TV key delivery also reaches focused dialogs.
+- **Pairing approval:** Compare the six-digit pairing code and approve the phone on the TV. Paired remote sessions use encrypted communication.
 
 ### App Updates
 
@@ -93,6 +130,13 @@ These notes are written in plain English and focus on what changed for real use.
 - **Reliable progress and recovery:** Downloads survive navigation and process restarts, retain resumable partials, support cancellation, and keep the sheet open while downloading or staging an install.
 - **Safer handoff:** Verify the APK identity, signing certificates and version before installation, preserve a manual installer fallback, and handle permission requests and installation results through the sheet and notifications.
 - **Translated controls:** New updater settings and status messages are available in all existing app languages.
+- **Installation recovery:** Check the installed version on return and keep update-sheet state consistent after an installation attempt.
+
+### Acknowledgments
+
+- Added BitChord and Neo Player to the app's acknowledgments, alongside the credits for TV navigation and other upstream work.
+
+**Full changelog:** [v3.0.1...v3.0.2](https://github.com/Riteshp2001/mpvRx/compare/v3.0.1...v3.0.2)
 
 ## 3.0.1 — Smoother Browsing, More Reliable Playback
 

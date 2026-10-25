@@ -82,6 +82,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
@@ -745,7 +746,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
               FloatingActionButtonMenuItem(
                 onClick = {
                   isFabExpanded.value = false
-                  filePicker.launch(arrayOf("video/*"))
+                  filePicker.launch(FileTypeUtils.videoPickerMimeTypes())
                 },
                 icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
                 text = {

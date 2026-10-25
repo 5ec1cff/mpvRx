@@ -867,7 +867,7 @@ object FolderListScreen : Screen {
               FloatingActionButtonMenuItem(
                 onClick = {
                   isFabExpanded.value = false
-                  filePicker.launch(if (audioOnly) arrayOf("audio/*") else arrayOf("video/*"))
+                  filePicker.launch(if (audioOnly) arrayOf("audio/*") else FileTypeUtils.videoPickerMimeTypes())
                 },
                 icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
                 text = {

@@ -34,6 +34,7 @@ object HttpUtils {
       "flv",
       "ts",
       "m2ts",
+      "iso",
       "mp3",
       "m4a",
       "aac",

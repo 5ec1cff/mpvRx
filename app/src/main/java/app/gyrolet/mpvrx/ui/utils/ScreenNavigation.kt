@@ -40,6 +40,7 @@ import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
+import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalAppWallpaperActive
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
@@ -118,6 +119,7 @@ internal fun ScreenNavDisplay(
   val speed by preferences.animationSpeed.collectAsState()
   val reduceMotion = AppMotion.shouldReduceMotion()
   val layoutDirection = LocalLayoutDirection.current
+  val musicSheet = LocalInAppMusicSheet.current
   val direction = if (layoutDirection == LayoutDirection.Ltr) 1 else -1
   // With a wallpaper / animated background the entries are transparent, so a normal slide or
   // cross-fade shows the outgoing and incoming screens on top of each other (ghosted titles,
@@ -130,7 +132,11 @@ internal fun ScreenNavDisplay(
   NavDisplay(
     backStack = backStack,
     modifier = modifier.clipToBounds().background(backgroundColor),
-    onBack = onBack,
+    onBack = {
+      // Navigation entries remain composed behind the music sheet. If their dispatcher wins,
+      // collapse the overlay without popping a folder or leaving the selected music tab.
+      if (musicSheet?.isVisible == true) musicSheet.collapse() else onBack()
+    },
     sizeTransform = null,
     transitionSpec = { screenNavTransition(true, style, speed, direction, reduceMotion, seeThrough) },
     popTransitionSpec = { screenNavTransition(false, style, speed, direction, reduceMotion, seeThrough) },

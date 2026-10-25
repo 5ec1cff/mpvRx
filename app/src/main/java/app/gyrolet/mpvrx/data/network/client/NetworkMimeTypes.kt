@@ -25,6 +25,7 @@ internal object NetworkMimeTypes {
       "m3u", "m3u8" -> "application/vnd.apple.mpegurl"
       "mp4", "m4v" -> "video/mp4"
       "mkv" -> "video/x-matroska"
+      "iso" -> "application/x-iso9660-image"
       "avi" -> "video/x-msvideo"
       "mov" -> "video/quicktime"
       "wmv" -> "video/x-ms-wmv"

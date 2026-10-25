@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.database.repository.SecureFolderRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
@@ -560,7 +561,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
             FloatingActionButtonMenuItem(
               onClick = {
                 isFabExpanded.value = false
-                filePicker.launch(arrayOf(if (mediaType == MediaLibraryType.Audio) "audio/*" else "video/*"))
+                filePicker.launch(
+                  if (mediaType == MediaLibraryType.Audio) arrayOf("audio/*") else FileTypeUtils.videoPickerMimeTypes(),
+                )
               },
               icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
               text = {

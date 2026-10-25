@@ -17,6 +17,7 @@ import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -219,7 +220,7 @@ object MetadataRetrieval {
 
         val videoFiles =
           directory.listFiles()?.filter { file ->
-            file.isFile && file.extension.lowercase() in VIDEO_EXTENSIONS
+            file.isFile && FileTypeUtils.isVideoFile(file)
           } ?: emptyList()
 
         if (videoFiles.isEmpty()) {
@@ -291,34 +292,6 @@ object MetadataRetrieval {
     }
 
   // Helper: Video file extensions
-  private val VIDEO_EXTENSIONS =
-    setOf(
-      "mp4",
-      "mkv",
-      "avi",
-      "mov",
-      "wmv",
-      "flv",
-      "webm",
-      "m4v",
-      "3gp",
-      "3g2",
-      "mpg",
-      "mpeg",
-      "m2v",
-      "ogv",
-      "ts",
-      "mts",
-      "m2ts",
-      "vob",
-      "divx",
-      "xvid",
-      "f4v",
-      "rm",
-      "rmvb",
-      "asf",
-    )
-
   // Formatting utilities
   private fun formatDuration(durationMs: Long): String {
     if (durationMs <= 0) return "0s"

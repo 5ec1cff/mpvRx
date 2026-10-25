@@ -555,6 +555,10 @@ fun formatResolution(
  * Handles file type detection
  */
 object FileTypeUtils {
+  /** System document pickers also need disc-image MIME types outside the video MIME family. */
+  fun videoPickerMimeTypes(): Array<String> =
+    arrayOf("video/*", "application/x-iso9660-image", "application/x-cd-image")
+
   // Video file extensions
   val VIDEO_EXTENSIONS =
     setOf(
@@ -576,6 +580,7 @@ object FileTypeUtils {
       "mts",
       "m2ts",
       "vob",
+      "iso",
       "divx",
       "xvid",
       "f4v",
@@ -637,7 +642,7 @@ object FileTypeUtils {
    * Checks if a file is a video based on extension
    */
   fun isVideoFile(file: File): Boolean {
-    val extension = file.extension.lowercase(Locale.getDefault())
+    val extension = file.extension.lowercase(Locale.ROOT)
     return VIDEO_EXTENSIONS.contains(extension)
   }
 
@@ -686,6 +691,7 @@ object FileTypeUtils {
       "3gp" -> "video/3gpp"
       "3g2" -> "video/3gpp2"
       "mpg", "mpeg" -> "video/mpeg"
+      "iso" -> "application/x-iso9660-image"
       "mp1", "mp2", "mp3", "mpa" -> "audio/mpeg"
       "m4a", "aac" -> "audio/mp4"
       "flac" -> "audio/flac"

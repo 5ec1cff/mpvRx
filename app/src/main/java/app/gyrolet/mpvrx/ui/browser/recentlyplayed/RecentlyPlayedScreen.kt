@@ -73,6 +73,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.ui.browser.components.rememberVideoSwipeActions
 import app.gyrolet.mpvrx.ui.browser.components.rememberSwipePlaybackInfo
 import app.gyrolet.mpvrx.domain.media.model.Video
@@ -370,7 +371,7 @@ object RecentlyPlayedScreen : Screen {
             FloatingActionButtonMenuItem(
               onClick = {
                 isFabExpanded.value = false
-                filePicker.launch(arrayOf("video/*"))
+                filePicker.launch(FileTypeUtils.videoPickerMimeTypes())
               },
               icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
               text = {

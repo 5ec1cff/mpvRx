@@ -36,6 +36,7 @@ import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
+import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.tv.isTelevision
 import kotlin.math.abs
@@ -52,7 +53,16 @@ private val PassThroughPageScrollConnection = object : NestedScrollConnection {}
 
 @Composable
 internal fun NavigationBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
-  BackHandler(enabled = enabled && LocalNavigationPageActive.current, onBack = onBack)
+  // The live music sheet shares this window. Covered browser pages must not consume its Back
+  // gesture or change tabs, even if a lazy page registered its callback after the player.
+  val musicSheet = LocalInAppMusicSheet.current
+  BackHandler(
+    enabled = enabled && LocalNavigationPageActive.current && musicSheet?.isVisible != true,
+    onBack = {
+      // Also cover a Back event arriving before the disabled state reaches the dispatcher.
+      if (musicSheet?.isVisible == true) musicSheet.collapse() else onBack()
+    },
+  )
 }
 
 /**
@@ -203,17 +213,23 @@ private fun BrowserTabPage(
   // Keep data collection and resume observers on the real screen lifecycle. A synthetic
   // CREATED -> RESUMED transition here used to restart them at the end of every swipe.
   val pageFocusRequester = remember { FocusRequester() }
+  val television = isTelevision()
+  val focusModifier =
+    if (television) {
+      // A boundary for the whole TV page: a plain Box cannot keep D-pad focus out of its children.
+      Modifier
+        .focusRequester(if (isActive) activePageFocusRequester ?: pageFocusRequester else pageFocusRequester)
+        .focusProperties { onEnter = { if (!isActive) cancelFocusChange() } }
+        .focusGroup()
+    } else {
+      Modifier.focusProperties { canFocus = isActive }
+    }
   CompositionLocalProvider(LocalNavigationPageActive provides isActive) {
     Box(
       Modifier
         .fillMaxSize()
         .then(motionModifier)
-        // Lets a host (the TV side rail) send focus into whichever page is settled.
-        .focusRequester(if (isActive) activePageFocusRequester ?: pageFocusRequester else pageFocusRequester)
-        // A boundary for the whole page: `canFocus` on a plain Box never reached items inside its
-        // lists, so D-pad search used to wander into pages composed offscreen beside this one.
-        .focusProperties { onEnter = { if (!isActive) cancelFocusChange() } }
-        .focusGroup()
+        .then(focusModifier)
         .semantics { if (!isActive) hideFromAccessibility() },
     ) {
       content()
