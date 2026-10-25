@@ -39,6 +39,8 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
+import kotlinx.coroutines.delay
 
 fun Modifier.tvFocusHighlight(
   shape: Shape = RoundedCornerShape(8.dp),
@@ -83,7 +85,12 @@ fun rememberTvInitialFocusRequester(
   LaunchedEffect(isTelevision, enabled, requestKey) {
     if (isTelevision && enabled) {
       withFrameNanos { }
-      runCatching { requester.requestFocus() }
+      // Lazy sheet/dialog content can attach after the first frame of its entrance.
+      // Stop as soon as focus succeeds, so this never resets a user's subsequent moves.
+      repeat(15) {
+        if (requester.tryRequestFocus()) return@LaunchedEffect
+        delay(100)
+      }
     }
   }
   return requester

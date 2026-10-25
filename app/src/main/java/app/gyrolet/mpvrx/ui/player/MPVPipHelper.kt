@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.utils.media.resolveSeekMode
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -101,7 +102,7 @@ class MPVPipHelper(
   }
 
   fun updatePictureInPictureParams() {
-    if (activity.isFinishing || activity.isDestroyed) return
+    if (!DeviceFormFactor.supportsPlaybackPictureInPicture(activity) || activity.isFinishing || activity.isDestroyed) return
 
     val params = buildPipParams()
     runCatching { activity.setPictureInPictureParams(params) }
@@ -231,7 +232,7 @@ class MPVPipHelper(
    * leaving the full-screen player stranded with hidden controls when PiP is unavailable.
    */
   fun enterPipMode(): Boolean {
-    if (isAudioPlayer() || !isVideoLoaded()) {
+    if (!DeviceFormFactor.supportsPlaybackPictureInPicture(activity) || isAudioPlayer() || !isVideoLoaded()) {
       Log.d("MPVPipHelper", "PiP mode is disabled: audio=${isAudioPlayer()}, videoLoaded=${isVideoLoaded()}")
       return false
     }

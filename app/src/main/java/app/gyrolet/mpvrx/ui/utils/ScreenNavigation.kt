@@ -108,6 +108,8 @@ internal fun ScreenNavDisplay(
    * or lay out their own safe area ([TvEdgeToEdgeScreen]). Set only by the top-level host.
    */
   tvSafeArea: Boolean = false,
+  tvAutoFocus: Boolean = true,
+  tvFocusRequestKey: Any? = Unit,
   onBack: () -> Unit = { backStack.popSafely() },
   content: @Composable (Screen) -> Unit = { it.Content() },
 ) {
@@ -157,6 +159,9 @@ internal fun ScreenNavDisplay(
             TvScreenFocusHost(
               scope = route,
               safeArea = tvSafeArea && route !is TvEdgeToEdgeScreen,
+              active = route == backStack.lastOrNull(),
+              autoFocus = tvAutoFocus,
+              focusRequestKey = tvFocusRequestKey,
             ) {
               content(route)
             }

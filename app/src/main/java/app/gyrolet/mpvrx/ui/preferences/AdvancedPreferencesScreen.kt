@@ -380,21 +380,23 @@ object AdvancedPreferencesScreen : Screen {
                   },
                 )
               }
-              ExpressivePreferenceItem {
-                ListPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
-                  value = selectedNotificationStyle,
-                  onValueChange = preferences.notificationStyle::set,
-                  values = supportedNotificationStyles,
-                  valueToText = { AnnotatedString(it.displayName) },
-                  title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
-                  summary = {
-                    Text(
-                      text = selectedNotificationStyle.displayName,
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
+              DevicePreference(R.string.pref_advanced_notification_style) {
+                ExpressivePreferenceItem {
+                  ListPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
+                    value = selectedNotificationStyle,
+                    onValueChange = preferences.notificationStyle::set,
+                    values = supportedNotificationStyles,
+                    valueToText = { AnnotatedString(it.displayName) },
+                    title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
+                    summary = {
+                      Text(
+                        text = selectedNotificationStyle.displayName,
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
+                  )
+                }
               }
             }
           }
@@ -701,19 +703,21 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              ExpressivePreferenceItem {
-              Preference(
-                title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_custom_buttons_summary),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                onClick = {
-                  backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
-                },
-              )
+              DevicePreference(R.string.pref_custom_buttons_title) {
+                ExpressivePreferenceItem {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_custom_buttons_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = {
+                    backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
+                  },
+                )
+                }
               }
             }
           }

@@ -73,8 +73,11 @@ fun calculateResponsiveGridSpans(
   val maxVideos: Int
 
   if (manualGridColumnsEnabled) {
-    val maxSafeFolders = maxOf(dynamicFolders + 3, (usableWidth / 70.dp).toInt()).coerceAtLeast(1)
-    val maxSafeVideos = maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
+    // Restored phone column counts must not shrink TV cards below a readable D-pad target.
+    val maxSafeFolders =
+      if (isTelevision) dynamicFolders else maxOf(dynamicFolders + 3, (usableWidth / 70.dp).toInt()).coerceAtLeast(1)
+    val maxSafeVideos =
+      if (isTelevision) dynamicVideos else maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
 
     if (isDualPane) {
       val dualFolderPref = if (isLandscape) folderGridColumnsDualPaneLandscape else folderGridColumnsDualPanePortrait

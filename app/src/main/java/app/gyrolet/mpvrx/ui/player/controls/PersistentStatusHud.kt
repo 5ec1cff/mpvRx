@@ -55,6 +55,8 @@ import app.gyrolet.mpvrx.preferences.PlayerClockFormat
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tvOverscanPadding
 import app.gyrolet.mpvrx.ui.player.controls.components.formatSpeed
 import kotlinx.coroutines.delay
 
@@ -81,9 +83,13 @@ internal fun PersistentStatusHud(
   val showSpeed by preferences.persistentStatusShowSpeed.collectAsState()
   val microBattery by preferences.persistentStatusMicroBattery.collectAsState()
   val clockFormat by preferences.clockFormat.collectAsState()
-  val playbackPosition by viewModel.precisePosition.collectAsState()
-  val battery = rememberHudBatteryLevel()
-  val now = rememberHudClock()
+  val television = isTelevision()
+  val slots = listOf(left, center, right)
+  val needsProgress = !television || PersistentStatusSlot.PlaybackProgress in slots
+  val playbackPosition = if (needsProgress) viewModel.precisePosition.collectAsState().value else 0f
+  val battery = if (television) 0 else rememberHudBatteryLevel()
+  val needsClock = !television || PersistentStatusSlot.CurrentTime in slots || (needsProgress && preferFinishTime)
+  val now = if (needsClock) rememberHudClock() else 0L
 
   Box(modifier.fillMaxSize()) {
     val isTop = position == PersistentStatusPosition.Top
@@ -103,6 +109,7 @@ internal fun PersistentStatusHud(
       // Only the cutout is avoided: system-bar insets change when the controls show their bars.
       modifier = Modifier
         .align(if (isTop) Alignment.TopCenter else Alignment.BottomCenter)
+        .tvOverscanPadding(top = isTop, bottom = !isTop)
         .windowInsetsPadding(
           WindowInsets.displayCutout.only(
             WindowInsetsSides.Horizontal +
@@ -220,8 +227,10 @@ private fun StatusSlotContent(
   textAlignment: TextAlign,
   modifier: Modifier = Modifier,
 ) {
+  val displayedSlot =
+    if (slot == PersistentStatusSlot.BatteryStatus && isTelevision()) PersistentStatusSlot.None else slot
   Box(modifier = modifier, contentAlignment = alignment) {
-    when (slot) {
+    when (displayedSlot) {
       PersistentStatusSlot.None -> Unit
       PersistentStatusSlot.CurrentTime -> Text(wallTime, style = style, maxLines = 1,
         overflow = TextOverflow.Ellipsis, textAlign = textAlignment)

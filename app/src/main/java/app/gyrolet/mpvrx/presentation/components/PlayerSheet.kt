@@ -102,6 +102,8 @@ import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerGlassSurfaceActive
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalMotionPolicy
 import app.gyrolet.mpvrx.ui.theme.MotionPolicy
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.TvSafeArea
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -124,6 +126,7 @@ fun PlayerSheet(
   content: @Composable () -> Unit,
 ) {
   val scope = rememberCoroutineScope()
+  val television = isTelevision()
   val liquidGlassEnabled = liquidGlassActive()
   val playerBackdrop = LocalKyantPlayerBackdrop.current
   val isFrosted = useFrostedGlass && liquidGlassEnabled
@@ -223,6 +226,7 @@ fun PlayerSheet(
         )
         // Lifts the whole sheet above the keyboard instead of padding inside a height-capped surface.
         .imePadding()
+        .then(if (television) Modifier.padding(TvSafeArea.Padding) else Modifier)
         .onSizeChanged {
           val anchors =
             DraggableAnchors {
@@ -233,7 +237,9 @@ fun PlayerSheet(
         },
     contentAlignment = Alignment.BottomCenter,
   ) {
-    val sheetShape = MaterialTheme.shapes.extraLargeIncreased.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize)
+    val sheetShape =
+      if (television) MaterialTheme.shapes.extraLargeIncreased
+      else MaterialTheme.shapes.extraLargeIncreased.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize)
     val baseContainerColor = surfaceColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
     val expressiveContainerColor =
       baseContainerColor.copy(alpha = 1f)
@@ -274,6 +280,7 @@ fun PlayerSheet(
           }.anchoredDraggable(
             state = anchoredDraggableState,
             orientation = Orientation.Vertical,
+            enabled = !television,
           ).windowInsetsPadding(
             WindowInsets.systemBars
               .only(WindowInsetsSides.Horizontal),

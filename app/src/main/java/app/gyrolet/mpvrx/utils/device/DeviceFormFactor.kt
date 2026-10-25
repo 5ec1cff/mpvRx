@@ -15,6 +15,18 @@ import android.content.res.Configuration
 
 object DeviceFormFactor {
   @Volatile private var cachedTelevisionFeature: Boolean? = null
+  @Volatile private var cachedPictureInPictureFeature: Boolean? = null
+
+  // TV PiP is reserved for communication, smart-home, health and ticker use cases,
+  // not media playback. Ignore a restored phone PiP preference on a television.
+  fun supportsPlaybackPictureInPicture(context: Context): Boolean {
+    if (isTelevision(context)) return false
+    return cachedPictureInPictureFeature ?: synchronized(this) {
+      cachedPictureInPictureFeature ?: context.packageManager
+        .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+        .also { cachedPictureInPictureFeature = it }
+    }
+  }
 
   fun isTelevision(context: Context): Boolean {
     // Configuration.uiMode carries the same mode type as UiModeManager.currentModeType, but as a

@@ -123,6 +123,7 @@ import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import app.gyrolet.mpvrx.ui.player.controls.tvScrubStepSeconds
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import app.gyrolet.mpvrx.utils.device.appUiScaleOverrideConfiguration
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
@@ -580,7 +581,7 @@ class PlayerActivity :
         when (intent?.action) {
           Intent.ACTION_SCREEN_OFF -> {
             screenUnlockPlaybackController.onScreenTurnedOff(
-              autoplayAfterScreenUnlockEnabled = playerPreferences.autoplayAfterScreenUnlock.get(),
+              autoplayAfterScreenUnlockEnabled = !isTelevision && playerPreferences.autoplayAfterScreenUnlock.get(),
               wasPlayingBeforePause = wasPlayingBeforePause,
               isCurrentlyPaused = viewModel.paused,
               backgroundPlaybackActive = isBackgroundPlaybackEnabled(),
@@ -761,7 +762,7 @@ class PlayerActivity :
       finish()
       return
     }
-    externalDisplayManager =
+    externalDisplayManager = if (isTelevision) null else
       ExternalDisplayManager(this) { active ->
         onExternalDisplayStateChanged(active)
       }.also {
@@ -1167,7 +1168,7 @@ class PlayerActivity :
       return
     }
 
-    if (isReady && gesturePreferences.confirmBackToExit.get()) {
+    if (!isTelevision && isReady && gesturePreferences.confirmBackToExit.get()) {
       val now = android.os.SystemClock.elapsedRealtime()
       val previousPress = lastExitBackPressAtMs
       if (previousPress == null || now - previousPress !in 0L..2_000L) {
@@ -1181,7 +1182,7 @@ class PlayerActivity :
     // If mini player is enabled, back press within the app hands off playback to the mini player
     // rather than entering PiP. If mini player is disabled, auto-PiP retains priority on Back
     // unless the user restricted auto-PiP to the home gesture.
-    if (!isMiniPlayerEnabled() &&
+    if (!isTelevision && !isMiniPlayerEnabled() &&
       shouldEnterPipOnNavigation() &&
       !playerPreferences.pipOnHomeGestureOnly.get() &&
       enterPipModeSmoothly()
@@ -1737,7 +1738,7 @@ class PlayerActivity :
 
   private fun shouldEnterPipOnNavigation(): Boolean =
     PlayerLifecyclePolicy.shouldEnterPipOnNavigation(
-      autoPipEnabled = playerPreferences.autoPiPOnNavigation.get(),
+      autoPipEnabled = DeviceFormFactor.supportsPlaybackPictureInPicture(this) && playerPreferences.autoPiPOnNavigation.get(),
       mediaReady = isReady,
       isAudioMedia = viewModel.isAudioOnly.value || isCurrentMediaKnownAudio(),
       isActivityUnavailable = isFinishing || isDestroyed || isUserFinishing,
@@ -2535,7 +2536,7 @@ class PlayerActivity :
   }
 
   fun setExternalDisplayProjectionEnabled(enabled: Boolean) {
-    externalDisplayManager?.enabled = enabled
+    externalDisplayManager?.enabled = enabled && !isTelevision
   }
 
   private fun setLayoutInDisplayCutoutModeIfSupported(shortEdges: Boolean) {
@@ -3808,7 +3809,7 @@ class PlayerActivity :
     return if (isCurrentPlaybackAudio()) {
       true
     } else {
-      playerPreferences.enableVideoMiniPlayer.get() &&
+      !isTelevision && playerPreferences.enableVideoMiniPlayer.get() &&
         (audioPreferences.backgroundPlaybackBehavior.get() != app.gyrolet.mpvrx.preferences.BackgroundPlaybackBehavior.PerVideo ||
           PlaybackSession.isVideoBackgroundPlaybackEnabled())
     }
@@ -3886,7 +3887,7 @@ class PlayerActivity :
 
   private fun rememberResumeAfterUnlockBeforeForcedPause() {
     screenUnlockPlaybackController.onScreenTurnedOff(
-      autoplayAfterScreenUnlockEnabled = playerPreferences.autoplayAfterScreenUnlock.get(),
+      autoplayAfterScreenUnlockEnabled = !isTelevision && playerPreferences.autoplayAfterScreenUnlock.get(),
       wasPlayingBeforePause = wasPlayingBeforePause,
       isCurrentlyPaused = viewModel.paused,
       backgroundPlaybackActive = false,
@@ -6890,7 +6891,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   private fun applyPlaybackBrightnessPolicy(
     isAudio: Boolean = viewModel.isAudioOnly.value || isCurrentMediaKnownAudio(),
   ) {
-    if (isAudio || !playerPreferences.rememberBrightness.get()) {
+    if (isTelevision || isAudio || !playerPreferences.rememberBrightness.get()) {
       // Audio playback must never hold a per-window video brightness override. Resetting to
       // BRIGHTNESS_OVERRIDE_NONE also restores the system brightness slider immediately.
       viewModel.resetBrightnessToSystem()
@@ -6948,12 +6949,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         }
         TvPlayerRemoteAction.SEEK_BACKWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.handleLeftDoubleTap()
+          viewModel.seekFromTvRemote(-tvScrubStepSeconds(event?.repeatCount ?: 0))
           return true
         }
         TvPlayerRemoteAction.SEEK_FORWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.handleRightDoubleTap()
+          viewModel.seekFromTvRemote(tvScrubStepSeconds(event?.repeatCount ?: 0))
           return true
         }
         TvPlayerRemoteAction.TOGGLE_PLAYBACK -> {
@@ -6970,6 +6971,22 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         TvPlayerRemoteAction.TOGGLE_SUBTITLES -> {
           consumedTvRemoteKeys += keyCode
           if ((event?.repeatCount ?: 0) == 0 && !viewModel.isAudioOnly.value) toggleTvSheet(Sheets.SubtitleTracks)
+          return true
+        }
+        TvPlayerRemoteAction.PLAY,
+        TvPlayerRemoteAction.PAUSE,
+        TvPlayerRemoteAction.PREVIOUS,
+        TvPlayerRemoteAction.NEXT,
+        -> {
+          consumedTvRemoteKeys += keyCode
+          if ((event?.repeatCount ?: 0) == 0) {
+            when (keyCode) {
+              KeyEvent.KEYCODE_MEDIA_PLAY -> viewModel.unpause()
+              KeyEvent.KEYCODE_MEDIA_PAUSE -> viewModel.pause()
+              KeyEvent.KEYCODE_MEDIA_PREVIOUS -> viewModel.playPrevious()
+              KeyEvent.KEYCODE_MEDIA_NEXT -> viewModel.playNext()
+            }
+          }
           return true
         }
         TvPlayerRemoteAction.DELEGATE -> {
@@ -7054,6 +7071,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_VOLUME_UP -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         if (viewModel.isAudioOnly.value) {
           viewModel.changeVolumeBy(1, showUi = true)
           return true
@@ -7064,6 +7082,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_VOLUME_DOWN -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         if (viewModel.isAudioOnly.value) {
           viewModel.changeVolumeBy(-1, showUi = true)
           return true
@@ -7074,6 +7093,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_MEDIA_STOP -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         finishAndRemoveTask()
         return true
       }

@@ -32,6 +32,12 @@ import androidx.compose.ui.graphics.Color
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.utils.LocalCurrentScreen
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -317,18 +323,23 @@ fun Modifier.settingsSearchTarget(
     val isTarget = requestedTarget != null && requestedTarget?.screen == currentScreen &&
       (requestedTarget?.key == key || fallback)
     val requester = remember { BringIntoViewRequester() }
+    val television = isTelevision()
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(isTarget, requestedTarget) {
       if (isTarget) {
         requestedTarget?.let(SettingsSearchNavigation::located)
         delay(300)
         requester.bringIntoView()
+        if (television) focusRequester.tryRequestFocus()
         delay(3200)
         requestedTarget?.let { SettingsSearchNavigation.clear(it) }
       }
     }
 
     this
+      .tvFocusMemory(key)
+      .then(if (television) Modifier.focusRequester(focusRequester) else Modifier)
       .bringIntoViewRequester(requester)
       .highlightBackground(isTarget)
   }
@@ -422,7 +433,7 @@ fun rememberSettingsSearchList(
     scrollToSettingsSearchTarget(screen, listState, target)
   }
 
-  return listState to Modifier
+  return listState to Modifier.tvContentFocus()
 }
 
 @Composable
@@ -437,5 +448,5 @@ fun rememberSettingsSearchHighlight(
     val target = requestedTarget?.takeIf { it.screen == screen } ?: return@LaunchedEffect
     scrollToSettingsSearchTarget(screen, listState, target)
   }
-  return Modifier
+  return Modifier.tvContentFocus()
 }

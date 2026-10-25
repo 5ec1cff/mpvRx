@@ -25,13 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
@@ -114,32 +112,31 @@ internal fun RegisterTvContentFocus(requester: FocusRequester) {
 internal fun TvScreenFocusHost(
   scope: Any,
   safeArea: Boolean,
+  active: Boolean = true,
+  autoFocus: Boolean = true,
+  focusRequestKey: Any? = Unit,
   content: @Composable () -> Unit,
 ) {
   if (!isTelevision()) {
     content()
     return
   }
-  val parent = LocalTvScreenFocus.current
   val state = remember { TvScreenFocusState() }
   val screenRequester = remember { FocusRequester() }
-  // Saved with the entry, so it is only true when the user comes back to this screen.
-  val visit = rememberSaveable { booleanArrayOf(false) }
-  val returning = remember { visit[0] }
-  SideEffect { visit[0] = true }
-
-  LaunchedEffect(scope) {
+  LaunchedEffect(scope, active, autoFocus, focusRequestKey) {
+    if (!active || !autoFocus) return@LaunchedEffect
     // Screens that place their own initial focus do so after one frame; let them go first.
     withFrameNanos { }
     withFrameNanos { }
     val deadline = SystemClock.uptimeMillis() + CONTENT_FOCUS_WAIT_MS
-    // A nested host (a settings detail pane) never pulls focus away from its parent screen.
-    while (!state.hasFocus && parent?.hasFocus != true) {
-      if (returning && TvFocusMemory.restore(scope)) break
+    // Only the active entry may claim focus. Nested panes opt in when the user opens them;
+    // checking the parent's hasFocus here also includes the category pane and blocks handoff.
+    while (true) {
+      if (TvFocusMemory.restore(scope)) break
       if (state.requestContentFocus()) break
-      val worthWaiting = state.hasContentTargets || (returning && TvFocusMemory.hasRemembered(scope))
+      val worthWaiting = state.hasContentTargets || TvFocusMemory.hasRemembered(scope)
       if (!worthWaiting || SystemClock.uptimeMillis() >= deadline) {
-        screenRequester.tryRequestFocus()
+        if (!state.hasFocus) screenRequester.tryRequestFocus()
         break
       }
       // Lists that are still loading get a moment before focus falls back to the first control.
@@ -161,6 +158,15 @@ internal fun TvScreenFocusHost(
     }
   }
 }
+
+/** Registers the list/pane itself, so initial focus skips toolbar Back buttons on TV. */
+internal fun Modifier.tvContentFocus(): Modifier =
+  composed {
+    if (!isTelevision()) return@composed this
+    val requester = remember { FocusRequester() }
+    RegisterTvContentFocus(requester)
+    this.focusRequester(requester).focusGroup()
+  }
 
 /**
  * Remembers which keyed item last had focus on each screen, so coming back (Back from a folder, or
@@ -223,7 +229,7 @@ internal fun Modifier.tvFocusMemory(key: Any): Modifier =
       onDispose { TvFocusMemory.detach(scope, key, requester) }
     }
     this
-      .onFocusChanged { if (it.isFocused) TvFocusMemory.onFocused(scope, key) }
+      .onFocusChanged { if (it.hasFocus) TvFocusMemory.onFocused(scope, key) }
       .focusRequester(requester)
   }
 

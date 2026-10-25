@@ -9,6 +9,8 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
@@ -96,6 +98,7 @@ object MpvConfOwnershipScreen : Screen {
       LazyColumn(
         modifier = Modifier
           .fillMaxSize()
+            .tvContentFocus()
           .padding(padding),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),

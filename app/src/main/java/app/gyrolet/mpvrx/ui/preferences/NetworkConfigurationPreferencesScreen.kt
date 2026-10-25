@@ -9,6 +9,8 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,6 +78,7 @@ object NetworkConfigurationPreferencesScreen : Screen {
           modifier =
             Modifier
               .fillMaxSize()
+            .tvContentFocus()
               .padding(padding)
               .verticalScroll(scrollState)
               .padding(bottom = MaterialTheme.spacing.extraLarge),

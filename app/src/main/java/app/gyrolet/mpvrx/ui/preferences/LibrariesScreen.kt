@@ -4,6 +4,8 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,7 +76,8 @@ object LibrariesScreen : Screen {
       },
     ) { padding ->
       LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(padding),
+        modifier = Modifier.fillMaxSize()
+            .tvContentFocus().padding(padding),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
       ) {

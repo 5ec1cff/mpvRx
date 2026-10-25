@@ -735,6 +735,7 @@ fun PlayerControls(
     val tvSortedSpeedPresets = remember(tvSpeedPresets) { tvSpeedPresets.map { it.toFloat() }.sorted() }
     val tvChapterStarts = remember(chapters) { chapters.map { it.start } }
     val tvVolumeVisible by viewModel.isVolumeSliderShown.collectAsState()
+    val tvShowVolumeOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
     val tvVolumeTimestamp by viewModel.volumeSliderTimestamp.collectAsState()
     val tvVolumePercent by viewModel.currentVolumePercent.collectAsState()
     val tvMpvVolume by PlaybackSession.propInt["volume"].collectAsState()
@@ -787,9 +788,9 @@ fun PlayerControls(
           )
           DoubleTapToSeekOvals(
             amount = doubleTapSeekAmount,
-            showOvals = showDoubleTapOvals,
-            showSeekIcon = showSeekTime,
-            showSeekTime = showSeekTime,
+            showOvals = false,
+            showSeekIcon = true,
+            showSeekTime = true,
             rippleRequest = seekRippleRequest,
           )
           // Status HUD remains visible even after playback controls fade away.
@@ -815,7 +816,8 @@ fun PlayerControls(
             mediaTitle = mediaTitle,
             chapterTitle = currentChapter?.let(chapters::getOrNull)?.name,
             durationSeconds = seekbarDuration,
-            chapterStarts = tvChapterStarts,
+            chapterStarts = if (showChapterIndicators) tvChapterStarts else emptyList(),
+            showBufferedRange = showBufferedRange,
             hasSubtitles = true,
             hasAudioTracks = tvAudioTracks.isNotEmpty(),
             hasChapters = chapters.isNotEmpty(),
@@ -867,7 +869,7 @@ fun PlayerControls(
             onDismissRequest = { onOpenPanel(Panels.None) },
           )
           AnimatedVisibility(
-            visible = tvVolumeVisible,
+            visible = tvVolumeVisible && tvShowVolumeOverlay,
             enter = fadeIn(tween(150)),
             exit = fadeOut(tween(220)),
             modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp),

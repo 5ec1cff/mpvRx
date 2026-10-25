@@ -117,7 +117,7 @@ object AudioPreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First,
               title = stringResource(R.string.pref_media_library_section),
               modifier = Modifier.settingsSearchTarget(R.string.pref_audio),
             )
@@ -345,25 +345,28 @@ object AudioPreferencesScreen : Screen {
               }
 
               PreferenceDivider()
-              val audioOrientation by preferences.audioOrientation.collectAsState()
-              ExpressivePreferenceItem {
-              ListPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
-                value = audioOrientation,
-                onValueChange = { preferences.audioOrientation.set(it) },
-                values = AudioPlayerOrientation.entries,
-                valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
-                title = { Text(stringResource(R.string.pref_audio_orientation_title)) },
-                summary = {
-                  Text(
-                    stringResource(audioOrientation.titleRes),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+              DevicePreference(R.string.pref_audio_orientation_title) {
+                val audioOrientation by preferences.audioOrientation.collectAsState()
+                ExpressivePreferenceItem {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
+                  value = audioOrientation,
+                  onValueChange = { preferences.audioOrientation.set(it) },
+                  values = AudioPlayerOrientation.entries,
+                  valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
+                  title = { Text(stringResource(R.string.pref_audio_orientation_title)) },
+                  summary = {
+                    Text(
+                      stringResource(audioOrientation.titleRes),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+                }
+
+                PreferenceDivider()
               }
 
-              PreferenceDivider()
               val audioAmbientMode by preferences.audioAmbientMode.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_ambient_mode_title),

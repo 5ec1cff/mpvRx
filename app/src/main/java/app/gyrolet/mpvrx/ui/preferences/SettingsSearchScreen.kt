@@ -68,6 +68,10 @@ import app.gyrolet.mpvrx.ui.theme.LocalEmphasizedTypography
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -76,6 +80,7 @@ object SettingsSearchScreen : Screen {
   @Composable
   override fun Content() {
     val resources = LocalResources.current
+    val television = isTelevision()
     val backstack = LocalBackStack.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -85,9 +90,13 @@ object SettingsSearchScreen : Screen {
     val secureFolderPreferences = org.koin.compose.koinInject<SecureFolderPreferences>()
     val secureFolderHidden by secureFolderPreferences.isEntryPointHidden.collectAsState()
 
-    val searchResults by remember(searchQuery, resources, secureFolderHidden) {
+    val searchResults by remember(searchQuery, resources, secureFolderHidden, television) {
       derivedStateOf {
-        SearchablePreferences.search(searchQuery, includeSecureFolder = !secureFolderHidden) { resId ->
+        SearchablePreferences.search(
+          searchQuery,
+          includeSecureFolder = !secureFolderHidden,
+          television = television,
+        ) { resId ->
           resources.getString(resId)
         }
       }
@@ -95,7 +104,7 @@ object SettingsSearchScreen : Screen {
 
     // Auto-focus the search field
     LaunchedEffect(Unit) {
-      focusRequester.requestFocus()
+      if (!television) focusRequester.requestFocus()
     }
 
     val preferenceStore = org.koin.compose.koinInject<app.gyrolet.mpvrx.preferences.preference.PreferenceStore>()
@@ -136,6 +145,7 @@ object SettingsSearchScreen : Screen {
         modifier =
           Modifier
             .fillMaxSize()
+            .tvContentFocus()
             .padding(padding),
       ) {
         InlineSearchBar(
@@ -143,7 +153,7 @@ object SettingsSearchScreen : Screen {
           onQueryChange = { searchQuery = it },
           onSearch = { keyboardController?.hide() },
           modifier = Modifier.padding(horizontal = 16.dp),
-          inputFieldModifier = Modifier.focusRequester(focusRequester),
+          inputFieldModifier = Modifier.tvFocusMemory("settings-query").focusRequester(focusRequester),
           windowInsets = WindowInsets(0.dp),
           placeholder = {
             Text(
@@ -420,6 +430,8 @@ private fun SearchResultItem(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusMemory(preference.screen to preference.searchTargetKey)
+        .tvFocusHighlight(MaterialTheme.shapes.largeIncreased)
         .clip(MaterialTheme.shapes.largeIncreased)
         .clickable(onClick = onClick),
     shape = MaterialTheme.shapes.largeIncreased,

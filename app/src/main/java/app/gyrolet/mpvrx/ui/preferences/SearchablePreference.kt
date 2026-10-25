@@ -2223,6 +2223,7 @@ object SearchablePreferences {
   fun search(
     query: String,
     includeSecureFolder: Boolean = true,
+    television: Boolean = false,
     getStringRes: (Int) -> String,
   ): List<SettingsSearchResult> {
     if (query.isBlank()) return emptyList()
@@ -2230,12 +2231,15 @@ object SearchablePreferences {
     val normalizedQuery = normalizeSearchText(query)
     if (normalizedQuery.isBlank()) return emptyList()
 
+    fun available(preference: SearchablePreference): Boolean =
+      preference.isAvailable() && (includeSecureFolder || preference.screen != SecureFolderSettingsScreen) &&
+        (!television || TvSettingsPolicy.supportsSearch(preference))
+
     val directResults =
       staticPreferences
         .mapIndexedNotNull { index, preference ->
-          preference.takeIf {
-            it.isAvailable() && (includeSecureFolder || it.screen != SecureFolderSettingsScreen)
-          }?.match(normalizedQuery, getStringRes, index)
+          val entry = if (television) TvSettingsPolicy.searchEntry(preference) else preference
+          entry.takeIf(::available)?.match(normalizedQuery, getStringRes, index)
         }.sortedWith(
           compareByDescending<SettingsSearchResult> { it.score }
             .thenBy { it.preference.category }
@@ -2247,7 +2251,8 @@ object SearchablePreferences {
 
     return screenFallbackPreferences
       .mapIndexedNotNull { index, preference ->
-        preference.takeIf { it.isAvailable() }?.match(normalizedQuery, getStringRes, staticPreferences.size + index)
+        val entry = if (television) TvSettingsPolicy.searchEntry(preference) else preference
+        entry.takeIf(::available)?.match(normalizedQuery, getStringRes, staticPreferences.size + index)
       }.sortedByDescending(SettingsSearchResult::score)
   }
 

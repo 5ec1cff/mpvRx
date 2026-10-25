@@ -19,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import app.gyrolet.mpvrx.preferences.GesturePreferences
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import com.wonddak.VibrationPreset
 import com.wonddak.VibratorManager
@@ -61,7 +62,7 @@ private object AppVibration {
 
   fun perform(view: View, preferences: GesturePreferences, type: HapticFeedbackType): Boolean =
     runCatching {
-      if (!preferences.hapticFeedbackEnabled.get() || !view.isHapticFeedbackEnabled) {
+      if (DeviceFormFactor.isTelevision(view.context) || !preferences.hapticFeedbackEnabled.get() || !view.isHapticFeedbackEnabled) {
         cancel()
         return@runCatching false
       }

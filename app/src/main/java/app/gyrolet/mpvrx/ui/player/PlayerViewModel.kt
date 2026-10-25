@@ -5199,6 +5199,15 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     previewSeekPositionOptimistically(offset)
   }
 
+  /** TV scrubbing never consults the phone's touch/double-tap mappings or saved duration. */
+  fun seekFromTvRemote(offset: Int) {
+    _seekState.update { state ->
+      val sameDirection = state.isForwards == (offset > 0)
+      state.copy(amount = if (sameDirection) state.amount + offset else offset, isForwards = offset > 0, text = null)
+    }
+    seekBy(offset)
+  }
+
   /**
    * Conflated live preview used by the legacy/full-screen seek mode and the audio seekbar.
    * Pointer events can arrive much faster than a decoder can seek, so only the newest target is

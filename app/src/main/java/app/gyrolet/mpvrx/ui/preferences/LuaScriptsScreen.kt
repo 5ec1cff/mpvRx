@@ -9,6 +9,8 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
@@ -198,6 +200,7 @@ object LuaScriptsScreen : Screen {
         modifier =
           Modifier
             .fillMaxSize()
+            .tvContentFocus()
             .padding(padding),
         contentPadding =
           PaddingValues(

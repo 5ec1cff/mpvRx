@@ -138,8 +138,10 @@ data object SecureFolderGateScreen : Screen {
 
     // Biometric authentication
     val biometricManager = BiometricManager.from(context)
-    val canAuthenticateBiometric = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
-    val canAuthenticateDeviceCredential = biometricManager.canAuthenticate(BiometricManager.Authenticators.DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
+    val canAuthenticateBiometric = !app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(context) &&
+      biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+    val canAuthenticateDeviceCredential = !app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(context) &&
+      biometricManager.canAuthenticate(BiometricManager.Authenticators.DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
     val isBiometricAvailable = canAuthenticateBiometric || canAuthenticateDeviceCredential
     val isBiometricEnabled = viewModel.isBiometricEnabled()
 

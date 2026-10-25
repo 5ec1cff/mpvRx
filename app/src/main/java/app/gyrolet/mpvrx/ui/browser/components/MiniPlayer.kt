@@ -174,7 +174,8 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
       DeclaredPlaybackMediaKind.UNKNOWN -> !hasRealVideo && (hasAlbumArt || tracks.any { it.isAudio })
     }
 
-  val isMiniPlayerAllowed = isAudioOnlyItem || enableVideoMiniPlayer
+  val isMiniPlayerAllowed = isAudioOnlyItem ||
+    (enableVideoMiniPlayer && !app.gyrolet.mpvrx.ui.tv.isTelevision())
 
   // A full-player collapse lands here before the service flips to foreground; showing the mini
   // player only after that would make it pop out and slide back in under the finished morph.
