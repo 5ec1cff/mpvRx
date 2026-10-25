@@ -2070,7 +2070,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
   private val _seekState = MutableStateFlow(SeekState())
   val seekState: StateFlow<SeekState> = _seekState.asStateFlow()
-
+  private var tvSeekFeedbackJob: Job? = null
 
   // Frame navigation
   private val _currentFrame = MutableStateFlow(0)
@@ -2922,6 +2922,11 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   fun onVideoLoadStarted() {
+    if (tvSeekFeedbackJob != null) {
+      tvSeekFeedbackJob?.cancel()
+      tvSeekFeedbackJob = null
+      _seekState.value = SeekState()
+    }
     cancelSeekPreview()
     cancelFrameSeek()
     seekCommitJob?.cancel()
@@ -5201,9 +5206,16 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
   /** TV scrubbing never consults the phone's touch/double-tap mappings or saved duration. */
   fun seekFromTvRemote(offset: Int) {
+    tvSeekFeedbackJob?.cancel()
     _seekState.update { state ->
       val sameDirection = state.isForwards == (offset > 0)
       state.copy(amount = if (sameDirection) state.amount + offset else offset, isForwards = offset > 0, text = null)
+    }
+    // TV does not compose GestureHandler, which owns the phone's feedback reset. Restart on
+    // every remote repeat, including identical steps at a media boundary, then fade out at rest.
+    tvSeekFeedbackJob = viewModelScope.launch {
+      delay(800L)
+      _seekState.value = SeekState()
     }
     seekBy(offset)
   }

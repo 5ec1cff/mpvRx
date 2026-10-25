@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 
 /** Filled, morphing actions inside app dialogs; ordinary text buttons elsewhere. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -31,6 +32,7 @@ fun AppDialogTextButton(
   shapes: ButtonShapes? = null,
   content: @Composable RowScope.() -> Unit,
 ) {
+  val focusModifier = modifier.tvFocusHighlight(shape, clipToShape = false)
   val emphasis = LocalDialogActionEmphasis.current
   val scheme = MaterialTheme.colorScheme
   val resolvedColors = colors ?: when (emphasis) {
@@ -41,13 +43,13 @@ fun AppDialogTextButton(
   val resolvedShapes = shapes ?: if (emphasis != DialogActionEmphasis.None) ButtonDefaults.shapes() else null
   if (resolvedShapes != null) {
     androidx.compose.material3.TextButton(
-      onClick = onClick, modifier = modifier, enabled = enabled, shapes = resolvedShapes,
+      onClick = onClick, modifier = focusModifier, enabled = enabled, shapes = resolvedShapes,
       colors = resolvedColors, elevation = elevation, border = border,
       contentPadding = contentPadding, interactionSource = interactionSource, content = content,
     )
   } else {
     androidx.compose.material3.TextButton(
-      onClick = onClick, modifier = modifier, enabled = enabled, shape = shape,
+      onClick = onClick, modifier = focusModifier, enabled = enabled, shape = shape,
       colors = resolvedColors, elevation = elevation, border = border,
       contentPadding = contentPadding, interactionSource = interactionSource, content = content,
     )

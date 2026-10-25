@@ -9,6 +9,10 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin
 
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.tv.tvScrollWhenFocusCannotMove
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -140,6 +144,8 @@ fun JellyfinDetailSheet(
     ),
 ) {
   if (item == null) return
+  val scrollState = rememberScrollState()
+  val initialFocus = rememberTvInitialFocusRequester(enabled = !isLoading, requestKey = item.id)
 
   if (item.type == "MusicArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist" || item.type == "Artist" || item.type == "AlbumArtist") {
     val queueState by PlaybackSession.queue.collectAsStateWithLifecycle()
@@ -154,7 +160,10 @@ fun JellyfinDetailSheet(
       Column(
         modifier = Modifier
           .fillMaxWidth()
-          .verticalScroll(rememberScrollState())
+          .tvInitialFocus(initialFocus)
+          .tvFocusGroup()
+          .tvScrollWhenFocusCannotMove(scrollState)
+          .verticalScroll(scrollState)
           .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
       ) {
@@ -205,7 +214,7 @@ fun JellyfinDetailSheet(
               )
               // Scrolls to the sheet edges while the first album stays aligned with the title.
               LazyRow(
-                modifier = Modifier.bleedHorizontally(16.dp),
+                modifier = Modifier.bleedHorizontally(16.dp).tvFocusGroup(),
                 horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
                 contentPadding = PaddingValues(horizontal = 16.dp),
               ) {
@@ -284,7 +293,10 @@ fun JellyfinDetailSheet(
       modifier =
         Modifier
           .fillMaxWidth()
-          .verticalScroll(rememberScrollState()),
+          .tvInitialFocus(initialFocus)
+          .tvFocusGroup()
+          .tvScrollWhenFocusCannotMove(scrollState)
+          .verticalScroll(scrollState),
     ) {
       // Backdrop Header with Poster
       Box(
@@ -794,6 +806,7 @@ fun JellyfinDetailSheet(
                 onDismissRequest = { isDownloadMenuOpen = false },
               ) {
                 DropdownMenuItem(
+                  modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.medium, clipToShape = false),
                   text = { Text(stringResource(R.string.downloads_download_season)) },
                   onClick = {
                     isDownloadMenuOpen = false
@@ -801,6 +814,7 @@ fun JellyfinDetailSheet(
                   },
                 )
                 DropdownMenuItem(
+                  modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.medium, clipToShape = false),
                   text = { Text(stringResource(R.string.downloads_download_series)) },
                   onClick = {
                     isDownloadMenuOpen = false
@@ -866,6 +880,7 @@ fun JellyfinDetailSheet(
                 text = { Text("Are you sure you want to delete \"${item.name}\" from your Jellyfin server? This will permanently delete the media files.") },
                 confirmButton = {
                   Button(
+                    modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                     onClick = {
                       showDeleteDialog = false
                       onDeleteItem(item)
@@ -879,7 +894,7 @@ fun JellyfinDetailSheet(
                   }
                 },
                 dismissButton = {
-                  TextButton(onClick = { showDeleteDialog = false }) {
+                  TextButton(modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false), onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                   }
                 },
@@ -897,6 +912,7 @@ fun JellyfinDetailSheet(
               Modifier
                 .fillMaxWidth()
                 .animateContentSize()
+                .tvFocusHighlight(MaterialTheme.shapes.medium, clipToShape = false)
                 .clickable(enabled = canExpandOverview) { isOverviewExpanded = !isOverviewExpanded },
             verticalArrangement = Arrangement.spacedBy(4.dp),
           ) {
@@ -955,7 +971,7 @@ fun JellyfinDetailSheet(
                     text = person.name + if (index < directors.lastIndex) ", " else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (onPersonClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clickable(enabled = onPersonClick != null) {
+                    modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.small, clipToShape = false).clickable(enabled = onPersonClick != null) {
                       onPersonClick?.invoke(person)
                     },
                   )
@@ -979,7 +995,7 @@ fun JellyfinDetailSheet(
                     text = person.name + if (index < writers.lastIndex) ", " else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (onPersonClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clickable(enabled = onPersonClick != null) {
+                    modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.small, clipToShape = false).clickable(enabled = onPersonClick != null) {
                       onPersonClick?.invoke(person)
                     },
                   )
@@ -1003,7 +1019,7 @@ fun JellyfinDetailSheet(
                     text = person.name + if (index < producers.lastIndex) ", " else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (onPersonClick != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clickable(enabled = onPersonClick != null) {
+                    modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.small, clipToShape = false).clickable(enabled = onPersonClick != null) {
                       onPersonClick?.invoke(person)
                     },
                   )
@@ -1030,7 +1046,7 @@ fun JellyfinDetailSheet(
             LazyRow(
               horizontalArrangement = Arrangement.spacedBy(14.dp),
               contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-              modifier = Modifier.bleedHorizontally(20.dp).fillMaxWidth(),
+              modifier = Modifier.bleedHorizontally(20.dp).tvFocusGroup().fillMaxWidth(),
             ) {
               items(cast, key = { "${it.id}|${it.role ?: ""}" }) { person ->
                 Column(
@@ -1038,6 +1054,7 @@ fun JellyfinDetailSheet(
                   modifier = Modifier
                     .width(72.dp)
                     .clip(RoundedCornerShape(12.dp))
+                    .tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false)
                     .clickable(enabled = onPersonClick != null) { onPersonClick?.invoke(person) }
                     .padding(vertical = 4.dp),
                   verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1235,7 +1252,7 @@ fun JellyfinDetailSheet(
             )
 
             LazyRow(
-              modifier = Modifier.bleedHorizontally(20.dp),
+              modifier = Modifier.bleedHorizontally(20.dp).tvFocusGroup(),
               horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
               contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 8.dp),
             ) {

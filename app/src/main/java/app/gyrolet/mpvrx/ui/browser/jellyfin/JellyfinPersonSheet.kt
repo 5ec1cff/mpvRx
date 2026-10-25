@@ -9,6 +9,11 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin
 
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.tv.tvScrollWhenFocusCannotMove
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -85,6 +90,8 @@ fun JellyfinPersonSheet(
     ),
 ) {
   if (person == null) return
+  val scrollState = rememberScrollState()
+  val initialFocus = rememberTvInitialFocusRequester(enabled = !isLoading, requestKey = person.id)
 
   ModalBottomSheet(
     onDismissRequest = onDismiss,
@@ -95,7 +102,10 @@ fun JellyfinPersonSheet(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .verticalScroll(rememberScrollState())
+        .tvInitialFocus(initialFocus)
+        .tvFocusGroup()
+        .tvScrollWhenFocusCannotMove(scrollState)
+        .verticalScroll(scrollState)
         .padding(horizontal = 16.dp, vertical = 8.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -248,7 +258,7 @@ fun JellyfinPersonSheet(
               TextButton(
                 onClick = { isBioExpanded = !isBioExpanded },
                 contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.height(28.dp),
+                modifier = Modifier.height(28.dp).tvFocusHighlight(CircleShape, clipToShape = false),
               ) {
                 Text(
                   text = if (isBioExpanded) "Read less" else "Read more",
@@ -292,7 +302,7 @@ fun JellyfinPersonSheet(
           )
 
           if (movies.isNotEmpty() && series.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(modifier = Modifier.tvFocusGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
               PersonMediaFilter.entries.forEach { filter ->
                 val count = when (filter) {
                   PersonMediaFilter.ALL -> media.size
@@ -301,6 +311,7 @@ fun JellyfinPersonSheet(
                 }
                 if (count > 0) {
                   FilterChip(
+                    modifier = Modifier.tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
                     selected = selectedFilter == filter,
                     onClick = { selectedFilter = filter },
                     label = { Text("${filter.label} ($count)", style = MaterialTheme.typography.labelSmall) },

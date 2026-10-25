@@ -88,6 +88,7 @@ internal class TvScreenFocusState {
 }
 
 internal val LocalTvScreenFocus = staticCompositionLocalOf<TvScreenFocusState?> { null }
+internal val LocalTvFocusMemoryScope = staticCompositionLocalOf<Any?> { null }
 
 /**
  * Marks [requester] (attached to a screen's list or grid) as where D-pad focus starts when the
@@ -115,6 +116,7 @@ internal fun TvScreenFocusHost(
   active: Boolean = true,
   autoFocus: Boolean = true,
   focusRequestKey: Any? = Unit,
+  modifier: Modifier = Modifier,
   content: @Composable () -> Unit,
 ) {
   if (!isTelevision()) {
@@ -144,10 +146,10 @@ internal fun TvScreenFocusHost(
     }
   }
 
-  CompositionLocalProvider(LocalTvScreenFocus provides state) {
+  CompositionLocalProvider(LocalTvScreenFocus provides state, LocalTvFocusMemoryScope provides scope) {
     Box(
       modifier =
-        Modifier
+        modifier
           .fillMaxSize()
           .then(if (safeArea) Modifier.padding(TvSafeArea.Padding) else Modifier)
           .onFocusChanged { state.hasFocus = it.hasFocus }
@@ -221,7 +223,7 @@ internal object TvFocusMemory {
  */
 internal fun Modifier.tvFocusMemory(key: Any): Modifier =
   composed {
-    val scope = LocalCurrentScreen.current
+    val scope = LocalTvFocusMemoryScope.current ?: LocalCurrentScreen.current
     if (scope == null || !isTelevision()) return@composed this
     val requester = remember { FocusRequester() }
     DisposableEffect(scope, key, requester) {

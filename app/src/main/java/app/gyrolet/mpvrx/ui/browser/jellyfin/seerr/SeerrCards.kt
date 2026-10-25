@@ -9,6 +9,9 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin.seerr
 
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -73,6 +76,8 @@ fun SeerrMediaCard(
       modifier = Modifier
         .fillMaxWidth()
         .aspectRatio(2f / 3f)
+        .tvFocusMemory(listOf("seerr", item.mediaType, item.id))
+        .tvFocusHighlight(RoundedCornerShape(8.dp), clipToShape = false)
         .clip(RoundedCornerShape(8.dp))
         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
         .clickable(onClick = onClick),
@@ -309,6 +314,8 @@ fun SeerrRequestCard(
       modifier = Modifier
         .fillMaxWidth()
         .aspectRatio(16f / 9f)
+        .tvFocusMemory(listOf("seerr-request", request.id))
+        .tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false)
         .clip(RoundedCornerShape(10.dp))
         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
         .clickable(onClick = onClick),
@@ -547,6 +554,7 @@ fun SeerrSectionHeader(
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier
           .clip(RoundedCornerShape(8.dp))
+          .tvFocusHighlight(RoundedCornerShape(8.dp), clipToShape = false)
           .clickable(onClick = onActionClick)
           .padding(horizontal = 8.dp, vertical = 4.dp),
       )
@@ -574,7 +582,7 @@ fun SeerrSliderRow(
     LazyRow(
       contentPadding = PaddingValues(horizontal = 16.dp),
       horizontalArrangement = Arrangement.spacedBy(12.dp),
-      modifier = Modifier.fillMaxWidth(),
+      modifier = Modifier.fillMaxWidth().tvFocusGroup(),
     ) {
       items(items, key = { "${it.mediaType}_${it.id}" }) { item ->
         SeerrMediaCard(

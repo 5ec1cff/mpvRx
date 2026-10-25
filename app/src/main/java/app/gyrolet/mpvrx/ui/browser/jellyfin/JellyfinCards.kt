@@ -120,6 +120,9 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive
@@ -317,6 +320,7 @@ private fun CarouselItemScope.JellyfinHeroSlide(
   onReveal: () -> Unit,
 ) {
   val context = LocalContext.current
+  val isTelevision = DeviceFormFactor.isTelevision(context)
   val artworkColors = LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme
   val drawInfo = carouselItemDrawInfo
   val backdropUrl =
@@ -366,6 +370,10 @@ private fun CarouselItemScope.JellyfinHeroSlide(
       Modifier
         .fillMaxSize()
         .maskClip(MaterialTheme.shapes.extraLarge)
+        .tvFocusMemory(listOf("hero", server.id, item.id))
+        .tvFocusHighlight(MaterialTheme.shapes.extraLarge, clipToShape = false)
+        .onFocusChanged { if (isTelevision && it.hasFocus && !isCurrent) onReveal() }
+        .tvFocusGroup()
         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         .clickable(
           onClickLabel = stringResource(R.string.jellyfin_details),
@@ -809,6 +817,7 @@ fun JellyfinHorizontalSection(
     // Rows scroll edge to edge; the content padding lines the first card up with the title.
     val gutter = jellyfinGutter()
     LazyRow(
+      modifier = Modifier.tvFocusGroup(),
       horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
       contentPadding = PaddingValues(horizontal = gutter, vertical = 4.dp),
     ) {
@@ -824,6 +833,7 @@ fun JellyfinHorizontalSection(
           JellyfinPosterCard(
             item = item,
             server = server,
+            focusKey = listOf(title, item.id),
             onClick = { onItemClick(item) },
             onLongClick = onItemLongClick?.let { { it(item) } },
             cardWidth = 156.dp,
@@ -888,6 +898,7 @@ fun JellyfinResumeCard(
         Modifier
           .fillMaxWidth()
           .aspectRatio(16f / 9f)
+          .tvFocusMemory(listOf("JellyfinResumeCard", server.id, item.id))
           .tvFocusHighlight(artworkShape, focusedScale = 1.03f)
           .then(posterBorderModifier)
           .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -1055,6 +1066,7 @@ fun JellyfinPosterCard(
   isSelected: Boolean = false,
   isDownloaded: Boolean = false,
   selectionNeighbors: MediaSelectionNeighbors = MediaSelectionNeighbors(),
+  focusKey: Any = item.id,
 ) {
   val posterImageTag = if (item.type == "Episode" && !item.seriesPrimaryImageTag.isNullOrBlank()) {
     item.seriesPrimaryImageTag
@@ -1088,6 +1100,7 @@ fun JellyfinPosterCard(
 
   Column(
     modifier = cardModifier
+      .tvFocusMemory(listOf("JellyfinPosterCard", server.id, focusKey))
       .tvFocusHighlight(cardShape, focusedScale = 1.03f)
       .clip(cardShape)
       .background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -1300,6 +1313,7 @@ fun JellyfinMusicCard(
         Modifier
           .fillMaxWidth()
           .aspectRatio(1f)
+          .tvFocusMemory(listOf("JellyfinMusicCard", server.id, item.id))
           .tvFocusHighlight(artworkShape, focusedScale = 1.03f)
           .then(posterBorderModifier)
           .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -1531,6 +1545,7 @@ fun JellyfinLibraryCard(
     modifier =
       modifier
         .width(cardWidth)
+        .tvFocusMemory(listOf("JellyfinLibraryCard", server.id, item.id))
         .tvFocusHighlight(cardShape, focusedScale = 1.02f)
         .clip(cardShape)
         .background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -1591,9 +1606,10 @@ fun JellyfinLibrariesCarousel(
 ) {
   if (libraries.isEmpty()) return
   val gutter = jellyfinGutter()
-  if (libraries.size < 3) {
+  // Fixed-width cards keep the full focus outline visible when navigating by D-pad.
+  if (libraries.size < 3 || DeviceFormFactor.isTelevision(LocalContext.current)) {
     LazyRow(
-      modifier = modifier.fillMaxWidth(),
+      modifier = modifier.fillMaxWidth().tvFocusGroup(),
       horizontalArrangement = Arrangement.spacedBy(JellyfinSpacing.RowItemGap),
       contentPadding = PaddingValues(horizontal = gutter, vertical = 4.dp),
     ) {
@@ -1702,6 +1718,7 @@ fun JellyfinEpisodeCard(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusMemory(listOf("JellyfinEpisodeCard", server.id, item.id))
         .tvFocusHighlight(MaterialTheme.shapes.extraLarge, focusedScale = 1.02f)
         .clip(MaterialTheme.shapes.extraLarge)
         .tvContextMenu(onLongClick)
@@ -1833,7 +1850,7 @@ fun JellyfinEpisodeCard(
 
       when (downloadState) {
         EpisodeDownloadState.NOT_DOWNLOADED ->
-          IconButton(onClick = { onDownload?.invoke() }) {
+          IconButton(onClick = { onDownload?.invoke() }, modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false)) {
             Icon(
               imageVector = Icons.RoundedFilled.Download,
               contentDescription = stringResource(R.string.downloads_download),
@@ -1842,7 +1859,7 @@ fun JellyfinEpisodeCard(
             )
           }
         EpisodeDownloadState.ACTIVE ->
-          IconButton(onClick = { onCancelDownload?.invoke() }) {
+          IconButton(onClick = { onCancelDownload?.invoke() }, modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false)) {
             HotstarDownloadProgressCircle(
               progress = downloadProgress ?: 0f,
               modifier = Modifier.size(22.dp),
@@ -1850,7 +1867,7 @@ fun JellyfinEpisodeCard(
             )
           }
         EpisodeDownloadState.DOWNLOADED ->
-          IconButton(onClick = {}) {
+          IconButton(onClick = {}, modifier = Modifier.focusableWhen(!DeviceFormFactor.isTelevision(LocalContext.current)).tvFocusHighlight(CircleShape, clipToShape = false)) {
             Icon(
               imageVector = Icons.RoundedFilled.CheckCircle,
               contentDescription = stringResource(R.string.downloads_downloaded),
@@ -1861,7 +1878,7 @@ fun JellyfinEpisodeCard(
         null -> {}
       }
 
-      IconButton(onClick = onPlay) {
+      IconButton(onClick = onPlay, modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false)) {
         Icon(
           imageVector = Icons.RoundedFilled.PlayArrow,
           contentDescription = stringResource(R.string.ui_play),
@@ -2029,6 +2046,7 @@ fun JellyfinListItemCard(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusMemory(listOf("JellyfinListItemCard", server.id, item.id))
         .tvFocusHighlight(cardShape, focusedScale = 1.02f)
         .clip(cardShape)
         .semantics { selected = isSelected }

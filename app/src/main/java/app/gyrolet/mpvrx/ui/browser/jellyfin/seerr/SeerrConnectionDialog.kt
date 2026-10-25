@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin.seerr
 
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import androidx.compose.animation.AnimatedVisibility
 import app.gyrolet.mpvrx.data.network.ServerUrlUtils
 import androidx.compose.foundation.background
@@ -193,7 +194,7 @@ fun SeerrConnectionDialog(
           }
         }
 
-        IconButton(onClick = onDismiss) {
+        IconButton(modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false), onClick = onDismiss) {
           Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.generic_cancel))
         }
       }
@@ -281,7 +282,7 @@ fun SeerrConnectionDialog(
 
             IconButton(
               onClick = { isEditingServer = !isEditingServer },
-              modifier = Modifier.size(36.dp),
+              modifier = Modifier.size(36.dp).tvFocusHighlight(CircleShape, clipToShape = false),
             ) {
               Icon(
                 Icons.RoundedFilled.Edit,
@@ -303,7 +304,7 @@ fun SeerrConnectionDialog(
             contentColor = MaterialTheme.colorScheme.error,
           ),
           shape = RoundedCornerShape(12.dp),
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth().tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
         ) {
           Icon(
             Icons.RoundedFilled.ExitToApp,
@@ -355,6 +356,7 @@ fun SeerrConnectionDialog(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
         FilterChip(
+          modifier = Modifier.tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
           selected = authType == SeerrAuthType.JELLYFIN,
           onClick = { authType = SeerrAuthType.JELLYFIN },
           label = { Text("Jellyfin Auth") },
@@ -365,6 +367,7 @@ fun SeerrConnectionDialog(
           ),
         )
         FilterChip(
+          modifier = Modifier.tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
           selected = authType == SeerrAuthType.LOCAL,
           onClick = { authType = SeerrAuthType.LOCAL },
           label = { Text("Local Account") },
@@ -375,6 +378,7 @@ fun SeerrConnectionDialog(
           ),
         )
         FilterChip(
+          modifier = Modifier.tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
           selected = authType == SeerrAuthType.API_KEY,
           onClick = { authType = SeerrAuthType.API_KEY },
           label = { Text("API Key") },
@@ -433,7 +437,7 @@ fun SeerrConnectionDialog(
             Icon(Icons.RoundedFilled.Lock, contentDescription = null)
           },
           trailingIcon = {
-            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+            IconButton(modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false), onClick = { isPasswordVisible = !isPasswordVisible }) {
               Icon(
                 if (isPasswordVisible) Icons.RoundedFilled.VisibilityOff else Icons.RoundedFilled.Visibility,
                 contentDescription = null,
@@ -506,7 +510,8 @@ fun SeerrConnectionDialog(
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
           .fillMaxWidth()
-          .height(50.dp),
+          .height(50.dp)
+          .tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
       ) {
         if (isConnecting) {
           CircularProgressIndicator(

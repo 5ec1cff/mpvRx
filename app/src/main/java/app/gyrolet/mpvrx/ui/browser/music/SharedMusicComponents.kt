@@ -76,6 +76,8 @@ import app.gyrolet.mpvrx.ui.browser.cards.mediaCardClickable
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvContextMenu
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.controls.components.MiniAudioVisualizer
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
@@ -245,7 +247,7 @@ fun SharedMusicTrackListItem(
         Spacer(modifier = Modifier.width(4.dp))
         IconButton(
           onClick = onFavoriteClick,
-          modifier = Modifier.size(48.dp),
+          modifier = Modifier.size(48.dp).tvFocusHighlight(CircleShape, clipToShape = false),
         ) {
           AnimatedIcon(
             imageVector = if (isFavorite) Icons.RoundedFilled.Favorite else Icons.RoundedFilled.FavoriteBorder,
@@ -428,7 +430,7 @@ fun SharedMusicSectionHeader(
       color = MaterialTheme.colorScheme.onSurface,
     )
     if (onSeeAllClick != null) {
-      TextButton(onClick = onSeeAllClick) {
+      TextButton(modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false), onClick = onSeeAllClick) {
         Text(stringResource(R.string.profile_view_all))
       }
     }
@@ -469,6 +471,7 @@ fun <T> SharedCompactTrackGridSection(
     LazyHorizontalGrid(
       rows = GridCells.Fixed(rowsCount),
       modifier = Modifier
+        .tvFocusGroup()
         .height(gridHeight)
         .padding(horizontal = 16.dp),
       horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -479,6 +482,8 @@ fun <T> SharedCompactTrackGridSection(
         Row(
           modifier = Modifier
             .width(itemWidth)
+            .tvFocusMemory(listOf(title, getId(track)))
+            .tvFocusHighlight(MaterialTheme.shapes.medium, clipToShape = false)
             .clip(MaterialTheme.shapes.medium)
             .mediaCardClickable(onClick = { onTrackClick(track) }),
           verticalAlignment = Alignment.CenterVertically,
@@ -555,11 +560,13 @@ fun <T> SharedMusicCarouselSection(
       onSeeAllClick = onSeeAllClick,
     )
     LazyRow(
+      modifier = Modifier.tvFocusGroup(),
       horizontalArrangement = Arrangement.spacedBy(if (isCircular) 16.dp else 12.dp),
       contentPadding = PaddingValues(horizontal = 16.dp),
     ) {
       items(items, key = { getId(it) }) { item ->
         SharedMusicGridCard(
+          modifier = Modifier.tvFocusMemory(listOf(title, getId(item))),
           title = getTitle(item),
           subtitle = getSubtitle(item),
           artworkUrl = getArtworkUrl(item),
@@ -663,7 +670,7 @@ fun SharedMusicDetailHeader(
           Button(
             onClick = onPlayAll,
             enabled = playbackEnabled,
-            modifier = if (onShuffle != null) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+            modifier = (if (onShuffle != null) Modifier.weight(1f) else Modifier.fillMaxWidth()).tvFocusHighlight(CircleShape, clipToShape = false),
             shapes = ButtonDefaults.shapes(),
           ) {
             Icon(Icons.RoundedFilled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -676,7 +683,7 @@ fun SharedMusicDetailHeader(
           FilledTonalButton(
             onClick = onShuffle,
             enabled = playbackEnabled,
-            modifier = if (onPlayAll != null) Modifier.weight(1f) else Modifier.fillMaxWidth(),
+            modifier = (if (onPlayAll != null) Modifier.weight(1f) else Modifier.fillMaxWidth()).tvFocusHighlight(CircleShape, clipToShape = false),
             shapes = ButtonDefaults.shapes(),
           ) {
             Icon(Icons.RoundedFilled.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))

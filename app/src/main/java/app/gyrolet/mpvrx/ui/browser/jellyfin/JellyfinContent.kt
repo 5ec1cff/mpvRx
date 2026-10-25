@@ -85,9 +85,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -124,6 +130,13 @@ import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.tv.TvScreenFocusHost
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.rememberTabNavigation
@@ -139,6 +152,9 @@ fun JellyfinContent(
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val context = LocalContext.current
+  val isTelevision = isTelevision()
+  val contentFocusRequester = remember { FocusRequester() }
+  var musicTabsFocused by remember { mutableStateOf(false) }
   val backstack = LocalBackStack.current
   val browserPreferences = koinInject<BrowserPreferences>()
   val mediaServerPreferences = koinInject<MediaServerPreferences>()
@@ -442,6 +458,15 @@ fun JellyfinContent(
     val isRefreshing = remember { mutableStateOf(false) }
     val navigationBarHeight = LocalNavigationBarHeight.current
 
+    TvScreenFocusHost(
+      scope = listOf("jellyfin", uiState.activeServer?.id, uiState.openLibrary?.id, isMusicOnlyMode, uiState.musicActiveTab),
+      safeArea = false,
+      active = LocalNavigationPageActive.current && !isSearching && !isAddDialogOpen &&
+        !isManageServersOpen && !isSortDialogOpen && !isFabExpanded && uiState.detailItem == null && uiState.personDetail == null,
+      autoFocus = !musicTabsFocused,
+      focusRequestKey = uiState.isLoading to uiState.isMusicLoading,
+      modifier = Modifier.tvInitialFocus(contentFocusRequester),
+    ) {
     PullRefreshBox(
       isRefreshing = isRefreshing,
       onRefresh = { viewModel.refreshSuspend() },
@@ -486,7 +511,7 @@ fun JellyfinContent(
               Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                   state = homeListState,
-                  modifier = Modifier.fillMaxSize(),
+                  modifier = Modifier.fillMaxSize().tvContentFocus(),
                   contentPadding = PaddingValues(
                     top = topBarHeight + 8.dp,
                     bottom = navigationBarHeight + 96.dp,
@@ -735,7 +760,7 @@ fun JellyfinContent(
                 Box(modifier = Modifier.fillMaxSize()) {
                   LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().tvContentFocus(),
                     // Symmetric gutters; the fast-scroll bar floats over the end gutter.
                     contentPadding = PaddingValues(
                       start = gutter,
@@ -850,7 +875,7 @@ fun JellyfinContent(
                   LazyVerticalGrid(
                     state = gridState,
                     columns = GridCells.Adaptive(minSize = 130.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().tvContentFocus(),
                     // Cards carry their own padding, so the grid edge plus that padding lands on the gutter.
                     contentPadding = PaddingValues(
                       start = gutter - JellyfinSpacing.CardPadding,
@@ -924,6 +949,8 @@ fun JellyfinContent(
       }
     }
 
+    }
+
     // Top Bar Container (Material 3 Expressive BrowserTopBar / SearchBar / TabRow)
     Column(
       modifier = Modifier
@@ -967,6 +994,7 @@ fun JellyfinContent(
             },
             trailingIcon = {
               IconButton(
+                modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                 onClick = {
                   if (uiState.searchQuery.isNotEmpty()) {
                     viewModel.onSearchQueryChanged("")
@@ -1047,7 +1075,7 @@ fun JellyfinContent(
             if (!selectionManager.isInSelectionMode && !isMusicOnlyMode) {
               IconButton(
                 onClick = { backstack.navigateTo(app.gyrolet.mpvrx.ui.downloads.DownloadsScreen) },
-                modifier = Modifier.padding(horizontal = 2.dp),
+                modifier = Modifier.padding(horizontal = 2.dp).tvFocusHighlight(CircleShape, clipToShape = false),
               ) {
                 Icon(
                   imageVector = Icons.RoundedFilled.Download,
@@ -1074,6 +1102,7 @@ fun JellyfinContent(
 
         PrimaryScrollableTabRow(
           selectedTabIndex = selectedTabIndex,
+          modifier = Modifier.onFocusChanged { musicTabsFocused = it.hasFocus }.tvFocusGroup(),
           containerColor = Color.Transparent,
           contentColor = MaterialTheme.colorScheme.onSurface,
           // Tabs pad their labels by 16 dp, so this lines the first label up with the gutter.
@@ -1083,6 +1112,13 @@ fun JellyfinContent(
           musicTabs.forEachIndexed { index, tab ->
             Tab(
               selected = selectedTabIndex == index,
+              modifier = Modifier
+                .padding(vertical = if (isTelevision) 4.dp else 0.dp)
+                .tvFocusHighlight(MaterialTheme.shapes.large, clipToShape = false)
+                .onKeyEvent { event ->
+                  isTelevision && event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown &&
+                    contentFocusRequester.tryRequestFocus()
+                },
               onClick = {
                 viewModel.setMusicTab(tab)
                 navigateMusicTab(index)
@@ -1154,6 +1190,7 @@ fun JellyfinContent(
             ) {
               if (playableCount > 0) {
                 IconButton(
+                  modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                   onClick = {
                     viewModel.playSelected(context, selectedItems)
                     selectionManager.clear()
@@ -1169,6 +1206,7 @@ fun JellyfinContent(
               }
 
               IconButton(
+                modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                 onClick = {
                   viewModel.markSelectedPlayed(selectedItems, true)
                   selectionManager.clear()
@@ -1183,6 +1221,7 @@ fun JellyfinContent(
               }
 
               IconButton(
+                modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                 onClick = {
                   viewModel.markSelectedPlayed(selectedItems, false)
                   selectionManager.clear()
@@ -1198,6 +1237,7 @@ fun JellyfinContent(
 
               if (selectedItems.size == 1) {
                 IconButton(
+                  modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                   onClick = { viewModel.openDetail(selectedItems.first()) },
                 ) {
                   Icon(
@@ -1241,7 +1281,8 @@ fun JellyfinContent(
               Modifier.animateFloatingActionButton(
                 visible = isFabShouldBeVisible,
                 alignment = Alignment.BottomEnd,
-              ).focusableWhen(isFabShouldBeVisible),
+              ).focusableWhen(isFabShouldBeVisible)
+                .tvFocusHighlight(MaterialTheme.shapes.large, clipToShape = false),
             checked = isFabExpanded && !quickPlayFabDirect,
               onCheckedChange = {
                 if (quickPlayFabDirect) {
@@ -1268,6 +1309,7 @@ fun JellyfinContent(
         ) {
           if (!quickPlayFabDirect) {
             FloatingActionButtonMenuItem(
+              modifier = Modifier.focusableWhen(isFabExpanded).tvFocusHighlight(CircleShape, clipToShape = false),
               onClick = {
                 isFabExpanded = false
                 isSearching = true
@@ -1277,6 +1319,7 @@ fun JellyfinContent(
             )
 
             FloatingActionButtonMenuItem(
+              modifier = Modifier.focusableWhen(isFabExpanded).tvFocusHighlight(CircleShape, clipToShape = false),
               onClick = {
                 isFabExpanded = false
                 viewModel.playRandom(context)
@@ -1286,6 +1329,7 @@ fun JellyfinContent(
             )
 
             FloatingActionButtonMenuItem(
+              modifier = Modifier.focusableWhen(isFabExpanded).tvFocusHighlight(CircleShape, clipToShape = false),
               onClick = {
                 isFabExpanded = false
                 isManageServersOpen = true
@@ -1295,6 +1339,7 @@ fun JellyfinContent(
             )
 
             FloatingActionButtonMenuItem(
+              modifier = Modifier.focusableWhen(isFabExpanded).tvFocusHighlight(CircleShape, clipToShape = false),
               onClick = {
                 isFabExpanded = false
                 viewModel.resumeLastPlayed(context)

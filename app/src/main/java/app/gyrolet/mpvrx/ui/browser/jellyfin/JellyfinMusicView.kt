@@ -42,6 +42,8 @@ import app.gyrolet.mpvrx.ui.browser.music.SharedMusicCarouselSection
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicGridCard
 import app.gyrolet.mpvrx.ui.browser.music.SharedMusicTrackListItem
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
 import org.koin.compose.koinInject
 
 @Composable
@@ -66,6 +68,7 @@ fun JellyfinMusicView(
     state = pagerState,
     modifier = modifier
       .fillMaxSize()
+      .tvContentFocus()
       .background(app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor()),
     beyondViewportPageCount = 1,
     key = { page -> visibleTabs.getOrNull(page) ?: page },
@@ -145,6 +148,7 @@ fun JellyfinMusicView(
                   }
                   val artistName = track.seriesName ?: track.overview ?: ""
                   SharedMusicGridCard(
+                    modifier = Modifier.tvFocusMemory(track.id),
                     title = track.name,
                     subtitle = artistName,
                     thirdLine = track.durationSeconds.takeIf { it > 0 }?.let { DateUtils.formatElapsedTime(it) },
@@ -182,6 +186,7 @@ fun JellyfinMusicView(
                   }
                   val subtitle = track.seriesName ?: track.overview ?: ""
                   SharedMusicTrackListItem(
+                    modifier = Modifier.tvFocusMemory(track.id),
                     title = track.name,
                     subtitle = subtitle,
                     artworkUrl = imageUrl,
@@ -239,6 +244,7 @@ fun JellyfinMusicView(
                   }
                   val artistName = album.seriesName ?: album.overview ?: ""
                   SharedMusicGridCard(
+                    modifier = Modifier.tvFocusMemory(album.id),
                     title = album.name,
                     subtitle = artistName,
                     thirdLine = album.childCount?.let { if (it == 1) "1 song" else "$it songs" },
@@ -267,6 +273,7 @@ fun JellyfinMusicView(
                   }
                   val artistName = album.seriesName ?: album.overview ?: ""
                   SharedMusicTrackListItem(
+                    modifier = Modifier.tvFocusMemory(album.id),
                     title = album.name,
                     subtitle = artistName,
                     trailingText = album.childCount?.let { if (it == 1) "1 song" else "$it songs" },
@@ -318,6 +325,7 @@ fun JellyfinMusicView(
                     } else null
                   }
                   SharedMusicGridCard(
+                    modifier = Modifier.tvFocusMemory(artist.id),
                     title = artist.name,
                     subtitle = artist.childCount?.let { if (it == 1) "1 album" else "$it albums" } ?: "",
                     artworkUrl = imageUrl,
@@ -346,6 +354,7 @@ fun JellyfinMusicView(
                     } else null
                   }
                   SharedMusicTrackListItem(
+                    modifier = Modifier.tvFocusMemory(artist.id),
                     title = artist.name,
                     subtitle = artist.childCount?.let { if (it == 1) "1 album" else "$it albums" },
                     artworkUrl = imageUrl,
@@ -402,6 +411,7 @@ fun JellyfinMusicView(
                     } else null
                   }
                   SharedMusicGridCard(
+                    modifier = Modifier.tvFocusMemory(playlist.id),
                     title = playlist.name,
                     subtitle = formatJellyfinPlaylistSubtitle(playlist),
                     artworkUrl = imageUrl,
@@ -429,6 +439,7 @@ fun JellyfinMusicView(
                     } else null
                   }
                   SharedMusicTrackListItem(
+                    modifier = Modifier.tvFocusMemory(playlist.id),
                     title = playlist.name,
                     subtitle = playlist.childCount?.let { if (it == 1) "1 track" else "$it tracks" },
                     durationSeconds = playlist.durationSeconds.takeIf { it > 0 },
@@ -692,7 +703,7 @@ fun JellyfinMusicCard(
     cardWidth = cardWidth,
     onClick = onClick,
     onLongClick = onLongClick,
-    modifier = modifier,
+    modifier = modifier.tvFocusMemory(listOf("music", server.id, item.id)),
   )
 }
 
