@@ -237,7 +237,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
   private fun applyTask(task: UpdateTaskState) {
     if (task.stage == UpdateStage.COMPLETE) {
-      _uiState.update { it.copy(visible = false, isDownloading = false, isInstalling = false, awaitingApproval = false) }
+      _uiState.value = UpdateUiState()
       return
     }
     val release = task.release ?: return

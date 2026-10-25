@@ -202,6 +202,10 @@ object UpdateInstaller {
   suspend fun reconcile(context: Context) = withContext(Dispatchers.IO) {
     installMutex.withLock {
       val current = UpdateWork.state(context).value
+      if (current.release?.let { UpdateManager(context).isInstalledRelease(it) } == true) {
+        completed(context)
+        return@withLock
+      }
       if (current.sessionId < 0) return@withLock
       val session = context.packageManager.packageInstaller.getSessionInfo(current.sessionId)
       if (session == null || !session.isSealed) {

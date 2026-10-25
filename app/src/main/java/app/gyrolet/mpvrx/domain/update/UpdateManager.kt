@@ -116,6 +116,16 @@ class UpdateManager(
     return !remote.startsWith(local, ignoreCase = true) && !local.startsWith(remote, ignoreCase = true)
   }
 
+  internal fun isInstalledRelease(release: Release): Boolean =
+    when {
+      release.isExperimental -> BuildConfig.IS_EXPERIMENTAL_BUILD &&
+        release.experimentalBuildNumber == BuildConfig.GIT_COUNT && !isDifferentCommit(release.commitSha)
+      release.isPreview -> BuildConfig.IS_PREVIEW_BUILD &&
+        release.previewBuildNumber == BuildConfig.GIT_COUNT && !isDifferentCommit(release.commitSha)
+      else -> !BuildConfig.IS_EXPERIMENTAL_BUILD && !BuildConfig.IS_PREVIEW_BUILD &&
+        release.tagName.removePrefix("v") == BuildConfig.VERSION_NAME.substringBefore('-')
+    }
+
   fun ignoreVersion(
     version: String,
     channel: AppUpdateChannel,
