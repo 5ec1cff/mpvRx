@@ -121,6 +121,7 @@ import app.gyrolet.mpvrx.ui.player.components.VideoAmbientBackground
 import app.gyrolet.mpvrx.ui.player.components.rememberVideoAmbientFrame
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
+import app.gyrolet.mpvrx.ui.remote.RemotePairingPrompt
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.player.controls.tvScrubStepSeconds
@@ -1315,6 +1316,7 @@ class PlayerActivity :
               contentReady = playerControlsReady,
               onMinimize = ::minimizeFromHandOff,
             )
+            RemotePairingPrompt()
           }
         }
       }

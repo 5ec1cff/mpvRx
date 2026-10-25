@@ -40,12 +40,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
@@ -74,10 +78,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.presentation.Screen
+import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
+import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -89,7 +97,9 @@ import app.gyrolet.mpvrx.ui.theme.WallpaperPreset
 import app.gyrolet.mpvrx.ui.theme.drawWallpaperPreset
 import app.gyrolet.mpvrx.ui.preferences.components.WallpaperPresetCard
 import app.gyrolet.mpvrx.ui.theme.WallpaperScaleMode
+import app.gyrolet.mpvrx.ui.theme.downloadWallpaperFromLink
 import app.gyrolet.mpvrx.ui.theme.extractThemeFromWallpaper
+import app.gyrolet.mpvrx.ui.theme.isWallpaperLink
 import app.gyrolet.mpvrx.ui.theme.loadWallpaperBitmap
 import app.gyrolet.mpvrx.ui.theme.saveWallpaperCopy
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
@@ -151,6 +161,7 @@ data class WallpaperEditorScreen(
     var previewLocked by rememberSaveable(sourceUri) { mutableStateOf(false) }
     var previewAspect by rememberSaveable(sourceUri) { mutableStateOf<Float?>(null) }
     var showHomePreview by rememberSaveable(sourceUri) { mutableStateOf(false) }
+    var showLinkDialog by rememberSaveable(sourceUri) { mutableStateOf(false) }
     // "" = no wallpaper, "preset:<id>" = code-drawn preset, anything else = user picked image.
     val selectedSourceSaver =
       remember {
@@ -532,6 +543,20 @@ data class WallpaperEditorScreen(
                   }
                 }
               }
+              item(key = "wallpaper_link") {
+                WallpaperPresetCard(
+                  label = stringResource(R.string.wallpaper_preset_link),
+                  isSelected = false,
+                  onClick = { showLinkDialog = true },
+                ) {
+                  Icon(
+                    Icons.RoundedFilled.Link,
+                    contentDescription = null,
+                    modifier = Modifier.align(Alignment.Center).size(34.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                  )
+                }
+              }
             }
           }
         }
@@ -632,6 +657,20 @@ data class WallpaperEditorScreen(
       }
     }
 
+    if (showLinkDialog) {
+      WallpaperLinkDialog(
+        onDismiss = { showLinkDialog = false },
+        onDownloaded = { downloadedUri ->
+          showLinkDialog = false
+          selectedSource = downloadedUri
+          zoom = 1f
+          offsetX = 0f
+          offsetY = 0f
+          scaleMode = WallpaperScaleMode.Fit
+        },
+      )
+    }
+
     if (showHomePreview) {
       WallpaperHomePreviewDialog(
         bitmap = bitmap,
@@ -645,6 +684,80 @@ data class WallpaperEditorScreen(
       )
     }
   }
+}
+
+@Composable
+private fun WallpaperLinkDialog(
+  onDismiss: () -> Unit,
+  onDownloaded: (String) -> Unit,
+) {
+  val context = LocalContext.current
+  val scope = rememberCoroutineScope()
+  var link by rememberSaveable { mutableStateOf("") }
+  var downloading by remember { mutableStateOf(false) }
+  var failed by remember { mutableStateOf(false) }
+  val validLink = remember(link) { isWallpaperLink(link) }
+  val download = {
+    if (validLink && !downloading) {
+      downloading = true
+      failed = false
+      scope.launch {
+        try {
+          onDownloaded(downloadWallpaperFromLink(context, link))
+        } catch (error: CancellationException) {
+          throw error
+        } catch (_: Exception) {
+          failed = true
+        } finally {
+          downloading = false
+        }
+      }
+    }
+  }
+
+  AppAlertDialog(
+    onDismissRequest = { if (!downloading) onDismiss() },
+    title = { Text(stringResource(R.string.wallpaper_link_title)) },
+    text = {
+      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedTextField(
+          value = link,
+          onValueChange = {
+            link = it
+            failed = false
+          },
+          label = { Text(stringResource(R.string.wallpaper_link_label)) },
+          placeholder = { Text("https://") },
+          singleLine = true,
+          enabled = !downloading,
+          isError = failed || (link.isNotBlank() && !validLink),
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+          keyboardActions = KeyboardActions(onDone = { download() }),
+          modifier = Modifier.fillMaxWidth(),
+        )
+        if (failed || (link.isNotBlank() && !validLink)) {
+          Text(
+            text = stringResource(if (failed) R.string.wallpaper_link_failed else R.string.wallpaper_link_invalid),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+          )
+        }
+        if (downloading) {
+          LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+      }
+    },
+    confirmButton = {
+      AppDialogTextButton(onClick = download, enabled = validLink && !downloading) {
+        Text(stringResource(R.string.wallpaper_link_download))
+      }
+    },
+    dismissButton = {
+      AppDialogTextButton(onClick = onDismiss, enabled = !downloading) {
+        Text(stringResource(R.string.generic_cancel))
+      }
+    },
+  )
 }
 
 @Composable

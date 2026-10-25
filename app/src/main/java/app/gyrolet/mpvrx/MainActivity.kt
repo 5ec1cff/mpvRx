@@ -93,6 +93,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.ui.player.MPVPipHelper
 import app.gyrolet.mpvrx.ui.player.InAppMusicPlayerSheet
+import app.gyrolet.mpvrx.ui.remote.RemotePairingPrompt
 import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
 import app.gyrolet.mpvrx.ui.player.coveredByInAppMusicSheet
 import app.gyrolet.mpvrx.ui.player.inAppMusicSheetMiniSource
@@ -312,6 +313,7 @@ open class MainActivity : AppCompatActivity() {
             }
             // Above the browser and outside its inset padding: the music player fills the window.
             InAppMusicPlayerSheet(musicSheet)
+            RemotePairingPrompt()
             if (showRendererBuildNotice) {
               val acknowledgeNotice = {
                 rendererNoticePreferences.edit().putBoolean(NON_VULKAN_NOTICE_SHOWN, true).apply()

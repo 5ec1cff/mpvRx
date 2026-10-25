@@ -53,8 +53,13 @@ import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.koin.compose.koinInject
+import java.util.concurrent.TimeUnit
 
 val LocalAppWallpaperActive = compositionLocalOf { false }
 
@@ -406,6 +411,58 @@ private const val WALLPAPER_DATA_PREFIX = "data:image/png;base64,"
 private const val MAX_WALLPAPER_ENCODED_LENGTH = 40 * 1024 * 1024
 private const val MAX_WALLPAPER_DIMENSION_PX = 2560
 private const val WALLPAPER_RECYCLE_DELAY_MS = 120L
+private const val MAX_WALLPAPER_DOWNLOAD_BYTES = 25L * 1024 * 1024
+private const val WALLPAPER_DOWNLOAD_DIR = "wallpaper_downloads"
+
+private val wallpaperDownloadClient by lazy {
+  OkHttpClient.Builder()
+    .connectTimeout(15, TimeUnit.SECONDS)
+    .readTimeout(30, TimeUnit.SECONDS)
+    .callTimeout(90, TimeUnit.SECONDS)
+    .build()
+}
+
+fun isWallpaperLink(link: String): Boolean = link.trim().toHttpUrlOrNull() != null
+
+/** Downloads an http(s) image into the cache; the editor's Save then stores its own copy. */
+suspend fun downloadWallpaperFromLink(
+  context: android.content.Context,
+  link: String,
+): String = withContext(Dispatchers.IO) {
+  val url = requireNotNull(link.trim().toHttpUrlOrNull()) { "Unsupported wallpaper link" }
+  val directory = java.io.File(context.cacheDir, WALLPAPER_DOWNLOAD_DIR).apply { mkdirs() }
+  val file = java.io.File(directory, "wallpaper-${System.currentTimeMillis()}")
+  try {
+    val request = Request.Builder().url(url).header("Accept", "image/*").build()
+    wallpaperDownloadClient.newCall(request).execute().use { response ->
+      check(response.isSuccessful) { "Wallpaper download failed: HTTP ${response.code}" }
+      val body = response.body
+      require(body.contentLength() <= MAX_WALLPAPER_DOWNLOAD_BYTES) { "Wallpaper is too large" }
+      body.byteStream().use { input ->
+        file.outputStream().use { output ->
+          val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+          var total = 0L
+          while (true) {
+            ensureActive()
+            val read = input.read(buffer)
+            if (read < 0) break
+            total += read
+            require(total <= MAX_WALLPAPER_DOWNLOAD_BYTES) { "Wallpaper is too large" }
+            output.write(buffer, 0, read)
+          }
+        }
+      }
+    }
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeFile(file.path, bounds)
+    require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Link is not an image" }
+    directory.listFiles()?.filter { it != file }?.forEach { it.delete() }
+    Uri.fromFile(file).toString()
+  } catch (error: Throwable) {
+    file.delete()
+    throw error
+  }
+}
 
 /** Same rule the host uses; lets the settings preview match the real screen. */
 @Composable

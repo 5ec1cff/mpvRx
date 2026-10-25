@@ -737,8 +737,13 @@ fun PlayerControls(
     val tvVolumeVisible by viewModel.isVolumeSliderShown.collectAsState()
     val tvShowVolumeOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
     val tvVolumeTimestamp by viewModel.volumeSliderTimestamp.collectAsState()
+    val tvVolume by viewModel.currentVolume.collectAsState()
     val tvVolumePercent by viewModel.currentVolumePercent.collectAsState()
     val tvMpvVolume by PlaybackSession.propInt["volume"].collectAsState()
+    val tvSwapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
+    val tvControlsAnimStyle by playerPreferences.controlsAnimStyle.collectAsState()
+    val tvVolumeBoostCap by audioPreferences.volumeBoostCap.collectAsState()
+    val tvDisplayVolumeAsPercentage by playerPreferences.displayVolumeAsPercentage.collectAsState()
     // Some TV remotes send volume keys to Android instead of to this Activity.
     // Observe actual system-stream changes as well as the handled key events.
     DisposableEffect(playerActivity, viewModel) {
@@ -759,10 +764,10 @@ fun PlayerControls(
       playerActivity.contentResolver.registerContentObserver(Settings.System.CONTENT_URI, true, volumeObserver)
       onDispose { playerActivity.contentResolver.unregisterContentObserver(volumeObserver) }
     }
-    // The regular volume slider is below the TV-only return, so it never appears on TV.
+    // The regular volume slider is below the TV-only return; keep its timing identical here.
     LaunchedEffect(tvVolumeTimestamp) {
       if (tvVolumeVisible && tvVolumeTimestamp > 0L) {
-        delay(1_800L)
+        delay(1_000L)
         viewModel.isVolumeSliderShown.value = false
       }
     }
@@ -870,13 +875,32 @@ fun PlayerControls(
           )
           AnimatedVisibility(
             visible = tvVolumeVisible && tvShowVolumeOverlay,
-            enter = fadeIn(tween(150)),
-            exit = fadeOut(tween(220)),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp),
+            enter =
+              buildControlsEnterH(
+                tvControlsAnimStyle,
+                reduceMotion,
+                (100 * animSpeed).toInt().coerceAtLeast(30),
+              ) { if (tvSwapVolumeAndBrightness) it else -it },
+            exit =
+              buildControlsExitH(
+                tvControlsAnimStyle,
+                reduceMotion,
+                (300 * animSpeed).toInt().coerceAtLeast(50),
+              ) { if (tvSwapVolumeAndBrightness) it else -it },
+            modifier =
+              Modifier
+                .align(if (tvSwapVolumeAndBrightness) Alignment.CenterEnd else Alignment.CenterStart)
+                .padding(horizontal = 48.dp),
           ) {
-            TvVolumeIndicator(
-              levelPercent =
-                if (tvVolumePercent >= 100 && (tvMpvVolume ?: 100) > 100) tvMpvVolume!! else tvVolumePercent,
+            val currentBoost = (tvMpvVolume ?: 100) - 100
+            val showBoost = tvVolumeBoostCap > 0 || currentBoost > 0
+            VolumeSlider(
+              tvVolume,
+              volumePercentage = tvVolumePercent,
+              mpvVolume = tvMpvVolume ?: 100,
+              range = 0..viewModel.maxVolume,
+              boostRange = if (showBoost) 0..maxOf(tvVolumeBoostCap, currentBoost) else null,
+              displayAsPercentage = tvDisplayVolumeAsPercentage,
             )
           }
         }

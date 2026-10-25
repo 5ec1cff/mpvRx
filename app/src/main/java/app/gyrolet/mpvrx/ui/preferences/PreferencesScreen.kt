@@ -79,6 +79,7 @@ import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.securefolder.SecureFolderSettingsScreen
+import app.gyrolet.mpvrx.ui.remote.RemoteControlScreen
 import app.gyrolet.mpvrx.ui.theme.LocalEmphasizedTypography
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -378,6 +379,12 @@ object PreferencesScreen : Screen {
               summary = stringResource(R.string.pref_media_servers_summary),
               icon = Icons.RoundedFilled.BringYourOwnIp,
               screen = MediaServersPreferencesScreen,
+            ),
+            SettingsDestination(
+              title = stringResource(if (television) R.string.remote_settings_title_tv else R.string.remote_settings_title_phone),
+              summary = stringResource(if (television) R.string.remote_settings_summary_tv else R.string.remote_settings_summary_phone),
+              icon = Icons.RoundedFilled.Tv,
+              screen = RemoteControlScreen,
             ),
           ),
       ),

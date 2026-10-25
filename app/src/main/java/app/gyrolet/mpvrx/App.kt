@@ -35,6 +35,8 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.SettingsRestoreGuard
+import app.gyrolet.mpvrx.remote.TvInputDispatcher
+import app.gyrolet.mpvrx.remote.TvRemoteServer
 import android.widget.Toast
 import app.gyrolet.mpvrx.presentation.crash.CrashMonitor
 import app.gyrolet.mpvrx.domain.network.NetworkImageRepository
@@ -312,6 +314,7 @@ class App :
     if (startedActivityCount++ == 0) {
       mediaStoreLiveMonitor.start()
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppForegrounded()
+      TvRemoteServer.onAppForeground(this)
       scheduleFastThumbnailWarmupOnce()
       scheduleMetadataMaintenanceOnce()
       scheduleImageCacheCleanupOnce()
@@ -324,6 +327,7 @@ class App :
     if (startedActivityCount == 0 && !activity.isChangingConfigurations) {
       isInForeground = false
       mediaStoreLiveMonitor.stop()
+      TvRemoteServer.onAppBackground(this)
       pauseVideoWhenBackgroundPlaybackDisabled(activity)
       getKoin().get<app.gyrolet.mpvrx.domain.syncplay.SyncplayManager>().onAppBackgrounded()
       scheduleSettingsAutoBackup()
@@ -395,6 +399,7 @@ class App :
   }
 
   override fun onActivityResumed(activity: Activity) {
+    TvInputDispatcher.onActivityResumed(activity)
     // Restored settings count as working once a screen has stayed up with them for a while.
     SettingsRestoreGuard.onScreenShown(activity)
     if (BuildConfig.ENABLE_UPDATE_FEATURE) {
@@ -425,7 +430,10 @@ class App :
     if (activity is PlayerActivity) PlaybackPerformanceTrace.begin("ON_PAUSE")
   }
 
-  override fun onActivityPaused(activity: Activity) = SettingsRestoreGuard.onScreenHidden()
+  override fun onActivityPaused(activity: Activity) {
+    SettingsRestoreGuard.onScreenHidden()
+    TvInputDispatcher.onActivityPaused(activity)
+  }
 
   override fun onActivityPostPaused(activity: Activity) {
     if (activity is PlayerActivity) PlaybackPerformanceTrace.end("ON_PAUSE")

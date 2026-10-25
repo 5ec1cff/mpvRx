@@ -66,6 +66,7 @@ import kotlin.math.roundToInt
 
 private const val NETWORK_THUMBNAIL_FAILURE_RETRY_MS = 30_000L
 private const val LOCAL_THUMBNAIL_FAILURE_RETRY_MS = 60_000L
+private const val AUDIO_ARTWORK_SMALL_TIER_PX = 256
 
 private val LOWER_HEX_DIGITS = "0123456789abcdef".toCharArray()
 
@@ -205,13 +206,14 @@ class ThumbnailRepository(
 
           // Check disk first so a valid thumbnail remains usable even after an earlier failure.
           // The key includes file identity and thumbnail settings, so edits/mode changes retry.
-          val diskKey = diskCacheKey(video, generator)
+          val artworkTier = audioArtworkTier(video, widthPx, heightPx)
+          val diskKey = diskCacheKey(video, generator, artworkTier)
           val localFailureKey = if (isNetworkUrl(video.path)) null else diskKey
           if (localFailureKey != null && hasRecentLocalThumbnailFailure(localFailureKey)) {
             return@async null
           }
 
-          val bitmap =
+          val generated =
             when {
               isHttpUrl(video.path) ->
                 networkGenerationSemaphore.withPermit {
@@ -220,7 +222,7 @@ class ThumbnailRepository(
               isNetworkUrl(video.path) -> null
               else ->
                 currentWorkLimits().generation.withPermit {
-                  generateLocalThumbnail(video, widthPx, heightPx, generator)
+                  generateLocalThumbnail(video, widthPx, heightPx, generator, artworkTier)
                 }
             } ?: run {
               // Cancellation is not a decoder failure and must never poison the cache.
@@ -237,12 +239,14 @@ class ThumbnailRepository(
           if (localFailureKey != null) {
             synchronized(localThumbnailFailedAt) { localThumbnailFailedAt.remove(localFailureKey) }
           }
+          // Audio art is generated at its cache tier; store that before scaling to this request.
+          writeBitmapToDisk(diskKey, generated, isNetworkUrl(video.path), revision)
+          val bitmap = scaleBitmap(generated, widthPx, heightPx)
           bitmap.prepareToDraw()
           diskCacheLock.read {
             if (revision != cacheRevision.value) return@async null
             synchronized(memoryCache) { memoryCache.put(key, bitmap) }
           }
-          writeBitmapToDisk(diskKey, bitmap, isNetworkUrl(video.path), revision)
           _thumbnailReadyKeys.tryEmit(key)
           bitmap
         }
@@ -288,15 +292,23 @@ class ThumbnailRepository(
         }?.let { return@withPermit it }
 
         val isNetwork = isNetworkUrl(video.path)
-        var decoded = readBitmapFromDisk(diskCacheKey(video, generator), isNetwork, widthPx, heightPx)
+        val artworkTier = audioArtworkTier(video, widthPx, heightPx)
+        val fullColor = artworkTier > 0
+        var decoded = readBitmapFromDisk(diskCacheKey(video, generator, artworkTier), isNetwork, widthPx, heightPx, fullColor)
         if (decoded == null && !isNetwork) {
           if (video.duration > 0L) {
-            decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = 0L), generator), false, widthPx, heightPx)
+            decoded =
+              readBitmapFromDisk(
+                diskCacheKey(video.copy(duration = 0L), generator, artworkTier), false, widthPx, heightPx, fullColor,
+              )
           } else {
             val canonical = canonicalLocalPath(video)
             val resolvedDur = resolveLocalMetadata(video, canonical).duration
             if (resolvedDur > 0L) {
-              decoded = readBitmapFromDisk(diskCacheKey(video.copy(duration = resolvedDur), generator), false, widthPx, heightPx)
+              decoded =
+                readBitmapFromDisk(
+                  diskCacheKey(video.copy(duration = resolvedDur), generator, artworkTier), false, widthPx, heightPx, fullColor,
+                )
             }
           }
         }
@@ -335,7 +347,14 @@ class ThumbnailRepository(
         )
       }
       val identities = listOf(indexedVideo, video, video.copy(duration = 0L)).distinct()
-      val diskKeys = identities.map { diskCacheKey(it, generator) }.toMutableList()
+      val artworkTiers =
+        if (!network && isAudioArtwork(video)) {
+          listOf(thumbnailMaxSize(), MAX_THUMBNAIL_SIZE, AUDIO_ARTWORK_SMALL_TIER_PX).distinct()
+        } else {
+          listOf(0)
+        }
+      val diskKeys =
+        identities.flatMap { identity -> artworkTiers.map { tier -> diskCacheKey(identity, generator, tier) } }.toMutableList()
       if (network) diskKeys += networkThumbnailDiskKey(networkThumbnailIdentity(video.path, null))
       val bases = identities.map { "${videoBaseKey(it)}|" }
       val suffix = "|${thumbnailModeKey()}|${thumbnailQualityKey()}" + thumbnailGeneratorCacheKey(video, generator)
@@ -570,9 +589,31 @@ class ThumbnailRepository(
   fun diskCacheKey(
     video: Video,
     generator: ThumbnailGenerator = browserPreferences.thumbnailGenerator.get(),
+    artworkTier: Int = 0,
   ): String =
-    "video-thumb-v2|${diskVideoBaseKey(video)}|${thumbnailModeKey()}|${thumbnailQualityKey()}" +
+    "${if (artworkTier > 0) "audio-art-v3|$artworkTier" else "video-thumb-v2"}|${diskVideoBaseKey(video)}|" +
+      "${thumbnailModeKey()}|${thumbnailQualityKey()}" +
       thumbnailGeneratorCacheKey(video, generator)
+
+  private fun isAudioArtwork(video: Video): Boolean =
+    video.isAudio || video.mimeType.startsWith("audio/", ignoreCase = true) ||
+      app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(video.path.ifBlank { video.uri.path.orEmpty() }))
+
+  /** Audio art is cached per display tier, so a list-row cover is never upscaled for a grid or player. */
+  private fun audioArtworkTier(
+    video: Video,
+    widthPx: Int,
+    heightPx: Int,
+  ): Int {
+    if (isNetworkUrl(video.path) || !isAudioArtwork(video)) return 0
+    val requested = maxOf(widthPx, heightPx)
+    val maxSize = thumbnailMaxSize()
+    return when {
+      requested <= AUDIO_ARTWORK_SMALL_TIER_PX -> AUDIO_ARTWORK_SMALL_TIER_PX
+      requested <= MAX_THUMBNAIL_SIZE -> MAX_THUMBNAIL_SIZE
+      else -> maxSize
+    }.coerceAtMost(maxSize)
+  }
 
   private fun thumbnailGeneratorCacheKey(video: Video, generator: ThumbnailGenerator): String =
     if (isNetworkUrl(video.path)) {
@@ -726,21 +767,25 @@ class ThumbnailRepository(
     widthPx: Int,
     heightPx: Int,
     generator: ThumbnailGenerator,
+    artworkTier: Int = 0,
   ): Bitmap? {
     if (ZipArchiveMedia.isPlaybackUri(video.uri.toString())) return null
     val mode = browserPreferences.thumbnailMode.get()
-    val dimension = maxOf(widthPx, heightPx, MAX_THUMBNAIL_SIZE).coerceAtMost(thumbnailMaxSize())
     // Entries saved without media metadata (e.g. songs added to a playlist) arrive flagged as video.
     val canonicalPath = canonicalLocalPath(video)
     val isAudio =
-      video.isAudio || video.mimeType.startsWith("audio/", ignoreCase = true) ||
+      artworkTier > 0 || video.isAudio || video.mimeType.startsWith("audio/", ignoreCase = true) ||
         app.gyrolet.mpvrx.utils.storage.FileTypeUtils.isAudioFile(File(canonicalPath))
+    val dimension =
+      if (artworkTier > 0) artworkTier else maxOf(widthPx, heightPx, MAX_THUMBNAIL_SIZE).coerceAtMost(thumbnailMaxSize())
+    fun fitRequest(bitmap: Bitmap): Bitmap =
+      if (artworkTier > 0) bitmap.scaleToThumbnailMax(artworkTier) else scaleBitmap(bitmap, widthPx, heightPx)
 
     if (generator != ThumbnailGenerator.Native) {
       // Auto asks MediaStore first for every local source, including hidden/.nomedia folders
       // and granted document URIs. An unindexed file follows the same native fallback below.
       MediaStoreThumbnailLoader.load(context, video, canonicalPath, dimension, isAudio)?.let {
-        return scaleBitmap(it, widthPx, heightPx)
+        return fitRequest(it)
       }
       // Explicit MediaStore mode stays Android-only; only Auto falls back to native extraction.
       if (generator == ThumbnailGenerator.MediaStore) return null
@@ -748,7 +793,7 @@ class ThumbnailRepository(
     }
 
     if (isAudio || mode == ThumbnailMode.Smart || mode == ThumbnailMode.EmbeddedThumbnail) {
-      generateEmbeddedArtwork(video)?.let { return scaleBitmap(it, widthPx, heightPx) }
+      generateEmbeddedArtwork(video)?.let { return fitRequest(it) }
       if (isAudio) {
         return null
       }
@@ -922,6 +967,7 @@ class ThumbnailRepository(
     network: Boolean,
     widthPx: Int = 0,
     heightPx: Int = 0,
+    fullColor: Boolean = false,
   ): Bitmap? =
     diskCacheLock.read {
       val file = File(if (network) networkDiskDir else localDiskDir, keyToFileName(key))
@@ -934,7 +980,8 @@ class ThumbnailRepository(
           file.absolutePath,
           BitmapFactory.Options().apply {
             inSampleSize = calculateThumbnailSampleSize(bounds.outWidth, bounds.outHeight, thumbnailMaxSize(), widthPx, heightPx)
-            inPreferredConfig = Bitmap.Config.RGB_565
+            // RGB_565 bands the gradients common in cover art; video frames tolerate it.
+            inPreferredConfig = if (fullColor) Bitmap.Config.ARGB_8888 else Bitmap.Config.RGB_565
           },
         )
       }.getOrNull()
