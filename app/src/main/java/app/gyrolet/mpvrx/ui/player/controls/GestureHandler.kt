@@ -275,34 +275,29 @@ fun GestureHandler(
   val doubleTapTimeout = 250L
   val multiTapContinueWindow = 650L
 
-  fun performSingleTap(region: String) {
-    if (useSingleTapForCenter && region == "center") {
-      viewModel.handleCenterSingleTap()
-      return
-    }
-    if (anyPanelShown && !allowGesturesInPanels) {
-      if (panelShown != Panels.None) viewModel.panelShown.update { Panels.None }
-      if (externalPanelShown) onDismissExternalPanel()
-    }
-    if (areControlsLocked || !controlsShown) viewModel.showControls() else viewModel.hideControls()
-  }
-
   // Auto-reset tap count on timeout and execute single tap if no double tap detected
   LaunchedEffect(tapCount, longPressTriggeredDuringTouch) {
     if (tapCount == 1 && pendingSingleTapRegion != null) {
-      val region = pendingSingleTapRegion!!
-      // Showing the controls cannot clash with a following double tap, so only hiding waits for one.
-      if ((areControlsLocked || !controlsShown) && !(useSingleTapForCenter && region == "center") &&
-        !isDoubleTapSeeking && !longPressTriggeredDuringTouch
-      ) {
-        performSingleTap(region)
-        pendingSingleTapRegion = null
-        pendingSingleTapPosition = null
-      }
       delay(doubleTapTimeout)
       // Timeout occurred, execute single tap action only if not double-tap seeking and not triggered by long press
       if (tapCount == 1 && pendingSingleTapRegion != null && !isDoubleTapSeeking && !longPressTriggeredDuringTouch) {
-        performSingleTap(pendingSingleTapRegion!!)
+        val region = pendingSingleTapRegion!!
+        val isCenterTap = region == "center"
+        if (useSingleTapForCenter && isCenterTap) {
+          viewModel.handleCenterSingleTap()
+        } else {
+          if (anyPanelShown && !allowGesturesInPanels) {
+            if (panelShown != Panels.None) viewModel.panelShown.update { Panels.None }
+            if (externalPanelShown) onDismissExternalPanel()
+          }
+          if (areControlsLocked) {
+            viewModel.showControls()
+          } else if (controlsShown) {
+            viewModel.hideControls()
+          } else {
+            viewModel.showControls()
+          }
+        }
         pendingSingleTapRegion = null
         pendingSingleTapPosition = null
       }
