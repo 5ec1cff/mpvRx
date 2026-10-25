@@ -50,6 +50,7 @@ data class UpdateTaskState(
   val sessionId: Int = -1,
   val sessionToken: String = "",
   val sessionStartedAt: Long = 0L,
+  val useSystemInstaller: Boolean = false,
 ) {
   val busy: Boolean get() = stage in setOf(UpdateStage.QUEUED, UpdateStage.DOWNLOADING, UpdateStage.INSTALLING)
 }

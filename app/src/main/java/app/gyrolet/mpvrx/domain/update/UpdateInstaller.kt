@@ -3,6 +3,7 @@ package app.gyrolet.mpvrx.domain.update
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -13,6 +14,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
+import app.gyrolet.mpvrx.App
 import app.gyrolet.mpvrx.BuildConfig
 import java.io.File
 import java.util.UUID
@@ -54,11 +56,21 @@ object UpdateInstaller {
         UpdateNotifications.status(context, UpdateStage.PERMISSION)
         return@withLock
       }
-      val installer = context.packageManager.packageInstaller
+      try {
+        validatePackage(context, file)
+      } catch (error: Exception) {
+        installFailed(context, error)
+        return@withLock
+      }
+      // Unattended self-updates require Android 12. Older devices use the original APK intent.
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || previous.useSystemInstaller) {
+        manualInstall(context, release, launch = !automatic && App.isInForeground)
+        return@withLock
+      }
       var sessionId = -1
       var committed = false
       try {
-        validatePackage(context, file)
+        val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
           setAppPackageName(context.packageName)
           setSize(file.length())
@@ -103,16 +115,18 @@ object UpdateInstaller {
       } catch (cancelled: CancellationException) {
         UpdateWork.update(context) { it.copy(stage = UpdateStage.READY, sessionId = -1, sessionToken = "") }
         throw cancelled
-      } catch (_: Exception) {
-        UpdateWork.update(context) { it.copy(stage = UpdateStage.FAILED, downloadError = false, sessionId = -1, sessionToken = "") }
-        UpdateNotifications.status(context, UpdateStage.FAILED)
+      } catch (error: Exception) {
+        android.util.Log.w("AppUpdate", "Installer session failed; using the system APK installer", error)
+        if (sessionId >= 0) runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
+        manualInstall(context, release, launch = !automatic && App.isInForeground)
       } finally {
-        if (!committed && sessionId >= 0) runCatching { installer.abandonSession(sessionId) }
+        if (!committed && sessionId >= 0) runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
       }
     }
   }
 
   suspend fun requestUserInstall(context: Context, release: Release) {
+    if (!BuildConfig.ENABLE_UPDATE_FEATURE) return
     if (!hasPermission(context)) {
       resumeAfterPermission = true
       UpdateWork.update(context) { it.copy(stage = UpdateStage.PERMISSION, automatic = false) }
@@ -124,8 +138,18 @@ object UpdateInstaller {
     }
     val current = UpdateWork.state(context).value
     when {
-      current.stage == UpdateStage.APPROVAL && approvalIntent != null -> withContext(Dispatchers.Main) {
-        context.startActivity(Intent(approvalIntent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      Build.VERSION.SDK_INT < Build.VERSION_CODES.S || current.useSystemInstaller -> manualInstall(context, release)
+      current.stage == UpdateStage.APPROVAL && approvalIntent != null -> {
+        try {
+          withContext(Dispatchers.Main) {
+            context.startActivity(Intent(approvalIntent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+          }
+        } catch (cancelled: CancellationException) {
+          throw cancelled
+        } catch (error: Exception) {
+          android.util.Log.w("AppUpdate", "Installer confirmation failed; using the system APK installer", error)
+          manualInstall(context, release)
+        }
       }
       current.stage == UpdateStage.APPROVAL || (current.stage == UpdateStage.FAILED && !current.downloadError) -> manualInstall(context, release)
       else -> install(context, release)
@@ -137,21 +161,54 @@ object UpdateInstaller {
     reconcile(context)
     if (!resumeAfterPermission) return
     resumeAfterPermission = false
-    if (hasPermission(context)) UpdateWork.state(context).value.release?.let { install(context, it) }
+    if (hasPermission(context)) UpdateWork.state(context).value.release?.let { requestUserInstall(context, it) }
   }
 
-  private suspend fun manualInstall(context: Context, release: Release) = withContext(Dispatchers.IO) {
-    val file = UpdateManager(context).getApkFile(release) ?: error("Update APK is no longer available")
-    validatePackage(context, file)
+  private suspend fun manualInstall(context: Context, release: Release, launch: Boolean = true) = withContext(Dispatchers.IO) {
+    val file = UpdateManager(context).getApkFile(release)
+    if (file == null) {
+      UpdateWork.update(context) { it.copy(stage = UpdateStage.FAILED, downloadError = true) }
+      UpdateNotifications.status(context, UpdateStage.FAILED)
+      return@withContext
+    }
+    try {
+      validatePackage(context, file)
+    } catch (error: Exception) {
+      installFailed(context, error)
+      return@withContext
+    }
     val current = UpdateWork.state(context).value
     if (current.sessionId >= 0) runCatching { context.packageManager.packageInstaller.abandonSession(current.sessionId) }
     approvalIntent = null
-    UpdateWork.update(context) { it.copy(stage = UpdateStage.READY, automatic = false, sessionId = -1, sessionToken = "") }
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-    withContext(Dispatchers.Main) {
-      context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+    UpdateWork.update(context) { it.copy(stage = UpdateStage.READY, automatic = false, sessionId = -1,
+      sessionToken = "", sessionStartedAt = 0L, downloadError = false, useSystemInstaller = true) }
+    // A worker/receiver must offer a notification instead of opening an activity in the background.
+    if (!launch) {
+      UpdateNotifications.status(context, UpdateStage.READY)
+      return@withContext
     }
+    try {
+      val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+      withContext(Dispatchers.Main) {
+        context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
+          .apply { clipData = ClipData.newRawUri("Update APK", uri) }
+          .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+      }
+    } catch (cancelled: CancellationException) {
+      throw cancelled
+    } catch (error: Exception) {
+      installFailed(context, error)
+    }
+  }
+
+  private fun installFailed(context: Context, error: Exception) {
+    android.util.Log.w("AppUpdate", "Could not install the update APK", error)
+    approvalIntent = null
+    val current = UpdateWork.state(context).value
+    if (current.sessionId >= 0) runCatching { context.packageManager.packageInstaller.abandonSession(current.sessionId) }
+    UpdateWork.update(context) { it.copy(stage = UpdateStage.FAILED, downloadError = false,
+      automatic = false, sessionId = -1, sessionToken = "", sessionStartedAt = 0L) }
+    UpdateNotifications.status(context, UpdateStage.FAILED)
   }
 
   @Suppress("DEPRECATION")
@@ -184,6 +241,10 @@ object UpdateInstaller {
         val confirmation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
           intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
         } else intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+        if (confirmation == null) {
+          current.release?.let { manualInstall(context, it, launch = false) }
+          return@withContext
+        }
         approvalIntent = confirmation
         UpdateWork.update(context) { it.copy(stage = UpdateStage.APPROVAL) }
         // Do not start an activity from a background receiver. Notification and sheet both work.
@@ -191,10 +252,8 @@ object UpdateInstaller {
       }
       PackageInstaller.STATUS_SUCCESS -> completed(context)
       else -> {
-        approvalIntent = null
-        runCatching { context.packageManager.packageInstaller.abandonSession(current.sessionId) }
-      UpdateWork.update(context) { it.copy(stage = UpdateStage.FAILED, downloadError = false, automatic = false, sessionId = -1, sessionToken = "") }
-        UpdateNotifications.status(context, UpdateStage.FAILED)
+        // Keep the verified APK and remember the fallback, including across process restarts.
+        current.release?.let { manualInstall(context, it, launch = false) }
       }
     }
   }
@@ -207,17 +266,13 @@ object UpdateInstaller {
         return@withLock
       }
       if (current.sessionId < 0) return@withLock
-      val session = context.packageManager.packageInstaller.getSessionInfo(current.sessionId)
-      if (session == null || !session.isSealed) {
-        runCatching { context.packageManager.packageInstaller.abandonSession(current.sessionId) }
-        UpdateWork.update(context) { it.copy(stage = UpdateStage.READY, sessionId = -1, sessionToken = "") }
+      val session = runCatching { context.packageManager.packageInstaller.getSessionInfo(current.sessionId) }.getOrNull()
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || session == null || !session.isSealed) {
+        current.release?.let { manualInstall(context, it, launch = false) }
       } else if (current.stage == UpdateStage.INSTALLING && current.sessionStartedAt > 0L &&
         System.currentTimeMillis() - current.sessionStartedAt > TimeUnit.MINUTES.toMillis(15)) {
         // Recover from an OEM installer that never delivered its final callback.
-        runCatching { context.packageManager.packageInstaller.abandonSession(current.sessionId) }
-        UpdateWork.update(context) { it.copy(stage = UpdateStage.FAILED, downloadError = false,
-          automatic = false, sessionId = -1, sessionToken = "") }
-        UpdateNotifications.status(context, UpdateStage.FAILED)
+        current.release?.let { manualInstall(context, it, launch = false) }
       }
     }
   }
