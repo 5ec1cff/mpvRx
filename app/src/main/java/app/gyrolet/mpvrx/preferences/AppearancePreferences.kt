@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.preferences
 
+import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -46,6 +47,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusReq
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.utils.device.DevicePerformance
 import kotlinx.collections.immutable.ImmutableList
 
@@ -53,10 +55,13 @@ enum class LiquidGlassHighlightStyle { Component, Default, Ambient, Plain }
 
 class AppearancePreferences(
   preferenceStore: PreferenceStore,
+  context: Context,
 ) {
   companion object {
     const val CUSTOM_WALLPAPER_URI_KEY = "custom_wallpaper_uri"
   }
+
+  private val television = DeviceFormFactor.isTelevision(context)
 
   val darkMode = preferenceStore.getEnum("dark_mode", DarkMode.System)
   val appTheme = preferenceStore.getEnum("app_theme", AppTheme.Dynamic)
@@ -71,9 +76,8 @@ class AppearancePreferences(
   val customWallpaperAlpha = preferenceStore.getFloat("custom_wallpaper_alpha", 1f)
   val customWallpaperUseColors = preferenceStore.getBoolean("custom_wallpaper_use_colors", false)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
-  // Glass records the whole screen behind it every frame and moves player video to a TextureView;
-  // low-end devices start without it (and without the progressive blur) unless the user opts in.
-  val liquidGlassEnabled = preferenceStore.getBoolean("liquid_glass_enabled", !DevicePerformance.isLowEnd)
+  // Opt-in: glass records the screen behind it every frame and moves player video to a TextureView.
+  val liquidGlassEnabled = preferenceStore.getBoolean("liquid_glass_enabled", false)
   val liquidGlassInHdr = preferenceStore.getBoolean("liquid_glass_in_hdr", false)
   val liquidGlassOpacity = preferenceStore.getFloat("liquid_glass_opacity", 1f)
   val liquidGlassBlur = preferenceStore.getFloat("liquid_glass_blur", 1f)
@@ -90,7 +94,9 @@ class AppearancePreferences(
   val liquidGlassHighlightWidth = preferenceStore.getFloat("liquid_glass_highlight_width", 1f)
   val liquidGlassHighlightBlur = preferenceStore.getFloat("liquid_glass_highlight_blur", 1f)
   val navigationBarGlow = preferenceStore.getBoolean("navigation_bar_glow", true)
-  val legacyNavigationBar = preferenceStore.getBoolean("legacy_navigation_bar", false)
+  // Android 11 and older have no RenderEffect blur for the floating bar.
+  val legacyNavigationBar =
+    preferenceStore.getBoolean("legacy_navigation_bar", Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
   val progressiveNavigationBlur = preferenceStore.getBoolean("progressive_navigation_blur", !DevicePerformance.isLowEnd)
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
   val googleFontFamily = preferenceStore.getString("google_font_family", "")
@@ -138,7 +144,8 @@ class AppearancePreferences(
   val backgroundType = preferenceStore.getEnum("background_type", BackgroundType.NONE)
   val backgroundParallax = preferenceStore.getBoolean("background_parallax", true)
   val backgroundOverWallpaper = preferenceStore.getBoolean("background_over_wallpaper", true)
-  val seasonalThemes = preferenceStore.getBoolean("seasonal_themes", true)
+  // Seasonal backdrops animate behind every screen; TV boxes start without them.
+  val seasonalThemes = preferenceStore.getBoolean("seasonal_themes", !television)
   val randomBackgroundInterval = preferenceStore.getEnum("random_background_interval", RandomInterval.EACH_LAUNCH)
   val lastRandomBackground = preferenceStore.getString("last_random_background", "")
   val lastRandomBackgroundDay = preferenceStore.getLong("last_random_background_day", 0L)
@@ -161,25 +168,25 @@ class AppearancePreferences(
   val topRightControls =
     preferenceStore.getString(
       "top_right_controls",
-      "CAST,CURRENT_CHAPTER,DECODER,AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
+      "AUDIO_TRACK,SUBTITLES,MORE_OPTIONS",
     )
 
   val bottomRightControls =
     preferenceStore.getString(
       "bottom_right_controls",
-      "FRAME_NAVIGATION,CLIP,SCOPES,VIDEO_ZOOM,PICTURE_IN_PICTURE,ASPECT_RATIO",
+      "PICTURE_IN_PICTURE,ASPECT_RATIO",
     )
 
   val bottomLeftControls =
     preferenceStore.getString(
       "bottom_left_controls",
-      "BACKGROUND_PLAYBACK,LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED,REPEAT_MODE,SHUFFLE,AB_LOOP",
+      "BACKGROUND_PLAYBACK,LOCK_CONTROLS,SCREEN_ROTATION,PLAYBACK_SPEED",
     )
 
   val portraitBottomControls =
     preferenceStore.getString(
       "portrait_bottom_controls",
-      "CAST,SCREEN_ROTATION,DECODER,AUDIO_TRACK,SUBTITLES,BOOKMARKS_CHAPTERS,PLAYBACK_SPEED,BACKGROUND_PLAYBACK,REPEAT_MODE,SHUFFLE,VIDEO_ZOOM,FRAME_NAVIGATION,CLIP,SCOPES,ASPECT_RATIO,PICTURE_IN_PICTURE,LOCK_CONTROLS,MORE_OPTIONS",
+      "SCREEN_ROTATION,AUDIO_TRACK,SUBTITLES,PLAYBACK_SPEED,BACKGROUND_PLAYBACK,LOCK_CONTROLS,MORE_OPTIONS",
     )
 
   private val castButtonMigrationComplete =
@@ -200,6 +207,11 @@ class AppearancePreferences(
       }
     }
 
+    // Only stored layouts predate the Cast and Clip buttons; the minimal defaults omit them on purpose.
+    val landscapeLayoutStored =
+      listOf(topLeftControls, topRightControls, bottomRightControls, bottomLeftControls).any { it.isSet() }
+    val portraitLayoutStored = portraitBottomControls.isSet()
+
     if (!castButtonMigrationComplete.get()) {
       val landscapeButtons =
         listOf(
@@ -209,11 +221,11 @@ class AppearancePreferences(
           bottomLeftControls.get(),
         ).flatMap { it.split(',') }
           .map { it.trim().uppercase() }
-      if ("CAST" !in landscapeButtons) {
+      if (landscapeLayoutStored && "CAST" !in landscapeButtons) {
         topRightControls.set("CAST,${topRightControls.get()}")
       }
       val portraitButtons = portraitBottomControls.get().split(',').map { it.trim().uppercase() }
-      if ("CAST" !in portraitButtons) {
+      if (portraitLayoutStored && "CAST" !in portraitButtons) {
         portraitBottomControls.set("CAST,${portraitBottomControls.get()}")
       }
       castButtonMigrationComplete.set(true)
@@ -228,11 +240,11 @@ class AppearancePreferences(
           bottomLeftControls.get(),
         ).flatMap { it.split(',') }
           .map { it.trim().uppercase() }
-      if ("CLIP" !in landscapeButtons) {
+      if (landscapeLayoutStored && "CLIP" !in landscapeButtons) {
         bottomRightControls.set("${bottomRightControls.get()},CLIP")
       }
       val portraitButtons = portraitBottomControls.get().split(',').map { it.trim().uppercase() }
-      if ("CLIP" !in portraitButtons) {
+      if (portraitLayoutStored && "CLIP" !in portraitButtons) {
         portraitBottomControls.set("${portraitBottomControls.get()},CLIP")
       }
       clipButtonMigrationComplete.set(true)

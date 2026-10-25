@@ -343,67 +343,9 @@ object AdvancedPreferencesScreen : Screen {
               .padding(padding)
               .then(settingsHighlight),
         ) {
-          // Language and notification style share one connected Advanced group.
-          item {
-            PreferenceSectionHeader(
-              position = PreferenceSectionPosition.First,
-              title = stringResource(R.string.pref_advanced),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
-            )
-          }
-
-          item {
-            val notificationStyle by preferences.notificationStyle.collectAsState()
-            val supportedNotificationStyles =
-              remember {
-                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
-              }
-            val selectedNotificationStyle =
-              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
-                ?: NotificationStyle.Media
-            PreferenceCard {
-              ExpressivePreferenceItem {
-                ListPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
-                  value = currentAppLanguage,
-                  onValueChange = { language ->
-                    if (language != currentAppLanguage) pendingAppLanguage = language
-                  },
-                  values = AppLanguage.entries,
-                  valueToText = { AnnotatedString(it.displayName(context)) },
-                  title = { Text(stringResource(R.string.pref_app_language_title)) },
-                  summary = {
-                    Text(
-                      text = currentAppLanguage.displayName(context),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-              DevicePreference(R.string.pref_advanced_notification_style) {
-                ExpressivePreferenceItem {
-                  ListPreference(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
-                    value = selectedNotificationStyle,
-                    onValueChange = preferences.notificationStyle::set,
-                    values = supportedNotificationStyles,
-                    valueToText = { AnnotatedString(it.displayName) },
-                    title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
-                    summary = {
-                      Text(
-                        text = selectedNotificationStyle.displayName,
-                        color = MaterialTheme.colorScheme.outline,
-                      )
-                    },
-                  )
-                }
-              }
-            }
-          }
-
           // Backup & Restore Section
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_backup_restore))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, title = stringResource(R.string.pref_section_backup_restore))
           }
 
           item {
@@ -717,6 +659,64 @@ object AdvancedPreferencesScreen : Screen {
                     backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
                   },
                 )
+                }
+              }
+            }
+          }
+
+          // Language and notification style share one connected Advanced group.
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_advanced),
+              modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
+            )
+          }
+
+          item {
+            val notificationStyle by preferences.notificationStyle.collectAsState()
+            val supportedNotificationStyles =
+              remember {
+                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
+              }
+            val selectedNotificationStyle =
+              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
+                ?: NotificationStyle.Media
+            PreferenceCard {
+              ExpressivePreferenceItem {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
+                  value = currentAppLanguage,
+                  onValueChange = { language ->
+                    if (language != currentAppLanguage) pendingAppLanguage = language
+                  },
+                  values = AppLanguage.entries,
+                  valueToText = { AnnotatedString(it.displayName(context)) },
+                  title = { Text(stringResource(R.string.pref_app_language_title)) },
+                  summary = {
+                    Text(
+                      text = currentAppLanguage.displayName(context),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
+              DevicePreference(R.string.pref_advanced_notification_style) {
+                ExpressivePreferenceItem {
+                  ListPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
+                    value = selectedNotificationStyle,
+                    onValueChange = preferences.notificationStyle::set,
+                    values = supportedNotificationStyles,
+                    valueToText = { AnnotatedString(it.displayName) },
+                    title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
+                    summary = {
+                      Text(
+                        text = selectedNotificationStyle.displayName,
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
+                  )
                 }
               }
             }

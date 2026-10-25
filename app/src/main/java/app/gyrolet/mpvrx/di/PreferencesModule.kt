@@ -37,7 +37,7 @@ val PreferencesModule =
   module {
     single { AndroidPreferenceStore(androidContext()) }.bind(PreferenceStore::class)
 
-    single { AppearancePreferences(get()) }
+    single { AppearancePreferences(get(), androidContext()) }
     singleOf(::PlayerPreferences)
     singleOf(::GesturePreferences)
     singleOf(::DecoderPreferences)

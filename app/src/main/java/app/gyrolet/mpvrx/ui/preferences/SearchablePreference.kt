@@ -1754,19 +1754,19 @@ object SearchablePreferences {
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 1,
+        anchorItemIndex = 9,
         SearchEntrySpec(R.string.pref_app_language_title, listOf("app", "language", "locale", "translation")),
       )
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 5,
+        anchorItemIndex = 3,
         SearchEntrySpec(R.string.pref_clear_storage_root_title, listOf("storage", "root", "folder", "clear"), R.string.pref_advanced_mpv_conf_storage_location),
       )
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 7,
+        anchorItemIndex = 5,
         SearchEntrySpec(R.string.pref_mpv_conf_overrides_title, listOf("mpv", "config", "override", "ownership")),
       )
       if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
@@ -1971,7 +1971,7 @@ object SearchablePreferences {
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 3,
+        anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_advanced_notification_style, listOf("notification", "style", "media", "compact")),
         SearchEntrySpec(R.string.pref_auto_backup_title, listOf("automatic", "backup", "settings", "restore", "folder")),
         SearchEntrySpec(R.string.pref_debug_log_size_title, listOf("debug", "log", "size", "limit", "storage")),
