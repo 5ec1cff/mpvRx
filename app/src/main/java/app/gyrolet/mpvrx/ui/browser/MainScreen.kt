@@ -44,8 +44,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
@@ -276,6 +280,14 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
     val isTelevision = app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(
       androidx.compose.ui.platform.LocalContext.current,
     )
+    // The legacy bar spans the bottom edge, so it would ride on top of the keyboard while typing.
+    // It leaves as soon as the keyboard starts to open and returns once it has fully closed.
+    val density = LocalDensity.current
+    val imeInsets = WindowInsets.ime
+    val isImeOpen by remember(imeInsets, density) { derivedStateOf { imeInsets.getBottom(density) > 0 } }
+    val showBottomNavigation =
+      !isTelevision && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied &&
+        !(legacyNavigationBar && isImeOpen)
     val showTvRail = isTelevision && visibleTabs.isNotEmpty() && !isPermissionDenied
     val tvRailFocusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
     // TV: follows the settled tab page, so the rail and the screen host can send focus into it.
@@ -297,9 +309,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
       }
     }
     SideEffect {
-      NavigationBarState.isNavBarVisible =
-        !isTelevision &&
-          backStack.lastOrNull() == MainScreen && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied
+      NavigationBarState.isNavBarVisible = backStack.lastOrNull() == MainScreen && showBottomNavigation
       NavigationBarState.navigationBarBottomSpacing =
         if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing
     }
@@ -821,7 +831,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
           enabled = liquidGlassEnabled,
         ) {
           AnimatedVisibility(
-            visible = !isTelevision && !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied,
+            visible = showBottomNavigation,
             enter = if (navStyle == NavigationAnimStyle.None) EnterTransition.None else
               slideInVertically(
                 animationSpec = tween(duration, easing = FastOutSlowInEasing),
@@ -838,6 +848,9 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                 .align(Alignment.BottomStart),
           ) {
             Box(Modifier.fillMaxWidth()) {
+              // The safe drawing area without the keyboard: the legacy bar leaves while the
+              // keyboard is open, so it stays at the bottom edge instead of rising with it.
+              val legacyBarInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
               // The legacy bar is edge-to-edge, but its controls must stay above the system
               // navigation area. Paint that bottom inset with the same surface as the bar
               // so content cannot peek through below it (gesture and 3-button modes).
@@ -847,7 +860,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                     Modifier
                       .align(Alignment.BottomCenter)
                       .fillMaxWidth()
-                      .windowInsetsBottomHeight(WindowInsets.safeDrawing)
+                      .windowInsetsBottomHeight(legacyBarInsets)
                       .background(NavigationBarDefaults.containerColor),
                 )
               }
@@ -868,7 +881,10 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                 modifier =
                   Modifier
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+                    .windowInsetsPadding(
+                      (if (legacyNavigationBar) legacyBarInsets else WindowInsets.safeDrawing)
+                        .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                    )
                     .padding(
                       top = 24.dp,
                       bottom = if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing,

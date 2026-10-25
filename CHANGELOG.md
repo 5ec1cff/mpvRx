@@ -74,6 +74,7 @@ These notes are written in plain English and focus on what changed for real use.
 ### Interface
 
 - **One style for drop-down lists:** Drop-down lists across the app, including the Secure Folder security question, the connection protocol, server address suggestions, Seerr resolution, Jellyfin seasons, the audiobook source, online subtitle search filters, the lyrics provider and the subtitle border style, now open the same menu. Options are connected rows with the selected one highlighted and checked. The music source picker keeps its own design.
+- **Legacy navigation bar makes way for the keyboard:** With Legacy navigation bar turned on, the bar now hides while the keyboard is open instead of sitting on top of it, so it no longer covers the content just above the keyboard while you type. It comes back once the keyboard has closed.
 
 ### Android TV
 
