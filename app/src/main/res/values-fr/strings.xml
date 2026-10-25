@@ -2850,7 +2850,10 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">Piste audio</string>
   <string name="clip_subtitle_track">Piste de sous-titres</string>
-  <string name="clip_burn_subtitles">Incruster les sous-titres dans la vidéo</string>
+  <string name="clip_include_subtitles">Inclure les sous-titres dans la vidéo</string>
+  <string name="clip_subtitle_read_failed">Impossible de lire les sous-titres sélectionnés.</string>
+  <string name="clip_subtitle_unsupported">Ce format de sous-titres ne peut pas être inclus dans la vidéo.</string>
+  <string name="clip_subtitle_too_large">Le fichier de sous-titres est trop volumineux pour un extrait.</string>
   <string name="clip_track_auto_off">Auto / Désactivé</string>
   <string name="pref_blacklist_count">%1$d dossiers sur liste noire</string>
   <string name="pref_whitelist_disabled">Liste blanche désactivée</string>

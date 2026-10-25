@@ -102,6 +102,7 @@ androidx-media3-exoplayer-core = { module = "androidx.media3:media3-exoplayer", 
 androidx-media3-exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3" }
 androidx-media3-effect = { module = "androidx.media3:media3-effect", version.ref = "media3" }
 androidx-media3-transformer = { module = "androidx.media3:media3-transformer", version.ref = "media3" }
+androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 sora-editor-bom = { module = "io.github.rosemoe:editor-bom", version.ref = "soraEditor" }
 sora-editor = { module = "io.github.rosemoe:editor" }
 sora-language-textmate = { module = "io.github.rosemoe:language-textmate" }

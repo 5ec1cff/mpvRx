@@ -2912,7 +2912,10 @@
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">المسار الصوتي</string>
   <string name="clip_subtitle_track">مسار الترجمة</string>
-  <string name="clip_burn_subtitles">دمج الترجمة في الفيديو</string>
+  <string name="clip_include_subtitles">تضمين الترجمة في الفيديو</string>
+  <string name="clip_subtitle_read_failed">تعذرت قراءة الترجمة المحددة.</string>
+  <string name="clip_subtitle_unsupported">لا يمكن تضمين تنسيق الترجمة هذا في الفيديو.</string>
+  <string name="clip_subtitle_too_large">ملف الترجمة كبير جدًا لتضمينه في مقطع.</string>
   <string name="clip_track_auto_off">تلقائي / إيقاف</string>
   <string name="pref_blacklist_count">عدد المجلدات في القائمة السوداء: %1$d</string>
   <string name="pref_whitelist_disabled">القائمة البيضاء معطّلة</string>

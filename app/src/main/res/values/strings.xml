@@ -2964,7 +2964,10 @@
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">Audio track</string>
   <string name="clip_subtitle_track">Subtitle track</string>
-  <string name="clip_burn_subtitles">Burn subtitles into video</string>
+  <string name="clip_include_subtitles">Include subtitles in video</string>
+  <string name="clip_subtitle_read_failed">Unable to read the selected subtitles.</string>
+  <string name="clip_subtitle_unsupported">This subtitle format cannot be included in the video.</string>
+  <string name="clip_subtitle_too_large">The subtitle file is too large to include in a clip.</string>
   <string name="clip_track_auto_off">Automatic / Off</string>
   <string name="pref_blacklist_count">%1$d blacklisted folders</string>
   <string name="pref_whitelist_disabled">Whitelist disabled</string>

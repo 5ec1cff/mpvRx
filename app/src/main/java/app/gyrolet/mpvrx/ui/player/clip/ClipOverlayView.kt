@@ -130,7 +130,7 @@ private data class ClipPanelState(
   val subtitleTracks: List<ClipTrackOption> = emptyList(),
   val selectedAudioId: Int? = null,
   val selectedSubtitleId: Int? = null,
-  val burnSubtitles: Boolean = false,
+  val includeSubtitles: Boolean = false,
 )
 
 /**
@@ -152,7 +152,7 @@ class ClipOverlayView @JvmOverloads constructor(
     val subtitleTracks: List<ClipTrackOption> = emptyList(),
     var audioId: Int? = null,
     var subtitleId: Int? = null,
-    var burnSubtitles: Boolean = false,
+    var includeSubtitles: Boolean = false,
   )
 
   private var panelState by mutableStateOf(ClipPanelState())
@@ -238,7 +238,7 @@ class ClipOverlayView @JvmOverloads constructor(
       onClearCrop = ::clearClipCrop,
       onAudioTrackChange = ::selectClipAudio,
       onSubtitleTrackChange = ::selectClipSubtitle,
-      onSubtitleBurnChange = ::setClipSubtitleBurn,
+      onIncludeSubtitlesChange = ::setClipIncludeSubtitles,
       onCancel = {
         if (cancelOrClose()) onDismissRequest()
       },
@@ -292,6 +292,8 @@ class ClipOverlayView @JvmOverloads constructor(
       audioTracks = tracks.filter { it.type == "audio" },
       subtitleTracks = tracks.filter { it.type == "sub" },
       audioId = selectedAudio,
+      subtitleId = PlaybackSession.getPropertyString("sid")?.toIntOrNull()
+        ?.takeIf { id -> tracks.any { it.type == "sub" && it.id == id } },
     ).also {
       draft = it
       refreshDraftUi()
@@ -300,6 +302,7 @@ class ClipOverlayView @JvmOverloads constructor(
 
   private fun readClipTracks(): List<ClipTrackOption> {
     val count = (PlaybackSession.getPropertyInt("track-list/count") ?: 0).coerceIn(0, 128)
+    val viewModel = playerViewModel()
     var audioOrdinal = 0
     var subtitleOrdinal = 0
     return (0 until count).mapNotNull { index ->
@@ -310,9 +313,20 @@ class ClipOverlayView @JvmOverloads constructor(
       val language = PlaybackSession.getPropertyString("track-list/$index/lang").orEmpty()
       val external = PlaybackSession.getPropertyString("track-list/$index/external-filename")
         ?.takeIf { it.isNotBlank() }
-      val ordinal = if (type == "audio") audioOrdinal++ else subtitleOrdinal++
-      ClipTrackOption(id = id, type = type, ordinal = ordinal, title = title, language = language,
-        externalFile = external)
+      val isExternal = external != null || PlaybackSession.getPropertyBoolean("track-list/$index/external") == true
+      // External files are separate inputs; never shift the embedded track's container ordinal.
+      val ordinal = when {
+        isExternal -> -1
+        type == "audio" -> audioOrdinal++
+        else -> subtitleOrdinal++
+      }
+      ClipTrackOption(
+        id = id, type = type, ordinal = ordinal, title = title, language = language,
+        externalFile = external?.let { viewModel?.clipSubtitleSource(it) ?: it },
+        isExternal = isExternal,
+        codec = PlaybackSession.getPropertyString("track-list/$index/codec").orEmpty().lowercase(),
+        demuxId = PlaybackSession.getPropertyInt("track-list/$index/demux-id"),
+      )
     }
   }
 
@@ -323,14 +337,14 @@ class ClipOverlayView @JvmOverloads constructor(
   private fun selectClipSubtitle(id: Int?) {
     ensureDraft()?.let {
       it.subtitleId = id
-      it.burnSubtitles = id != null
+      it.includeSubtitles = id != null
       refreshDraftUi()
     }
   }
 
-  private fun setClipSubtitleBurn(enabled: Boolean) {
+  private fun setClipIncludeSubtitles(enabled: Boolean) {
     ensureDraft()?.let {
-      it.burnSubtitles = enabled && it.subtitleId != null
+      it.includeSubtitles = enabled && it.subtitleId != null
       refreshDraftUi()
     }
   }
@@ -451,7 +465,8 @@ class ClipOverlayView @JvmOverloads constructor(
           endSeconds = end,
           crop = active.crop,
           audioTrack = active.audioTracks.firstOrNull { it.id == active.audioId },
-          subtitleTrack = if (active.burnSubtitles) active.subtitleTracks.firstOrNull { it.id == active.subtitleId } else null,
+          subtitleTrack = if (active.includeSubtitles) active.subtitleTracks.firstOrNull { it.id == active.subtitleId } else null,
+          subtitleDelaySeconds = PlaybackSession.getPropertyDouble("sub-delay") ?: 0.0,
         ),
       )
     if (!accepted) toast(R.string.clip_export_busy)
@@ -634,7 +649,7 @@ class ClipOverlayView @JvmOverloads constructor(
           subtitleTracks = emptyList(),
           selectedAudioId = null,
           selectedSubtitleId = null,
-          burnSubtitles = false,
+          includeSubtitles = false,
           canSave = false,
         )
       return
@@ -653,7 +668,7 @@ class ClipOverlayView @JvmOverloads constructor(
         subtitleTracks = active.subtitleTracks,
         selectedAudioId = active.audioId,
         selectedSubtitleId = active.subtitleId,
-        burnSubtitles = active.burnSubtitles,
+        includeSubtitles = active.includeSubtitles,
         canSave =
           active.endSeconds?.let { it > active.startSeconds + MIN_CLIP_SECONDS } == true &&
             ClipExportManager.state.value !is ClipExportState.Exporting,
@@ -760,7 +775,7 @@ private fun ClipEditorPanel(
   onClearCrop: () -> Unit,
   onAudioTrackChange: (Int?) -> Unit,
   onSubtitleTrackChange: (Int?) -> Unit,
-  onSubtitleBurnChange: (Boolean) -> Unit,
+  onIncludeSubtitlesChange: (Boolean) -> Unit,
   onCancel: () -> Unit,
   onSave: () -> Unit,
 ) {
@@ -915,10 +930,10 @@ private fun ClipEditorPanel(
           }
           PanelConnectedTile(index = subtitleRow + 1, itemCount = outputRows) {
             ClipSwitchRow(
-              title = stringResource(R.string.clip_burn_subtitles),
-              checked = state.burnSubtitles,
+              title = stringResource(R.string.clip_include_subtitles),
+              checked = state.includeSubtitles,
               enabled = editable && state.selectedSubtitleId != null,
-              onCheckedChange = onSubtitleBurnChange,
+              onCheckedChange = onIncludeSubtitlesChange,
             )
           }
         }

@@ -3654,6 +3654,9 @@ val isBrightnessSliderShown = MutableStateFlow(false)
         val mpvPath = uri.resolveUri(appContext) ?: uri.toString()
         val mode = if (select) "select" else "auto"
 
+        // Keep the original URI even when mpv already auto-loaded this file.
+        mpvPathToUriMap[mpvPath] = uri.toString()
+
         // Check if MPV already auto-loaded this subtitle (prevents duplication)
         val existingTrack = subtitleTracks.value.find { it.externalFilename == mpvPath }
         if (existingTrack != null) {
@@ -3669,9 +3672,6 @@ val isBrightnessSliderShown = MutableStateFlow(false)
           }
           return@withLock
         }
-
-        // Store mapping for reliable physical deletion later
-        mpvPathToUriMap[mpvPath] = uri.toString()
 
         withContext(Dispatchers.Main) {
           PlaybackSession.command("sub-add", mpvPath, mode, fileName)
@@ -3699,6 +3699,10 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   private var translationJob: Job? = null
+
+  /** Reopen a picked subtitle using its original content URI instead of mpv's private fd path. */
+  internal fun clipSubtitleSource(externalPath: String): String =
+    mpvPathToUriMap[externalPath] ?: externalPath
 
   fun translateSubtitle(
     track: TrackNode,

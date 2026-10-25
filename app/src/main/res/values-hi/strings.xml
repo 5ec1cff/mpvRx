@@ -2754,7 +2754,10 @@
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">ऑडियो ट्रैक</string>
   <string name="clip_subtitle_track">उपशीर्षक ट्रैक</string>
-  <string name="clip_burn_subtitles">वीडियो में उपशीर्षक स्थायी रूप से जोड़ें</string>
+  <string name="clip_include_subtitles">वीडियो में उपशीर्षक शामिल करें</string>
+  <string name="clip_subtitle_read_failed">चुने गए उपशीर्षक पढ़े नहीं जा सके।</string>
+  <string name="clip_subtitle_unsupported">इस उपशीर्षक प्रारूप को वीडियो में शामिल नहीं किया जा सकता।</string>
+  <string name="clip_subtitle_too_large">उपशीर्षक फ़ाइल क्लिप में शामिल करने के लिए बहुत बड़ी है।</string>
   <string name="clip_track_auto_off">स्वचालित / बंद</string>
   <string name="pref_blacklist_count">%1$d ब्लैकलिस्ट फ़ोल्डर</string>
   <string name="pref_whitelist_disabled">व्हाइटलिस्ट बंद है</string>

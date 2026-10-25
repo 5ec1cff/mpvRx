@@ -2850,7 +2850,10 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">Faixa de áudio</string>
   <string name="clip_subtitle_track">Faixa de legendas</string>
-  <string name="clip_burn_subtitles">Gravar legendas no vídeo</string>
+  <string name="clip_include_subtitles">Incluir legendas no vídeo</string>
+  <string name="clip_subtitle_read_failed">Não foi possível ler as legendas selecionadas.</string>
+  <string name="clip_subtitle_unsupported">Este formato de legenda não pode ser incluído no vídeo.</string>
+  <string name="clip_subtitle_too_large">O arquivo de legendas é grande demais para ser incluído em um clipe.</string>
   <string name="clip_track_auto_off">Automático / Desativado</string>
   <string name="pref_blacklist_count">%1$d pastas na lista de bloqueio</string>
   <string name="pref_whitelist_disabled">Lista de permissões desativada</string>

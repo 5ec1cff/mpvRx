@@ -54,6 +54,9 @@ data class ClipTrackOption(
   val title: String,
   val language: String,
   val externalFile: String? = null,
+  val isExternal: Boolean = externalFile != null,
+  val codec: String = "",
+  val demuxId: Int? = null,
 ) {
   val displayLabel: String
     get() = listOfNotNull(
@@ -69,6 +72,7 @@ data class ClipRequest(
   val crop: ClipCrop? = null,
   val audioTrack: ClipTrackOption? = null,
   val subtitleTrack: ClipTrackOption? = null,
+  val subtitleDelaySeconds: Double = 0.0,
 )
 
 sealed interface ClipExportState {
@@ -137,7 +141,10 @@ object ClipExportManager {
         temporaryOutput = createTemporaryOutput(appContext)
 
         val subtitleCues = request.subtitleTrack?.let { track ->
-          ClipSubtitleBurnIn.load(appContext, resolvedSource.uri, track, request.item.headers)
+          ClipSubtitleLoader.load(
+            appContext, resolvedSource.uri, track, request.item.headers,
+            request.startSeconds, request.endSeconds, request.subtitleDelaySeconds,
+          )
         }
         val error =
           Media3ClipExporter.export(

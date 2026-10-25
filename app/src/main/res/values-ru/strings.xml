@@ -2882,7 +2882,10 @@
   <!-- Folder filters and clip export tracks -->
   <string name="clip_audio_track">Аудиодорожка</string>
   <string name="clip_subtitle_track">Дорожка субтитров</string>
-  <string name="clip_burn_subtitles">Встроить субтитры в видео</string>
+  <string name="clip_include_subtitles">Добавлять субтитры в видео</string>
+  <string name="clip_subtitle_read_failed">Не удалось прочитать выбранные субтитры.</string>
+  <string name="clip_subtitle_unsupported">Этот формат субтитров нельзя добавить в видео.</string>
+  <string name="clip_subtitle_too_large">Файл субтитров слишком большой для добавления в клип.</string>
   <string name="clip_track_auto_off">Автоматически / Выкл.</string>
   <string name="pref_blacklist_count">Папок в чёрном списке: %1$d</string>
   <string name="pref_whitelist_disabled">Белый список отключён</string>

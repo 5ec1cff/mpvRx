@@ -7,15 +7,13 @@ package app.gyrolet.mpvrx.ui.player.clip
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.net.Uri
+import android.graphics.PorterDuff
+import android.view.View
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.Clock
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.effect.Crop
 import androidx.media3.effect.CanvasOverlay
 import androidx.media3.effect.OverlayEffect
@@ -31,8 +29,10 @@ import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
+import androidx.media3.ui.SubtitleView
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -75,7 +75,7 @@ internal object Media3ClipExporter {
 
         val mediaItem =
           MediaItem.Builder()
-            .setUri(toMediaUri(source))
+            .setUri(clipMediaUri(source))
             .setClippingConfiguration(
               MediaItem.ClippingConfiguration.Builder()
                 .setStartPositionMs((startSeconds.coerceAtLeast(0.0) * 1000.0).roundToLong())
@@ -85,13 +85,14 @@ internal object Media3ClipExporter {
 
         val editedMediaItem =
           EditedMediaItem.Builder(mediaItem)
-            .setEffects(buildEffects(crop, cropFrameWidth, cropFrameHeight, subtitleCues, startSeconds))
+            .setEffects(buildEffects(context, crop, cropFrameWidth, cropFrameHeight, subtitleCues))
             .build()
 
-        transformer.start(editedMediaItem, output)
-
-        val progressJob =
-          launch {
+        var progressJob: Job? = null
+        var finished = false
+        try {
+          transformer.start(editedMediaItem, output)
+          progressJob = launch {
             val holder = ProgressHolder()
             while (completion.isActive) {
               if (transformer.getProgress(holder) == Transformer.PROGRESS_STATE_AVAILABLE) {
@@ -100,12 +101,10 @@ internal object Media3ClipExporter {
               delay(PROGRESS_POLL_MS)
             }
           }
-
-        try {
-          completion.await()
+          completion.await().also { finished = true }
         } finally {
-          progressJob.cancelAndJoin()
-          if (completion.isActive) transformer.cancel()
+          if (!finished) transformer.cancel()
+          progressJob?.cancelAndJoin()
         }
       }
     }
@@ -116,19 +115,7 @@ internal object Media3ClipExporter {
     audioTrack: ClipTrackOption?,
     completion: CompletableDeferred<String?>,
   ): Transformer {
-    val httpFactory = DefaultHttpDataSource.Factory()
-    headers.entries
-      .firstOrNull { it.key.equals("User-Agent", ignoreCase = true) }
-      ?.value
-      ?.takeIf { it.isNotBlank() }
-      ?.let(httpFactory::setUserAgent)
-
-    val requestProperties = headers.filterKeys { !it.equals("User-Agent", ignoreCase = true) }
-    if (requestProperties.isNotEmpty()) {
-      httpFactory.setDefaultRequestProperties(requestProperties)
-    }
-
-    val dataSourceFactory = DefaultDataSource.Factory(context, httpFactory)
+    val dataSourceFactory = clipDataSourceFactory(context, headers)
     val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
     val decoderFactory =
       DefaultDecoderFactory.Builder(context)
@@ -187,97 +174,72 @@ internal object Media3ClipExporter {
   }
 
   private fun buildEffects(
+    context: Context,
     crop: ClipCrop?,
     frameWidth: Int,
     frameHeight: Int,
     subtitleCues: List<ClipSubtitleCue>?,
-    startSeconds: Double,
   ): Effects {
     val videoEffects = mutableListOf<Effect>()
     if (crop != null && crop.width > 0 && crop.height > 0 && frameWidth > 0 && frameHeight > 0) {
-
-    // CropSelectionView reports coordinates in the same oriented frame the user sees. Media3
-    // applies the container's rotation metadata before GL effects, so these normalized coordinates
-    // can be applied directly without an additional rotation transform.
-    val width = frameWidth.toFloat()
-    val height = frameHeight.toFloat()
-    val left = (-1f + 2f * crop.x / width).coerceIn(-1f, 1f)
-    val right = (-1f + 2f * (crop.x + crop.width) / width).coerceIn(-1f, 1f)
-    val top = (1f - 2f * crop.y / height).coerceIn(-1f, 1f)
-    val bottom = (1f - 2f * (crop.y + crop.height) / height).coerceIn(-1f, 1f)
-    if (right > left && top > bottom) videoEffects += Crop(left, right, bottom, top)
+      // CropSelectionView and Media3 effects both use the frame after container rotation.
+      val width = frameWidth.toFloat()
+      val height = frameHeight.toFloat()
+      val left = (-1f + 2f * crop.x / width).coerceIn(-1f, 1f)
+      val right = (-1f + 2f * (crop.x + crop.width) / width).coerceIn(-1f, 1f)
+      val top = (1f - 2f * crop.y / height).coerceIn(-1f, 1f)
+      val bottom = (1f - 2f * (crop.y + crop.height) / height).coerceIn(-1f, 1f)
+      if (right > left && top > bottom) videoEffects += Crop(left, right, bottom, top)
     }
     if (!subtitleCues.isNullOrEmpty()) {
-      videoEffects += OverlayEffect(listOf(TimedClipSubtitleOverlay(subtitleCues, (startSeconds * 1_000_000.0).toLong())))
+      videoEffects += OverlayEffect(listOf(TimedClipSubtitleOverlay(context.applicationContext, subtitleCues)))
     }
     return if (videoEffects.isEmpty()) Effects.EMPTY else Effects(emptyList(), videoEffects)
   }
-
-  private fun toMediaUri(source: String): Uri {
-    val parsed = Uri.parse(source)
-    if (!parsed.scheme.isNullOrBlank()) return parsed
-    return if (source.startsWith('/')) Uri.fromFile(File(source)) else parsed
-  }
 }
 
-
-/** Text cues are drawn on every exported frame, after the crop so they remain legible. */
+/** Draw active cues after crop, using Media3's renderer for styled text and bitmap subtitles. */
 @UnstableApi
 private class TimedClipSubtitleOverlay(
+  context: Context,
   cues: List<ClipSubtitleCue>,
-  private val clipStartUs: Long,
 ) : CanvasOverlay(true) {
   private val ordered = cues.sortedBy { it.startUs }
-  private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-    color = Color.WHITE
-    textAlign = Paint.Align.CENTER
-    typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD)
-    setShadowLayer(3f, 1f, 2f, Color.BLACK)
+  private val active = mutableListOf<ClipSubtitleCue>()
+  private var nextCue = 0
+  private var lastTimeUs = Long.MIN_VALUE
+  // This view is never attached to a window. It is created and drawn only on the GL thread.
+  private val subtitleView by lazy(LazyThreadSafetyMode.NONE) {
+    SubtitleView(context).apply { setViewType(SubtitleView.VIEW_TYPE_CANVAS) }
   }
-  private val backing = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(155, 0, 0, 0) }
 
   override fun onDraw(canvas: Canvas, presentationTimeUs: Long) {
-    val sourceTimeUs = presentationTimeUs + clipStartUs
-    var low = 0
-    var high = ordered.lastIndex
-    var match = -1
-    while (low <= high) {
-      val middle = (low + high) ushr 1
-      if (ordered[middle].startUs <= sourceTimeUs) {
-        match = middle
-        low = middle + 1
-      } else high = middle - 1
+    // CanvasOverlay reuses its bitmap without clearing it between frames.
+    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
+    var changed = false
+    if (presentationTimeUs < lastTimeUs) {
+      active.clear()
+      nextCue = 0
+      changed = true
     }
-    if (match < 0) return
-    val cue = ordered[match]
-    if (sourceTimeUs >= cue.endUs) return
-
-    val fontSize = (canvas.width * 0.037f).coerceIn(22f, 68f)
-    textPaint.textSize = fontSize
-    val maxWidth = canvas.width * 0.88f
-    val lines = mutableListOf<String>()
-    cue.text.lineSequence().forEach { inputLine ->
-      var current = ""
-      for (word in inputLine.split(' ')) {
-        val next = if (current.isEmpty()) word else "$current $word"
-        if (current.isNotEmpty() && textPaint.measureText(next) > maxWidth) {
-          lines += current
-          current = word
-        } else current = next
+    lastTimeUs = presentationTimeUs
+    if (active.removeAll { presentationTimeUs >= it.endUs }) changed = true
+    while (nextCue < ordered.size && ordered[nextCue].startUs <= presentationTimeUs) {
+      val cue = ordered[nextCue++]
+      if (presentationTimeUs < cue.endUs) {
+        active += cue
+        changed = true
       }
-      lines += current
     }
-    if (lines.isEmpty()) return
-    val lineHeight = fontSize * 1.22f
-    val totalHeight = lineHeight * lines.size
-    val bottom = canvas.height * 0.91f
-    val left = canvas.width * 0.04f
-    val right = canvas.width * 0.96f
-    canvas.drawRoundRect(left, bottom - totalHeight - fontSize * 0.4f, right,
-      bottom + fontSize * 0.22f, fontSize * 0.24f, fontSize * 0.24f, backing)
-    val firstBaseline = bottom - lineHeight * (lines.size - 1)
-    lines.forEachIndexed { i, line ->
-      canvas.drawText(line, canvas.width / 2f, firstBaseline + i * lineHeight, textPaint)
+    if (changed) subtitleView.setCues(active.flatMap { it.cues })
+    if (active.isEmpty()) return
+    if (subtitleView.width != canvas.width || subtitleView.height != canvas.height) {
+      subtitleView.measure(
+        View.MeasureSpec.makeMeasureSpec(canvas.width, View.MeasureSpec.EXACTLY),
+        View.MeasureSpec.makeMeasureSpec(canvas.height, View.MeasureSpec.EXACTLY),
+      )
+      subtitleView.layout(0, 0, canvas.width, canvas.height)
     }
+    subtitleView.draw(canvas)
   }
 }
