@@ -47,6 +47,11 @@ object NetworkConfigurationPreferencesScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
+    if (!app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP && !app.gyrolet.mpvrx.BuildConfig.ENABLE_TORRENT) {
+      // Old saved navigation stacks may still contain this former settings destination.
+      PreferencesScreen.Content()
+      return
+    }
     val backStack = LocalBackStack.current
     val preferences = koinInject<AdvancedPreferences>()
     val enableP2pStreaming by preferences.enableP2pStreaming.collectAsState()
@@ -88,7 +93,7 @@ object NetworkConfigurationPreferencesScreen : Screen {
           // followed by P2P, matching the order in which users choose a stream source.
           if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) YtdlpManagerSections()
 
-          if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+          if (app.gyrolet.mpvrx.BuildConfig.ENABLE_TORRENT) {
             PreferenceSectionHeader(title = stringResource(R.string.pref_section_p2p_streaming))
             ExpressivePreferenceGroup {
               SwitchPreference(

@@ -669,7 +669,11 @@ fun PlayerControls(
   }
   val isBrightnessSliderShown by viewModel.isBrightnessSliderShown.collectAsState()
   val isVolumeSliderShown by viewModel.isVolumeSliderShown.collectAsState()
-  val areSlidersShown = isBrightnessSliderShown || isVolumeSliderShown
+  val showVolumeGestureOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
+  val showBrightnessGestureOverlay by playerPreferences.showBrightnessGestureOverlay.collectAsState()
+  val areSlidersShown =
+    (isBrightnessSliderShown && showBrightnessGestureOverlay) ||
+      (isVolumeSliderShown && showVolumeGestureOverlay)
   val gestureSeekUpdate by viewModel.playerUpdate.collectAsState()
   // Swipe-seek pauses playback internally; the auto-hide timer should still run through it.
   val isPlayingForAutoHide = paused == false || gestureSeekUpdate is PlayerUpdates.HorizontalSeek
@@ -1182,8 +1186,6 @@ fun PlayerControls(
           val mpvVolume by PlaybackSession.propInt["volume"].collectAsState()
           val swapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
           // Overlay visibility — Group 1
-          val showVolumeGestureOverlay by playerPreferences.showVolumeGestureOverlay.collectAsState()
-          val showBrightnessGestureOverlay by playerPreferences.showBrightnessGestureOverlay.collectAsState()
           val controlsAnimStyle by playerPreferences.controlsAnimStyle.collectAsState()
           val enterMs = (100 * animSpeed).toInt().coerceAtLeast(30)
           val exitMs = (300 * animSpeed).toInt().coerceAtLeast(50)
@@ -1250,7 +1252,10 @@ fun PlayerControls(
                 exitMs,
               ) { if (swapVolumeAndBrightness) -it else it },
             modifier =
-              Modifier.constrainAs(brightnessSlider) {
+              Modifier.clickable {
+                viewModel.dismissAdjustmentOverlays()
+                viewModel.showControls()
+              }.constrainAs(brightnessSlider) {
                 if (swapVolumeAndBrightness) {
                   start.linkTo(parent.start, if (isPortrait) spacing.large else spacing.extraLarge)
                 } else {
@@ -1276,7 +1281,10 @@ fun PlayerControls(
                 exitMs,
               ) { if (swapVolumeAndBrightness) it else -it },
             modifier =
-              Modifier.constrainAs(volumeSlider) {
+              Modifier.clickable {
+                viewModel.dismissAdjustmentOverlays()
+                viewModel.showControls()
+              }.constrainAs(volumeSlider) {
                 if (swapVolumeAndBrightness) {
                   end.linkTo(parent.end, if (isPortrait) spacing.large else spacing.extraLarge)
                 } else {

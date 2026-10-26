@@ -201,8 +201,10 @@ enum class MpvConfigOverride(
   ;
 
   companion object {
-    private val byPreferenceKey = entries.associateBy(MpvConfigOverride::preferenceKey)
-    val allOptionNames: Set<String> = entries.flatMapTo(linkedSetOf()) { it.optionNames }
+    val availableGroups: List<MpvConfigOverride> =
+      entries.filter { it != YTDLP || app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP }
+    private val byPreferenceKey = availableGroups.associateBy(MpvConfigOverride::preferenceKey)
+    val allOptionNames: Set<String> = availableGroups.flatMapTo(linkedSetOf()) { it.optionNames }
 
     fun resolveOptionNames(storedValues: Set<String>): Set<String> =
       storedValues.flatMapTo(linkedSetOf()) { value ->
@@ -210,7 +212,7 @@ enum class MpvConfigOverride(
       }
 
     fun groupsContaining(optionNames: Set<String>): Set<MpvConfigOverride> =
-      entries.filterTo(linkedSetOf()) { group -> group.optionNames.any(optionNames::contains) }
+      availableGroups.filterTo(linkedSetOf()) { group -> group.optionNames.any(optionNames::contains) }
   }
 }
 

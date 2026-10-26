@@ -206,6 +206,7 @@ class App :
       runCatching {
         val preferences: PlayerPreferences = getKoin().get()
         val enableWebLinks = preferences.enableWebStreamLinkIntents.get()
+        if (!BuildConfig.ENABLE_YTDLP) return@runCatching
         val componentName = ComponentName(this@App, "app.gyrolet.mpvrx.ui.player.WebStreamLinksActivityAlias")
         val newState =
           if (enableWebLinks) {

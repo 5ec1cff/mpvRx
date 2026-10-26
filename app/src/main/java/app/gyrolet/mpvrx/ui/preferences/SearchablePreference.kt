@@ -2179,8 +2179,8 @@ object SearchablePreferences {
         titleRes = R.string.pref_advanced,
         keywords =
           listOf(
-            "language backup restore storage folder mpv config input conf lua scripts p2p torrent logs verbose history cache fonts",
-            "network streaming ytdlp youtube cookies proxy user agent sponsorblock update configuration editor",
+            "language backup restore storage folder mpv config input conf lua scripts logs verbose history cache fonts",
+            "network streaming cookies proxy user agent configuration editor",
           ),
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
@@ -2209,6 +2209,10 @@ object SearchablePreferences {
   private val playStoreHiddenTitles =
     setOf(
       R.string.pref_enable_p2p_streaming_title,
+      R.string.pref_player_web_stream_links_title,
+      R.string.ui_yt_dlp_manager,
+      R.string.ytdlp_subtitles_language,
+      R.string.ytdlp_playlist_behavior,
       R.string.pref_lyrics_auto_translate,
       R.string.pref_lyrics_target_language,
       R.string.pref_lyrics_display_mode,

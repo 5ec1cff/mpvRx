@@ -30,7 +30,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerLookupHints
 import app.gyrolet.mpvrx.ui.player.PreparedPlaybackLaunchStore
-import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity
+import app.gyrolet.mpvrx.ui.torrent.torrentSelectionActivityClass
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import `is`.xyz.mpv.Utils
 import java.io.File
@@ -316,7 +316,7 @@ object MediaUtils {
     intent.setClass(
       context,
       if (torrentSource != null && torrentFileIndex == null && torrentPreparationId == null) {
-        TorrentSelectionActivity::class.java
+        torrentSelectionActivityClass() ?: return
       } else {
         PlayerActivity::class.java
       },

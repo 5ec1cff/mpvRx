@@ -30,7 +30,6 @@
 # Keep private members too; they are entry points that are invisible to R8's Java call graph.
 -keep class is.xyz.mpv.** { *; }
 -keep class net.mediaarea.mediainfo.lib.** { *; }
--keep class org.libtorrent4j.swig.libtorrent_jni { *; }
 -dontwarn org.xmlpull.v1.**
 -dontnote org.xmlpull.v1.**
 -dontwarn org.slf4j.impl.StaticLoggerBinder

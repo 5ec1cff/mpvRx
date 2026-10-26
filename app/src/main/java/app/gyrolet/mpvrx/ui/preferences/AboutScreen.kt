@@ -1120,4 +1120,10 @@ internal val OPEN_SOURCE_LIBRARIES =
       license = "MIT",
       url = "https://github.com/natural-harmonia-gropius/hdr-toys",
     ),
-  ).sortedBy { library -> library.name.lowercase(Locale.ROOT) }
+  ).filter { library ->
+    when (library.name) {
+      "libtorrent4j" -> BuildConfig.ENABLE_TORRENT
+      "Python", "yt-dlp" -> BuildConfig.ENABLE_YTDLP
+      else -> true
+    }
+  }.sortedBy { library -> library.name.lowercase(Locale.ROOT) }

@@ -44,6 +44,7 @@ import org.koin.compose.koinInject
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun YtdlpManagerSections(modifier: Modifier = Modifier) {
+    if (!app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP) return
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var isRunning by remember { mutableStateOf(false) }

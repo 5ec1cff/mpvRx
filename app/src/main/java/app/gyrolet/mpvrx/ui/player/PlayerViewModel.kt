@@ -1962,10 +1962,21 @@ fun restartFromBeginning() {
   runCatching { PlaybackSession.setPropertyBoolean("pause", false) }
 }
 
-val isBrightnessSliderShown = MutableStateFlow(false)
+  val isBrightnessSliderShown = MutableStateFlow(false)
   val isVolumeSliderShown = MutableStateFlow(false)
   val volumeSliderTimestamp = MutableStateFlow(0L)
   val brightnessSliderTimestamp = MutableStateFlow(0L)
+
+  /** Dismiss gesture feedback without changing playback, volume, brightness or the control lock. */
+  fun dismissAdjustmentOverlays(): Boolean {
+    if (!isVolumeSliderShown.value && !isBrightnessSliderShown.value) return false
+    isVolumeSliderShown.value = false
+    isBrightnessSliderShown.value = false
+    volumeSliderTimestamp.value = 0L
+    brightnessSliderTimestamp.value = 0L
+    return true
+  }
+
   val currentBrightness =
     MutableStateFlow(
       runCatching {

@@ -81,6 +81,7 @@ object MpvConfOwnershipScreen : Screen {
     val backStack = LocalBackStack.current
     val preferences = koinInject<AdvancedPreferences>()
     val storedValues by preferences.mpvConfOverrides.collectAsState()
+    val availableGroups = MpvConfigOverride.availableGroups
     val selectedOptions = remember(storedValues) { MpvConfigOverride.resolveOptionNames(storedValues) }
     val hasMpvConfig = remember { hasMeaningfulMpvConfig(preferences.mpvConf.get()) }
     var expandedGroup by rememberSaveable { mutableStateOf<String?>(null) }
@@ -112,13 +113,13 @@ object MpvConfOwnershipScreen : Screen {
         }
 
         items(
-          count = MpvConfigOverride.entries.size,
-          key = { index -> MpvConfigOverride.entries[index].preferenceKey },
+          count = availableGroups.size,
+          key = { index -> availableGroups[index].preferenceKey },
         ) { index ->
-          val override = MpvConfigOverride.entries[index]
+          val override = availableGroups[index]
           OwnershipGroupCard(
             override = override,
-            shape = rememberConnectedShape(index, MpvConfigOverride.entries.size, ConnectedLayout.Vertical),
+            shape = rememberConnectedShape(index, availableGroups.size, ConnectedLayout.Vertical),
             selectedOptions = selectedOptions,
             isExpanded = expandedGroup == override.preferenceKey,
             onExpand = { expanded ->

@@ -371,6 +371,19 @@ fun GestureHandler(
                 if (!pointer.pressed) {
                   completedTap = true
                   if (!isDrag && !wasOwnedByAnotherGesture && !gestureClaimedForPointer) {
+                    // A tap after a volume/brightness swipe should restore access to controls
+                    // immediately, without waiting for the overlay timer or firing a tap action.
+                    if (viewModel.dismissAdjustmentOverlays()) {
+                      tapCount = 0
+                      isDoubleTapSeeking = false
+                      lastSeekRegion = null
+                      lastTapRegion = null
+                      pendingSingleTapRegion = null
+                      pendingSingleTapPosition = null
+                      viewModel.showControls()
+                      pointer.consume()
+                      break
+                    }
                     // Platform double-tap timing measures first UP to second DOWN. Input uptime
                     // remains accurate when a busy frame delays delivery of a pointer event.
                     val gap = downTime - lastTapTime

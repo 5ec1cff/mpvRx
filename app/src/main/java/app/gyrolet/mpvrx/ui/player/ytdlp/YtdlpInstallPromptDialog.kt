@@ -35,7 +35,7 @@ fun YtdlpInstallPromptDialog(
   onDismiss: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  if (!isOpen) return
+  if (!app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP || !isOpen) return
 
   app.gyrolet.mpvrx.presentation.components.AppAlertDialog(
     onDismissRequest = onDismiss,

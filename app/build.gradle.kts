@@ -158,6 +158,8 @@ android {
     configureEach {
       val enableYtdlp = name in sideloadDistributions
       buildConfigField("boolean", "ENABLE_YTDLP", enableYtdlp.toString())
+      buildConfigField("boolean", "ENABLE_TORRENT", enableYtdlp.toString())
+      if (enableYtdlp) proguardFile("src/sideload/proguard-rules.pro")
       externalNativeBuild {
         cmake {
           arguments += "-DMPVRX_ENABLE_YTDLP=${if (enableYtdlp) "ON" else "OFF"}"
@@ -169,6 +171,9 @@ android {
   sourceSets {
     sideloadDistributions.forEach { flavor ->
       getByName(flavor).apply {
+        // AGP's built-in Kotlin requires custom Kotlin directories on this source set.
+        kotlin.directories.add("src/sideload/java")
+        manifest.srcFile("src/sideload/AndroidManifest.xml")
         assets.directories.add("src/ytdlp/assets")
         jniLibs.directories.add("src/ytdlp/jniLibs")
       }
@@ -419,10 +424,9 @@ dependencies {
   implementation(libs.kyant.backdrop)
   implementation(libs.kyant.shapes)
 
-  // libtorrent4j's Java API compiles everywhere; its native library for every enabled APK ABI
-  // ships only where torrent streaming exists.
-  implementation(libs.libtorrent4j)
+  // Keep both the Java API and native payloads out of the Play Store compilation classpath.
   sideloadDistributions.forEach { flavor ->
+    "${flavor}Implementation"(libs.libtorrent4j)
     "${flavor}Implementation"(libs.libtorrent4j.android.arm64)
     "${flavor}Implementation"(libs.libtorrent4j.android.arm)
     if (enableX86) {

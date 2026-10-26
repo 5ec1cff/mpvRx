@@ -69,6 +69,7 @@ import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -321,11 +322,14 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
         visibleTabs.indexOf(persistentSelectedTab).coerceAtLeast(0)
       }
 
-    val pagerState =
+    // The page count and key provider must belong to the same tab snapshot. Reusing the old
+    // PagerState while tabs are removed lets its key-index map request an already-removed page.
+    val pagerState = key(visibleTabs) {
       rememberPagerState(
         initialPage = initialPageIndex,
         pageCount = { visibleTabs.size },
       )
+    }
     var tabNavigationJob by remember { mutableStateOf<Job?>(null) }
     val tabContentAlpha = remember { Animatable(1f) }
     var isDirectTabJumpInProgress by remember { mutableStateOf(false) }
@@ -348,6 +352,8 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
     LaunchedEffect(pagerState, visibleTabs) {
       tabNavigationJob?.cancelAndJoin()
       tabNavigationJob = null
+      tabContentAlpha.snapTo(1f)
+      isDirectTabJumpInProgress = false
       if (visibleTabs.isEmpty()) {
         persistentSelectedTab = MainTab.HOME
         return@LaunchedEffect
@@ -611,7 +617,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                       else -> Modifier
                     },
                   ),
-              key = { page -> visibleTabs[page].name },
+              key = { page -> visibleTabs.getOrNull(page)?.name ?: "removed-tab-$page" },
               beyondViewportPageCount = if (adjacentTabsWarm) 1 else 0,
               userScrollEnabled = !isTelevision && !isPermissionDenied && !isDirectTabJumpInProgress,
               activePageFocusRequester = tvContentFocusRequester.takeIf { isTelevision },

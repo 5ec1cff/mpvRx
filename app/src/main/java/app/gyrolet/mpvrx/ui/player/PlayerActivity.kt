@@ -122,7 +122,7 @@ import app.gyrolet.mpvrx.ui.player.components.rememberVideoAmbientFrame
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
 import app.gyrolet.mpvrx.ui.remote.RemotePairingPrompt
-import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity
+import app.gyrolet.mpvrx.ui.torrent.torrentSelectionActivityClass
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.player.controls.tvScrubStepSeconds
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
@@ -6513,10 +6513,11 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     if (isOfflineLocalLaunch(sourceIntent)) return false
     val source = extractUriFromIntent(sourceIntent)?.toString()?.trim().orEmpty()
     if (!isTorrentSource(source, sourceIntent.type)) return false
+    val pickerClass = torrentSelectionActivityClass() ?: return false
 
     val pickerIntent =
       Intent(sourceIntent).apply {
-        setClass(this@PlayerActivity, TorrentSelectionActivity::class.java)
+        setClass(this@PlayerActivity, pickerClass)
         putExtra(MediaUtils.EXTRA_TORRENT_SOURCE, source)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
