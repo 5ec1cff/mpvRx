@@ -1,5 +1,10 @@
 # Video background playback must retain the native window
 
+Historical relay implementation, superseded by
+[ordered video suspension](2026-10-26-background-video-suspension.md).
+Retaining the native window was required by that design, not by mpv itself: when
+vid is already disabled, vo/wid updates do not schedule a whole-file seek.
+
 - mpvlib 1.1.4 marks both `vo` and `wid` as UPDATE_VO. Changing either while a video
   track is selected queues a whole-file exact seek. It flushes AudioTrack and resets
   audio synchronization even when `pause` stays false. Keeping the same mpv instance

@@ -9,6 +9,8 @@ The clip must last at least 60 seconds. The check enables video background playb
 exercises Home/Recents and screen off/on, and rejects native seek/restart events after
 startup. It saves screenshots for visual inspection and restores the app preferences.
 Use --expect-interruptions with an unpatched build to verify the negative control.
+Use --inspect-video to check native video teardown and audio progress through temporary
+IPC. --video-track exercises non-default track restoration; --url checks a direct stream.
 """
 
 import argparse
@@ -16,6 +18,7 @@ import json
 import os
 from pathlib import Path
 import re
+import socket
 import subprocess
 import time
 import uuid
@@ -32,10 +35,17 @@ def main():
     parser.add_argument('--hardware-decoding', action='store_true')
     parser.add_argument('--mini-player', action='store_true')
     parser.add_argument('--pause-resize', action='store_true')
+    parser.add_argument('--rapid-cycles', type=int, default=0)
+    parser.add_argument('--inspect-video', action='store_true',
+                        help='Use temporary mpv IPC to verify background video suspension and audio progress')
+    parser.add_argument('--video-track', type=int, help='Select this video track through test IPC')
+    parser.add_argument('--url', help='Play this URL instead of the pushed local clip')
     parser.add_argument('--expect-interruptions', action='store_true')
     args = parser.parse_args()
     if not args.video.is_file():
         parser.error('The test clip does not exist')
+    if args.video_track is not None and not args.inspect_video:
+        parser.error('--video-track requires --inspect-video')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     command = ['adb'] + (['-s', args.serial] if args.serial else [])
@@ -43,6 +53,9 @@ def main():
     activity = package + '/app.gyrolet.mpvrx.ui.player.PlayerActivity'
     preferences = f'shared_prefs/{package}_preferences.xml'
     remote_video = f'/sdcard/Download/mpvrx-continuity-{uuid.uuid4().hex}.mp4'
+    ipc_name = 'mpvrx-continuity-' + uuid.uuid4().hex
+    ipc_port = None
+    snapshots = {}
 
     def adb(*parts, binary=False):
         return subprocess.check_output(command + list(parts), text=not binary, timeout=30)
@@ -53,6 +66,37 @@ def main():
 
     def screenshot(label):
         (output / f'{label}.png').write_bytes(adb('exec-out', 'screencap', '-p', binary=True))
+
+    def inspect(label, background=False):
+        if ipc_port is None:
+            return
+        values = {}
+        with socket.create_connection(('127.0.0.1', ipc_port), timeout=5) as connection:
+            connection.settimeout(5)
+            with connection.makefile('rwb') as stream:
+                for request_id, name in enumerate(('vid', 'current-vo', 'video-codec', 'time-pos',
+                                                    'audio-pts', 'pause', 'audio-codec', 'hwdec-current')):
+                    request = {'command': ['get_property', name], 'request_id': request_id}
+                    stream.write(json.dumps(request).encode() + b'\n')
+                    stream.flush()
+                    while True:
+                        response = json.loads(stream.readline())
+                        if response.get('request_id') == request_id:
+                            values[name] = response.get('data')
+                            break
+        snapshots[label] = values
+        (output / 'native-state.json').write_text(json.dumps(snapshots, indent=2))
+        if background:
+            if values['vid'] not in ('no', -2, False) or values['current-vo'] not in (None, 'null'):
+                raise RuntimeError(f'Background video is still enabled: {values}')
+            if values['video-codec'] is not None:
+                raise RuntimeError(f'Background video decoder is still present: {values}')
+            if values['pause'] is not False or not values['audio-codec']:
+                raise RuntimeError(f'Background audio is not running: {values}')
+        elif not isinstance(values['vid'], int) or values['vid'] <= 0 or not values['video-codec']:
+            raise RuntimeError(f'Foreground video did not recover: {values}')
+        elif args.video_track is not None and values['vid'] != args.video_track:
+            raise RuntimeError(f'The selected video track changed: {values}')
 
     def return_from_recents():
         adb('shell', 'input', 'keyevent', '187')
@@ -91,6 +135,11 @@ def main():
             if node.get('name') == key:
                 root.remove(node)
         ET.SubElement(root, 'boolean', name=key, value=str(value).lower())
+    if args.inspect_video:
+        config = root.find("string[@name='mpv.conf']")
+        if config is None:
+            config = ET.SubElement(root, 'string', name='mpv.conf')
+        config.text = (config.text or '') + f'\ninput-ipc-server=@{ipc_name}\n'
     modified = output / 'test-preferences.xml'
     modified.write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
     sdk = int(adb('shell', 'getprop', 'ro.build.version.sdk').strip())
@@ -108,10 +157,10 @@ def main():
         adb('push', str(args.video.resolve()), remote_video)
         with (output / 'logcat.txt').open('w') as log:
             logcat = subprocess.Popen(command + ['logcat', '-T', '1', '-v', 'threadtime',
-                '-s', 'mpv:V', 'PlaybackSession:D', 'PlaybackSurfaceRelay:V',
+                '-s', 'mpv:V', 'PlaybackSession:D',
                 'CONTINUITY:I', 'AndroidRuntime:E', 'BLASTBufferQueue:E'], stdout=log)
             adb('shell', 'am', 'start', '-W', '-n', activity, '-a', 'android.intent.action.VIEW',
-                '-d', 'file://' + remote_video, '-t', 'video/mp4')
+                '-d', args.url or 'file://' + remote_video, '-t', 'video/mp4')
             # Wait for a real initial playback restart, rather than treating failure to open
             # the decoder or native library as an apparently interruption-free result.
             deadline = time.monotonic() + 20
@@ -120,21 +169,52 @@ def main():
                     raise RuntimeError('Playback did not start; inspect logcat.txt')
                 time.sleep(0.2)
             time.sleep(2)
+            if args.inspect_video:
+                ipc_port = int(adb('forward', 'tcp:0', 'localabstract:' + ipc_name).strip())
+            if args.video_track is not None:
+                with socket.create_connection(('127.0.0.1', ipc_port), timeout=5) as connection:
+                    connection.settimeout(5)
+                    with connection.makefile('rwb') as stream:
+                        stream.write(json.dumps({'command': ['set_property', 'vid', args.video_track],
+                                                 'request_id': 1}).encode() + b'\n')
+                        stream.flush()
+                        while True:
+                            response = json.loads(stream.readline())
+                            if response.get('request_id') == 1:
+                                if response.get('error') != 'success':
+                                    raise RuntimeError(f'Cannot select the requested track: {response}')
+                                break
+                time.sleep(0.3)
+            inspect('initial')
             screenshot('initial')
             mark('HOME_BEGIN')
             adb('shell', 'input', 'keyevent', '3')
             time.sleep(3)
+            inspect('background', background=True)
+            if args.inspect_video:
+                progress = snapshots['background']['audio-pts'] - snapshots['initial']['audio-pts']
+                if progress < 1:
+                    raise RuntimeError(f'Audio did not advance in the background: {progress}')
             mark('RETURN_BEGIN')
             return_from_recents()
+            inspect('returned')
             screenshot('returned')
             mark('SCREEN_OFF_BEGIN')
             adb('shell', 'input', 'keyevent', '223')
             time.sleep(3)
+            inspect('screen-off', background=True)
             mark('SCREEN_ON_BEGIN')
             adb('shell', 'input', 'keyevent', '224')
             adb('shell', 'wm', 'dismiss-keyguard')
             time.sleep(3)
+            inspect('unlocked')
             screenshot('unlocked')
+            for cycle in range(args.rapid_cycles):
+                mark(f'RAPID_HOME_{cycle}')
+                adb('shell', 'input', 'keyevent', '3')
+                time.sleep(0.15)
+                return_from_recents()
+                inspect(f'rapid-return-{cycle}')
             if args.pause_resize:
                 mark('PAUSE_BEGIN')
                 adb('shell', 'input', 'keyevent', '127')
@@ -144,6 +224,7 @@ def main():
                 adb('shell', 'input', 'keyevent', '3')
                 time.sleep(2)
                 return_from_recents()
+                inspect('paused-returned')
                 screenshot('paused-returned')
                 mark('PAUSED_RESIZE_BEGIN')
                 adb('shell', 'wm', 'size', '540x960')
@@ -171,6 +252,8 @@ def main():
                 logcat.kill()
                 logcat.wait()
         adb('shell', 'am', 'force-stop', package)
+        if ipc_port is not None:
+            adb('forward', '--remove', f'tcp:{ipc_port}')
         if original is None:
             adb('shell', 'run-as', package, 'rm', '-f', preferences)
         else:
@@ -192,7 +275,7 @@ def main():
         if 'event: seek' in line or 'event: playback-restart' in line:
             events.setdefault(phase, []).append(line)
     after_startup = [e for key, group in events.items() if key != 'STARTUP' for e in group]
-    summary = {'android_api': sdk, 'settings': settings, 'events': events,
+    summary = {'android_api': sdk, 'settings': settings, 'events': events, 'native_state': snapshots,
                'interruptions_after_startup': len(after_startup)}
     (output / 'result.json').write_text(json.dumps(summary, indent=2))
     if 'FATAL EXCEPTION' in text or 'Playback window rejected a video buffer' in text:

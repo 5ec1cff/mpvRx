@@ -8915,14 +8915,13 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   }
 
   /**
-   * The relay keeps the native window and decoder alive even when a mini player is enabled.
    * Publish background ownership on Home too, so the service can take audio focus in onStartCommand.
    */
   private fun markPlaybackInBackground() {
     if (!isReady || fileName.isBlank()) return
     PlaybackSession.markBackground()
     isInBackgroundPlayback = true
-    Log.d(TAG, "Background playback keeps the native video window and audio timeline")
+    Log.d(TAG, "Background playback preserves the audio timeline while detached video is suspended")
   }
 
   /**

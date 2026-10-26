@@ -216,7 +216,7 @@ object PlaybackSession : MPVLib.EventObserver {
     val registration: NetworkStreamRegistration? = null,
   )
 
-  /** Keeps a hardware-decoded track across the loss and replacement of its Android Surface. */
+  /** A video selection belongs to one file, not to the Activity or its replacement Surface. */
   private data class SuspendedVideoTrack(
     val id: Int,
     val generation: Long,
@@ -285,7 +285,6 @@ object PlaybackSession : MPVLib.EventObserver {
   private var attachedSurfaceHeight = 0
   private var surfaceAttachmentToken = 0L
   private var rendererOutputReady = false
-  private var surfaceRelay: PlaybackSurfaceRelay? = null
   private val surfaceCallbackHandler = Handler(Looper.getMainLooper())
   private var activeNetworkStream: NetworkStreamRegistration? = null
   private val auxiliaryNetworkStreams = linkedMapOf<String, NetworkStreamRegistration>()
@@ -529,41 +528,17 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
 
       val targetWidth = width?.takeIf { it > 0 } ?: return@withCore false
       val targetHeight = height?.takeIf { it > 0 } ?: return@withCore false
-      // mpv's vo AND wid updates issue a whole-file seek and flush audio. Bind the native
-      // window only once per core; Android windows are outputs of the persistent relay.
-      val relay = surfaceRelay ?: PlaybackSurfaceRelay(targetWidth, targetHeight).also {
-        surfaceRelay = it
-        MPVLib.attachSurface(it.inputSurface)
-      }
+      // Both vo and wid changes seek the whole file when a video track is selected. Finish
+      // deselecting video before either changes, including direct fullscreen/mini-player handoffs.
+      // AudioTrack and its clock stay running while the video decoder/output are replaced.
+      detachRendererSurfaceLocked()
       val token = ++surfaceAttachmentToken
-      relay.attachOutput(surface, targetWidth, targetHeight) {
-        surfaceCallbackHandler.post {
-          val current = nativeLock.withLock {
-            if (token != surfaceAttachmentToken || attachedSurfaceOwner !== owner) false
-            else {
-              detachRendererSurfaceLocked()
-              true
-            }
-          }
-          if (current) onRendererFailed?.invoke()
-        }
-      }
+      MPVLib.attachSurface(surface)
       MPVLib.setPropertyString("android-surface-size", "${targetWidth}x$targetHeight")
       attachedSurfaceWidth = targetWidth
       attachedSurfaceHeight = targetHeight
       attachedSurfaceOwner = owner
       updateState { it.copy(surfaceAttached = true) }
-
-      if (rendererOutputReady) {
-        surfaceCallbackHandler.post {
-          val current = nativeLock.withLock {
-            token == surfaceAttachmentToken && attachedSurfaceOwner === owner && rendererOutputReady
-          }
-          if (current) onRendererReady?.invoke()
-        }
-        Log.d(TAG, "Playback window changed without rebinding native vo/wid: generation=${_state.value.generation}")
-        return@withCore true
-      }
 
       // The initial JNI attachSurface() queues wid through mpv_set_option. The
       // playback thread can run before mpv has consumed that option, producing
@@ -588,8 +563,11 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
               if (windowId == 0L || windowId == -1L) return@withLock false
 
               val activated = runCatching {
-                MPVLib.setPropertyString("force-window", "yes")
                 MPVLib.setPropertyString("vo", desiredVideoOutput)
+                MPVLib.setPropertyString("force-window", "yes")
+                // Read back the actual output, not just the requested option. Video selection
+                // must be the final step, after JNI's window and the new output are usable.
+                if (MPVLib.getPropertyString("current-vo") != desiredVideoOutput) return@withLock false
                 rendererOutputReady = true
                 restoreSuspendedVideoTrackLocked()
                 applyDeferredVideoSelectionLocked()
@@ -648,7 +626,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         return@withCore false
       }
       if (width == attachedSurfaceWidth && height == attachedSurfaceHeight) return@withCore true
-      surfaceRelay?.resizeOutput(width, height)
       MPVLib.setPropertyString("android-surface-size", "${width}x$height")
       attachedSurfaceWidth = width
       attachedSurfaceHeight = height
@@ -664,18 +641,21 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
   fun unbindSurface(owner: Any): Boolean =
     withCore(default = false) {
       if (attachedSurfaceOwner !== owner || !_state.value.surfaceAttached) return@withCore false
-      // The native window and decoder stay alive. The relay consumes and drops video while
-      // there is no Android window, so neither presentation nor Surface destruction stalls audio.
       detachRendererSurfaceLocked()
       true
     }
 
   /**
-   * Detaches the Android presentation window, preserving the core-owned native window and VO.
+   * Stops video before changing vo/wid. These operations must stay under the same native lock;
+   * restoring vid before the replacement output is ready would reintroduce a whole-file seek.
    */
   private fun detachRendererSurfaceLocked() {
     ++surfaceAttachmentToken
-    surfaceRelay?.detachOutput()
+    suspendVideoTrackLocked()
+    rendererOutputReady = false
+    MPVLib.setPropertyString("vo", "null")
+    MPVLib.setPropertyString("force-window", "no")
+    MPVLib.detachSurface()
     attachedSurfaceOwner = null
     attachedSurfaceWidth = 0
     attachedSurfaceHeight = 0
@@ -901,8 +881,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     runCatching { unregisterNativeObserver() }
     runCatching { MPVLib.destroy() }
       .onFailure { error -> Log.e(TAG, "Failed to destroy libmpv", error) }
-    surfaceRelay?.close()
-    surfaceRelay = null
     releaseActiveNetworkStreamLocked()
     releaseAuxiliaryNetworkStreamsLocked()
     observers.clear()
@@ -1447,11 +1425,15 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       if (property in AUDIO_SUBTITLE_TRACK_PROPERTIES && MPVLib.getPropertyString(property)?.toIntOrNull() == value) {
         return@withCore
       }
-      MPVLib.setPropertyInt(property, value)
-      if (property == "vid" && value > 0) {
+      if (property == "vid") {
         suspendedVideoTrack = null
         deferredVideoSelectionGeneration = null
+        if (value > 0 && !rendererOutputReady && loadedGeneration == _state.value.generation) {
+          suspendedVideoTrack = SuspendedVideoTrack(value, _state.value.generation)
+          return@withCore
+        }
       }
+      MPVLib.setPropertyInt(property, value)
     }
   }
 
@@ -1743,14 +1725,20 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         return@withCore
       }
       if (property == "vid") {
-        if (value == "no" && _state.value.phase in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)) {
-          val activeVid = MPVLib.getPropertyString("vid")?.toIntOrNull() ?: -1
-          if (activeVid > 0) {
-            suspendedVideoTrack = SuspendedVideoTrack(activeVid, _state.value.generation)
+        // Explicit selections supersede a lifecycle suspension. In particular, a user choosing
+        // no video must not have the previously suspended track silently restored on return.
+        suspendedVideoTrack = null
+        deferredVideoSelectionGeneration = null
+        if (!rendererOutputReady) {
+          val selected = value.toIntOrNull()
+          if (selected != null && selected > 0 && loadedGeneration == _state.value.generation) {
+            suspendedVideoTrack = SuspendedVideoTrack(selected, _state.value.generation)
+            return@withCore
           }
-        } else if (value != "no") {
-          suspendedVideoTrack = null
-          deferredVideoSelectionGeneration = null
+          if (value == "auto") {
+            deferredVideoSelectionGeneration = _state.value.generation
+            return@withCore
+          }
         }
       }
 
@@ -1934,6 +1922,9 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             // once instead of allowing pause writes to race the load operation. Saved-position
             // loads stay paused until PlayerActivity finishes the database lookup and seek.
             MPVLib.setPropertyBoolean("pause", appliedPaused)
+            // A Surface can disappear while loadfile/yt-dlp is still selecting tracks. Keep the
+            // new file audio-only until a renderer exists; never reuse the outgoing file's id.
+            if (!rendererOutputReady || !current.surfaceAttached) suspendVideoTrackLocked()
             // FILE_LOADED and native renderer activation can arrive in either order. JNI surface
             // attachment alone is not readiness: selecting video before wid/vo are active can
             // make MediaCodec drop the track. Also cover a Surface lost during an in-flight load.
@@ -2053,8 +2044,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
             releaseAuxiliaryNetworkStreams()
             suspendedVideoTrack = null
             rendererOutputReady = false
-            surfaceRelay?.close()
-            surfaceRelay = null
             deferredVideoSelectionGeneration = null
             desiredPaused = true
             loadedGeneration = 0L
@@ -2436,6 +2425,25 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     deferredVideoSelectionGeneration = null
   }
 
+  /** Synchronous property writes plus readback confirm deselection before any vo/wid update. */
+  private fun suspendVideoTrackLocked() {
+    val current = _state.value
+    val selected = MPVLib.getPropertyString("vid")?.toIntOrNull()
+    if (selected != null && selected > 0) {
+      if (loadedGeneration == current.generation) {
+        suspendedVideoTrack = SuspendedVideoTrack(selected, current.generation)
+      } else if (current.currentItem?.videoSelection() == PlaybackVideoSelection.IMMEDIATE) {
+        deferredVideoSelectionGeneration = current.generation
+      }
+    }
+    MPVLib.setPropertyString("vid", "no")
+    check(MPVLib.getPropertyString("vid") == "no") {
+      "Video must be disabled before changing the Android output"
+    }
+    Log.d(TAG, "Video suspended before Surface change: generation=${current.generation}, " +
+      "savedVid=${suspendedVideoTrack?.id}, vid=no")
+  }
+
   private fun restoreSuspendedVideoTrackLocked() {
     val suspended = suspendedVideoTrack ?: return
     val current = _state.value
@@ -2447,7 +2455,12 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       current.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
     ) return
 
-    runCatching { MPVLib.setPropertyInt("vid", suspended.id) }
+    runCatching {
+      MPVLib.setPropertyInt("vid", suspended.id)
+      // The JNI setter logs native failures rather than throwing; do not discard the saved
+      // selection until the core confirms it. A later renderer/foreground callback can retry.
+      check(MPVLib.getPropertyString("vid")?.toIntOrNull() == suspended.id)
+    }
       .onSuccess {
         suspendedVideoTrack = null
         deferredVideoSelectionGeneration = null
