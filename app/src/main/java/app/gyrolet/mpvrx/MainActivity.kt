@@ -601,13 +601,8 @@ open class MainActivity : AppCompatActivity() {
       // to see against arbitrary artwork, wallpapers and expressive surfaces.
       window.isNavigationBarContrastEnforced = true
     }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-      // Draw into camera-cutout areas too, so the wallpaper covers the whole screen.
-      window.attributes =
-        window.attributes.apply {
-          layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
-    }
+    // enableEdgeToEdge selects the supported cutout mode for this Android version.
+    // Overriding it with SHORT_EDGES conflicts with Android 15's edge-to-edge policy.
     appliedEdgeToEdgeDarkMode = isDarkMode
   }
 

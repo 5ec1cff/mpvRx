@@ -276,6 +276,14 @@ jobs:
             cp "$out_dir/$base.apk" "release-assets/mpvRx-${ASSET_NAME:-$abi}-${VERSION_TAG}.apk"
           done
 
+      - name: Upload R8 diagnostics
+        uses: actions/upload-artifact@v7
+        with:
+          name: r8-${{ matrix.distribution.id }}-${{ github.sha }}
+          path: app/build/outputs/mapping/
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload release assets
         uses: actions/upload-artifact@v7
         with:

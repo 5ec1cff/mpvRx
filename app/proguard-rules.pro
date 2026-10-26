@@ -19,18 +19,17 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
--dontobfuscate
-
-# Keep jsoup and the affected AndroidX classes intact: R8's class-merging optimization rewrites their
-# parent hierarchy to point at a `final` jsoup class, which strict ART verifiers (common on Android TV /
-# low-end devices) reject at load time with java.lang.VerifyError -> white screen / launch crash.
-# Disabling optimization keeps shrinking (APK stays thin) and avoids the hierarchy corruption. See #708.
--dontoptimize
+# Keep the #708 verifier workaround scoped to the affected types. Global -dontoptimize and
+# -dontobfuscate disable those R8 passes for the entire app and produce 0% Android vitals scores.
+# These rules intentionally prohibit optimization and renaming of the jsoup/AndroidX types involved
+# in the strict-ART hierarchy failure, while the rest of the app can be optimized and obfuscated.
 -keep class org.jsoup.** { *; }
 -keep class androidx.compose.runtime.Latch { *; }
 -keep class androidx.core.view.WindowInsetsControllerCompat* { *; }
--keep,allowoptimization class is.xyz.mpv.** { public protected *; }
--keep,allowoptimization class net.mediaarea.mediainfo.lib.** { public protected *; }
+# Native code resolves bridge classes, fields and callbacks by their original JNI names/signatures.
+# Keep private members too; they are entry points that are invisible to R8's Java call graph.
+-keep class is.xyz.mpv.** { *; }
+-keep class net.mediaarea.mediainfo.lib.** { *; }
 -keep class org.libtorrent4j.swig.libtorrent_jni { *; }
 -dontwarn org.xmlpull.v1.**
 -dontnote org.xmlpull.v1.**

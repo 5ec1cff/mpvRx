@@ -966,8 +966,6 @@ class PlayerActivity :
           )
         }
     }
-
-    setLayoutInDisplayCutoutModeIfSupported(shortEdges = true)
   }
 
   override fun attachBaseContext(newBase: Context?) {
@@ -1547,7 +1545,6 @@ class PlayerActivity :
             viewModel.showControls()
             binding.player.visibility = View.INVISIBLE
             try {
-              WindowCompat.setDecorFitsSystemWindows(window, false)
               windowInsetsController.apply {
                 systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
                 show(WindowInsetsCompat.Type.statusBars())
@@ -1567,6 +1564,7 @@ class PlayerActivity :
               restoreFullSizePlayerBounds()
             }
           }
+          updateStatusBarProtection()
         }
       }
     }
@@ -2482,21 +2480,10 @@ class PlayerActivity :
 
   private fun setupWindowFlags() {
     pipHelper.updatePictureInPictureParams()
-    val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
-    if (isAudio) {
-      WindowCompat.setDecorFitsSystemWindows(window, true)
-      window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-      updateKeepScreenOn()
-      window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-      return
-    }
-    WindowCompat.setDecorFitsSystemWindows(window, false)
-    window.setFlags(
-      WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-      WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-    )
+    // Keep a single edge-to-edge window for both media kinds. Compose controls already apply
+    // safeDrawing insets; changing decor fitting here double-pads audio on older Android versions
+    // and has no effect on Android 15+.
     updateKeepScreenOn()
-    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
   }
 
   private fun updateKeepScreenOn(isPaused: Boolean = viewModel.paused == true) {
@@ -2541,28 +2528,21 @@ class PlayerActivity :
     externalDisplayManager?.enabled = enabled && !isTelevision
   }
 
-  private fun setLayoutInDisplayCutoutModeIfSupported(shortEdges: Boolean) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
-    val mode =
-      if (shortEdges) {
-        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-      } else {
-        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
-      }
-    val attributes = window.attributes
-    attributes.layoutInDisplayCutoutMode = mode
-    window.attributes = attributes
-  }
-
   private fun setupSystemBarsAutoHide() {
     ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
       handleSystemBarsVisibility(insets)
+      updateStatusBarProtection(insets)
       binding.player.applyOsdSafeAreaMargins(insets)
       insets
     }
     lifecycleScope.launch {
       playerPreferences.safeAreaWindow.changes().drop(1).collect {
         binding.player.applyOsdSafeAreaMargins(ViewCompat.getRootWindowInsets(binding.root))
+      }
+    }
+    lifecycleScope.launch {
+      playerPreferences.showSystemStatusBar.changes().drop(1).collect {
+        updateStatusBarProtection()
       }
     }
     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
@@ -2626,18 +2606,11 @@ class PlayerActivity :
     systemBarsAutoHideJob = null
   }
 
-  @Suppress("DEPRECATION")
   private fun hideSystemBarsForPlayback() {
     cancelSystemBarsAutoHide()
     val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
     if (isAudio) {
       try {
-        WindowCompat.setDecorFitsSystemWindows(window, true)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        binding.root.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         windowInsetsController.apply {
           systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
           show(WindowInsetsCompat.Type.statusBars())
@@ -2659,32 +2632,28 @@ class PlayerActivity :
     } catch (e: Exception) {
       Log.e(TAG, "Failed to hide system bars for playback", e)
     }
-
-    binding.root.systemUiVisibility =
-      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-      View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-      View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-      View.SYSTEM_UI_FLAG_FULLSCREEN or
-      View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-      if (playerPreferences.showSystemStatusBar.get()) 0 else View.SYSTEM_UI_FLAG_LOW_PROFILE
   }
 
   private fun setupSystemUI() {
-    val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
-    setLayoutInDisplayCutoutModeIfSupported(shortEdges = !isAudio)
-
-    // Set status bar color for when it will be shown (with controls)
-    applyStatusBarColorIfNeeded()
+    updateStatusBarProtection()
 
     // Always start with status bar hidden - it will show when controls are shown
     hideSystemBarsForPlayback()
   }
 
-  @Suppress("DEPRECATION")
-  private fun applyStatusBarColorIfNeeded() {
-    if (playerPreferences.showSystemStatusBar.get()) {
-      window.statusBarColor = android.graphics.Color.parseColor("#80000000")
+  private fun updateStatusBarProtection(insets: WindowInsetsCompat? = ViewCompat.getRootWindowInsets(binding.root)) {
+    val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
+    val scrimHeight =
+      if (!isAudio && !isInPictureInPictureMode && playerPreferences.showSystemStatusBar.get()) {
+        insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+      } else {
+        0
+      }
+    binding.statusBarScrim.apply {
+      if (layoutParams.height != scrimHeight) {
+        layoutParams = layoutParams.apply { height = scrimHeight }
+      }
+      visibility = if (scrimHeight > 0) View.VISIBLE else View.GONE
     }
   }
 
@@ -2692,14 +2661,7 @@ class PlayerActivity :
     cancelSystemBarsAutoHide()
 
     // Clear flags first for immediate effect
-    window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-    // Set cutout mode before showing bars for smoother transition
-    setLayoutInDisplayCutoutModeIfSupported(shortEdges = false)
-
-    // Update window insets configuration
-    WindowCompat.setDecorFitsSystemWindows(window, true)
 
     // Restore default behavior and show bars in one go
     try {
@@ -4430,11 +4392,17 @@ class PlayerActivity :
    */
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
+    updateOrientationForWindow()
     viewModel.onOrientationChanged()
     binding.root.post(::updateVideoAmbientPlayerBounds)
     if (isReady) {
       handleConfigurationChange()
     }
+  }
+
+  override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean, newConfig: Configuration) {
+    super.onMultiWindowModeChanged(isInMultiWindowMode, newConfig)
+    updateOrientationForWindow()
   }
 
   /**
@@ -6607,8 +6575,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    */
   private fun enterPipUIMode() {
     cancelSystemBarsAutoHide()
-    window.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
-    WindowCompat.setDecorFitsSystemWindows(window, true)
     try {
       windowInsetsController.apply {
         show(WindowInsetsCompat.Type.systemBars())
@@ -6686,6 +6652,27 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   }
 
   // ==================== Orientation Management ====================
+
+  private fun usesAdaptiveOrientation(): Boolean =
+    !isTelevision && (isInMultiWindowMode || resources.configuration.smallestScreenWidthDp >= 600)
+
+  private fun updateOrientationForWindow() {
+    // Folding or entering split-screen can change whether a fixed orientation is appropriate.
+    // Do not reapply a phone preference on ordinary rotation: the rotation button overrides it.
+    if (usesAdaptiveOrientation()) {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    } else if (requestedOrientation == ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) {
+      setOrientation()
+    }
+  }
+
+  override fun setRequestedOrientation(requestedOrientation: Int) {
+    // Android 16 ignores fixed orientations on large displays. Apply the same adaptive behavior
+    // consistently on tablets/foldables and in multi-window, including rotation-button requests.
+    val target =
+      if (usesAdaptiveOrientation()) ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED else requestedOrientation
+    if (super.getRequestedOrientation() != target) super.setRequestedOrientation(target)
+  }
 
   /**
    * Applies the orientation for the current media, per [PlayerOrientationPolicy].
@@ -6776,6 +6763,10 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    */
   private fun applyInitialVideoOrientation(sourceIntent: Intent) {
     launchOrientationName = null
+    if (usesAdaptiveOrientation()) {
+      requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+      return
+    }
     if (isTelevision) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
       return

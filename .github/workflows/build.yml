@@ -259,6 +259,14 @@ jobs:
               ;;
           esac
 
+      - name: Upload R8 diagnostics
+        uses: actions/upload-artifact@v7
+        with:
+          name: r8-${{ matrix.distribution.id }}-${{ github.sha }}
+          path: app/build/outputs/mapping/
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload arm64-v8a APK
         if: ${{ matrix.distribution.id == 'standard' }}
         uses: actions/upload-artifact@v7
