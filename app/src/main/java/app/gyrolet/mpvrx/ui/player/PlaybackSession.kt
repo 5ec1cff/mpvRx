@@ -629,6 +629,20 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       MPVLib.setPropertyString("android-surface-size", "${width}x$height")
       attachedSurfaceWidth = width
       attachedSurfaceHeight = height
+      if (_state.value.paused) {
+        val token = surfaceAttachmentToken
+        // EGL can finish a resize after the first paused redraw has already been submitted.
+        // Redraw once after the window settles so its old-sized buffer is not left scaled/cropped.
+        // This also covers the mini player; a detached/replaced window cancels the work by token.
+        surfaceCallbackHandler.postDelayed({
+          nativeLock.withLock {
+            if (nativeCoreReady && rendererOutputReady && surfaceAttachmentToken == token &&
+              attachedSurfaceOwner === owner && attachedSurfaceWidth == width &&
+              attachedSurfaceHeight == height && _state.value.paused
+            ) redrawVideoFrame()
+          }
+        }, 150L)
+      }
       true
     }
 

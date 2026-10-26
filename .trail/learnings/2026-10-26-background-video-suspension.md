@@ -20,6 +20,10 @@
   view from detaching a newer owner's window.
 - Keep the previous Activity/Service focus handoff fixes. Native audio continuity
   does not prevent an unrelated focus callback from pausing playback.
+- A paused EGL window can retain an old-sized buffer after the immediate resize
+  redraw. resizeSurface schedules one more redraw after 150ms, guarded by owner,
+  attachment token, dimensions and paused state. It never seeks or starts a
+  repeating frame consumer, and also covers mini-player Surface resizing.
 
 Validation uses scripts/check-background-playback.py against real APKs: Home/Recents,
 screen off/on, rapid cycles, paused return/resize. --inspect-video enables temporary
@@ -27,6 +31,10 @@ mpv IPC only through test preferences and restores them afterward. It checks tha
 vid=false, current-vo/video-codec are unavailable in the background, pause=false and
 audio-pts advances, then verifies the selected video track and decoder return.
 JSON IPC encodes vid=no as false (the string getter used by the app returns "no").
+Use --pause-resize --check-paused-image (Pillow required) to compare the image
+before and after restoring the window size. A decoder and nonblack screenshot
+alone missed a cropped frame in r2050. The follow-up redraw reduced the measured
+normalized pixel error from 0.440 to 0.000 in the Android 15 MediaCodec fixture.
 
 Passed on Android 15 with SurfaceView/gpu and TextureView/gpu-next, software decode
 and H.264 MediaCodec; Android 8 No Vulkan also passed. A two-video-track fixture kept

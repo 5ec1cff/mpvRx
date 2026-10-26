@@ -35,6 +35,8 @@ def main():
     parser.add_argument('--hardware-decoding', action='store_true')
     parser.add_argument('--mini-player', action='store_true')
     parser.add_argument('--pause-resize', action='store_true')
+    parser.add_argument('--check-paused-image', action='store_true',
+                        help='Compare the paused frame before/after resizing (requires Pillow and --pause-resize)')
     parser.add_argument('--rapid-cycles', type=int, default=0)
     parser.add_argument('--inspect-video', action='store_true',
                         help='Use temporary mpv IPC to verify background video suspension and audio progress')
@@ -46,6 +48,8 @@ def main():
         parser.error('The test clip does not exist')
     if args.video_track is not None and not args.inspect_video:
         parser.error('--video-track requires --inspect-video')
+    if args.check_paused_image and not args.pause_resize:
+        parser.error('--check-paused-image requires --pause-resize')
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     command = ['adb'] + (['-s', args.serial] if args.serial else [])
@@ -56,6 +60,7 @@ def main():
     ipc_name = 'mpvrx-continuity-' + uuid.uuid4().hex
     ipc_port = None
     snapshots = {}
+    paused_image_error = None
 
     def adb(*parts, binary=False):
         return subprocess.check_output(command + list(parts), text=not binary, timeout=30)
@@ -235,6 +240,16 @@ def main():
                 resized = False
                 time.sleep(2)
                 screenshot('paused-restored')
+                if args.check_paused_image:
+                    from PIL import Image, ImageChops, ImageStat
+                    with Image.open(output / 'paused-returned.png') as before, \
+                            Image.open(output / 'paused-restored.png') as after:
+                        if before.size != after.size:
+                            raise RuntimeError('The display size did not recover after the resize')
+                        difference = ImageChops.difference(before.convert('RGB'), after.convert('RGB'))
+                        paused_image_error = sum(ImageStat.Stat(difference).mean) / (3 * 255)
+                    if paused_image_error > 0.04:
+                        raise RuntimeError(f'The paused frame was cropped/scaled after resize: {paused_image_error:.3f}')
                 mark('RESUME_BEGIN')
                 adb('shell', 'input', 'keyevent', '126')
                 time.sleep(2)
@@ -276,6 +291,7 @@ def main():
             events.setdefault(phase, []).append(line)
     after_startup = [e for key, group in events.items() if key != 'STARTUP' for e in group]
     summary = {'android_api': sdk, 'settings': settings, 'events': events, 'native_state': snapshots,
+               'paused_image_mean_error': paused_image_error,
                'interruptions_after_startup': len(after_startup)}
     (output / 'result.json').write_text(json.dumps(summary, indent=2))
     if 'FATAL EXCEPTION' in text or 'Playback window rejected a video buffer' in text:
