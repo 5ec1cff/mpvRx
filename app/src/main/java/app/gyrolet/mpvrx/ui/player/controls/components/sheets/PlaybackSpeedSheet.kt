@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AudioPreferences
@@ -42,7 +43,6 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.presentation.components.RepeatingIconButton
-import app.gyrolet.mpvrx.presentation.components.SliderItemHeader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
@@ -110,6 +110,14 @@ fun PlaybackSpeedSheet(
         .padding(vertical = 4.dp),
       verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+      Text(
+        text = "${speed.toFixed(2)}x",
+        modifier = Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.headlineMedium,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Center,
+      )
+
       // Slider and +/- Buttons
       Row(
         modifier =
@@ -127,29 +135,20 @@ fun PlaybackSpeedSheet(
           Icon(Icons.RoundedFilled.Remove, null, modifier = Modifier.size(24.dp))
         }
 
-        Column(
-          modifier = Modifier.weight(1f),
-          verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-          SliderItemHeader(
-            label = stringResource(R.string.btn_label_speed),
-            valueText = "${speed.toFixed(2)}x",
-          )
-          Slider(
-            value = speed,
-            onValueChange = {
-              // Snap to nearest 0.05
-              val snapped = (it * 20).roundToInt() / 20f
-              adjustSpeed(snapped)
-            },
-            valueRange = 0.1f..4.0f,
-            enabled = speedControlEnabled,
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
-          )
-        }
+        Slider(
+          value = speed,
+          onValueChange = {
+            // Snap to nearest 0.05
+            val snapped = (it * 20).roundToInt() / 20f
+            adjustSpeed(snapped)
+          },
+          valueRange = 0.1f..4.0f,
+          enabled = speedControlEnabled,
+          modifier =
+            Modifier
+              .weight(1f)
+              .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
+        )
 
         RepeatingIconButton(
           onClick = { adjustSpeed((speed + 0.05f).coerceAtMost(4.0f)) },
