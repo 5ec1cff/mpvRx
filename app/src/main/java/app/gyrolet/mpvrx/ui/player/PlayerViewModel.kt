@@ -2931,9 +2931,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     cancelFrameSeek()
     seekCommitJob?.cancel()
     seekCommitJob = null
-    seekCoalesceJob?.cancel()
-    seekCoalesceJob = null
-    pendingSeekOffset = 0
+    cancelPendingRelativeSeek()
     lyricsLoadJob?.cancel()
     lyricsLoadJob = null
     lyricsTranslateJob?.cancel()
@@ -3383,14 +3381,16 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   // Seek coalescing for smooth performance
+  private val seekCoalesceLock = Any()
   private var pendingSeekOffset: Int = 0
+  private var pendingSeekGeneration: Long? = null
+  private var seekCoalesceRevision = 0L
   private var seekCoalesceJob: Job? = null
   private val seekPreviewLock = Any()
   private var pendingSeekPreviewPosition: Float? = null
 
-  // Moves the seekbar thumb immediately so rapid seeks animate instead of jumping only
-  // after the decoder reports the new position. The position poller then keeps the optimistic
-  // value until the player actually lands on it, so the thumb never snaps backwards.
+  // Move the thumb immediately while a native seek runs. The poller resumes when an exact
+  // target lands or the bounded hold expires, allowing fast keyframe seeks to settle too.
   private var seekFeedbackHoldUntilElapsed = 0L
   private var seekFeedbackTargetPosition = 0f
 
@@ -5176,9 +5176,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     cancelFrameSeek()
     seekCommitJob?.cancel()
     seekCommitJob = null
-    seekCoalesceJob?.cancel()
-    seekCoalesceJob = null
-    pendingSeekOffset = 0
+    cancelPendingRelativeSeek()
 
     synchronized(ambientScheduleLock) {
       ambientUpdateGeneration.incrementAndGet()
@@ -5306,8 +5304,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       previewAbsoluteSeekPositionOptimistically(clampedPosition.toDouble())
 
       // Cancel pending relative seek before absolute seek
-      seekCoalesceJob?.cancel()
-      pendingSeekOffset = 0
+      cancelPendingRelativeSeek()
 
       // Every committed seek lands exactly on the requested position. Keyframe seeking would
       // leave the player at a different time than the thumb already showed, so the bar would
@@ -5325,53 +5322,59 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     }
   }
 
+  private fun cancelPendingRelativeSeek() {
+    synchronized(seekCoalesceLock) {
+      seekCoalesceRevision++
+      seekCoalesceJob?.cancel()
+      seekCoalesceJob = null
+      pendingSeekOffset = 0
+      pendingSeekGeneration = null
+    }
+  }
+
   private fun coalesceSeek(offset: Int) {
     val generation = PlaybackSession.state.value.generation
-    pendingSeekOffset += offset
-    seekCoalesceJob?.cancel()
-    seekCoalesceJob =
-      viewModelScope.launch(Dispatchers.IO) {
+    synchronized(seekCoalesceLock) {
+      if (pendingSeekGeneration != generation) pendingSeekOffset = 0
+      pendingSeekGeneration = generation
+      pendingSeekOffset += offset
+      val revision = ++seekCoalesceRevision
+      seekCoalesceJob?.cancel()
+      seekCoalesceJob = viewModelScope.launch(Dispatchers.IO) {
         delay(SEEK_COALESCE_DELAY_MS)
-        if (!PlaybackSession.isCurrentGeneration(generation)) return@launch
-        val toApply = pendingSeekOffset
-        pendingSeekOffset = 0
-
-        if (toApply != 0) {
-          if (PlaybackSession.state.value.currentItem?.audiobook != null) {
-            AudiobookPlayback.seekBy(toApply)
-            return@launch
-          }
-          val duration =
-            PlaybackSession.getPropertyDouble("duration")?.toInt()
-              ?: duration
-              ?: _preciseDuration.value.toInt()
-          val currentPos =
-            PlaybackSession.getPropertyDouble("time-pos")?.toInt()
-              ?: (pos ?: 0)
-
-          if (duration > 0 && currentPos + toApply >= duration) {
-            // If seeking past the end, force seek to 100% absolute to ensure EOF is triggered
-            PlaybackSession.commandForGeneration(generation, "seek", "100", "absolute-percent+exact")
-          } else {
-            // Exact landing, for the same reason as the absolute seek above.
-            val seekMode = "relative+exact"
-            PlaybackSession.commandForGeneration(generation, "seek", toApply.toString(), seekMode)
-          }
-          val currentPositionDouble =
-            PlaybackSession.getPropertyDouble("time-pos") ?: currentPos.toDouble()
-          val synchronizedPosition =
-            if (duration > 0 && currentPos + toApply >= duration) {
-              duration.toDouble()
-            } else {
-              (currentPositionDouble + toApply).coerceAtLeast(0.0)
-            }
-          syncplayManager.updatePlayerState(
-            synchronizedPosition,
-            PlaybackSession.getPropertyBoolean("pause") ?: false,
-            doSeek = true,
-          )
+        // UI taps and IO workers share this total. An older cancelled worker must never
+        // consume or clear an offset already reserved for a newer batch.
+        val toApply = synchronized(seekCoalesceLock) {
+          if (revision != seekCoalesceRevision) return@launch
+          pendingSeekOffset.also { pendingSeekOffset = 0 }
         }
+        if (toApply == 0 || !PlaybackSession.isCurrentGeneration(generation)) return@launch
+        if (PlaybackSession.state.value.currentItem?.audiobook != null) {
+          AudiobookPlayback.seekBy(toApply)
+          return@launch
+        }
+        val duration = PlaybackSession.getPropertyDouble("duration")?.toInt()
+          ?: duration ?: _preciseDuration.value.toInt()
+        val currentPos = PlaybackSession.getPropertyDouble("time-pos") ?: (pos ?: 0).toDouble()
+        val reachesEnd = duration > 0 && currentPos + toApply >= duration
+        val issued = if (reachesEnd) {
+          // Keep the existing explicit EOF transition when skipping past the final frame.
+          PlaybackSession.commandForGeneration(generation, "seek", "100", "absolute-percent+exact")
+        } else {
+          // MPSEEK_DEFAULT inherits hr-seek, including Fast/Precise, short-video/AB-loop
+          // policy and user-owned mpv.conf. An explicit +exact overrides all those choices.
+          PlaybackSession.commandForGeneration(generation, "seek", toApply.toString(), "relative")
+        }
+        if (!issued) return@launch
+        // Use the pre-seek snapshot; reading an already-updated position would add the skip twice.
+        val synchronizedPosition = if (reachesEnd) duration.toDouble() else (currentPos + toApply).coerceAtLeast(0.0)
+        syncplayManager.updatePlayerState(
+          synchronizedPosition,
+          PlaybackSession.getPropertyBoolean("pause") ?: false,
+          doSeek = true,
+        )
       }
+    }
   }
 
   fun leftSeek() {
@@ -6515,8 +6518,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     frameSeekJob =
       viewModelScope.launch(Dispatchers.IO) {
         if (!PlaybackSession.isCurrentGeneration(generation)) return@launch
-        seekCoalesceJob?.cancel()
-        pendingSeekOffset = 0
+        cancelPendingRelativeSeek()
         if (PlaybackSession.getPropertyBoolean("pause") != true) {
           PlaybackSession.setPropertyBoolean("pause", true)
           withContext(Dispatchers.Main) { host?.abandonAudioFocus() }
