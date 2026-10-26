@@ -13,7 +13,6 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -174,7 +173,6 @@ fun PlaybackSpeedSheet(
 
         LazyRow(
           modifier = Modifier.weight(1f),
-          contentPadding = PaddingValues(end = MaterialTheme.spacing.small),
           horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
         ) {
           items(speedPresets, key = { it }) { presetSpeed ->
@@ -208,22 +206,20 @@ fun PlaybackSpeedSheet(
         val isCurrentSpeedSaved = speedPresets.any { kotlin.math.abs(it - speed) < 0.001f }
         val isDefaultPreset = defaultPresets.any { kotlin.math.abs(it - speed) < 0.001f }
 
-        androidx.compose.foundation.layout.Box(Modifier.size(48.dp)) {
-          if (isCurrentSpeedSaved && !isDefaultPreset) {
-            PlayerSheetAction(
-              icon = Icons.RoundedFilled.Remove,
-              label = stringResource(R.string.ui_remove),
-              onClick = { onRemoveSpeedPreset(speed) },
-              enabled = speedControlEnabled,
-            )
-          } else if (!isCurrentSpeedSaved) {
-            PlayerSheetAction(
-              icon = Icons.RoundedFilled.Add,
-              label = stringResource(R.string.ui_add),
-              onClick = { onAddSpeedPreset(speed) },
-              enabled = speedControlEnabled,
-            )
-          }
+        if (isCurrentSpeedSaved && !isDefaultPreset) {
+          PlayerSheetAction(
+            icon = Icons.RoundedFilled.Remove,
+            label = stringResource(R.string.ui_remove),
+            onClick = { onRemoveSpeedPreset(speed) },
+            enabled = speedControlEnabled,
+          )
+        } else if (!isCurrentSpeedSaved) {
+          PlayerSheetAction(
+            icon = Icons.RoundedFilled.Add,
+            label = stringResource(R.string.ui_add),
+            onClick = { onAddSpeedPreset(speed) },
+            enabled = speedControlEnabled,
+          )
         }
       }
 
