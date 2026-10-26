@@ -201,7 +201,9 @@ android {
         "proguard-rules.pro",
       )
       ndk {
-        debugSymbolLevel = "none"
+        // Include native symbol tables in Play Store app bundles for crash/ANR diagnosis.
+        // Keep the smaller symbol-table level instead of bundling full DWARF info.
+        debugSymbolLevel = "symbol_table"
       }
     }
 
@@ -278,6 +280,16 @@ androidComponents {
         dimension == "distribution" && flavor in universalOnlyDistributions
       }
 
+    // Reserve suffix 6 for the Play Store stable build. This gives the compatibility
+    // fix a fresh 3.0.2 version code (30299996) after the already-uploaded 30299990
+    // and 30299995 bundles, without changing version codes for other distributions.
+    val isPlayStoreRelease =
+      variant.buildType == "release" &&
+        !isExperimentalBuild &&
+        variant.productFlavors.any { (dimension, flavor) ->
+          dimension == "distribution" && flavor == "playstore"
+        }
+
     variant.outputs.forEach { output ->
       val abi =
         output.filters
@@ -294,7 +306,8 @@ androidComponents {
         } else {
           output.versionCode.orNull ?: stableVersionCode
         }
-      output.versionCode.set(channelVersionCode * 10 + (abiCodes[abi] ?: 0))
+      val variantSuffix = if (isPlayStoreRelease) 6 else (abiCodes[abi] ?: 0)
+      output.versionCode.set(channelVersionCode * 10 + variantSuffix)
     }
   }
 }
