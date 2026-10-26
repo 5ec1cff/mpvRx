@@ -13,10 +13,8 @@ import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,9 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.utils.ReorderFeedback
-import app.gyrolet.mpvrx.ui.utils.dragElevation
 import app.gyrolet.mpvrx.ui.utils.rememberReorderFeedback
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -61,7 +57,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -140,6 +135,7 @@ data class PlaylistItem(
   val tvgLogo: String = "", // M3U channel logo URL for fallback
   val networkConnectionId: Long? = null,
   val networkPath: String = "",
+  val queueEntryId: Long = index.toLong(),
 )
 
 @Composable
@@ -304,12 +300,13 @@ fun PlaylistSheet(
 
   // Find the currently playing item index - tracks changes in playlist items
   val playingItemIndex = remember(playlist) { playlist.indexOfFirst { it.isPlaying } }
+  val playingItemKey = playlist.getOrNull(playingItemIndex)?.queueEntryId
 
   var hasPositionedInitialPlayingItem by remember { mutableStateOf(false) }
 
   // Position the initial item without competing with the sheet entrance animation. Animate only
-  // later track changes, when the sheet is already settled and visible.
-  LaunchedEffect(playingItemIndex) {
+  // actual track changes: moving the playing row must not scroll it back to the top.
+  LaunchedEffect(playingItemKey) {
     if (playingItemIndex >= 0) {
       if (hasPositionedInitialPlayingItem) {
         val distanceFromVisibleItem = playingItemIndex - lazyListState.firstVisibleItemIndex
@@ -425,12 +422,12 @@ fun PlaylistSheet(
           // Keep a stable drag preview while queue metadata updates in the background.
           var displayPlaylist by remember { mutableStateOf(playlist) }
           var dragInProgress by remember { mutableStateOf(false) }
-          var pendingOrder by remember { mutableStateOf<List<String>?>(null) }
+          var pendingOrder by remember { mutableStateOf<List<Long>?>(null) }
           LaunchedEffect(playlist, dragInProgress, pendingOrder) {
             if (!dragInProgress) {
               val expected = pendingOrder
-              val incomingOrder = playlist.map { it.uri.toString() }
-              if (expected == null || incomingOrder == expected || incomingOrder.size != expected.size) {
+              val incomingOrder = playlist.map { it.queueEntryId }
+              if (expected == null || incomingOrder == expected || incomingOrder.toSet() != expected.toSet()) {
                 pendingOrder = null
                 displayPlaylist = playlist
               }
@@ -465,16 +462,20 @@ fun PlaylistSheet(
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
           ) {
-            items(displayPlaylist.size, key = { index -> displayPlaylist[index].index }) { index ->
+            items(displayPlaylist.size, key = { index -> displayPlaylist[index].queueEntryId }) { index ->
               val item = displayPlaylist[index]
               val rowShape = connectedShape(index, displayPlaylist.size, ConnectedLayout.Vertical)
               if (showDragHandle) {
-                ReorderableItem(reorderableLazyListState, key = item.index) { isDragging ->
+                ReorderableItem(
+                  reorderableLazyListState,
+                  key = item.queueEntryId,
+                  animateItemModifier = Modifier,
+                ) { isDragging ->
                   val isDraggingPrev = remember { mutableStateOf(false) }
                   LaunchedEffect(isDragging) {
                     if (isDraggingPrev.value && !isDragging) {
                       if (dragStartIndex != -1 && dragEndIndex != -1 && dragStartIndex != dragEndIndex) {
-                        pendingOrder = displayPlaylist.map { it.uri.toString() }
+                        pendingOrder = displayPlaylist.map { it.queueEntryId }
                         onReorder.invoke(dragStartIndex, dragEndIndex)
                       }
                       dragInProgress = false
@@ -486,10 +487,6 @@ fun PlaylistSheet(
 
                   PlaylistTrackListItem(
                     item = item,
-                    modifier = Modifier.outsideShadow(
-                      rowShape,
-                      radius = dragElevation(isDragging, app.gyrolet.mpvrx.ui.theme.AppMotion.playerReducedMotion()),
-                    ),
                     thumbnailRepository = thumbnailRepository,
                     onClick = { onItemClick(item.copy(index = index)) },
                     skipThumbnail = false,
@@ -533,7 +530,7 @@ fun PlaylistSheet(
               ),
             horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
           ) {
-            items(playlist.size, key = { playlist[it].index }) { index ->
+            items(playlist.size, key = { playlist[it].queueEntryId }) { index ->
               val item = playlist[index]
               PlaylistTrackGridItem(
                 item = item,
@@ -570,16 +567,6 @@ private fun DragHandle(
   onDragStart: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
-  val alpha by animateFloatAsState(
-    targetValue = if (isDragging) 1f else 0.4f,
-    animationSpec =
-      spring(
-        dampingRatio = 0.6f,
-        stiffness = 300f,
-      ),
-    label = "dragHandleAlpha",
-  )
-
   Box(
     modifier =
       with(scope) {
@@ -609,7 +596,7 @@ private fun DragHandle(
         } else {
           MaterialTheme.colorScheme.onSurfaceVariant
         },
-      modifier = Modifier.size(24.dp).graphicsLayer { this.alpha = alpha },
+      modifier = Modifier.size(24.dp),
     )
   }
 }

@@ -6798,6 +6798,7 @@ fun restartFromBeginning() {
         tvgLogo = book?.book?.coverUri ?: item.artworkUri.orEmpty(),
         networkConnectionId = item.networkSource?.connectionId,
         networkPath = item.networkSource?.relativePath.orEmpty(),
+        queueEntryId = item.queueEntryId,
       )
     }
   }

@@ -72,22 +72,42 @@ fun VideoZoomSheet(
     if (zoomControlEnabled) currentOnSetVideoZoom(zoom)
   }
 
-  PlayerSheet(onDismissRequest = onDismissRequest, title = stringResource(R.string.btn_label_zoom)) {
+  PlayerSheet(
+    onDismissRequest = onDismissRequest,
+    title = stringResource(R.string.btn_label_zoom),
+    bottomBar = {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        OutlinedButton(
+          onClick = { playerPreferences.defaultVideoZoom.set(zoom) },
+          enabled = zoomControlEnabled && zoom != defaultZoom,
+          modifier = Modifier.weight(1f),
+        ) {
+          Text(stringResource(R.string.set_as_default), style = MaterialTheme.typography.labelMedium)
+        }
+
+        Button(
+          onClick = {
+            if (zoomControlEnabled) {
+              zoom = 0f
+              playerPreferences.defaultVideoZoom.set(0f)
+            }
+            if (panControlEnabled) onResetVideoPan()
+          },
+          enabled = (zoomControlEnabled && zoom != 0f) || panControlEnabled,
+          modifier = Modifier.weight(1f),
+        ) {
+          Text(stringResource(R.string.generic_reset), style = MaterialTheme.typography.labelMedium)
+        }
+      }
+    },
+  ) {
     ZoomVideoSheet(
       zoom = zoom,
-      defaultZoom = defaultZoom,
       panAndZoomEnabled = panAndZoomEnabled,
       onZoomChange = { newZoom -> zoom = newZoom },
-      onSetAsDefault = {
-        if (zoomControlEnabled) playerPreferences.defaultVideoZoom.set(zoom)
-      },
-      onReset = {
-        if (zoomControlEnabled) {
-          zoom = 0f
-          playerPreferences.defaultVideoZoom.set(0f)
-        }
-        if (panControlEnabled) onResetVideoPan()
-      },
       onPanAndZoomToggle = { enabled ->
         playerPreferences.panAndZoomEnabled.set(enabled)
         if (!enabled) {
@@ -104,11 +124,8 @@ fun VideoZoomSheet(
 @Composable
 private fun ZoomVideoSheet(
   zoom: Float,
-  defaultZoom: Float,
   panAndZoomEnabled: Boolean,
   onZoomChange: (Float) -> Unit,
-  onSetAsDefault: () -> Unit,
-  onReset: () -> Unit,
   onPanAndZoomToggle: (Boolean) -> Unit,
   zoomControlEnabled: Boolean,
   panControlEnabled: Boolean,
@@ -116,16 +133,14 @@ private fun ZoomVideoSheet(
 ) {
   val preferences = koinInject<PlayerPreferences>()
   val overlaysFollowZoom by preferences.overlaysFollowVideoZoom.collectAsState()
-  val isDefault = zoom == defaultZoom
-  val isZero = zoom == 0f
 
   Column(
     modifier =
       modifier
         .fillMaxWidth()
         .verticalScroll(rememberScrollState())
-        .padding(vertical = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
+        .padding(vertical = 4.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
     // Zoom slider with +/- buttons
     Row(
@@ -187,13 +202,13 @@ private fun ZoomVideoSheet(
       color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
     )
 
-    // Pan & Zoom toggle + action buttons
+    // Pan & Zoom toggles
     Column(
       modifier =
         Modifier
           .fillMaxWidth()
           .padding(horizontal = MaterialTheme.spacing.medium),
-      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.small),
+      verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
       // Pan & Zoom toggle
       Row(
@@ -227,28 +242,6 @@ private fun ZoomVideoSheet(
         checked = overlaysFollowZoom,
         onCheckedChange = { preferences.overlaysFollowVideoZoom.set(it) },
       )
-
-      // Action buttons
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-      ) {
-        OutlinedButton(
-          onClick = onSetAsDefault,
-          enabled = zoomControlEnabled && !isDefault,
-          modifier = Modifier.weight(1f),
-        ) {
-          Text(stringResource(R.string.set_as_default), style = MaterialTheme.typography.labelMedium)
-        }
-
-        Button(
-          onClick = onReset,
-          enabled = (zoomControlEnabled && !isZero) || panControlEnabled,
-          modifier = Modifier.weight(1f),
-        ) {
-          Text(stringResource(R.string.generic_reset), style = MaterialTheme.typography.labelMedium)
-        }
-      }
     }
   }
 }
@@ -264,7 +257,7 @@ private fun ZoomOverlaySwitch(
     modifier = Modifier.fillMaxWidth()
       .animatedPlayerSheetBackground(checked, MaterialTheme.shapes.medium)
       .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
-      .padding(horizontal = 12.dp, vertical = 10.dp),
+      .padding(horizontal = 12.dp, vertical = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(12.dp),
   ) {

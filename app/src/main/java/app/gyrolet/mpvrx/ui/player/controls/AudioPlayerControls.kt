@@ -2902,8 +2902,9 @@ private fun UpNextPlaylistContent(
   val playingItemIndex by remember(displayPlaylist) {
     derivedStateOf { displayPlaylist.indexOfFirst { it.isPlaying } }
   }
+  val playingItemKey = displayPlaylist.getOrNull(playingItemIndex)?.queueEntryId
 
-  LaunchedEffect(playingItemIndex) {
+  LaunchedEffect(playingItemKey) {
     if (playingItemIndex >= 0) {
       lazyListState.animateScrollToItem(playingItemIndex)
     }
@@ -2971,11 +2972,15 @@ private fun UpNextPlaylistContent(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        // A queue can contain the same URI more than once.
-        items(displayPlaylist.size, key = { index -> displayPlaylist[index].index }) { index ->
+        // Queue entry IDs stay with rows when positions change, including duplicate URIs.
+        items(displayPlaylist.size, key = { index -> displayPlaylist[index].queueEntryId }) { index ->
           val item = displayPlaylist[index]
           if (showDragHandle) {
-            ReorderableItem(reorderableLazyListState, key = item.index) { isDragging ->
+            ReorderableItem(
+              reorderableLazyListState,
+              key = item.queueEntryId,
+              animateItemModifier = Modifier,
+            ) { isDragging ->
               val isDraggingPrev = remember { mutableStateOf(false) }
               LaunchedEffect(isDragging) {
                 if (isDraggingPrev.value && !isDragging) {
@@ -2991,7 +2996,7 @@ private fun UpNextPlaylistContent(
               UpNextPlaylistItemRow(
                 item = item,
                 isPlaying = item.isPlaying,
-                onClick = { viewModel.playPlaylistItem(item.index) },
+                onClick = { viewModel.playPlaylistItem(index) },
                 scope = this,
                 isDragging = isDragging,
                 reorderFeedback = reorderFeedback,
@@ -3001,7 +3006,7 @@ private fun UpNextPlaylistContent(
             UpNextPlaylistItemRow(
               item = item,
               isPlaying = item.isPlaying,
-              onClick = { viewModel.playPlaylistItem(item.index) },
+              onClick = { viewModel.playPlaylistItem(index) },
               scope = null,
             )
           }

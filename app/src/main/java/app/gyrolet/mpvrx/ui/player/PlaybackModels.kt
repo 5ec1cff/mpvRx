@@ -15,6 +15,9 @@ import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import java.net.URI
 import java.security.MessageDigest
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicLong
+
+private val nextPlaybackQueueEntryId = AtomicLong(1L)
 
 enum class RepeatMode {
   OFF,
@@ -60,6 +63,8 @@ data class PlaybackItem(
   /** File index inside a multi-file torrent; lets a series episode restart its stream. */
   val torrentFileIndex: Int? = null,
   val audiobook: AudiobookPlaybackInfo? = null,
+  /** UI identity for this queue entry; copies and moves retain it even for duplicate media. */
+  val queueEntryId: Long = nextPlaybackQueueEntryId.getAndIncrement(),
 ) {
   /** True while this torrent episode still points at its magnet/torrent source instead of a live stream URL. */
   fun requiresTorrentResolution(): Boolean = torrentFileIndex != null && playableUri == originalUri

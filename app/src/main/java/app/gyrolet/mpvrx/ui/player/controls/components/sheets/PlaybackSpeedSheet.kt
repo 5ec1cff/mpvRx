@@ -43,6 +43,7 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.presentation.components.RepeatingIconButton
+import app.gyrolet.mpvrx.presentation.components.SliderItemHeader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
@@ -76,27 +77,40 @@ fun PlaybackSpeedSheet(
       speedHaptics.move(speed, target)
     }
   }
-  PlayerSheet(onDismissRequest = onDismissRequest, title = stringResource(R.string.btn_label_speed)) {
+  PlayerSheet(
+    onDismissRequest = onDismissRequest,
+    title = stringResource(R.string.btn_label_speed),
+    bottomBar = {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        Button(
+          modifier = Modifier.weight(1f),
+          onClick = { onMakeDefault(speed) },
+          enabled = speedControlEnabled,
+        ) {
+          Text(text = stringResource(id = R.string.player_sheets_speed_make_default))
+        }
+        Button(
+          onClick = {
+            onResetDefault()
+            onResetPresets()
+            onSpeedChange(1.0f)
+          },
+          enabled = speedControlEnabled,
+        ) {
+          Text(text = stringResource(id = R.string.generic_reset))
+        }
+      }
+    },
+  ) {
     Column(
       modifier
         .verticalScroll(rememberScrollState())
-        .padding(vertical = 8.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
+        .padding(vertical = 4.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-      // Slider and +/- Buttons
-
-      // Speed Label and Value
-      Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = MaterialTheme.spacing.medium),
-        horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
-        Text(
-          text = "${speed.toFixed(2)}x",
-          style = MaterialTheme.typography.headlineMedium,
-          fontWeight = FontWeight.Bold,
-        )
-      }
-
       // Slider and +/- Buttons
       Row(
         modifier =
@@ -114,20 +128,29 @@ fun PlaybackSpeedSheet(
           Icon(Icons.RoundedFilled.Remove, null, modifier = Modifier.size(24.dp))
         }
 
-        Slider(
-          value = speed,
-          onValueChange = {
-            // Snap to nearest 0.05
-            val snapped = (it * 20).roundToInt() / 20f
-            adjustSpeed(snapped)
-          },
-          valueRange = 0.1f..4.0f,
-          enabled = speedControlEnabled,
-          modifier =
-            Modifier
-              .weight(1f)
-              .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
-        )
+        Column(
+          modifier = Modifier.weight(1f),
+          verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+          SliderItemHeader(
+            label = stringResource(R.string.btn_label_speed),
+            valueText = "${speed.toFixed(2)}x",
+          )
+          Slider(
+            value = speed,
+            onValueChange = {
+              // Snap to nearest 0.05
+              val snapped = (it * 20).roundToInt() / 20f
+              adjustSpeed(snapped)
+            },
+            valueRange = 0.1f..4.0f,
+            enabled = speedControlEnabled,
+            modifier =
+              Modifier
+                .fillMaxWidth()
+                .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
+          )
+        }
 
         RepeatingIconButton(
           onClick = { adjustSpeed((speed + 0.05f).coerceAtMost(4.0f)) },
@@ -232,31 +255,6 @@ fun PlaybackSpeedSheet(
             )
           },
         )
-      }
-
-      Row(
-        modifier =
-          Modifier
-            .padding(horizontal = MaterialTheme.spacing.medium),
-        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.smaller),
-      ) {
-        Button(
-          modifier = Modifier.weight(1f),
-          onClick = { onMakeDefault(speed) },
-          enabled = speedControlEnabled,
-        ) {
-          Text(text = stringResource(id = R.string.player_sheets_speed_make_default))
-        }
-        Button(
-          onClick = {
-            onResetDefault()
-            onResetPresets()
-            onSpeedChange(1.0f)
-          },
-          enabled = speedControlEnabled,
-        ) {
-          Text(text = stringResource(id = R.string.generic_reset))
-        }
       }
     }
   }

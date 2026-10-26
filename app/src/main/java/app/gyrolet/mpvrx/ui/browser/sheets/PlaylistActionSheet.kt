@@ -112,7 +112,10 @@ fun PlaylistActionSheet(
 
   if (!isOpen) return
 
-  val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
+  val sheetState = rememberBottomSheetState(
+    initialValue = SheetValue.Hidden,
+    enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
+  )
 
   ModalBottomSheet(
     onDismissRequest = {
