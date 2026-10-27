@@ -16,10 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.liquidglass.drawShapeTint
+import app.gyrolet.mpvrx.ui.liquidglass.connectedGlassRim
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
@@ -101,6 +103,7 @@ fun LiquidGlassSurface(
   backdrop: Backdrop? = LocalLiquidGlassBackdrop.current,
   glowStrength: Float = 1f,
   cornerRadius: Dp? = null,
+  connectionProgress: Float = 0f,
   content: @Composable BoxScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
@@ -109,8 +112,10 @@ fun LiquidGlassSurface(
   val sceneBackdrop = rememberSceneGlassBackdrop(backdrop)
   val renderGlass = glassEnabled && sceneBackdrop != null
   val reducedMotion = AppMotion.shouldReduceMotion()
+  val connection = connectionProgress.coerceIn(0f, 1f)
+  val surfaceTint = lerp(glassColor, MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.34f), connection)
   val blurRadius = when (style) {
-    LiquidGlassStyle.MiniPlayer -> 12.dp
+    LiquidGlassStyle.MiniPlayer -> 12.dp * (1f - connection) + 8.dp * connection
     LiquidGlassStyle.Navigation -> 8.dp
   }
   val refractionHeight = when (style) {
@@ -137,29 +142,37 @@ fun LiquidGlassSurface(
           shape = { glassShape },
           effects = {
             liquidGlassEffects(
-              glassSettings, blurRadius.toPx(), refractionHeight.toPx(), refractionAmount.toPx(),
+              glassSettings, blurRadius.toPx(), refractionHeight.toPx() * (1f - connection), refractionAmount.toPx() * (1f - connection),
               vibrant = true,
-              refractionEnabled = !reducedMotion,
+              refractionEnabled = !reducedMotion && connection < 1f,
             )
           },
           highlight = {
-            glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
+            glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength * (1f - connection)))
           },
           shadow = {
             Shadow(
               radius = shadowElevation,
-              color = Color.Black.copy(alpha = 0.16f * glowStrength),
+              color = Color.Black.copy(alpha = 0.16f * glowStrength * (1f - connection)),
             )
           },
           innerShadow = {
             InnerShadow(
               radius = 2.dp,
-              color = Color.White.copy(alpha = 0.14f * glowStrength),
+              color = Color.White.copy(alpha = 0.14f * glowStrength * (1f - connection)),
             )
           },
           onDrawSurface = {
-            drawShapeTint(glassShape, glassSettings.surfaceColor(glassColor))
+            drawShapeTint(glassShape, glassSettings.surfaceColor(surfaceTint))
           },
+        )
+        .then(
+          if (connection > 0f) Modifier.connectedGlassRim(
+            glassShape,
+            joinedAtTop = false,
+            strength = connection * glowStrength * glassSettings.highlightStrength.coerceAtMost(1f),
+            connectionProgress = connection,
+          ) else Modifier,
         )
     } else {
       modifier

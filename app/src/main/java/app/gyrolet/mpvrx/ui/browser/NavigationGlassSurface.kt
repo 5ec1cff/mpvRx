@@ -18,12 +18,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import app.gyrolet.mpvrx.ui.liquidglass.connectedGlassRim
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -37,12 +36,13 @@ internal fun NavigationGlassSurface(
   glowStrength: Float,
   modifier: Modifier = Modifier,
   shape: Shape = CircleShape,
+  connectionProgress: Float = 0f,
 ) {
   if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
     Box(
       modifier.clip(shape)
         .background(surfaceColor.copy(alpha = 1f))
-        .navigationGlassRim(glowStrength, shape),
+        .navigationGlassRim(glowStrength, shape, connectionProgress),
     )
     return
   }
@@ -60,24 +60,15 @@ internal fun NavigationGlassSurface(
     RefractedNavigationGlass(surfaceColor, glowStrength, modifier, backing)
   } else {
     Box(modifier.clip(shape).then(backing).background(surfaceColor.copy(alpha = if (backdrop != null) 0.55f else 0.82f))
-      .navigationGlassRim(glowStrength, shape))
+      .navigationGlassRim(glowStrength, shape, connectionProgress))
   }
 }
 
-internal fun Modifier.navigationGlassRim(strength: Float = 1f, shape: Shape = CircleShape): Modifier = drawWithCache {
-  val edge = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.27f), Color.White.copy(alpha = 0.02f)))
-  val strokeWidth = 0.75.dp.toPx()
-  val outline = shape.createOutline(size, layoutDirection, this)
-  onDrawWithContent {
-    drawContent()
-    drawOutline(
-      outline = outline,
-      brush = edge,
-      style = Stroke(strokeWidth),
-      alpha = strength,
-    )
-  }
-}
+internal fun Modifier.navigationGlassRim(
+  strength: Float = 1f,
+  shape: Shape = CircleShape,
+  connectionProgress: Float = 0f,
+): Modifier = connectedGlassRim(shape, joinedAtTop = true, strength = strength, connectionProgress = connectionProgress)
 
 internal fun Modifier.navigationAccentMask(brush: Brush): Modifier =
   graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithCache {

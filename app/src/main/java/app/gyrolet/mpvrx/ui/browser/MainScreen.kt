@@ -307,10 +307,12 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
       onDispose {
         NavigationBarState.isNavBarVisible = false
         NavigationBarState.isDualPaneLayout = false
+        NavigationBarState.dockBackdrop = null
       }
     }
     SideEffect {
       NavigationBarState.isNavBarVisible = backStack.lastOrNull() == MainScreen && showBottomNavigation
+      NavigationBarState.dockBackdrop = liquidLayerBackdrop
       NavigationBarState.navigationBarBottomSpacing =
         if (legacyNavigationBar) 0.dp else NavigationBarState.floatingBarSpacing
     }
@@ -1042,13 +1044,9 @@ internal fun ExpressivePillNavigationBar(
     animationSpec = if (reducedMotion) snap() else tween(300, easing = NavigationBarEasing),
     label = "navigation_labels",
   )
-  val dockProgress by animateFloatAsState(
-    targetValue = if (NavigationBarState.isMiniPlayerDocked) 1f else 0f,
-    animationSpec = if (reducedMotion) snap() else tween(320, easing = FastOutSlowInEasing),
-    label = "navigation_dock_corners",
-  )
+  val dockProgress = NavigationBarState.dockProgress
   val standaloneCorner = (48.dp + labelHeight * labelFraction) / 2f
-  val joiningCorner = standaloneCorner * (1f - dockProgress) + 4.dp * dockProgress
+  val joiningCorner = standaloneCorner * (1f - dockProgress)
   val outsideCorner = standaloneCorner * (1f - dockProgress) + 20.dp * dockProgress
   val navigationShape = if (dockProgress <= 0f) CircleShape else RoundedCornerShape(
     topStart = joiningCorner,
@@ -1202,21 +1200,25 @@ internal fun ExpressivePillNavigationBar(
                 backdrop = kyantBackdrop,
                 shape = { navigationShape },
                 effects = {
-                  liquidGlassEffects(glassSettings, 8.dp.toPx(), 24.dp.toPx(), 24.dp.toPx(), vibrant = true)
+                  liquidGlassEffects(
+                    glassSettings, 8.dp.toPx(), 24.dp.toPx() * (1f - dockProgress), 24.dp.toPx() * (1f - dockProgress),
+                    vibrant = true,
+                    refractionEnabled = !reducedMotion && dockProgress < 1f,
+                  )
                 },
                 highlight = {
-                  glassSettings.highlight(Highlight.Ambient.copy(alpha = 0.58f * glowStrength))
+                  glassSettings.highlight(Highlight.Ambient.copy(alpha = 0.58f * glowStrength * (1f - dockProgress)))
                 },
                 shadow = {
                   Shadow(
                     radius = 8.dp,
-                    color = Color.Black.copy(alpha = 0.14f * glowStrength),
+                    color = Color.Black.copy(alpha = 0.14f * glowStrength * (1f - dockProgress)),
                   )
                 },
                 onDrawSurface = {
                   drawShapeTint(navigationShape, glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
                 },
-              ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f), navigationShape)
+              ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f), navigationShape, dockProgress)
               .drawWithContent {
                 drawContent()
                 drawNavigationJellyGlow(motion.frame, accentColor.copy(alpha = glowStrength))
@@ -1231,7 +1233,7 @@ internal fun ExpressivePillNavigationBar(
               drawNavigationJellyGlow(motion.frame, accentColor.copy(alpha = glowStrength))
             },
         ) {
-          NavigationGlassSurface(hazeBackdrop, surfaceColor, glowStrength, Modifier.matchParentSize(), navigationShape)
+          NavigationGlassSurface(hazeBackdrop, surfaceColor, glowStrength, Modifier.matchParentSize(), navigationShape, dockProgress)
         }
       }
       Box(Modifier.matchParentSize().drawWithContent {

@@ -676,6 +676,7 @@ open class MainActivity : AppCompatActivity() {
     }
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
     val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
+    val connectedMiniPlayerNavigation by appearancePreferences.connectedMiniPlayerNavigation.collectAsState()
     val musicSheet = LocalInAppMusicSheet.current
 
     // Provide both LocalBackStack and the LazyList/Grid states to all screens
@@ -703,9 +704,15 @@ open class MainActivity : AppCompatActivity() {
           val isDualPane = isMainScreen && !legacyNavigationBar && NavigationBarState.isDualPaneLayout
           val isNavBarVisible = isMainScreen && NavigationBarState.isNavBarVisible
           val spacing = NavigationBarState.floatingBarSpacing
-          val dockedPlayer = isNavBarVisible && !legacyNavigationBar && !isDualPane &&
+          val dockedPlayer = connectedMiniPlayerNavigation && isNavBarVisible && !legacyNavigationBar && !isDualPane &&
             !DeviceFormFactor.isTelevision(context) && NavigationBarState.isMiniPlayerVisible &&
             NavigationBarState.miniPlayerConnectionEnabled
+          val reducedMotion = AppMotion.shouldReduceMotion()
+          val dockFraction by animateFloatAsState(
+            targetValue = if (dockedPlayer) 1f else 0f,
+            animationSpec = if (reducedMotion) snap() else tween(320, easing = FastOutSlowInEasing),
+            label = "mini_player_dock_placement",
+          )
           val navigationStart =
             if (layoutDirection == LayoutDirection.Ltr) {
               NavigationBarState.navbarLeftOffset - leftInset
@@ -722,6 +729,7 @@ open class MainActivity : AppCompatActivity() {
           SideEffect {
             NavigationBarState.isMiniPlayerBesideNavigation = besideNavigation
             NavigationBarState.isMiniPlayerDocked = dockedPlayer
+            NavigationBarState.dockProgress = dockFraction
           }
           val miniPlayerShape = rememberMiniPlayerShape()
 
@@ -746,7 +754,6 @@ open class MainActivity : AppCompatActivity() {
             )
           }
 
-          val reducedMotion = AppMotion.shouldReduceMotion()
           val playerHandoff = PlayerSheetTransitions.motion != null ||
             PlayerSheetTransitions.collapsedMediaId != null || PlayerSheetTransitions.expandingMediaId != null
           val placementAnimation = if (reducedMotion || playerHandoff) snap() else tween<Float>(
@@ -755,8 +762,9 @@ open class MainActivity : AppCompatActivity() {
           )
           val targetLift = when {
             NavigationBarState.isInSelectionMode -> NavigationBarState.selectionBarClearance - spacing
-            dockedPlayer -> NavigationBarState.navigationPillHeight + NavigationBarState.connectedDockSpacing
-            isNavBarVisible && !besideNavigation && !isDualPane -> NavigationBarState.navigationBarClearance - spacing
+            isNavBarVisible && !besideNavigation && !isDualPane ->
+              NavigationBarState.navigationBarClearance - spacing -
+                (spacing - NavigationBarState.connectedDockSpacing) * dockFraction
             else -> 0.dp
           }
           var lastLift by remember { mutableStateOf(targetLift) }
@@ -771,15 +779,13 @@ open class MainActivity : AppCompatActivity() {
           // Animate visibility changes, not heights that the navigation is already animating.
           val miniPlayerLift = (if (targetLift > 0.dp) targetLift else lastLift) * liftFraction
           // Follow the measured navigation edge directly, including its alignment animation.
-          val startSpacing =
-            when {
-              dockedPlayer -> dockStart.coerceAtLeast(0.dp)
-              besideNavigation -> besideStartSpacing
-              else -> spacing
-            }
-          val endSpacing = if (dockedPlayer) {
-            (maxWidth - dockStart - NavigationBarState.navbarWidth).coerceAtLeast(0.dp)
-          } else spacing
+          val startInset = if (isDualPane) 0.dp else if (layoutDirection == LayoutDirection.Ltr) leftInset else rightInset
+          val endInset = if (isDualPane) 0.dp else if (layoutDirection == LayoutDirection.Ltr) rightInset else leftInset
+          val standaloneStart = startInset + if (besideNavigation) besideStartSpacing else spacing
+          val standaloneEnd = endInset + spacing
+          val dockEnd = (maxWidth - dockStart - NavigationBarState.navbarWidth).coerceAtLeast(0.dp)
+          val startSpacing = standaloneStart * (1f - dockFraction) + dockStart.coerceAtLeast(0.dp) * dockFraction
+          val endSpacing = standaloneEnd * (1f - dockFraction) + dockEnd * dockFraction
 
           val miniPlayerModifier =
             if (DeviceFormFactor.isTelevision(context)) {
@@ -799,11 +805,8 @@ open class MainActivity : AppCompatActivity() {
                 .align(if (isDualPane) Alignment.BottomEnd else Alignment.BottomStart)
                 .fillMaxWidth(if (isDualPane) 0.6f else 1f)
                 .windowInsetsPadding(
-                  when {
-                    dockedPlayer -> safeInsets.only(WindowInsetsSides.Bottom)
-                    isDualPane -> safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom)
-                    else -> safeInsets
-                  },
+                  if (isDualPane) safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom)
+                  else safeInsets.only(WindowInsetsSides.Bottom),
                 )
                 .padding(start = startSpacing, end = endSpacing, bottom = spacing)
                 .offset(y = -miniPlayerLift)
@@ -818,7 +821,7 @@ open class MainActivity : AppCompatActivity() {
               ),
           )
           ProvideLiquidGlassBackdrop(
-            backdrop = miniPlayerBackdrop,
+            backdrop = NavigationBarState.dockBackdrop?.takeIf { dockFraction > 0f } ?: miniPlayerBackdrop,
             enabled = liquidGlassEnabled,
           ) {
             MiniPlayer(

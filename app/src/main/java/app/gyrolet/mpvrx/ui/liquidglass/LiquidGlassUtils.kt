@@ -31,7 +31,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalGraphicsContext
@@ -238,6 +240,24 @@ fun DrawScope.drawShapeTint(shape: Shape, color: Color) {
 
 fun DrawScope.drawShapeTint(shape: Shape, brush: Brush) {
     drawOutline(shape.createOutline(size, layoutDirection, this), brush)
+}
+
+fun Modifier.connectedGlassRim(
+    shape: Shape,
+    joinedAtTop: Boolean,
+    strength: Float = 1f,
+    connectionProgress: Float = 1f,
+): Modifier = drawWithCache {
+    val edge = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.27f), Color.White.copy(alpha = 0.02f)))
+    val strokeWidth = 0.75.dp.toPx()
+    val outline = shape.createOutline(size, layoutDirection, this)
+    val inset = strokeWidth * connectionProgress.coerceIn(0f, 1f)
+    onDrawWithContent {
+        drawContent()
+        clipRect(top = if (joinedAtTop) inset else 0f, bottom = size.height - if (joinedAtTop) 0f else inset) {
+            drawOutline(outline, brush = edge, style = Stroke(strokeWidth), alpha = strength)
+        }
+    }
 }
 
 suspend fun PointerInputScope.inspectDragGestures(

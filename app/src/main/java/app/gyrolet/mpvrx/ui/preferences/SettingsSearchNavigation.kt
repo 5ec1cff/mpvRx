@@ -72,6 +72,7 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
         SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.legacy_navigation_bar_title, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.progressive_navigation_blur_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.connected_mini_player_navigation_title, itemIndex = 9),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unlimited_name_lines_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_unplayed_old_video_label_title, itemIndex = 3),
         SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 3),

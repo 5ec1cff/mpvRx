@@ -589,6 +589,7 @@ private fun MiniPlayerContent(
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
     fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+    connectionProgress = NavigationBarState.dockProgress,
   ) {
     val progressColor = MaterialTheme.colorScheme.primary
 

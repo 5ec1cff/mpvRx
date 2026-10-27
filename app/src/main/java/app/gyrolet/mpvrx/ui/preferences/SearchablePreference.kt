@@ -1543,6 +1543,15 @@ object SearchablePreferences {
         category = "Appearance",
         screen = AppearancePreferencesScreen,
         anchorItemIndex = 9,
+        SearchEntrySpec(
+          R.string.connected_mini_player_navigation_title,
+          listOf("mini player", "navigation", "connected", "dock", "separate", "classic"),
+        ),
+      )
+      addSearchEntries(
+        category = "Appearance",
+        screen = AppearancePreferencesScreen,
+        anchorItemIndex = 9,
         SearchEntrySpec(R.string.pref_anim_controls_style_title, listOf("animation", "controls", "fade", "slide")),
         SearchEntrySpec(R.string.pref_anim_video_open_title, listOf("animation", "video", "opening", "launch")),
         SearchEntrySpec(R.string.pref_anim_screen_nav_style_title, listOf("animation", "screen", "navigation", "transition")),
