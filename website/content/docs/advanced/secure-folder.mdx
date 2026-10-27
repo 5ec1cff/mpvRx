@@ -17,7 +17,11 @@ The PIN and normalized recovery answer are stored as salted hashes. Choose an an
 
 ## Unlock and biometrics
 
+Long-press or double-tap the top-bar title in Folders, Tree, or Library mode to open the Secure Folder PIN gate. In Tree mode, this also works inside a folder. A single tap still switches the app theme. These shortcuts are available on the normal title bar, not while searching or selecting items.
+
 After setup, enter the PIN to unlock. Biometric authentication can be enabled when Android reports a supported enrolled method. Android handles the biometric prompt; mpvRx does not receive biometric data.
+
+When biometric unlock is enabled and available, opening Secure Folder shows the system authentication prompt first, without opening the PIN keyboard. Successful authentication opens the folder directly. Cancelling the prompt or an authentication error reveals the PIN entry and automatically opens its keyboard, with the biometric retry button below. If biometrics are disabled or unavailable, PIN entry appears immediately.
 
 ## Move media into Secure Folder
 
@@ -33,7 +37,7 @@ Review the selected count before destructive actions. Deleting from Secure Folde
 
 ## Hide the entry point
 
-The Secure Folder row can be hidden from Settings after confirmation. Hidden entry does not encrypt files or remove the need for a PIN; it only reduces casual discoverability. Keep a known recovery path before hiding it.
+The Secure Folder row can be hidden from Settings after confirmation. The title long-press and double-tap shortcuts remain available when this row is hidden. Hidden entry does not encrypt files or remove the need for a PIN; it only reduces casual discoverability.
 
 ## Forgot PIN
 

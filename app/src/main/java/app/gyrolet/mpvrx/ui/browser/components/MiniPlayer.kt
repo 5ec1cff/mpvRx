@@ -211,7 +211,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     if (hasActiveMedia) delay(DISMISS_RESTORE_TIMEOUT_MS)
     if (dismissedMediaId == dismissed) dismissedMediaId = null
   }
-  val isMediaActive = hasActiveMedia && dismissedMediaId != currentItem?.stableId
+  val isMediaActive = hasActiveMedia && dismissedMediaId != currentItem.stableId
   LaunchedEffect(isMediaActive) { if (isMediaActive) exitAfterToss = false }
   val dismissPlayer: () -> Unit = remember(context) {
     {
@@ -533,7 +533,7 @@ private fun MiniPlayerContent(
         when {
           // A remote cannot drag; the title and the buttons cover expanding and dismissing.
           isTelevision -> Modifier
-          useInAppSheet && musicSheet != null ->
+          useInAppSheet ->
             // The live sheet follows the finger from the first pixel; touching down starts warming it.
             Modifier.inAppMusicSheetDrag(
               state = musicSheet,

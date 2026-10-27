@@ -826,7 +826,7 @@ private fun ClipEditorPanel(
       )
 
       ClipSection(title = stringResource(R.string.clip_section_range)) {
-        if (showSlider && end != null) {
+        if (showSlider) {
           PanelConnectedTile(index = 0, itemCount = rangeRows) {
             val start = state.startSeconds.coerceIn(0f, duration)
             val safeEnd = end.coerceIn(start + MIN_CLIP_SECONDS.toFloat(), duration)

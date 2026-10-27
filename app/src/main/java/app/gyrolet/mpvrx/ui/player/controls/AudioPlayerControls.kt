@@ -1509,7 +1509,7 @@ fun AudioPlayerControls(
                 ) {
                   CoverArtCardImage(
                     bitmap = prevCoverBitmap,
-                    artworkUrl = prevItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(prevItem?.path) },
+                    artworkUrl = prevItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(prevItem.path) },
                     contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
                   )
                 }
@@ -1527,7 +1527,7 @@ fun AudioPlayerControls(
                 ) {
                   CoverArtCardImage(
                     bitmap = nextCoverBitmap,
-                    artworkUrl = nextItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(nextItem?.path) },
+                    artworkUrl = nextItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(nextItem.path) },
                     contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
                   )
                 }

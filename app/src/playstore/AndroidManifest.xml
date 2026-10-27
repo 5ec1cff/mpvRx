@@ -6,9 +6,6 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:node="remove" />
     <uses-permission
-        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
-        tools:node="remove" />
-    <uses-permission
         android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION"
         tools:node="remove" />
     <uses-permission
@@ -19,16 +16,6 @@
         tools:node="remove" />
 
     <application tools:remove="android:requestLegacyExternalStorage">
-        <receiver android:name="app.gyrolet.mpvrx.domain.update.UpdateInstallReceiver" tools:node="remove" />
-        <activity
-            android:name="app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity"
-            tools:node="remove" />
-        <service
-            android:name="app.gyrolet.mpvrx.domain.download.YtdlpDownloadService"
-            tools:node="remove" />
-        <activity-alias
-            android:name="app.gyrolet.mpvrx.ui.player.WebStreamLinksActivityAlias"
-            tools:node="remove" />
         <!-- Direct media URLs can still be shared to the player without extractor-site handlers. -->
         <activity android:name=".ui.player.PlayerActivity">
             <intent-filter>

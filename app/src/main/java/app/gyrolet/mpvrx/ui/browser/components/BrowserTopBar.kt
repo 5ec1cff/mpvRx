@@ -25,6 +25,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -49,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -323,6 +325,25 @@ private fun NormalTopBar(
     }
   }
 
+  val currentOnTitleLongPress by rememberUpdatedState(onTitleLongPress)
+  val currentOnTitleDoubleTap by rememberUpdatedState(onTitleDoubleTap)
+  val currentOnTitleTap by rememberUpdatedState(
+    newValue = { localOffset: Offset ->
+      if (themeTransition?.isAnimating != true) {
+        val windowOffset =
+          Offset(
+            titleBounds.value.left + localOffset.x,
+            titleBounds.value.top + localOffset.y,
+          )
+        themeTransition?.startTransition(windowOffset)
+        coroutineScope.launch {
+          delay(50)
+          toggleDarkMode()
+        }
+      }
+    },
+  )
+
   TopAppBar(
     colors =
       colors ?: TopAppBarDefaults.topAppBarColors(
@@ -352,34 +373,19 @@ private fun NormalTopBar(
           Modifier
             .onGloballyPositioned { coordinates ->
               titleBounds.value = coordinates.boundsInWindow()
-            }.pointerInput(onTitleLongPress, onTitleDoubleTap, darkMode, darkTheme, themeTransition) {
+            }.pointerInput(onTitleLongPress != null, onTitleDoubleTap != null) {
+              // Keep an in-progress hold or double tap alive across callback/state updates.
               detectTapGestures(
-                onTap = { localOffset ->
-                  // Don't allow theme change if animation is in progress
-                  if (themeTransition?.isAnimating == true) return@detectTapGestures
-
-                  // Calculate window position for circular reveal
-                  val windowOffset =
-                    Offset(
-                      titleBounds.value.left + localOffset.x,
-                      titleBounds.value.top + localOffset.y,
-                    )
-                  themeTransition?.startTransition(windowOffset)
-                  // Delay theme change to allow overlay to display first
-                  coroutineScope.launch {
-                    delay(50)
-                    toggleDarkMode()
-                  }
-                },
+                onTap = { currentOnTitleTap(it) },
                 onDoubleTap =
                   if (onTitleDoubleTap != null) {
-                    { onTitleDoubleTap() }
+                    { currentOnTitleDoubleTap?.invoke() }
                   } else {
                     null
                   },
                 onLongPress =
                   if (onTitleLongPress != null) {
-                    { onTitleLongPress() }
+                    { currentOnTitleLongPress?.invoke() }
                   } else {
                     null
                   },
@@ -396,7 +402,12 @@ private fun NormalTopBar(
             },
         ) {
           Box(
-            modifier = Modifier.weight(1f, fill = false),
+            modifier =
+              Modifier
+                .weight(1f, fill = false)
+                .heightIn(min = 48.dp)
+                .then(titleModifier),
+            contentAlignment = Alignment.CenterStart,
           ) {
             Text(
               buildAnnotatedString {
@@ -425,7 +436,6 @@ private fun NormalTopBar(
               color = MaterialTheme.colorScheme.primary.onWallpaper(),
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
-              modifier = titleModifier,
             )
           }
           if (seasonalEvent != null && onBackClick == null) {

@@ -18,6 +18,6 @@ internal fun <T> runAtLowThreadPriority(block: () -> T): T {
   try {
     return block()
   } finally {
-    if (lowered && previous != null) runCatching { Process.setThreadPriority(previous) }
+    if (lowered) runCatching { Process.setThreadPriority(previous) }
   }
 }

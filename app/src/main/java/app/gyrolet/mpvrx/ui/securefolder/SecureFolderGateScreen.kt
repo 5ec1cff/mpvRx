@@ -142,29 +142,50 @@ data object SecureFolderGateScreen : Screen {
       biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
     val canAuthenticateDeviceCredential = !app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(context) &&
       biometricManager.canAuthenticate(BiometricManager.Authenticators.DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
-    val isBiometricAvailable = canAuthenticateBiometric || canAuthenticateDeviceCredential
-    val isBiometricEnabled = viewModel.isBiometricEnabled()
+    val fragmentActivity = context as? FragmentActivity
+    val isBiometricAvailable = fragmentActivity != null && (canAuthenticateBiometric || canAuthenticateDeviceCredential)
+    val isBiometricEnabled by viewModel.preferences.isBiometricEnabled.collectAsState()
+    var initialBiometricRequested by rememberSaveable { mutableStateOf(false) }
+    var showPinEntry by rememberSaveable {
+      mutableStateOf(!isBiometricEnabled || !isBiometricAvailable || !viewModel.preferences.isPinSet())
+    }
+
+    // Recreate the callback with the Activity so an in-flight prompt survives rotation.
+    val biometricPrompt = remember(fragmentActivity) {
+      fragmentActivity?.let { activity ->
+        BiometricPrompt(
+          activity,
+          ContextCompat.getMainExecutor(context),
+          object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+              if (backstack.lastOrNull() == SecureFolderGateScreen) {
+                keyboardController?.hide()
+                backstack.replaceTop(SecureFolderScreen)
+              }
+            }
+
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+              if (backstack.lastOrNull() != SecureFolderGateScreen) return
+              showPinEntry = true
+              if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
+                errorCode != BiometricPrompt.ERROR_CANCELED
+              ) {
+                Toast.makeText(context, errString, Toast.LENGTH_SHORT).show()
+              }
+            }
+          },
+        )
+      }
+    }
 
     fun showBiometricPrompt() {
-      val fragmentActivity = context as? FragmentActivity ?: return
-      // The PIN field's soft keyboard may still have a pending show request queued (it auto-focuses
-      // on this screen). If that request gets delivered after the biometric prompt dismisses, it
-      // flashes the numeric keyboard on whatever screen we've navigated to next. Hide it up front.
-      keyboardController?.hide()
-      val executor = ContextCompat.getMainExecutor(context)
-      val callback = object : BiometricPrompt.AuthenticationCallback() {
-        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-          super.onAuthenticationSucceeded(result)
-          backstack.replaceTop(SecureFolderScreen)
-        }
-        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-          super.onAuthenticationError(errorCode, errString)
-        }
-        override fun onAuthenticationFailed() {
-          super.onAuthenticationFailed()
-        }
+      if (!isBiometricAvailable || biometricPrompt == null) {
+        showPinEntry = true
+        return
       }
-      val biometricPrompt = BiometricPrompt(fragmentActivity, executor, callback)
+      showPinEntry = false
+      keyboardController?.hide()
       val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
         .setTitle(context.getString(R.string.secure_folder_title))
         .setSubtitle(context.getString(R.string.secure_folder_enter_pin))
@@ -178,6 +199,14 @@ data object SecureFolderGateScreen : Screen {
 
     LaunchedEffect(Unit) {
       viewModel.refreshGateStep()
+      if (!initialBiometricRequested) {
+        initialBiometricRequested = true
+        if (viewModel.preferences.isPinSet() && isBiometricEnabled && isBiometricAvailable) {
+          showBiometricPrompt()
+        } else {
+          showPinEntry = true
+        }
+      }
     }
 
     // Covers the system back gesture/button too, not just the topbar arrow — same keyboard-hide
@@ -244,8 +273,9 @@ data object SecureFolderGateScreen : Screen {
               label = "secure_folder_gate_step",
             ) { step ->
               when (step) {
-                SecureFolderViewModel.GateStep.ENTER_PIN ->
-                  EnterPinContent(
+                SecureFolderViewModel.GateStep.ENTER_PIN -> {
+                  if (showPinEntry) {
+                    EnterPinContent(
                     error = gateError,
                     onSubmit = { pin ->
                       val ok = viewModel.verifyPin(pin)
@@ -258,7 +288,9 @@ data object SecureFolderGateScreen : Screen {
                     isBiometricEnabled = isBiometricEnabled,
                     canAuthenticateBiometric = canAuthenticateBiometric,
                     onBiometricClick = { showBiometricPrompt() },
-                  )
+                    )
+                  }
+                }
 
                 SecureFolderViewModel.GateStep.SETUP ->
                   SetupContent(
@@ -936,5 +968,4 @@ internal fun PinField(
     modifier = modifier.fillMaxWidth(),
   )
 }
-
 

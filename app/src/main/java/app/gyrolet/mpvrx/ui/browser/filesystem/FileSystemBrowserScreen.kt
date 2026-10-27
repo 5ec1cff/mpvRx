@@ -122,6 +122,7 @@ import app.gyrolet.mpvrx.ui.browser.states.EmptyState
 import app.gyrolet.mpvrx.ui.browser.states.LoadingState
 import app.gyrolet.mpvrx.ui.browser.states.PermissionDeniedState
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
+import app.gyrolet.mpvrx.ui.securefolder.SecureFolderGateScreen
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -624,6 +625,8 @@ fun FileSystemBrowserScreen(path: String? = null) {
             onSettingsClick = {
               backstack.navigateTo(app.gyrolet.mpvrx.ui.preferences.PreferencesScreen)
             },
+            onTitleDoubleTap = { backstack.navigateTo(SecureFolderGateScreen) },
+            onTitleLongPress = { backstack.navigateTo(SecureFolderGateScreen) },
             isSingleSelection = selectionManager.isSingleSelection,
             onInfoClick = showSelectionInfo,
             onShareClick = {
@@ -2268,4 +2271,3 @@ private fun FileSystemSearchContent(
     }
   }
 }
-

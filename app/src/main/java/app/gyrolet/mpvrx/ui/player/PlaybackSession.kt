@@ -2078,7 +2078,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           loadedGeneration == current.generation &&
           loadedItem != null &&
           loadedItem.stableId == current.currentItem?.stableId &&
-          loadedItem.playableUri == current.currentItem?.playableUri &&
+          loadedItem.playableUri == current.currentItem.playableUri &&
           !current.paused
       // Cheap flag reads first; the network check only runs while something is actually waiting.
       val waiting =
