@@ -179,7 +179,6 @@ fun GestureHandler(
   val twoFingerSpeedSwipe by gesturePreferences.twoFingerSpeedSwipe.collectAsState()
   var speedSwipeFeedbackJob by remember { mutableStateOf<Job?>(null) }
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
-  var lastSeekRegion by remember { mutableStateOf<String?>(null) }
   var seekFeedbackRevision by remember { mutableStateOf(0L) }
   var tapInProgress by remember { mutableStateOf(false) }
   val multipleSpeedGesture by playerPreferences.holdForMultipleSpeed.collectAsState()
@@ -314,7 +313,6 @@ fun GestureHandler(
     }
     delay(MULTI_TAP_SEEK_TIMEOUT_MS)
     isDoubleTapSeeking = false
-    lastSeekRegion = null
     viewModel.updateSeekText(null)
     viewModel.hideSeekBar()
     // This changes the effect's key, so clear it last instead of cancelling pending cleanup.
@@ -376,7 +374,6 @@ fun GestureHandler(
                     if (viewModel.dismissAdjustmentOverlays()) {
                       tapCount = 0
                       isDoubleTapSeeking = false
-                      lastSeekRegion = null
                       lastTapRegion = null
                       pendingSingleTapRegion = null
                       pendingSingleTapPosition = null
@@ -394,22 +391,17 @@ fun GestureHandler(
                       else -> gesturePreferences.centerSingleActionGesture.get()
                     }
                     val isSeekRegion = region != "center" && gesture == SingleActionGesture.Seek
-                    val isContinuation = !areControlsLocked && isSeekRegion && isDoubleTapSeeking &&
-                      tapCount >= 2 && sameMediaAndRegion && gap in 0L..MULTI_TAP_SEEK_TIMEOUT_MS
                     val isDoubleTap = !areControlsLocked && tapCount == 1 && sameMediaAndRegion &&
                       gap in 0L..doubleTapTimeout &&
                       (downPosition - lastTapPosition).getDistance() <= doubleTapSlop
 
-                    if (isDoubleTap || isContinuation) {
-                      tapCount = if (isContinuation) tapCount + 1 else 2
+                    if (isDoubleTap) {
+                      tapCount = 0
                       pendingSingleTapRegion = null
                       pendingSingleTapPosition = null
                       isDoubleTapSeeking = isSeekRegion
                       if (isSeekRegion) {
-                        // After the initial double tap, any tap in this side continues the burst.
-                        // A fresh burst starts its own total instead of carrying old feedback.
-                        if (!isContinuation || lastSeekRegion != region) viewModel.updateSeekAmount(0)
-                        lastSeekRegion = region
+                        viewModel.updateSeekAmount(0)
                         seekFeedbackRevision++
                         currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = region == "right"))
                       }
@@ -423,7 +415,6 @@ fun GestureHandler(
                       // a rapid tap just because it failed the previous sequence's conditions.
                       tapCount = 1
                       isDoubleTapSeeking = false
-                      lastSeekRegion = null
                       pendingSingleTapRegion = region
                       pendingSingleTapPosition = downPosition
                     }
@@ -435,7 +426,6 @@ fun GestureHandler(
                   } else {
                     tapCount = 0
                     isDoubleTapSeeking = false
-                    lastSeekRegion = null
                     lastTapRegion = null
                     pendingSingleTapRegion = null
                     pendingSingleTapPosition = null
@@ -447,7 +437,6 @@ fun GestureHandler(
               if (!completedTap) {
                 tapCount = 0
                 isDoubleTapSeeking = false
-                lastSeekRegion = null
                 lastTapRegion = null
                 pendingSingleTapRegion = null
                 pendingSingleTapPosition = null
