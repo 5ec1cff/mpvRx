@@ -198,6 +198,7 @@ android {
 
   buildTypes {
     named("release") {
+      signingConfig = signingConfigs.getByName("debug")
       buildConfigField("boolean", "IS_PREVIEW_BUILD", "false")
       buildConfigField("boolean", "IS_EXPERIMENTAL_BUILD", isExperimentalBuild.toString())
       if (isExperimentalBuild) versionNameSuffix = "-exp.r${getCommitCount()}"
