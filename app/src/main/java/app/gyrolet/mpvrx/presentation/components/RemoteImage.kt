@@ -111,9 +111,10 @@ internal object RemoteImageLoader {
     val dimension = dimensionTier(maxDimensionPx)
     // A small grid decode must never satisfy the full-size player request. A larger cached copy
     // can serve a smaller card without another allocation.
-    return dimensionTiers.firstNotNullOfOrNull { tier ->
-      if (tier >= dimension) memoryCache.get(ImageKey(url, tier)) else null
+    for (tier in dimensionTiers) {
+      if (tier >= dimension) memoryCache.get(ImageKey(url, tier))?.let { return it }
     }
+    return null
   }
 
   fun putInMemory(url: String, bitmap: Bitmap) {
