@@ -41,7 +41,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
-import androidx.compose.material3.TextField
+import app.gyrolet.mpvrx.presentation.components.AppTextField as TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState as collectFlowAsState
