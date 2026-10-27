@@ -19,6 +19,14 @@ internal open class BitmapMemoryCache<K : Any>(
 
   override fun sizeOf(key: K, value: Bitmap): Int =
     ((value.allocationByteCount.toLong() + 1023L) / 1024L).coerceAtLeast(1L).toInt()
+
+  internal fun trimMemory(evict: Boolean) {
+    if (evict) evictAll() else trimToSize(size() / 2)
+    onMemoryTrim()
+  }
+
+  /** Publish UI snapshots once after a bulk trim, rather than allocating a map per eviction. */
+  protected open fun onMemoryTrim() = Unit
 }
 
 private fun budgetKiB(heapDivisor: Int, maxSizeMiB: Int): Int {
@@ -29,9 +37,9 @@ private fun budgetKiB(heapDivisor: Int, maxSizeMiB: Int): Int {
 }
 
 internal object BitmapMemoryCaches {
-  private val caches = CopyOnWriteArrayList<WeakReference<LruCache<*, Bitmap>>>()
+  private val caches = CopyOnWriteArrayList<WeakReference<BitmapMemoryCache<*>>>()
 
-  fun register(cache: LruCache<*, Bitmap>) {
+  fun register(cache: BitmapMemoryCache<*>) {
     caches.add(WeakReference(cache))
   }
 
@@ -46,10 +54,8 @@ internal object BitmapMemoryCaches {
       val cache = reference.get()
       if (cache == null) {
         caches.remove(reference)
-      } else if (evict) {
-        cache.evictAll()
       } else {
-        cache.trimToSize(cache.size() / 2)
+        cache.trimMemory(evict)
       }
     }
     // Bitmaps still displayed by Compose, PiP or a widget remain valid. Never recycle them here,

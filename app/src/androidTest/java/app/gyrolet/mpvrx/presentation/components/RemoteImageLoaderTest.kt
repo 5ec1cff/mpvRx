@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.gyrolet.mpvrx.utils.memory.BitmapMemoryCaches
+import app.gyrolet.mpvrx.utils.memory.BitmapMemoryCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -31,6 +32,25 @@ import java.util.concurrent.atomic.AtomicInteger
 @RunWith(AndroidJUnit4::class)
 class RemoteImageLoaderTest {
   private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
+  @Test fun bulkMemoryTrimPublishesOnce() {
+    val publications = AtomicInteger()
+    val cache = object : BitmapMemoryCache<Int>(heapDivisor = 32, maxSizeMiB = 4) {
+      override fun onMemoryTrim() { publications.incrementAndGet() }
+    }
+    val bitmaps = (1..8).map { Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888) }
+    try {
+      bitmaps.forEachIndexed { index, bitmap -> cache.put(index, bitmap) }
+      @Suppress("DEPRECATION")
+      BitmapMemoryCaches.trimMemory(ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+      assertEquals(0, cache.size())
+      assertEquals(1, publications.get())
+      assertTrue(bitmaps.none { it.isRecycled })
+    } finally {
+      cache.evictAll()
+      bitmaps.forEach { it.recycle() }
+    }
+  }
 
   @Test fun smallArtworkDoesNotReplacePlayerResolution() = runBlocking {
     val requests = AtomicInteger()

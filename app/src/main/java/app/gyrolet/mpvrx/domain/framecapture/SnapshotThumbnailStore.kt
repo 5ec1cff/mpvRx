@@ -39,16 +39,16 @@ class SnapshotThumbnailStore(
   private val targetMaxPx: Int = SnapshotImageLoader.THUMBNAIL_MAX_PX,
 ) {
 
+  private val _thumbnails = MutableStateFlow<Map<Long, Bitmap>>(emptyMap())
+  val thumbnails: StateFlow<Map<Long, Bitmap>> = _thumbnails.asStateFlow()
+
   private val cache =
     // The library and folder stores can coexist; each gets a bounded slice, including on small heaps.
     object : BitmapMemoryCache<Long>(heapDivisor = 12, maxSizeMiB = 32) {
-      override fun entryRemoved(evicted: Boolean, key: Long, oldValue: Bitmap, newValue: Bitmap?) {
-        publish()
+      override fun onMemoryTrim() {
+        _thumbnails.value = snapshot()
       }
     }
-
-  private val _thumbnails = MutableStateFlow<Map<Long, Bitmap>>(emptyMap())
-  val thumbnails: StateFlow<Map<Long, Bitmap>> = _thumbnails.asStateFlow()
 
   private val inFlight = mutableSetOf<Long>()
 
@@ -78,10 +78,10 @@ class SnapshotThumbnailStore(
   /** Drops bitmaps for records that no longer exist, so a recycled id cannot show a stale image. */
   fun forget(ids: Collection<Long>) {
     ids.forEach(cache::remove)
+    publish()
   }
 
   private fun publish() {
     _thumbnails.value = cache.snapshot()
   }
-
 }
