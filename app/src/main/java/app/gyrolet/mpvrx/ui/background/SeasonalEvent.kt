@@ -17,12 +17,13 @@ import java.time.MonthDay
 enum class SeasonalEvent(
   val background: BackgroundType,
   @StringRes val greetingRes: Int,
+  val icon: String,
 ) {
-  DIWALI(BackgroundType.DIWALI, R.string.bg_greeting_diwali),
-  HOLI(BackgroundType.HOLI, R.string.bg_greeting_holi),
-  HALLOWEEN(BackgroundType.HALLOWEEN, R.string.bg_greeting_halloween),
-  NEW_YEAR(BackgroundType.FIREWORKS, R.string.bg_greeting_new_year),
-  WINTER(BackgroundType.WINTER, R.string.bg_greeting_winter),
+  DIWALI(BackgroundType.DIWALI, R.string.bg_greeting_diwali, "\uD83E\uDE94"),
+  HOLI(BackgroundType.HOLI, R.string.bg_greeting_holi, "\uD83C\uDFA8"),
+  HALLOWEEN(BackgroundType.HALLOWEEN, R.string.bg_greeting_halloween, "\uD83C\uDF83"),
+  NEW_YEAR(BackgroundType.FIREWORKS, R.string.bg_greeting_new_year, "\uD83C\uDF86"),
+  WINTER(BackgroundType.WINTER, R.string.bg_greeting_winter, "\u2744\uFE0F"),
   ;
 
   /** First and last day (inclusive) of this event in [year], or null when we have no data for it. */

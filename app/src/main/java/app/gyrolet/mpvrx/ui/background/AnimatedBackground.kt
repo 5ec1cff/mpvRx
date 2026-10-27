@@ -86,12 +86,15 @@ fun rememberActiveBackground(): ActiveBackground {
  * are off. A pick of NONE does not switch greetings off: only the seasonal switch does.
  */
 @Composable
-fun rememberSeasonalGreeting(): Int? {
+fun rememberSeasonalGreeting(): Int? = rememberSeasonalEvent()?.greetingRes
+
+@Composable
+fun rememberSeasonalEvent(): SeasonalEvent? {
   val prefs = koinInject<AppearancePreferences>()
   val seasonal by prefs.seasonalThemes.collectAsState()
   val today = rememberBackdropDate()
   val event = remember(today) { SeasonalEvent.on(today) }
-  return event?.takeIf { seasonal }?.greetingRes
+  return event?.takeIf { seasonal }
 }
 
 /** Re-evaluate seasonal and daily picks when returning to an app left open overnight. */
