@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuBoxScope
@@ -251,10 +252,13 @@ fun ExposedDropdownMenuBoxScope.AppComboBoxMenu(
   modifier: Modifier = Modifier,
   content: @Composable ColumnScope.() -> Unit,
 ) {
-  AppDropdownMenu(
+  // The exposed menu honors PrimaryEditable/SecondaryEditable anchors, keeping the IME and
+  // text field focused while typing. A regular focusable DropdownMenu steals that focus.
+  ExposedDropdownMenu(
     expanded = expanded,
     onDismissRequest = onDismissRequest,
     modifier = modifier.heightIn(max = AppComboBoxDefaults.MenuMaxHeight),
+    matchAnchorWidth = true,
     shape = AppComboBoxDefaults.MenuShape,
     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
