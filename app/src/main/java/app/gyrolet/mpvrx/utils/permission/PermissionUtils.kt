@@ -33,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import app.gyrolet.mpvrx.BuildConfig
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
@@ -48,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
 /**
  * Simplified storage permission utilities with MANAGE_EXTERNAL_STORAGE support.
@@ -81,12 +83,12 @@ object PermissionUtils {
     withContext(Dispatchers.Main) {
       if (mediaRequestPending) {
         Log.w("PermissionUtils", "A media permission request is already pending")
-        return@withContext false
+        throw IllegalStateException("Another media permission request is already pending")
       }
       val launcher = mediaRequestLauncher
       if (launcher == null) {
         Log.w("PermissionUtils", "No activity is available for media permission approval")
-        return@withContext false
+        throw IllegalStateException("No activity is available for media permission approval")
       }
       val sender = createSender()
       suspendCancellableCoroutine { continuation ->
@@ -338,10 +340,13 @@ object PermissionUtils {
     internal suspend fun deleteScopedVideosForMove(
       context: Context,
       videos: List<Video>,
+      onDeleteFailed: ((Video, Exception) -> Unit)? = null,
       onDeleted: (Video) -> Unit,
     ): Pair<Int, Int> {
       check(BuildConfig.SCOPED_STORAGE_ONLY)
-      return deleteVideosScoped(context, videos, onDeleted, preserveHistory = true)
+      return deleteVideosScoped(
+        context, videos, onDeleted, preserveHistory = true, onDeleteFailed = onDeleteFailed,
+      )
     }
 
     private suspend fun deleteVideosScoped(
@@ -349,6 +354,7 @@ object PermissionUtils {
       videos: List<Video>,
       onDeleted: (Video) -> Unit,
       preserveHistory: Boolean = false,
+      onDeleteFailed: ((Video, Exception) -> Unit)? = null,
     ): Pair<Int, Int> =
       withContext(Dispatchers.IO) {
         var deleted = 0
@@ -362,12 +368,14 @@ object PermissionUtils {
         if (contentVideos.isNotEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
           // Android 16 caps each request at 2,000 URIs.
           for (batch in contentVideos.chunked(2_000)) {
+            var requestError: Exception? = null
             val granted = try {
               requestDeleteAccess(context, batch.map { it.uri })
             } catch (error: CancellationException) {
               throw error
             } catch (error: Exception) {
               Log.e(TAG, "Could not request media deletion", error)
+              requestError = error
               false
             }
             if (granted) {
@@ -380,6 +388,8 @@ object PermissionUtils {
             } else {
               failed += batch.size
               Log.w(TAG, "✗ Delete request denied/cancelled for ${batch.size} item(s)")
+              val error = requestError ?: IOException(context.getString(R.string.storage_source_delete_not_approved))
+              batch.forEach { video -> onDeleteFailed?.invoke(video, error) }
             }
           }
         } else {
@@ -405,12 +415,14 @@ object PermissionUtils {
               } else {
                 failed++
                 Log.w(TAG, "✗ Failed to delete (scoped): ${video.displayName}")
+                onDeleteFailed?.invoke(video, IOException(context.getString(R.string.storage_source_delete_failed)))
               }
             } catch (e: CancellationException) {
               throw e
             } catch (e: Exception) {
               failed++
               Log.e(TAG, "✗ Error deleting (scoped) ${video.displayName}", e)
+              onDeleteFailed?.invoke(video, e)
             }
           }
         }
@@ -427,6 +439,7 @@ object PermissionUtils {
           } catch (error: Exception) {
             failed++
             Log.e(TAG, "Cannot delete document: ${video.displayName}", error)
+            onDeleteFailed?.invoke(video, error)
           }
         }
 
@@ -442,10 +455,14 @@ object PermissionUtils {
             } else {
               failed++
               Log.w(TAG, "✗ Failed to delete (file fallback): ${video.displayName}")
+              onDeleteFailed?.invoke(video, IOException(context.getString(R.string.storage_source_delete_failed)))
             }
+          } catch (e: CancellationException) {
+            throw e
           } catch (e: Exception) {
             failed++
             Log.e(TAG, "✗ Error deleting (file fallback) ${video.displayName}", e)
+            onDeleteFailed?.invoke(video, e)
           }
         }
 

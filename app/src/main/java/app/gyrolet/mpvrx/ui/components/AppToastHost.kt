@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,7 +40,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -52,10 +50,8 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.dokar.sonner.ToastType
 import com.dokar.sonner.Toaster
@@ -230,7 +226,7 @@ private fun AppToastContent(message: AppToastMessage, haze: HazeState, reducedMo
       )
       .border(1.dp, colors.outlineVariant.copy(alpha = 0.55f), shape)
       .semantics { liveRegion = LiveRegionMode.Polite }
-      .padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+      .padding(horizontal = 12.dp, vertical = 4.dp),
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(4.dp),
   ) {
@@ -256,12 +252,6 @@ private fun AppToastContent(message: AppToastMessage, haze: HazeState, reducedMo
       TextButton(onClick = { onDismiss(); action.onClick() }, modifier = Modifier.widthIn(max = 112.dp)) {
         Text(action.label, color = tone, maxLines = 1, overflow = TextOverflow.Ellipsis)
       }
-    }
-    IconButton(
-      onClick = onDismiss,
-      modifier = Modifier.size(40.dp).tvFocusHighlight(shape, focusedScale = 1.04f),
-    ) {
-      Icon(Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.ui_close), modifier = Modifier.size(18.dp), tint = colors.onSurfaceVariant)
     }
   }
 }

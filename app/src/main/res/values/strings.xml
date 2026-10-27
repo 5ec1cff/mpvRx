@@ -2059,6 +2059,10 @@
   <string name="secure_folder_moved_success">Moved %1$d file(s) to Secure Folder</string>
   <string name="secure_folder_moved_partial">Moved %1$d, failed %2$d</string>
   <string name="secure_folder_move_failed">Failed to move files to Secure Folder</string>
+  <string name="secure_folder_move_failed_details">Failed to move files to Secure Folder:\n%1$s</string>
+  <string name="secure_folder_source_unreadable">Could not open %1$s. Check media access and try again.</string>
+  <string name="storage_source_delete_not_approved">Deletion was not approved. The original file was kept.</string>
+  <string name="storage_source_delete_failed">The original file could not be removed.</string>
 
   <!-- Errors & Operation Results -->
   <string name="secure_folder_error_incorrect_pin">Incorrect PIN</string>

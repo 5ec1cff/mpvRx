@@ -156,11 +156,16 @@ data object SecureFolderAddFilesScreen : Screen {
                 context.getString(R.string.secure_folder_moved_partial, batch.succeededIds.size, batch.failedIds.size)
               }
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-          }.onFailure {
-            Toast.makeText(context, context.getString(R.string.secure_folder_move_failed), Toast.LENGTH_SHORT).show()
+          }.onFailure { error ->
+            Toast.error(context, context.getString(
+              R.string.secure_folder_move_failed_details,
+              error.localizedMessage ?: context.getString(R.string.generic_unknown_error),
+            ))
           }
-        selectionManager?.clear()
-        backstack.popSafely()
+        if (result.isSuccess) {
+          selectionManager?.clear()
+          backstack.popSafely()
+        }
       }
     }
 
