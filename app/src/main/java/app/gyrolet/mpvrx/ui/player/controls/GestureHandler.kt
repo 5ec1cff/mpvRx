@@ -55,6 +55,8 @@ import app.gyrolet.mpvrx.ui.player.getTrackSelectionId
 import app.gyrolet.mpvrx.ui.player.isSecondarySubtitleActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -70,6 +72,12 @@ import kotlin.math.sqrt
 private val holdSpeedPresets = listOf(0.5f, 1f, 1.5f, 2f, 2.5f, 3f, 3.5f, 4f)
 private const val SPEED_HOLD_INTENT_THRESHOLD_MS = 250L
 private const val MULTI_TAP_SEEK_TIMEOUT_MS = 1_000L
+
+private data class DoubleTapSeekFeedback(
+  val region: String,
+  val generation: Long,
+  val lastSeekUptimeMs: Long,
+)
 
 private enum class GestureOwner {
   SPEED,
@@ -127,6 +135,9 @@ fun GestureHandler(
   val gesturePreferences = koinInject<GesturePreferences>()
   val subtitlesPreferences = koinInject<SubtitlesPreferences>()
   val context = LocalContext.current
+  val mediaGeneration by remember {
+    PlaybackSession.state.map { it.generation }.distinctUntilChanged()
+  }.collectAsState(initial = PlaybackSession.state.value.generation)
   val currentOnLockedTouchSideChanged by rememberUpdatedState(onLockedTouchSideChanged)
   val currentOnSeekRipple by rememberUpdatedState(onSeekRipple)
   val subtitleTracks by viewModel.subtitleTracks.collectAsState(emptyList())
@@ -179,6 +190,7 @@ fun GestureHandler(
   val twoFingerSpeedSwipe by gesturePreferences.twoFingerSpeedSwipe.collectAsState()
   var speedSwipeFeedbackJob by remember { mutableStateOf<Job?>(null) }
   var isDoubleTapSeeking by remember { mutableStateOf(false) }
+  var seekFeedbackBurst by remember { mutableStateOf<DoubleTapSeekFeedback?>(null) }
   var seekFeedbackRevision by remember { mutableStateOf(0L) }
   var tapInProgress by remember { mutableStateOf(false) }
   val multipleSpeedGesture by playerPreferences.holdForMultipleSpeed.collectAsState()
@@ -260,6 +272,7 @@ fun GestureHandler(
   // Isolated double-tap state tracking
   var tapCount by remember { mutableStateOf(0) }
   var lastTapTime by remember { mutableStateOf(0L) }
+  var lastTapDownTime by remember { mutableStateOf(0L) }
   var lastTapGeneration by remember { mutableStateOf(-1L) }
   var lastTapPosition by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
   var lastTapRegion by remember { mutableStateOf<String?>(null) }
@@ -268,6 +281,18 @@ fun GestureHandler(
   val doubleTapTimeout = AndroidViewConfiguration.getDoubleTapTimeout().toLong()
   val doubleTapSlop = remember(context) {
     AndroidViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
+  }
+
+  LaunchedEffect(mediaGeneration, areControlsLocked, doubleTapSeekAreaWidth) {
+    tapCount = 0
+    lastTapRegion = null
+    pendingSingleTapRegion = null
+    pendingSingleTapPosition = null
+    isDoubleTapSeeking = false
+    seekFeedbackBurst = null
+    viewModel.updateSeekText(null)
+    viewModel.hideSeekBar()
+    viewModel.updateSeekAmount(0)
   }
 
   // Auto-reset tap count on timeout and execute single tap if no double tap detected
@@ -300,6 +325,7 @@ fun GestureHandler(
       tapCount = 0
       lastTapRegion = null
       if (!isDoubleTapSeeking) {
+        seekFeedbackBurst = null
         viewModel.updateSeekAmount(0)
       }
     }
@@ -313,6 +339,7 @@ fun GestureHandler(
     }
     delay(MULTI_TAP_SEEK_TIMEOUT_MS)
     isDoubleTapSeeking = false
+    seekFeedbackBurst = null
     viewModel.updateSeekText(null)
     viewModel.hideSeekBar()
     // This changes the effect's key, so clear it last instead of cancelling pending cleanup.
@@ -323,7 +350,7 @@ fun GestureHandler(
     modifier =
       modifier
         .fillMaxSize()
-        .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, gesturePreferences, isVerticalGestureActive) {
+        .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, gesturePreferences, isVerticalGestureActive, mediaGeneration) {
           // Isolated double-tap detection that doesn't interfere with other gestures
           if (isVerticalGestureActive) return@pointerInput
           awaitEachGesture {
@@ -374,6 +401,7 @@ fun GestureHandler(
                     if (viewModel.dismissAdjustmentOverlays()) {
                       tapCount = 0
                       isDoubleTapSeeking = false
+                      seekFeedbackBurst = null
                       lastTapRegion = null
                       pendingSingleTapRegion = null
                       pendingSingleTapPosition = null
@@ -401,9 +429,17 @@ fun GestureHandler(
                       pendingSingleTapPosition = null
                       isDoubleTapSeeking = isSeekRegion
                       if (isSeekRegion) {
-                        viewModel.updateSeekAmount(0)
+                        val previousFeedback = seekFeedbackBurst
+                        val continuesFeedback = previousFeedback != null && previousFeedback.region == region &&
+                          previousFeedback.generation == generation &&
+                          lastTapDownTime - previousFeedback.lastSeekUptimeMs in 0L..MULTI_TAP_SEEK_TIMEOUT_MS
+                        if (!continuesFeedback) viewModel.updateSeekAmount(0)
+                        seekFeedbackBurst = DoubleTapSeekFeedback(region, generation, pointer.uptimeMillis)
                         seekFeedbackRevision++
                         currentOnSeekRipple(SeekRippleRequest(ripplePosition, isForward = region == "right"))
+                      } else {
+                        seekFeedbackBurst = null
+                        viewModel.updateSeekAmount(0)
                       }
                       when (region) {
                         "right" -> viewModel.handleRightDoubleTap()
@@ -419,6 +455,7 @@ fun GestureHandler(
                       pendingSingleTapPosition = downPosition
                     }
                     lastTapTime = pointer.uptimeMillis
+                    lastTapDownTime = downTime
                     lastTapPosition = downPosition
                     lastTapRegion = region
                     lastTapGeneration = generation
@@ -426,6 +463,7 @@ fun GestureHandler(
                   } else {
                     tapCount = 0
                     isDoubleTapSeeking = false
+                    seekFeedbackBurst = null
                     lastTapRegion = null
                     pendingSingleTapRegion = null
                     pendingSingleTapPosition = null
@@ -437,6 +475,7 @@ fun GestureHandler(
               if (!completedTap) {
                 tapCount = 0
                 isDoubleTapSeeking = false
+                seekFeedbackBurst = null
                 lastTapRegion = null
                 pendingSingleTapRegion = null
                 pendingSingleTapPosition = null
