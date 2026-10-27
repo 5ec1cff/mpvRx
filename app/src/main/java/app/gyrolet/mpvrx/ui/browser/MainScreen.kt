@@ -60,6 +60,7 @@ import app.gyrolet.mpvrx.ui.utils.NavigationPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -166,12 +167,11 @@ import app.gyrolet.mpvrx.ui.theme.LocalAppBackgroundBackdrop
 import app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
-import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
+import app.gyrolet.mpvrx.ui.liquidglass.drawShapeTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
-import com.kyant.shapes.Capsule
 import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import app.gyrolet.mpvrx.ui.tv.RegisterTvContentFocus
@@ -905,13 +905,15 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                   )
                 } else {
                   val horizontalMargin by animateDpAsState(
-                    targetValue = NavigationBarState.navigationPillMaxMargin - 30.dp * NavigationBarState.navLabelVisibility,
+                    targetValue = if (NavigationBarState.isMiniPlayerDocked) NavigationBarState.floatingBarSpacing
+                      else NavigationBarState.navigationPillMaxMargin - 30.dp * NavigationBarState.navLabelVisibility,
                     animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
                     label = "navigation_margin",
                   )
                   val centerFraction = animateFloatAsState(
                     targetValue = when {
                       isDualPaneFolderSelected && selectedTab == MainTab.HOME -> 0.2f
+                      NavigationBarState.isMiniPlayerDocked -> 0.5f
                       isMiniPlayerVisible && NavigationBarState.canPlaceMiniPlayerBesideNavigation(maxWidth) -> 0f
                       else -> 0.5f
                     },
@@ -1039,6 +1041,20 @@ internal fun ExpressivePillNavigationBar(
     targetValue = NavigationBarState.navLabelVisibility,
     animationSpec = if (reducedMotion) snap() else tween(300, easing = NavigationBarEasing),
     label = "navigation_labels",
+  )
+  val dockProgress by animateFloatAsState(
+    targetValue = if (NavigationBarState.isMiniPlayerDocked) 1f else 0f,
+    animationSpec = if (reducedMotion) snap() else tween(320, easing = FastOutSlowInEasing),
+    label = "navigation_dock_corners",
+  )
+  val standaloneCorner = (48.dp + labelHeight * labelFraction) / 2f
+  val joiningCorner = standaloneCorner * (1f - dockProgress) + 4.dp * dockProgress
+  val outsideCorner = standaloneCorner * (1f - dockProgress) + 20.dp * dockProgress
+  val navigationShape = if (dockProgress <= 0f) CircleShape else RoundedCornerShape(
+    topStart = joiningCorner,
+    topEnd = joiningCorner,
+    bottomEnd = outsideCorner,
+    bottomStart = outsideCorner,
   )
   LaunchedEffect(selectedTab) { NavigationBarState.expandNavLabels() }
   LaunchedEffect(selectedIndex, motion, reducedMotion) {
@@ -1177,14 +1193,6 @@ internal fun ExpressivePillNavigationBar(
         translationX = motion.frame.panelOffset * density.density
       },
     ) {
-      NavigationPlayerConnection(
-        hazeBackdrop = hazeBackdrop,
-        glassBackdrop = kyantBackdrop,
-        liquidGlassEnabled = liquidGlassEnabled,
-        surfaceColor = surfaceColor,
-        reducedMotion = reducedMotion,
-        modifier = Modifier.matchParentSize(),
-      )
       if (liquidGlassEnabled && kyantBackdrop != null) {
         Box(
           modifier =
@@ -1192,7 +1200,7 @@ internal fun ExpressivePillNavigationBar(
               .matchParentSize()
               .drawBackdrop(
                 backdrop = kyantBackdrop,
-                shape = { Capsule() },
+                shape = { navigationShape },
                 effects = {
                   liquidGlassEffects(glassSettings, 8.dp.toPx(), 24.dp.toPx(), 24.dp.toPx(), vibrant = true)
                 },
@@ -1206,9 +1214,9 @@ internal fun ExpressivePillNavigationBar(
                   )
                 },
                 onDrawSurface = {
-                  drawCapsuleTint(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
+                  drawShapeTint(navigationShape, glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
                 },
-              ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f))
+              ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f), navigationShape)
               .drawWithContent {
                 drawContent()
                 drawNavigationJellyGlow(motion.frame, accentColor.copy(alpha = glowStrength))
@@ -1217,13 +1225,13 @@ internal fun ExpressivePillNavigationBar(
       } else {
         Box(
           modifier = Modifier.matchParentSize()
-            .clip(CircleShape)
+            .clip(navigationShape)
             .drawWithContent {
               drawContent()
               drawNavigationJellyGlow(motion.frame, accentColor.copy(alpha = glowStrength))
             },
         ) {
-          NavigationGlassSurface(hazeBackdrop, surfaceColor, glowStrength, Modifier.matchParentSize())
+          NavigationGlassSurface(hazeBackdrop, surfaceColor, glowStrength, Modifier.matchParentSize(), navigationShape)
         }
       }
       Box(Modifier.matchParentSize().drawWithContent {

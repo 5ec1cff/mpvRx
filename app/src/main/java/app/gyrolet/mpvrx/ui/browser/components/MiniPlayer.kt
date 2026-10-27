@@ -78,7 +78,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -113,6 +112,7 @@ import app.gyrolet.mpvrx.presentation.components.LiquidGlassSurface
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
+import app.gyrolet.mpvrx.ui.browser.rememberMiniPlayerShape
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.AnimatedIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -134,7 +134,6 @@ import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.theme.AppMotion
-import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -238,7 +237,6 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   DisposableEffect(Unit) {
     onDispose {
       NavigationBarState.isMiniPlayerVisible = false
-      NavigationBarState.miniPlayerBounds = Rect.Zero
       NavigationBarState.miniPlayerConnectionEnabled = false
     }
   }
@@ -433,7 +431,7 @@ private fun MiniPlayerContent(
     }
   }
 
-  val miniPlayerShape = AppShapeScale.largeIncreased
+  val miniPlayerShape = rememberMiniPlayerShape()
 
   /**
    * Throws the card off the screen edge in [direction], keeping the release velocity and tilt.
@@ -516,9 +514,6 @@ private fun MiniPlayerContent(
         rotationZ = (dismissOffset / width * DISMISS_TILT_DEGREES)
           .coerceIn(-DISMISS_MAX_TILT_DEGREES, DISMISS_MAX_TILT_DEGREES)
         transformOrigin = TransformOrigin(0.5f, 1f)
-      }
-      .onGloballyPositioned {
-        NavigationBarState.miniPlayerBounds = if (tossed) Rect.Zero else it.boundsInRoot()
       }
       .then(
         if (isAudioOnlyItem) {

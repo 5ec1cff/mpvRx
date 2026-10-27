@@ -44,6 +44,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -77,6 +79,7 @@ import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
+import app.gyrolet.mpvrx.ui.browser.rememberMiniPlayerShape
 import app.gyrolet.mpvrx.ui.browser.TvSideNavigationDefaults
 import app.gyrolet.mpvrx.ui.tv.TvSafeArea
 import app.gyrolet.mpvrx.ui.browser.components.MiniPlayer
@@ -689,7 +692,8 @@ open class MainActivity : AppCompatActivity() {
 
       if (hasNavEntries) {
         val miniPlayerBackdrop = rememberLiquidGlassBackdrop()
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        var browserRootLeft by remember { mutableStateOf(0f) }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().onGloballyPositioned { browserRootLeft = it.positionInRoot().x }) {
           val density = LocalDensity.current
           val layoutDirection = LocalLayoutDirection.current
           val safeInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
@@ -699,19 +703,27 @@ open class MainActivity : AppCompatActivity() {
           val isDualPane = isMainScreen && !legacyNavigationBar && NavigationBarState.isDualPaneLayout
           val isNavBarVisible = isMainScreen && NavigationBarState.isNavBarVisible
           val spacing = NavigationBarState.floatingBarSpacing
+          val dockedPlayer = isNavBarVisible && !legacyNavigationBar && !isDualPane &&
+            !DeviceFormFactor.isTelevision(context) && NavigationBarState.isMiniPlayerVisible &&
+            NavigationBarState.miniPlayerConnectionEnabled
           val navigationStart =
             if (layoutDirection == LayoutDirection.Ltr) {
               NavigationBarState.navbarLeftOffset - leftInset
             } else {
               maxWidth - NavigationBarState.navbarLeftOffset - NavigationBarState.navbarWidth - rightInset
             }
+          val dockLeft = NavigationBarState.navbarLeftOffset - with(density) { browserRootLeft.toDp() }
+          val dockStart = if (layoutDirection == LayoutDirection.Ltr) dockLeft
+            else maxWidth - dockLeft - NavigationBarState.navbarWidth
           val besideStartSpacing = (navigationStart + NavigationBarState.navbarWidth + spacing).coerceAtLeast(spacing)
-          val besideNavigation = isNavBarVisible && !legacyNavigationBar && !isDualPane &&
+          val besideNavigation = !dockedPlayer && isNavBarVisible && !legacyNavigationBar && !isDualPane &&
             NavigationBarState.canPlaceMiniPlayerBesideNavigation(maxWidth - leftInset - rightInset) &&
             maxWidth - leftInset - rightInset - besideStartSpacing - spacing >= NavigationBarState.miniPlayerMinWidth
           SideEffect {
             NavigationBarState.isMiniPlayerBesideNavigation = besideNavigation
+            NavigationBarState.isMiniPlayerDocked = dockedPlayer
           }
+          val miniPlayerShape = rememberMiniPlayerShape()
 
           CompositionLocalProvider(
             LocalNavigationBarHeight provides NavigationBarState.bottomOverlayClearance,
@@ -743,6 +755,7 @@ open class MainActivity : AppCompatActivity() {
           )
           val targetLift = when {
             NavigationBarState.isInSelectionMode -> NavigationBarState.selectionBarClearance - spacing
+            dockedPlayer -> NavigationBarState.navigationPillHeight + NavigationBarState.connectedDockSpacing
             isNavBarVisible && !besideNavigation && !isDualPane -> NavigationBarState.navigationBarClearance - spacing
             else -> 0.dp
           }
@@ -759,11 +772,14 @@ open class MainActivity : AppCompatActivity() {
           val miniPlayerLift = (if (targetLift > 0.dp) targetLift else lastLift) * liftFraction
           // Follow the measured navigation edge directly, including its alignment animation.
           val startSpacing =
-            if (besideNavigation) {
-              besideStartSpacing
-            } else {
-              spacing
+            when {
+              dockedPlayer -> dockStart.coerceAtLeast(0.dp)
+              besideNavigation -> besideStartSpacing
+              else -> spacing
             }
+          val endSpacing = if (dockedPlayer) {
+            (maxWidth - dockStart - NavigationBarState.navbarWidth).coerceAtLeast(0.dp)
+          } else spacing
 
           val miniPlayerModifier =
             if (DeviceFormFactor.isTelevision(context)) {
@@ -783,9 +799,13 @@ open class MainActivity : AppCompatActivity() {
                 .align(if (isDualPane) Alignment.BottomEnd else Alignment.BottomStart)
                 .fillMaxWidth(if (isDualPane) 0.6f else 1f)
                 .windowInsetsPadding(
-                  if (isDualPane) safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom) else safeInsets,
+                  when {
+                    dockedPlayer -> safeInsets.only(WindowInsetsSides.Bottom)
+                    isDualPane -> safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom)
+                    else -> safeInsets
+                  },
                 )
-                .padding(start = startSpacing, end = spacing, bottom = spacing)
+                .padding(start = startSpacing, end = endSpacing, bottom = spacing)
                 .offset(y = -miniPlayerLift)
             }
 
@@ -793,7 +813,7 @@ open class MainActivity : AppCompatActivity() {
             modifier = miniPlayerModifier
               .height(NavigationBarState.miniPlayerHeight)
               .playerSheetMiniPlacement(
-                AppShapeScale.largeIncreased,
+                miniPlayerShape,
                 androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
               ),
           )
@@ -802,7 +822,7 @@ open class MainActivity : AppCompatActivity() {
             enabled = liquidGlassEnabled,
           ) {
             MiniPlayer(
-              modifier = miniPlayerModifier.inAppMusicSheetMiniSource(musicSheet, AppShapeScale.largeIncreased),
+              modifier = miniPlayerModifier.inAppMusicSheetMiniSource(musicSheet, miniPlayerShape),
             )
           }
           PlayerSheetTransitionOverlay(PlayerSheetDestination.MINI, Modifier.matchParentSize())
