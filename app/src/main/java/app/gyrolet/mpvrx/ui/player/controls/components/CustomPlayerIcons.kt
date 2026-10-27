@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.ui.icons.LocalIconShadow
+import app.gyrolet.mpvrx.ui.icons.iconShadow
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import android.graphics.Paint as AndroidPaint
 
@@ -82,7 +84,7 @@ fun AnimatedPlayPauseIcon(
     ) { playing -> if (playing) 1f else 0f }
 
   Box(
-    modifier = modifier,
+    modifier = modifier.iconShadow(LocalIconShadow.current),
     contentAlignment = Alignment.Center,
   ) {
     Canvas(
@@ -157,7 +159,7 @@ fun AbLoopIcon(
   textB: String = "B",
 ) {
   Box(
-    modifier = modifier,
+    modifier = modifier.iconShadow(LocalIconShadow.current),
     contentAlignment = Alignment.Center,
   ) {
     Canvas(

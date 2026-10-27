@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.player.controls
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import app.gyrolet.mpvrx.ui.icons.LocalIconShadow
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalForceDarkPlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
@@ -60,6 +61,7 @@ internal fun PlayerButtonTheme(
 ) {
   CompositionLocalProvider(
     LocalHidePlayerButtonsBackground provides hideBackground,
+    LocalIconShadow provides hideBackground,
     content = content,
   )
 }

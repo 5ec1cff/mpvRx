@@ -275,6 +275,7 @@ enum class PlaybackControlsPosition(
 ) {
   Center("Center of screen"),
   BelowSeekbar("Below seekbar"),
+  AboveSeekbar("Above seekbar"),
 }
 
 enum class SeekbarPlacement(

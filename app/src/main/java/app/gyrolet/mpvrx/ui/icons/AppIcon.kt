@@ -62,7 +62,7 @@ fun Icon(
     MaterialIcon(
       painter = androidx.compose.ui.res.painterResource(drawableRes),
       contentDescription = contentDescription,
-      modifier = modifier,
+      modifier = modifier.iconShadow(LocalIconShadow.current),
       tint = tint,
     )
   } else {
@@ -77,7 +77,7 @@ fun Icon(
     MaterialIcon(
       imageVector = imageVector.resolve(isRtl)!!,
       contentDescription = contentDescription,
-      modifier = mirroredModifier,
+      modifier = mirroredModifier.iconShadow(LocalIconShadow.current),
       tint = tint,
     )
   }

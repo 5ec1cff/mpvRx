@@ -82,7 +82,7 @@ fun TopLeftPlayerControlsLandscape(
     ) {
       Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+        horizontalArrangement = Arrangement.spacedBy(if (hideBackground) 0.dp else MaterialTheme.spacing.extraSmall),
       ) {
         ControlsButton(
           icon = Icons.RoundedFilled.ArrowBack,
@@ -280,7 +280,7 @@ fun TopRightPlayerControlsLandscape(
   PlayerButtonTheme(hideBackground) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+      horizontalArrangement = Arrangement.spacedBy(if (hideBackground) 0.dp else MaterialTheme.spacing.extraSmall),
     ) {
       buttons.forEach { button ->
         RenderPlayerButton(
@@ -326,7 +326,8 @@ fun BottomRightPlayerControlsLandscape(
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
   modifier: Modifier = Modifier,
-  horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+  horizontalArrangement: Arrangement.Horizontal =
+    Arrangement.spacedBy(if (hideBackground) 0.dp else MaterialTheme.spacing.extraSmall),
 ) {
   PlayerButtonTheme(hideBackground) {
     Row(
@@ -390,7 +391,7 @@ fun BottomLeftPlayerControlsLandscape(
     Row(
       modifier = modifier,
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+      horizontalArrangement = Arrangement.spacedBy(if (hideBackground) 0.dp else MaterialTheme.spacing.extraSmall),
     ) {
       buttons.forEach { button ->
         RenderPlayerButton(

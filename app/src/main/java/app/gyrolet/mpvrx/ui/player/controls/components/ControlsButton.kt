@@ -98,7 +98,7 @@ fun ControlsGroup(
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement =
       androidx.compose.foundation.layout.Arrangement
-        .spacedBy(spacing.extraSmall),
+        .spacedBy(if (LocalHidePlayerButtonsBackground.current) 0.dp else spacing.extraSmall),
     content = content,
   )
 }

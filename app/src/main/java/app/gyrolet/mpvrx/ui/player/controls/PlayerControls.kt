@@ -147,6 +147,7 @@ import app.gyrolet.mpvrx.preferences.preference.minusAssign
 import app.gyrolet.mpvrx.preferences.preference.plusAssign
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.icons.LocalIconShadow
 import app.gyrolet.mpvrx.ui.player.Decoder.Companion.getDecoderFromValue
 import app.gyrolet.mpvrx.ui.player.InAppMusicSheetState
 import app.gyrolet.mpvrx.ui.player.Panels
@@ -1059,6 +1060,7 @@ fun PlayerControls(
           LocalKyantPlayerBackdrop provides playerKyantBackdrop,
           LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
           LocalHidePlayerButtonsBackground provides hideBackground,
+          LocalIconShadow provides hideBackground,
           LocalContentColor provides MaterialTheme.colorScheme.onSurface,
         ) {
       CompositionLocalProvider(
@@ -1094,40 +1096,47 @@ fun PlayerControls(
           val (customLeftButtonsRef, customRightButtonsRef) = createRefs()
           val customButtonsPortraitRef = createRef()
 
-          val playbackBelowSeekbar =
-            (if (isPortrait) portraitPlaybackControlsPosition else landscapePlaybackControlsPosition) ==
-              PlaybackControlsPosition.BelowSeekbar
+          val playbackPosition =
+            if (isPortrait) portraitPlaybackControlsPosition else landscapePlaybackControlsPosition
+          val playbackNearSeekbar = playbackPosition != PlaybackControlsPosition.Center
+          val playbackBelowSeekbar = playbackPosition == PlaybackControlsPosition.BelowSeekbar
+          val playbackAboveSeekbar = playbackPosition == PlaybackControlsPosition.AboveSeekbar
           val seekbarAboveButtons =
             (if (isPortrait) portraitSeekbarPlacement else landscapeSeekbarPlacement) ==
               SeekbarPlacement.AboveButtons
           // Landscape puts the layout buttons beside play/pause instead of in a row of their own.
-          val buttonsBesidePlayback = playbackBelowSeekbar && !isPortrait
+          val buttonsBesidePlayback = playbackNearSeekbar && !isPortrait
+          val playbackButtonGap = if (hideBackground) spacing.small else spacing.large
           val sharedPlaybackRowCenterX = createGuidelineFromStart(0.5f)
           val sharedRowSideInset =
             if (buttonsBesidePlayback) {
               val hasPlaylistControls =
                 playlistMode && (playlistItems.size > 1 || viewModel.getPlaylistTotalCount() > 1)
-              sharedPlaybackRowHalfWidth(hasPlaylistControls) + spacing.medium
+              sharedPlaybackRowHalfWidth(hasPlaylistControls, playbackButtonGap) +
+                if (hideBackground) spacing.smaller else spacing.medium
             } else {
               0.dp
             }
-          // Bottom-to-top bands; play/pause always sits directly under the seekbar, and beside play/pause
-          // the layout buttons share its band.
+          // Bottom-to-top bands. The two seekbar placements mirror one another; landscape
+          // layout buttons share the playback band on either side of play/pause.
           val bottomStack =
             buildList {
               when {
                 buttonsBesidePlayback -> {
-                  add(BottomSlot.Buttons)
+                  if (playbackBelowSeekbar) add(BottomSlot.Buttons)
                   add(BottomSlot.Seekbar)
+                  if (playbackAboveSeekbar) add(BottomSlot.Buttons)
                 }
                 seekbarAboveButtons -> {
                   add(BottomSlot.Buttons)
                   if (playbackBelowSeekbar) add(BottomSlot.Playback)
                   add(BottomSlot.Seekbar)
+                  if (playbackAboveSeekbar) add(BottomSlot.Playback)
                 }
                 else -> {
                   if (playbackBelowSeekbar) add(BottomSlot.Playback)
                   add(BottomSlot.Seekbar)
+                  if (playbackAboveSeekbar) add(BottomSlot.Playback)
                   add(BottomSlot.Buttons)
                 }
               }
@@ -1154,10 +1163,11 @@ fun PlayerControls(
               BottomSlot.Seekbar -> measured(bottomHeights.seekbar, BottomClusterFallbackRowHeight)
             }
 
-          // One edge margin and one gap for every combination. Bands come from remembered heights, so a
+          // Keep the seekbar close to its controls. Bands come from remembered heights, so a
           // layer leaving the layout (buffering, volume/brightness sliders, hidden controls) moves nothing.
           val clusterEdge = if (isPortrait) spacing.large else spacing.medium
-          val clusterGap = spacing.smaller
+          val clusterGap = if (hideBackground) 0.dp else spacing.extraSmall
+          val customButtonsGap = spacing.smaller * 2
           val bandCenters = HashMap<BottomSlot, Dp>()
           var nextBandBottom = clusterEdge
           var bottomClusterTop = clusterEdge
@@ -1565,15 +1575,16 @@ is PlayerUpdates.FrameInfo -> {
           val showLandscapeRightCustomButtons = areButtonsVisible && !isPortrait && rightCustomButtons.isNotEmpty()
           val showPortraitCustomButtons = areButtonsVisible && isPortrait && customButtons.isNotEmpty()
           // Custom rows carry transparent padding for liquid-glass shadows; offset it so the visible
-          // pills sit one cluster gap above the controls and line up with the layout buttons.
-          val customRowBottomOffset = bottomClusterTop + clusterGap - CustomButtonsRowInsetVertical
+          // pills have twice the old 8dp clearance, independently of the tighter seekbar gaps.
+          val customRowBottomOffset = bottomClusterTop + customButtonsGap - CustomButtonsRowInsetVertical
           val customRowEdgeMargin = spacing.large - CustomButtonsRowInsetHorizontal
           val customRowAboveSkipChip = showLandscapeRightCustomButtons || showPortraitCustomButtons
           val customRowVisibleHeight =
             (measured(bottomHeights.rightCustomRow, CustomButtonsRowFallbackHeight) - CustomButtonsRowInsetVertical * 2)
               .coerceAtLeast(0.dp)
           val skipChipBottomTarget =
-            bottomClusterTop + clusterGap + if (customRowAboveSkipChip) customRowVisibleHeight + clusterGap else 0.dp
+            bottomClusterTop +
+              if (customRowAboveSkipChip) customButtonsGap + customRowVisibleHeight + spacing.smaller else spacing.smaller
           val skipChipBottomOffset by animateDpAsState(
             targetValue = skipChipBottomTarget,
             animationSpec = spring(),
@@ -1915,7 +1926,7 @@ is PlayerUpdates.FrameInfo -> {
               Modifier.constrainAs(playerPauseButton) {
                 start.linkTo(parent.absoluteLeft)
                 end.linkTo(parent.absoluteRight)
-                if (playbackBelowSeekbar) {
+                if (playbackNearSeekbar) {
                   linkInBottomStack(BottomSlot.Playback)
                 } else {
                   top.linkTo(parent.top)
@@ -1923,17 +1934,12 @@ is PlayerUpdates.FrameInfo -> {
                 }
               },
           ) {
-            val interaction = remember { MutableInteractionSource() }
-            val buttonShadow = PlaySkipButtonShadowBrush
-            // The shadow stands in for the button background, so it follows the background opacity.
-            val buttonShadowAlpha = PlayerButtonAlpha.background(1f, LocalPlayerButtonsOpacity.current)
-
             val hasPlaylistControls =
               playlistMode && (playlistItems.size > 1 || viewModel.getPlaylistTotalCount() > 1)
 
             if (hasPlaylistControls) {
               androidx.compose.foundation.layout.Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(playbackButtonGap),
                 verticalAlignment = Alignment.CenterVertically,
               ) {
                 AdaptiveControlsContainer(
@@ -1946,14 +1952,7 @@ is PlayerUpdates.FrameInfo -> {
                   modifier =
                     Modifier
                       .size(56.dp)
-                      .tvFocusHighlight(CircleShape, enabled = viewModel.hasPrevious())
-                      .then(
-                        if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
-                        } else {
-                          Modifier
-                        },
-                      ),
+                      .tvFocusHighlight(CircleShape, enabled = viewModel.hasPrevious()),
                   color =
                     if (viewModel.hasPrevious()) {
                       if (hideBackground) controlColor else playerButtonContentColor()
@@ -1988,14 +1987,7 @@ is PlayerUpdates.FrameInfo -> {
                     Modifier
                       .size(64.dp)
                       .tvInitialFocus(tvPlayFocusRequester)
-                      .tvFocusHighlight(CircleShape)
-                      .then(
-                        if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
-                        } else {
-                          Modifier
-                        },
-                      ),
+                      .tvFocusHighlight(CircleShape),
                   color = if (hideBackground) controlColor else playerButtonContentColor(),
                   hideBackground = hideBackground,
                   buttonSize = 64.dp,
@@ -2021,14 +2013,7 @@ is PlayerUpdates.FrameInfo -> {
                   modifier =
                     Modifier
                       .size(56.dp)
-                      .tvFocusHighlight(CircleShape, enabled = viewModel.hasNext())
-                      .then(
-                        if (hideBackground && !enableLiquidGlass) {
-                          Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
-                        } else {
-                          Modifier
-                        },
-                      ),
+                      .tvFocusHighlight(CircleShape, enabled = viewModel.hasNext()),
                   color =
                     if (viewModel.hasNext()) {
                       if (hideBackground) controlColor else playerButtonContentColor()
@@ -2064,14 +2049,7 @@ is PlayerUpdates.FrameInfo -> {
                   Modifier
                     .size(64.dp)
                     .tvInitialFocus(tvPlayFocusRequester)
-                    .tvFocusHighlight(CircleShape)
-                    .then(
-                      if (hideBackground && !enableLiquidGlass) {
-                        Modifier.background(brush = buttonShadow, shape = CircleShape, alpha = buttonShadowAlpha)
-                      } else {
-                        Modifier
-                      },
-                    ),
+                    .tvFocusHighlight(CircleShape),
                 color = if (hideBackground) controlColor else playerButtonContentColor(),
                 hideBackground = hideBackground,
                 buttonSize = 64.dp,
@@ -2396,9 +2374,9 @@ is PlayerUpdates.FrameInfo -> {
                   },
                 horizontalArrangement =
                   if (buttonsBesidePlayback) {
-                    Arrangement.spacedBy(spacing.extraSmall, Alignment.End)
+                    Arrangement.spacedBy(if (hideBackground) 0.dp else spacing.extraSmall, Alignment.End)
                   } else {
-                    Arrangement.spacedBy(spacing.extraSmall)
+                    Arrangement.spacedBy(if (hideBackground) 0.dp else spacing.extraSmall)
                   },
               )
             }
@@ -3093,9 +3071,9 @@ private val CustomButtonsRowFallbackHeight = 36.dp + CustomButtonsRowInsetVertic
 // Tallest control in the shared landscape playback row: the 64dp play/pause button.
 private val SharedPlaybackRowHeight = 64.dp
 
-// Half the play/pause row: 64dp play/pause, plus 56dp previous/next spaced 24dp in a playlist.
-private fun sharedPlaybackRowHalfWidth(hasPlaylistControls: Boolean): Dp =
-  if (hasPlaylistControls) (64.dp + (56.dp + 24.dp) * 2) / 2 else 64.dp / 2
+// Match the actual playback row so its side controls never intrude on previous/next.
+private fun sharedPlaybackRowHalfWidth(hasPlaylistControls: Boolean, buttonGap: Dp): Dp =
+  if (hasPlaylistControls) (64.dp + (56.dp + buttonGap) * 2) / 2 else 64.dp / 2
 
 private val FullScreenScrimBrush =
   Brush.verticalGradient(
@@ -3120,13 +3098,6 @@ private val ControlsEdgeVignetteBrush =
     0.86f to Color.Black.copy(alpha = 0.36f),
     0.95f to Color.Black.copy(alpha = 0.52f),
     1.00f to Color.Black.copy(alpha = 0.58f),
-  )
-
-private val PlaySkipButtonShadowBrush =
-  Brush.radialGradient(
-    0.0f to Color.Black.copy(alpha = 0.3f),
-    0.7f to Color.Transparent,
-    1.0f to Color.Transparent,
   )
 
 @Composable
