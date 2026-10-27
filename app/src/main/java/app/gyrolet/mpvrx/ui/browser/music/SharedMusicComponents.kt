@@ -159,7 +159,9 @@ fun SharedMusicTrackListItem(
         when {
           !artworkUrl.isNullOrBlank() -> {
             RemoteImage(
-              maxDimensionPx = with(androidx.compose.ui.platform.LocalDensity.current) { itemArtSize.roundToPx() },
+              maxDimensionPx = with(androidx.compose.ui.platform.LocalDensity.current) {
+                itemArtSize.roundToPx() * if (isCircular) 2 else 1
+              },
               url = artworkUrl,
               contentDescription = title,
               contentScale = ContentScale.Crop,

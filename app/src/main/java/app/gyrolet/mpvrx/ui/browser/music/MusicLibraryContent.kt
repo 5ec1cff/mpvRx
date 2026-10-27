@@ -1369,7 +1369,7 @@ private fun ArtistAvatarImage(
   ) {
     if (!url.isNullOrBlank()) {
       RemoteImage(
-        maxDimensionPx = with(androidx.compose.ui.platform.LocalDensity.current) { maxWidth.roundToPx() },
+        maxDimensionPx = with(androidx.compose.ui.platform.LocalDensity.current) { maxWidth.roundToPx() * 2 },
         url = url,
         contentDescription = artistName,
         contentScale = ContentScale.Crop,

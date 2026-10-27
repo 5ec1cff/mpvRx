@@ -18,6 +18,8 @@ private const val FIXTURE_COUNT = 32
 internal fun prepareLibrary() {
   val instrumentation = InstrumentationRegistry.getInstrumentation()
   val device = UiDevice.getInstance(instrumentation)
+  // Standard uses all-files access; media runtime grants alone leave its onboarding gate closed.
+  device.executeShellCommand("appops set --uid $TARGET_PACKAGE MANAGE_EXTERNAL_STORAGE allow")
   listOf("READ_MEDIA_VIDEO", "READ_MEDIA_AUDIO", "POST_NOTIFICATIONS").forEach { permission ->
     device.executeShellCommand("pm grant $TARGET_PACKAGE android.permission.$permission")
   }
