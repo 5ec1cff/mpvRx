@@ -1,7 +1,6 @@
 package app.gyrolet.mpvrx.ui.liquidglass
 
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -56,11 +55,13 @@ fun LiquidToggle(
     onSelect: (Boolean) -> Unit,
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
-    accentColor: Color = if (isSystemInDarkTheme()) Color(0xFF30D158) else Color(0xFF34C759),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
     enabled: Boolean = true,
     isInteractive: Boolean = true,
 ) {
-    val trackColor = if (isSystemInDarkTheme()) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.20f)
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.72f)
+    val unselectedFilm = MaterialTheme.colorScheme.surfaceContainerHigh
+    val selectedFilm = lerp(MaterialTheme.colorScheme.primaryContainer, accentColor, 0.35f)
     val currentSelected = rememberUpdatedState(selected)
     val currentOnSelect = rememberUpdatedState(onSelect)
     val reduceMotion = AppMotion.shouldReduceMotion()
@@ -202,9 +203,11 @@ fun LiquidToggle(
                         scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
                     },
                     onDrawSurface = {
-                        val progress = dampedDragAnimation.pressProgress
-                        // Match Kyant's original white glass thumb.
-                        drawCapsuleTint(Color.White.copy(alpha = 1f - progress))
+                        val progress = dampedDragAnimation.pressProgress.coerceIn(0f, 1f)
+                        val selection = dampedDragAnimation.value.coerceIn(0f, 1f)
+                        val film = lerp(unselectedFilm, selectedFilm, selection)
+                            .copy(alpha = 0.58f - 0.16f * progress)
+                        drawCapsuleTint(film)
                     }
                 )
                 .size(40f.dp, 24f.dp)

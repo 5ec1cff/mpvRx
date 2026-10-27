@@ -328,9 +328,9 @@ internal fun LiquidSliderThumb(
   // A translucent themed film keeps both the accent and the refracted content visible.
   val baseFilm =
     androidx.compose.ui.graphics.lerp(
-      MaterialTheme.colorScheme.surfaceContainerHigh,
+      MaterialTheme.colorScheme.primaryContainer,
       accentColor,
-      0.18f,
+      0.35f,
     )
   val thumbShadow = remember { Shadow(radius = 4.dp, color = Color.Black.copy(alpha = 0.05f)) }
   val thumbModifier =
@@ -370,15 +370,9 @@ internal fun LiquidSliderThumb(
         scaleY *= 1f - (velocity * 0.25f).fastCoerceIn(-0.2f, 0.2f)
       },
       onDrawSurface = {
-        val progress = animation.pressProgress
-        val film = baseFilm.copy(alpha = if (enabled) 0.72f - 0.28f * progress else 0.32f)
-        val thumbFilm =
-          androidx.compose.ui.graphics.lerp(
-            Color.White,
-            film,
-            progress.coerceIn(0f, 1f),
-          )
-        drawCapsuleTint(settings.surfaceColor(thumbFilm))
+        val progress = animation.pressProgress.coerceIn(0f, 1f)
+        val film = baseFilm.copy(alpha = if (enabled) 0.58f - 0.16f * progress else 0.24f)
+        drawCapsuleTint(settings.surfaceColor(film))
       },
     )
   Box(modifier.then(thumbModifier).size(40.dp, 24.dp))
