@@ -19,9 +19,9 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import com.kyant.backdrop.Backdrop
 
 object PlayerLiquidTokens {
-  val ButtonSize: Dp = 40.dp
+  val ButtonSize: Dp = 44.dp
   val CenterButtonSize: Dp = 72.dp
-  val IconSize: Dp = 22.dp
+  val IconSize: Dp = 24.dp
   val CenterIconSize: Dp = 34.dp
   val PillHeight: Dp = 40.dp
 

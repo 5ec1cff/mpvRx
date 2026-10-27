@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsButton
+import app.gyrolet.mpvrx.ui.liquidglass.PlayerLiquidTokens
 import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 import app.gyrolet.mpvrx.ui.theme.spacing
@@ -82,7 +83,7 @@ fun ControlsButton(
     onLongClickLabel = onLongClickLabel,
     hideBackground = LocalHidePlayerButtonsBackground.current,
     useGlass = true,
-    buttonSize = 40.dp,
+    buttonSize = PlayerLiquidTokens.ButtonSize,
   )
 }
 

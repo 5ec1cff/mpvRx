@@ -1747,7 +1747,7 @@ is PlayerUpdates.FrameInfo -> {
                 icon = Icons.RoundedFilled.LockOpen,
                 onClick = viewModel::unlockControls,
                 title = stringResource(R.string.ui_unlock_controls),
-                modifier = Modifier.size(45.dp),
+                modifier = Modifier.size(48.dp),
               )
             }
           }
@@ -1951,7 +1951,7 @@ is PlayerUpdates.FrameInfo -> {
                   },
                   modifier =
                     Modifier
-                      .size(56.dp)
+                      .size(PlaybackSkipButtonSize)
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasPrevious()),
                   color =
                     if (viewModel.hasPrevious()) {
@@ -1961,7 +1961,7 @@ is PlayerUpdates.FrameInfo -> {
                     },
                   isInteractive = viewModel.hasPrevious(),
                   hideBackground = hideBackground,
-                  buttonSize = 56.dp,
+                  buttonSize = PlaybackSkipButtonSize,
                   horizontalPadding = 0.dp,
                 ) {
                   Icon(
@@ -1985,12 +1985,12 @@ is PlayerUpdates.FrameInfo -> {
                   },
                   modifier =
                     Modifier
-                      .size(64.dp)
+                      .size(PlaybackPlayPauseButtonSize)
                       .tvInitialFocus(tvPlayFocusRequester)
                       .tvFocusHighlight(CircleShape),
                   color = if (hideBackground) controlColor else playerButtonContentColor(),
                   hideBackground = hideBackground,
-                  buttonSize = 64.dp,
+                  buttonSize = PlaybackPlayPauseButtonSize,
                   horizontalPadding = 0.dp,
                 ) {
                   AnimatedPlayPauseIcon(
@@ -2012,7 +2012,7 @@ is PlayerUpdates.FrameInfo -> {
                   },
                   modifier =
                     Modifier
-                      .size(56.dp)
+                      .size(PlaybackSkipButtonSize)
                       .tvFocusHighlight(CircleShape, enabled = viewModel.hasNext()),
                   color =
                     if (viewModel.hasNext()) {
@@ -2022,7 +2022,7 @@ is PlayerUpdates.FrameInfo -> {
                     },
                   isInteractive = viewModel.hasNext(),
                   hideBackground = hideBackground,
-                  buttonSize = 56.dp,
+                  buttonSize = PlaybackSkipButtonSize,
                   horizontalPadding = 0.dp,
                 ) {
                   Icon(
@@ -2047,12 +2047,12 @@ is PlayerUpdates.FrameInfo -> {
                 },
                 modifier =
                   Modifier
-                    .size(64.dp)
+                    .size(PlaybackPlayPauseButtonSize)
                     .tvInitialFocus(tvPlayFocusRequester)
                     .tvFocusHighlight(CircleShape),
                 color = if (hideBackground) controlColor else playerButtonContentColor(),
                 hideBackground = hideBackground,
-                buttonSize = 64.dp,
+                buttonSize = PlaybackPlayPauseButtonSize,
                 horizontalPadding = 0.dp,
               ) {
                 AnimatedPlayPauseIcon(
@@ -3068,12 +3068,19 @@ private val CustomButtonsRowInsetHorizontal = 8.dp
 private val CustomButtonsRowInsetVertical = 8.dp
 private val CustomButtonsRowFallbackHeight = 36.dp + CustomButtonsRowInsetVertical * 2
 
-// Tallest control in the shared landscape playback row: the 64dp play/pause button.
-private val SharedPlaybackRowHeight = 64.dp
+private val PlaybackPlayPauseButtonSize = 68.dp
+private val PlaybackSkipButtonSize = 60.dp
+
+// The same size drives both the button and its reserved row height.
+private val SharedPlaybackRowHeight = PlaybackPlayPauseButtonSize
 
 // Match the actual playback row so its side controls never intrude on previous/next.
 private fun sharedPlaybackRowHalfWidth(hasPlaylistControls: Boolean, buttonGap: Dp): Dp =
-  if (hasPlaylistControls) (64.dp + (56.dp + buttonGap) * 2) / 2 else 64.dp / 2
+  if (hasPlaylistControls) {
+    (PlaybackPlayPauseButtonSize + (PlaybackSkipButtonSize + buttonGap) * 2) / 2
+  } else {
+    PlaybackPlayPauseButtonSize / 2
+  }
 
 private val FullScreenScrimBrush =
   Brush.verticalGradient(

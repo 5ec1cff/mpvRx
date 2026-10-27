@@ -113,7 +113,7 @@ fun RenderPlayerButton(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
-  buttonSize: Dp = 40.dp,
+  buttonSize: Dp = 44.dp,
   compact: Boolean = false,
 ) {
   PlayerButtonContentTheme {

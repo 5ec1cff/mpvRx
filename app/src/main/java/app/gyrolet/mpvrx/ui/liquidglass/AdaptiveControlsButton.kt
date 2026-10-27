@@ -62,7 +62,7 @@ fun AdaptiveControlsButton(
   title: String? = null,
   color: Color? = null,
   surfaceColor: Color = Color.Unspecified,
-  buttonSize: Dp = 40.dp,
+  buttonSize: Dp = PlayerLiquidTokens.ButtonSize,
   useGlass: Boolean = true,
   backdrop: Backdrop? = LocalKyantPlayerBackdrop.current,
   enabled: Boolean = true,

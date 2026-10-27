@@ -88,7 +88,7 @@ fun TopLeftPlayerControlsLandscape(
           icon = Icons.RoundedFilled.ArrowBack,
           onClick = onBackPress,
           color = if (hideBackground) controlColor else playerButtonContentColor(),
-          modifier = Modifier.size(45.dp),
+          modifier = Modifier.size(48.dp),
         )
 
         Column {
@@ -300,7 +300,7 @@ fun TopRightPlayerControlsLandscape(
           onOpenPanel = onOpenPanel,
           viewModel = viewModel,
           activity = activity,
-          buttonSize = 45.dp,
+          buttonSize = 48.dp,
         )
       }
     }
@@ -353,7 +353,7 @@ fun BottomRightPlayerControlsLandscape(
           onOpenPanel = onOpenPanel,
           viewModel = viewModel,
           activity = activity,
-          buttonSize = 45.dp,
+          buttonSize = 48.dp,
         )
       }
       if (showVideoQualitySelector) {
@@ -361,7 +361,7 @@ fun BottomRightPlayerControlsLandscape(
           icon = Icons.RoundedFilled.Hd,
           onClick = { onOpenSheet(Sheets.VideoQuality) },
           title = stringResource(R.string.player_video_quality_button),
-          modifier = Modifier.size(45.dp),
+          modifier = Modifier.size(48.dp),
         )
       }
     }
@@ -411,7 +411,7 @@ fun BottomLeftPlayerControlsLandscape(
           onOpenPanel = onOpenPanel,
           viewModel = viewModel,
           activity = activity,
-          buttonSize = 45.dp,
+          buttonSize = 48.dp,
         )
       }
     }

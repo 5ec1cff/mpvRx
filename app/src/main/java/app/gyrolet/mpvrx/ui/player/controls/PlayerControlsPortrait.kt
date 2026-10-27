@@ -89,7 +89,7 @@ fun TopPlayerControlsPortrait(
             icon = Icons.RoundedFilled.ArrowBack,
             onClick = onBackPress,
             color = if (hideBackground) controlColor else playerButtonContentColor(),
-            modifier = Modifier.size(45.dp),
+            modifier = Modifier.size(48.dp),
           )
 
           Column(
@@ -307,7 +307,7 @@ fun BottomPlayerControlsPortrait(
           activity = activity,
           decoder = decoder,
           playbackSpeed = playbackSpeed,
-          buttonSize = 44.dp, // Slightly more compact size
+          buttonSize = 48.dp,
         )
       }
       if (showVideoQualitySelector) {
@@ -315,7 +315,7 @@ fun BottomPlayerControlsPortrait(
           icon = Icons.RoundedFilled.Hd,
           onClick = { onOpenSheet(Sheets.VideoQuality) },
           title = stringResource(R.string.player_video_quality_button),
-          modifier = Modifier.size(44.dp),
+          modifier = Modifier.size(48.dp),
         )
       }
     }
