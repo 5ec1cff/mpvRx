@@ -1755,6 +1755,8 @@ class PlayerActivity :
 
     // Some keyguards report unlocked only after onStart/onResume and SCREEN_ON have returned.
     restoreForegroundVideoAndAmbientIfUnlocked()
+    // Restore bars requested with controls after keyguard, dialogs and OEM immersive resets.
+    applySystemBarsForPlayback()
     if (shouldAutoHideSystemBars()) {
       scheduleSystemBarsAutoHide(delayMs = 250L)
     }
@@ -2540,9 +2542,21 @@ class PlayerActivity :
         binding.player.applyOsdSafeAreaMargins(ViewCompat.getRootWindowInsets(binding.root))
       }
     }
+    // Treat the controls and both preferences as one source of truth. In particular, API 26-29
+    // may clear legacy immersive flags on focus changes, so reapply to the Activity window rather
+    // than relying on one-off changes made when a control is tapped.
     lifecycleScope.launch {
-      playerPreferences.showSystemStatusBar.changes().drop(1).collect {
-        updateStatusBarProtection()
+      repeatOnLifecycle(Lifecycle.State.STARTED) {
+        combine(
+          viewModel.controlsShown,
+          viewModel.isAudioOnly,
+          playerPreferences.showSystemStatusBar.changes(),
+          playerPreferences.showSystemNavigationBar.changes(),
+        ) { controlsShown, isAudio, showStatus, showNavigation ->
+          listOf(controlsShown, isAudio, showStatus, showNavigation)
+        }.distinctUntilChanged().collect {
+          applySystemBarsForPlayback()
+        }
       }
     }
     binding.root.post { ViewCompat.requestApplyInsets(binding.root) }
@@ -2596,7 +2610,7 @@ class PlayerActivity :
       lifecycleScope.launch {
         delay(delayMs)
         if (shouldAutoHideSystemBars()) {
-          hideSystemBarsForPlayback()
+          applySystemBarsForPlayback()
         }
       }
   }
@@ -2606,46 +2620,51 @@ class PlayerActivity :
     systemBarsAutoHideJob = null
   }
 
-  private fun hideSystemBarsForPlayback() {
+  private fun applySystemBarsForPlayback() {
     cancelSystemBarsAutoHide()
+    if (isInPictureInPictureMode) return
+
     val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
-    if (isAudio) {
-      try {
-        windowInsetsController.apply {
-          systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
-          show(WindowInsetsCompat.Type.statusBars())
-          show(WindowInsetsCompat.Type.navigationBars())
-          isAppearanceLightStatusBars = false
-          isAppearanceLightNavigationBars = false
-        }
-      } catch (e: Exception) {
-        Log.e(TAG, "Failed to show system bars for audio playback", e)
-      }
-      return
-    }
+    val controlsVisible = viewModel.controlsShown.value
+    val showStatus = isAudio || (controlsVisible && playerPreferences.showSystemStatusBar.get())
+    val showNavigation = isAudio || (controlsVisible && playerPreferences.showSystemNavigationBar.get())
+
     try {
+      // WindowInsetsControllerCompat translates this into the legacy fullscreen/navigation flags
+      // on Android 8-10 and uses WindowInsetsController on Android 11+. Keep immersive behavior
+      // even when only one of the two system bars is hidden.
       windowInsetsController.apply {
-        hide(WindowInsetsCompat.Type.statusBars())
-        hide(WindowInsetsCompat.Type.navigationBars())
-        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        systemBarsBehavior =
+          if (isAudio) WindowInsetsControllerCompat.BEHAVIOR_DEFAULT
+          else WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        if (showStatus) show(WindowInsetsCompat.Type.statusBars())
+        else hide(WindowInsetsCompat.Type.statusBars())
+
+        if (showNavigation) show(WindowInsetsCompat.Type.navigationBars())
+        else hide(WindowInsetsCompat.Type.navigationBars())
+
+        isAppearanceLightStatusBars = false
+        isAppearanceLightNavigationBars = false
       }
     } catch (e: Exception) {
-      Log.e(TAG, "Failed to hide system bars for playback", e)
+      Log.e(TAG, "Failed to update player system bars", e)
     }
+    updateStatusBarProtection()
   }
 
   private fun setupSystemUI() {
-    updateStatusBarProtection()
-
-    // Always start with status bar hidden - it will show when controls are shown
-    hideSystemBarsForPlayback()
+    applySystemBarsForPlayback()
   }
 
   private fun updateStatusBarProtection(insets: WindowInsetsCompat? = ViewCompat.getRootWindowInsets(binding.root)) {
     val isAudio = viewModel.isAudioOnly.value || isKnownAudioLaunch(intent) || isCurrentMediaKnownAudio()
     val scrimHeight =
-      if (!isAudio && !isInPictureInPictureMode && playerPreferences.showSystemStatusBar.get()) {
-        insets?.getInsets(WindowInsetsCompat.Type.statusBars())?.top ?: 0
+      if (!isAudio && !isInPictureInPictureMode &&
+        playerPreferences.showSystemStatusBar.get() &&
+        insets?.isVisible(WindowInsetsCompat.Type.statusBars()) == true
+      ) {
+        insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
       } else {
         0
       }

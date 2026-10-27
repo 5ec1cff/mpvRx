@@ -32,7 +32,6 @@ import android.view.inputmethod.InputMethodManager
 import android.webkit.MimeTypeMap
 import app.gyrolet.mpvrx.ui.components.AppToast as Toast
 import androidx.core.net.toUri
-import androidx.core.view.WindowInsetsCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -5121,37 +5120,16 @@ fun restartFromBeginning() {
 
   // ==================== UI Control ====================
 
+  // PlayerActivity is the sole owner of system bar visibility. Updating the control state
+  // here lets it apply both user preferences consistently on all supported Android versions.
   fun showControls() {
     if (sheetShown.value != Sheets.None || panelShown.value != Panels.None) return
-    if (!isAudioOnly.value && !hostedInBrowser) {
-      try {
-        if (playerPreferences.showSystemStatusBar.get()) {
-          host?.windowInsetsController?.show(WindowInsetsCompat.Type.statusBars())
-          host?.windowInsetsController?.isAppearanceLightStatusBars = false
-        }
-        if (playerPreferences.showSystemNavigationBar.get()) {
-          host?.windowInsetsController?.show(WindowInsetsCompat.Type.navigationBars())
-        }
-      } catch (e: Exception) {
-        // Defensive: InsetsController animation can crash under FD pressure
-        // (e.g. during high-res HEVC playback on certain devices)
-        Log.e(TAG, "Failed to show system bars", e)
-      }
-    }
     _controlsShown.value = true
     _controlsInteractionEpoch.value++
     controlsVisibleForPolling = true
   }
 
   fun hideControls() {
-    if (!isAudioOnly.value && !hostedInBrowser) {
-      try {
-        host?.windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        host?.windowInsetsController?.hide(WindowInsetsCompat.Type.navigationBars())
-      } catch (e: Exception) {
-        Log.e(TAG, "Failed to hide system bars", e)
-      }
-    }
     _controlsShown.value = false
     _seekBarShown.value = false
     controlsVisibleForPolling = false
@@ -5159,14 +5137,6 @@ fun restartFromBeginning() {
   }
 
   fun autoHideControls() {
-    if (!isAudioOnly.value && !hostedInBrowser) {
-      try {
-        host?.windowInsetsController?.hide(WindowInsetsCompat.Type.statusBars())
-        host?.windowInsetsController?.hide(WindowInsetsCompat.Type.navigationBars())
-      } catch (e: Exception) {
-        Log.e(TAG, "Failed to hide system bars", e)
-      }
-    }
     _controlsShown.value = false
     _seekBarShown.value = true
     controlsVisibleForPolling = false
