@@ -514,7 +514,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
           selectedTab = selectedTab,
           onTabSelected = onTabSelected,
           pagerState = pagerState,
-          hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
+          hazeBackdrop = navigationBackdrop,
           kyantBackdrop = liquidNavigationBackdrop,
           liquidGlassEnabled = liquidGlassEnabled,
           modifier = modifier,
@@ -582,7 +582,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                 .then(
                     when {
                       liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
-                      !legacyNavigationBar && progressiveNavigationBlur -> Modifier.hazeSource(navigationBackdrop)
+                      !legacyNavigationBar -> Modifier.hazeSource(navigationBackdrop)
                       else -> Modifier
                     },
                   ),
@@ -613,7 +613,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                   .then(
                     when {
                       liquidGlassEnabled -> Modifier.layerBackdrop(liquidLayerBackdrop)
-                      !legacyNavigationBar && progressiveNavigationBlur -> Modifier.hazeSource(navigationBackdrop)
+                      !legacyNavigationBar -> Modifier.hazeSource(navigationBackdrop)
                       else -> Modifier
                     },
                   ),
@@ -949,7 +949,7 @@ object MainScreen : Screen, TvEdgeToEdgeScreen {
                     selectedTab = selectedTab,
                     onTabSelected = onTabSelected,
                     pagerState = pagerState,
-                    hazeBackdrop = navigationBackdrop.takeIf { progressiveNavigationBlur },
+                    hazeBackdrop = navigationBackdrop,
                     kyantBackdrop = liquidNavigationBackdrop,
                     liquidGlassEnabled = liquidGlassEnabled,
                     modifier = navModifier,
@@ -1177,6 +1177,14 @@ internal fun ExpressivePillNavigationBar(
         translationX = motion.frame.panelOffset * density.density
       },
     ) {
+      NavigationPlayerConnection(
+        hazeBackdrop = hazeBackdrop,
+        glassBackdrop = kyantBackdrop,
+        liquidGlassEnabled = liquidGlassEnabled,
+        surfaceColor = surfaceColor,
+        reducedMotion = reducedMotion,
+        modifier = Modifier.matchParentSize(),
+      )
       if (liquidGlassEnabled && kyantBackdrop != null) {
         Box(
           modifier =

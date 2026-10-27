@@ -4,30 +4,198 @@ import android.graphics.RenderEffect
 import android.graphics.RuntimeShader
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
+import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
+import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
+import kotlin.math.min
+import kotlin.math.roundToInt
+
+@Composable
+internal fun NavigationPlayerConnection(
+  hazeBackdrop: HazeState?,
+  glassBackdrop: Backdrop?,
+  liquidGlassEnabled: Boolean,
+  surfaceColor: Color,
+  reducedMotion: Boolean,
+  modifier: Modifier = Modifier,
+) {
+  var navigationBounds by remember { mutableStateOf(Rect.Zero) }
+  var lastBridge by remember { mutableStateOf<NavigationPlayerBridge?>(null) }
+  val density = LocalDensity.current
+  val miniBounds = NavigationBarState.miniPlayerBounds
+  val currentBridge = remember(navigationBounds, miniBounds, density) {
+    with(density) { navigationPlayerBridge(navigationBounds, miniBounds, 64.dp.toPx(), 1.dp.toPx()) }
+  }
+  SideEffect { if (currentBridge != null) lastBridge = currentBridge }
+  val musicSheet = LocalInAppMusicSheet.current
+  val connected = currentBridge != null && NavigationBarState.miniPlayerConnectionEnabled &&
+    NavigationBarState.isNavBarVisible && !NavigationBarState.isInSelectionMode &&
+    musicSheet?.isVisible != true && PlayerSheetTransitions.motion == null &&
+    PlayerSheetTransitions.drag == null && PlayerSheetTransitions.expandingMediaId == null
+  val progress = animateFloatAsState(
+    targetValue = if (connected) 1f else 0f,
+    animationSpec = if (reducedMotion) snap() else tween(240, easing = FastOutSlowInEasing),
+    label = "navigation_player_connection",
+  )
+  val settings = rememberLiquidGlassSettings()
+  val blurStyle = remember(surfaceColor) {
+    HazeBlurStyle {
+      blurRadius(24.dp)
+      backgroundColor(surfaceColor)
+      colorEffects(listOf(HazeColorEffect.tint(Color.Transparent)))
+      noiseFactor(0f)
+    }
+  }
+  Box(modifier.onGloballyPositioned { navigationBounds = it.boundsInRoot() }) {
+    val bridge = currentBridge ?: lastBridge ?: return@Box
+    if (progress.value <= 0f) return@Box
+    val shape = remember(bridge.horizontal) { NavigationPlayerBridgeShape(bridge.horizontal) }
+    val useGlass = liquidGlassEnabled && glassBackdrop != null
+    val surface = if (useGlass) {
+      Modifier.drawBackdrop(
+        backdrop = checkNotNull(glassBackdrop),
+        shape = { shape },
+        effects = { liquidGlassEffects(settings, 8.dp.toPx(), 18.dp.toPx(), 22.dp.toPx(), refractionEnabled = !reducedMotion) },
+        highlight = null,
+        shadow = null,
+        onDrawSurface = { drawRect(settings.surfaceColor(surfaceColor.copy(alpha = 0.32f))) },
+      )
+    } else {
+      val canBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && hazeBackdrop != null
+      val navTint = surfaceColor.copy(alpha = if (canBlur) 0.55f else 1f)
+      val miniTint = surfaceColor.copy(alpha = if (canBlur) 0.96f else 1f)
+      val colors = if (bridge.miniAtStart) listOf(miniTint, navTint) else listOf(navTint, miniTint)
+      val tint = if (bridge.horizontal) Brush.horizontalGradient(colors) else Brush.verticalGradient(colors)
+      (if (canBlur) Modifier.hazeBlur(input = HazeInput.Sources(checkNotNull(hazeBackdrop)), style = blurStyle) else Modifier)
+        .background(tint)
+    }
+    Box(
+      Modifier
+        .layout { measurable, constraints ->
+          val bounds = bridge.bounds
+          val placeable = measurable.measure(
+            Constraints.fixed(bounds.width.roundToInt().coerceAtLeast(1), bounds.height.roundToInt().coerceAtLeast(1)),
+          )
+          layout(constraints.maxWidth, constraints.maxHeight) {
+            placeable.place(bounds.left.roundToInt(), bounds.top.roundToInt())
+          }
+        }
+        .graphicsLayer {
+          alpha = progress.value
+          scaleX = if (bridge.horizontal) 1f else progress.value
+          scaleY = if (bridge.horizontal) progress.value else 1f
+          this.shape = shape
+          clip = true
+        }
+        .then(surface),
+    )
+  }
+}
+
+private data class NavigationPlayerBridge(val bounds: Rect, val horizontal: Boolean, val miniAtStart: Boolean)
+
+private fun navigationPlayerBridge(navigation: Rect, mini: Rect, maxGap: Float, inset: Float): NavigationPlayerBridge? {
+  if (navigation.isEmpty || mini.isEmpty) return null
+  val overlapLeft = maxOf(navigation.left, mini.left)
+  val overlapRight = minOf(navigation.right, mini.right)
+  val verticalGap = navigation.top - mini.bottom
+  if (verticalGap in 0f..maxGap && overlapRight - overlapLeft >= maxGap) {
+    val halfWidth = min((overlapRight - overlapLeft) * 0.25f, maxGap * 0.875f)
+    val center = ((navigation.center.x + mini.center.x) / 2f).coerceIn(overlapLeft + halfWidth, overlapRight - halfWidth)
+    return NavigationPlayerBridge(
+      Rect(center - halfWidth, mini.bottom - inset, center + halfWidth, navigation.top + inset)
+        .translate(-navigation.topLeft),
+      horizontal = false,
+      miniAtStart = true,
+    )
+  }
+  val overlapTop = maxOf(navigation.top, mini.top)
+  val overlapBottom = minOf(navigation.bottom, mini.bottom)
+  if (overlapBottom <= overlapTop) return null
+  val miniOnRight = mini.left >= navigation.right
+  val gap = if (miniOnRight) mini.left - navigation.right else navigation.left - mini.right
+  if (gap !in 0f..maxGap) return null
+  val halfHeight = min((overlapBottom - overlapTop) * 0.3f, maxGap * 0.3125f)
+  val center = (overlapTop + overlapBottom) / 2f
+  val shoulderInset = inset * 8f
+  return NavigationPlayerBridge(
+    Rect(
+      if (miniOnRight) navigation.right - shoulderInset else mini.right - shoulderInset,
+      center - halfHeight,
+      if (miniOnRight) mini.left + shoulderInset else navigation.left + shoulderInset,
+      center + halfHeight,
+    ).translate(-navigation.topLeft),
+    horizontal = true,
+    miniAtStart = !miniOnRight,
+  )
+}
+
+private class NavigationPlayerBridgeShape(private val horizontal: Boolean) : Shape {
+  override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+    fun point(across: Float, along: Float): Offset =
+      if (horizontal) Offset(along * size.width, across * size.height) else Offset(across * size.width, along * size.height)
+    val path = Path()
+    fun curve(first: Offset, second: Offset, end: Offset) {
+      path.cubicTo(first.x, first.y, second.x, second.y, end.x, end.y)
+    }
+    path.moveTo(0f, 0f)
+    val topEnd = point(1f, 0f)
+    path.lineTo(topEnd.x, topEnd.y)
+    curve(point(0.68f, 0f), point(0.68f, 0.15f), point(0.68f, 0.5f))
+    curve(point(0.68f, 0.85f), point(0.68f, 1f), point(1f, 1f))
+    val bottomStart = point(0f, 1f)
+    path.lineTo(bottomStart.x, bottomStart.y)
+    curve(point(0.32f, 1f), point(0.32f, 0.85f), point(0.32f, 0.5f))
+    curve(point(0.32f, 0.15f), point(0.32f, 0f), Offset.Zero)
+    path.close()
+    return Outline.Generic(path)
+  }
+}
 
 @Composable
 internal fun NavigationGlassSurface(
