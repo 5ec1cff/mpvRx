@@ -276,18 +276,18 @@ data object SecureFolderGateScreen : Screen {
                 SecureFolderViewModel.GateStep.ENTER_PIN -> {
                   if (showPinEntry) {
                     EnterPinContent(
-                    error = gateError,
-                    onSubmit = { pin ->
-                      val ok = viewModel.verifyPin(pin)
-                      if (ok) backstack.replaceTop(SecureFolderScreen)
-                      ok
-                    },
-                    onForgotPin = { viewModel.startForgotPinFlow() },
-                    pinLength = storedPinLength,
-                    isBiometricAvailable = isBiometricAvailable,
-                    isBiometricEnabled = isBiometricEnabled,
-                    canAuthenticateBiometric = canAuthenticateBiometric,
-                    onBiometricClick = { showBiometricPrompt() },
+                      error = gateError,
+                      onSubmit = { pin ->
+                        val ok = viewModel.verifyPin(pin)
+                        if (ok) backstack.replaceTop(SecureFolderScreen)
+                        ok
+                      },
+                      onForgotPin = { viewModel.startForgotPinFlow() },
+                      pinLength = storedPinLength,
+                      isBiometricAvailable = isBiometricAvailable,
+                      isBiometricEnabled = isBiometricEnabled,
+                      canAuthenticateBiometric = canAuthenticateBiometric,
+                      onBiometricClick = { showBiometricPrompt() },
                     )
                   }
                 }
@@ -968,4 +968,3 @@ internal fun PinField(
     modifier = modifier.fillMaxWidth(),
   )
 }
-

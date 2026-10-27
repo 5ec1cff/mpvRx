@@ -1201,9 +1201,9 @@ internal fun ExpressivePillNavigationBar(
                 shape = { navigationShape },
                 effects = {
                   liquidGlassEffects(
-                    glassSettings, 8.dp.toPx(), 24.dp.toPx() * (1f - dockProgress), 24.dp.toPx() * (1f - dockProgress),
+                    glassSettings, 8.dp.toPx(), 24.dp.toPx(), 24.dp.toPx(),
                     vibrant = true,
-                    refractionEnabled = !reducedMotion && dockProgress < 1f,
+                    refractionEnabled = !reducedMotion,
                   )
                 },
                 highlight = {

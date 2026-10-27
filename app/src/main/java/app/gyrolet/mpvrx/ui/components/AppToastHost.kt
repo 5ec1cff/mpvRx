@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -165,16 +166,17 @@ internal fun AppToastHost(content: @Composable () -> Unit) {
       Toaster(
         state = toaster,
         modifier = Modifier.widthIn(max = 440.dp)
-          .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
+          .zIndex(Float.MAX_VALUE)
+          .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
         maxVisibleToasts = 2,
         swipeable = true,
-        alignment = Alignment.TopCenter,
+        alignment = Alignment.BottomCenter,
         contentPadding = { PaddingValues(0.dp) },
         containerPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         elevation = 0.dp,
         border = { BorderStroke(0.dp, Color.Transparent) },
         background = { SolidColor(Color.Transparent) },
-        shape = { RoundedCornerShape(8.dp) },
+        shape = { RoundedCornerShape(24.dp) },
         enterTransitionDuration = if (reducedMotion) 0 else 180,
         exitTransitionDuration = if (reducedMotion) 0 else 150,
         iconSlot = {},
@@ -202,12 +204,13 @@ private fun AppToastContent(message: AppToastMessage, haze: HazeState, reducedMo
     AppToastType.Normal -> colors.onSurfaceVariant
   }
   val surface = lerp(colors.surfaceContainerHigh, tone, 0.06f)
-  val shape = RoundedCornerShape(8.dp)
+  val shape = RoundedCornerShape(24.dp)
   val blurStyle = remember(surface) {
     HazeBlurStyle {
-      blurRadius(20.dp)
+      blurRadius(24.dp)
       backgroundColor(surface)
-      colorEffects(listOf(HazeColorEffect.tint(surface.copy(alpha = 0.86f))))
+      colorEffects(listOf(HazeColorEffect.tint(surface.copy(alpha = 0.48f))))
+      fallbackColorEffect(HazeColorEffect.tint(surface.copy(alpha = 0.94f)))
       noiseFactor(0.01f)
     }
   }
