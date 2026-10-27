@@ -1071,6 +1071,7 @@ fun JellyfinDetailSheet(
 
                   if (!person.primaryImageTag.isNullOrBlank()) {
                     RemoteImage(
+                      maxDimensionPx = 256,
                       url = personImageUrl,
                       contentDescription = person.name,
                       contentScale = ContentScale.Crop,

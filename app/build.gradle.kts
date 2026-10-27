@@ -61,6 +61,7 @@ val previewVersionCode =
 
 plugins {
   alias(libs.plugins.android.application)
+  alias(libs.plugins.baselineprofile)
   alias(libs.plugins.kotlin.compose.compiler)
   alias(libs.plugins.kotlinx.serialization)
   alias(libs.plugins.ksp)
@@ -86,6 +87,7 @@ android {
     applicationId = "app.gyrolet.mpvrx"
     minSdk = 26
     targetSdk = 36
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     // Stable occupies the top of its version band. Preview uses the next band's commit-count
     // offset, so Stable -> Preview -> newer Preview -> next Stable is always an Android upgrade.
     versionCode = stableVersionCode
@@ -336,7 +338,16 @@ room {
   schemaDirectory("$projectDir/schemas")
 }
 
+baselineProfile {
+  // Ordinary release/preview builds must not require an emulator or launch instrumentation tests.
+  automaticGenerationDuringBuild = false
+  saveInSrc = true
+}
+
 dependencies {
+  baselineProfile(project(":baselineprofile"))
+  androidTestImplementation(libs.androidx.test.runner)
+  androidTestImplementation(libs.androidx.test.ext.junit)
   implementation(libs.androidx.activity.compose)
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.ui)

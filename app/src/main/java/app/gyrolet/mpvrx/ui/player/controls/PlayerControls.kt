@@ -235,10 +235,10 @@ internal fun AudioPlayerScreen(
   val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
   val playbackQueue by PlaybackSession.queue.collectAsStateWithLifecycle()
   val currentPlaybackItem = playbackQueue.currentItem
-  val chapters by viewModel.playbackChapters.collectAsState(persistentListOf())
-  val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsState()
-  val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
-  val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
+  val chapters by viewModel.playbackChapters.collectAsStateWithLifecycle(persistentListOf())
+  val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsStateWithLifecycle()
+  val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsStateWithLifecycle()
+  val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsStateWithLifecycle()
   val decoder = remember(activeDecoder, configuredDecoder) {
     getDecoderFromValue(activeDecoder?.takeIf { it.isNotBlank() } ?: configuredDecoder ?: "auto")
   }
@@ -266,7 +266,7 @@ internal fun AudioPlayerScreen(
   }
 
   val audioBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsState()
-  val audioPositionState = viewModel.precisePosition.collectAsState()
+  val audioPositionState = viewModel.precisePosition.collectAsStateWithLifecycle()
   // Only the chapter index is needed here. Reading the position clock directly re-ran this whole
   // screen every polling tick; a derived index recomposes only when the chapter changes.
   val audioChapterIndex by remember(chapters, currentPlaybackItem, audioBook) {
@@ -280,7 +280,7 @@ internal fun AudioPlayerScreen(
       }
     }
   }
-  val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsState()
+  val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsStateWithLifecycle()
   val queuedTitle =
     playbackQueue.currentItem?.title?.takeIf { playbackQueue.isExplicitQueue && it.isNotBlank() }
   val currentTitleForControls by rememberUpdatedState(titleForControls)
@@ -432,15 +432,15 @@ fun PlayerControls(
   val statisticsPage by advancedPreferences.enabledStatisticsPage.collectAsState()
   val areControlsLocked by viewModel.areControlsLocked.collectAsState()
   val seekBarShown by viewModel.seekBarShown.collectAsState()
-  val paused by PlaybackSession.propBoolean["pause"].collectAsState()
+  val paused by PlaybackSession.propBoolean["pause"].collectAsStateWithLifecycle()
   val playbackSessionState by PlaybackSession.state.collectAsStateWithLifecycle()
-  val duration by PlaybackSession.propInt["duration"].collectAsState()
+  val duration by PlaybackSession.propInt["duration"].collectAsStateWithLifecycle()
   val playbackQueue by PlaybackSession.queue.collectAsStateWithLifecycle()
   val preciseDuration by viewModel.preciseDuration.collectAsState()
   val scopeAudioTracks by viewModel.audioTracks.collectAsState(persistentListOf())
   val mediaScopesState by viewModel.mediaScopesUiState.collectAsState()
   val currentQueueItem = playbackSessionState.currentItem ?: playbackQueue.currentItem
-  val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsState()
+  val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsStateWithLifecycle()
   val seekbarDuration =
     if (preciseDuration > 0) {
       preciseDuration
@@ -494,14 +494,14 @@ fun PlayerControls(
       Modifier
     }
   var wasPlayerAlreadyPaused by remember { mutableStateOf(false) }
-  val mpvSeeking by PlaybackSession.propBoolean["seeking"].collectAsState()
+  val mpvSeeking by PlaybackSession.propBoolean["seeking"].collectAsStateWithLifecycle()
   val isPlayerSeeking = isSeeking || (mpvSeeking ?: false)
   // mpv can remain "seeking" until its cache refills. Only active scrubbing suppresses the spinner;
   // a real cache wait stays visible even when the controls have faded out.
   val showBufferingIndicator = bufferingState.visible
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
-  val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsState()
-  val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsState()
+  val configuredDecoder by PlaybackSession.propString["hwdec"].collectAsStateWithLifecycle()
+  val activeDecoder by PlaybackSession.propString["hwdec-current"].collectAsStateWithLifecycle()
   val decoder = remember(activeDecoder, configuredDecoder) {
     getDecoderFromValue(activeDecoder?.takeIf { it.isNotBlank() } ?: configuredDecoder ?: "auto")
   }
@@ -509,8 +509,8 @@ fun PlayerControls(
     abs((playbackSpeed ?: 1f) - 1f) > 0.001f
   }
   val playerTimeToDisappear by playerPreferences.playerTimeToDisappear.collectAsState()
-  val chapters by viewModel.playbackChapters.collectAsState(persistentListOf())
-  val chapterPositionState = viewModel.precisePosition.collectAsState()
+  val chapters by viewModel.playbackChapters.collectAsStateWithLifecycle(persistentListOf())
+  val chapterPositionState = viewModel.precisePosition.collectAsStateWithLifecycle()
   val currentChapter by remember(chapters) {
     androidx.compose.runtime.derivedStateOf { chapters.indexOfLast { it.start <= chapterPositionState.value }.takeIf { it >= 0 } }
   }
@@ -593,7 +593,7 @@ fun PlayerControls(
     }
   val aspect by viewModel.videoAspect.collectAsState()
   val currentZoom by viewModel.videoZoom.collectAsState()
-  val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsState()
+  val rawMediaTitle by PlaybackSession.propString["media-title"].collectAsStateWithLifecycle()
   val queuedTitle =
     playbackQueue.currentItem?.title?.takeIf { playbackQueue.isExplicitQueue && it.isNotBlank() }
   val mediaTitle =
@@ -743,7 +743,7 @@ fun PlayerControls(
     val tvVolumeTimestamp by viewModel.volumeSliderTimestamp.collectAsState()
     val tvVolume by viewModel.currentVolume.collectAsState()
     val tvVolumePercent by viewModel.currentVolumePercent.collectAsState()
-    val tvMpvVolume by PlaybackSession.propInt["volume"].collectAsState()
+    val tvMpvVolume by PlaybackSession.propInt["volume"].collectAsStateWithLifecycle()
     val tvSwapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
     val tvControlsAnimStyle by playerPreferences.controlsAnimStyle.collectAsState()
     val tvVolumeBoostCap by audioPreferences.volumeBoostCap.collectAsState()
@@ -1183,7 +1183,7 @@ fun PlayerControls(
 
           val volume by viewModel.currentVolume.collectAsState()
           val volumePercent by viewModel.currentVolumePercent.collectAsState()
-          val mpvVolume by PlaybackSession.propInt["volume"].collectAsState()
+          val mpvVolume by PlaybackSession.propInt["volume"].collectAsStateWithLifecycle()
           val swapVolumeAndBrightness by playerPreferences.swapVolumeAndBrightness.collectAsState()
           // Overlay visibility — Group 1
           val controlsAnimStyle by playerPreferences.controlsAnimStyle.collectAsState()
@@ -2115,7 +2115,7 @@ is PlayerUpdates.FrameInfo -> {
             val position by PlaybackSession.propInt["time-pos"].collectAsStateWithLifecycle()
             val precisePosition by viewModel.precisePosition.collectAsStateWithLifecycle()
             val invertDuration by playerPreferences.invertDuration.collectAsState()
-            val remaining  by PlaybackSession.propFloat["playtime-remaining"].collectAsState()
+            val remaining  by PlaybackSession.propFloat["playtime-remaining"].collectAsStateWithLifecycle()
             val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
             val useWavySeekbar by playerPreferences.useWavySeekbar.collectAsState()
             val displayedSeekbarPosition = precisePosition

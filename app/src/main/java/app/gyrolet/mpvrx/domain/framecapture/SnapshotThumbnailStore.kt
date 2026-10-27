@@ -11,7 +11,7 @@ package app.gyrolet.mpvrx.domain.framecapture
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.LruCache
+import app.gyrolet.mpvrx.utils.memory.BitmapMemoryCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,16 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-/**
- * A slice of the heap for decoded snapshots, however much the process was actually given.
- *
- * The floor matters more than the ratio: a phone screen shows a couple of dozen tiles at once, and a
- * cache that cannot hold several screens' worth evicts bitmaps that are still on screen, so every
- * scroll re-decodes what the user is already looking at.
- */
-private const val MIN_THUMBNAIL_CACHE_BYTES = 24L * 1024 * 1024
-private const val MAX_THUMBNAIL_CACHE_BYTES = 64L * 1024 * 1024
 
 /**
  * Decoded snapshot thumbnails keyed by capture id, shared by every screen that shows snapshot cells.
@@ -50,9 +40,8 @@ class SnapshotThumbnailStore(
 ) {
 
   private val cache =
-    object : LruCache<Long, Bitmap>(cacheBudgetBytes()) {
-      override fun sizeOf(key: Long, value: Bitmap): Int = value.byteCount
-
+    // The library and folder stores can coexist; each gets a bounded slice, including on small heaps.
+    object : BitmapMemoryCache<Long>(heapDivisor = 12, maxSizeMiB = 32) {
       override fun entryRemoved(evicted: Boolean, key: Long, oldValue: Bitmap, newValue: Bitmap?) {
         publish()
       }
@@ -95,9 +84,4 @@ class SnapshotThumbnailStore(
     _thumbnails.value = cache.snapshot()
   }
 
-  private fun cacheBudgetBytes(): Int {
-    // Two stores can be alive at once — the library page and a folder page — so each takes an eighth.
-    val perStore = Runtime.getRuntime().maxMemory() / 8
-    return perStore.coerceIn(MIN_THUMBNAIL_CACHE_BYTES, MAX_THUMBNAIL_CACHE_BYTES).toInt()
-  }
 }

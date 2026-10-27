@@ -159,6 +159,7 @@ fun SharedMusicTrackListItem(
         when {
           !artworkUrl.isNullOrBlank() -> {
             RemoteImage(
+              maxDimensionPx = with(androidx.compose.ui.platform.LocalDensity.current) { itemArtSize.roundToPx() },
               url = artworkUrl,
               contentDescription = title,
               contentScale = ContentScale.Crop,
@@ -497,6 +498,7 @@ fun <T> SharedCompactTrackGridSection(
           ) {
             if (!artworkUrl.isNullOrBlank()) {
               RemoteImage(
+                maxDimensionPx = 256,
                 url = artworkUrl,
                 contentDescription = getTitle(track),
                 contentScale = ContentScale.Crop,
@@ -614,6 +616,7 @@ fun SharedMusicDetailHeader(
       ) {
         if (!artworkUrl.isNullOrBlank()) {
           RemoteImage(
+            maxDimensionPx = 512,
             url = artworkUrl,
             contentDescription = title,
             contentScale = ContentScale.Crop,

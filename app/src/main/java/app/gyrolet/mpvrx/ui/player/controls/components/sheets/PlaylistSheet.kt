@@ -237,6 +237,7 @@ private fun PlaylistThumbnail(
   val isEdgeToEdge = item.isAudio || isYouTubeArtwork
   if (hasArtwork) {
     RemoteImage(
+      maxDimensionPx = maxOf(thumbWidth, thumbHeight),
       url = item.tvgLogo,
       contentDescription = contentDescription,
       contentScale = if (isEdgeToEdge) ContentScale.Crop else contentScale,

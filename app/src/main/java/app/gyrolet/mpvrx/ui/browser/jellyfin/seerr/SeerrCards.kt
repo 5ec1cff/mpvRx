@@ -457,6 +457,7 @@ fun SeerrRequestCard(
       ) {
         if (avatarUrl != null) {
           RemoteImage(
+            maxDimensionPx = 256,
             url = avatarUrl,
             contentDescription = request.requestedBy.displayName ?: request.requestedBy.username,
             contentScale = ContentScale.Crop,

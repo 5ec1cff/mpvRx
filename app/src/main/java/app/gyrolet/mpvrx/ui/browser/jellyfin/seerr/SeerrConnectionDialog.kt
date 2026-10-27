@@ -225,6 +225,7 @@ fun SeerrConnectionDialog(
 
             if (avatarUrl != null) {
               RemoteImage(
+                maxDimensionPx = 256,
                 url = avatarUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,

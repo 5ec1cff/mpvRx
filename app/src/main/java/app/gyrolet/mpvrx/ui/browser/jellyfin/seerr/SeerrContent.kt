@@ -195,6 +195,7 @@ fun SeerrContent(
 
                 if (avatarUrl != null) {
                   app.gyrolet.mpvrx.presentation.components.RemoteImage(
+                    maxDimensionPx = 256,
                     url = avatarUrl,
                     contentDescription = stringResource(R.string.seerr_connect_server),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,

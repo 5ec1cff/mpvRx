@@ -63,6 +63,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -217,13 +218,13 @@ object FolderListScreen : Screen {
     val quickPlayFabDirect by appearancePreferences.quickPlayFabDirect.collectAsState()
 
     // State collection
-    val videoFolders by viewModel.videoFolders.collectAsState()
-    val foldersWithNewCount by viewModel.foldersWithNewCount.collectAsState()
-    val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val scanStatus by viewModel.scanStatus.collectAsState()
-    val hasCompletedInitialLoad by viewModel.hasCompletedInitialLoad.collectAsState()
-    val foldersWereDeleted by viewModel.foldersWereDeleted.collectAsState()
+    val videoFolders by viewModel.videoFolders.collectAsStateWithLifecycle()
+    val foldersWithNewCount by viewModel.foldersWithNewCount.collectAsStateWithLifecycle()
+    val recentlyPlayedFilePath by viewModel.recentlyPlayedFilePath.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val scanStatus by viewModel.scanStatus.collectAsStateWithLifecycle()
+    val hasCompletedInitialLoad by viewModel.hasCompletedInitialLoad.collectAsStateWithLifecycle()
+    val foldersWereDeleted by viewModel.foldersWereDeleted.collectAsStateWithLifecycle()
 
     // Preferences
     val mediaLayoutMode by browserPreferences.folderViewFolderLayoutMode.collectAsState()
@@ -590,6 +591,13 @@ object FolderListScreen : Screen {
     app.gyrolet.mpvrx.ui.browser.NavigationBarSelectionEffect(selectionManager.isInSelectionMode)
 
     val isNavigationPageActive = app.gyrolet.mpvrx.ui.utils.LocalNavigationPageActive.current
+    // Measure a usable library (including empty/error/permission screens), not just first compose.
+    // An offscreen pager page must not delay another destination's fully-drawn report.
+    androidx.activity.compose.ReportDrawnWhen {
+      !isNavigationPageActive || !isPermissionSetupCompleted ||
+        (permissionState.status != PermissionStatus.Granted && !canBrowseSelectedFolders) ||
+        hasCompletedInitialLoad
+    }
     // The Folder tab owns its hidden-folder refresh; visiting Library must never be required
     // to notice a .nomedia marker added or removed by an external file manager.
     androidx.lifecycle.compose.LifecycleResumeEffect(viewModel, isNavigationPageActive) {

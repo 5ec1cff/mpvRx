@@ -20,6 +20,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.provider.MediaStore
 import android.util.LruCache
+import app.gyrolet.mpvrx.utils.memory.BitmapMemoryCache
 import app.gyrolet.mpvrx.data.network.client.NetworkMimeTypes
 import app.gyrolet.mpvrx.data.network.proxy.NetworkStreamingProxy
 import app.gyrolet.mpvrx.domain.archive.ZipArchiveMedia
@@ -100,7 +101,7 @@ class ThumbnailRepository(
     KoinJavaComponent.get<NetworkRepository>(NetworkRepository::class.java)
   }
 
-  private val memoryCache: LruCache<String, Bitmap>
+  private val memoryCache = BitmapMemoryCache<String>(heapDivisor = 8, maxSizeMiB = 48)
   private val localDiskDir = File(context.filesDir, "thumbnails/local").apply { mkdirs() }
   private val networkDiskDir = File(context.filesDir, "thumbnails/network").apply { mkdirs() }
   private val diskCacheLock = ReentrantReadWriteLock()
@@ -159,18 +160,6 @@ class ThumbnailRepository(
       extraBufferCapacity = 256,
     )
   val thumbnailReadyKeys: SharedFlow<String> = _thumbnailReadyKeys.asSharedFlow()
-
-  init {
-    val maxMemoryKb = (Runtime.getRuntime().maxMemory() / 1024L).toInt()
-    val cacheSizeKb = maxMemoryKb / 6
-    memoryCache =
-      object : LruCache<String, Bitmap>(cacheSizeKb) {
-        override fun sizeOf(
-          key: String,
-          value: Bitmap,
-        ): Int = value.byteCount / 1024
-      }
-  }
 
   suspend fun getThumbnail(
     video: Video,
@@ -1614,7 +1603,7 @@ class ThumbnailRepository(
   private fun resolveLocalGenerationParallelism(): Int {
     val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
     return thumbnailParallelism(
-      lowRam = activityManager?.isLowRamDevice == true,
+      lowRam = app.gyrolet.mpvrx.utils.device.DevicePerformance.isLowEnd || activityManager?.isLowRamDevice == true,
       memoryClassMb = activityManager?.memoryClass ?: 0,
       processorCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
       sdkInt = Build.VERSION.SDK_INT,

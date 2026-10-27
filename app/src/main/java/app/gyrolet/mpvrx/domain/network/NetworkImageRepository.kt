@@ -12,8 +12,9 @@ package app.gyrolet.mpvrx.domain.network
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.LruCache
+import app.gyrolet.mpvrx.utils.memory.BitmapMemoryCache
 import app.gyrolet.mpvrx.repository.NetworkRepository
+import app.gyrolet.mpvrx.utils.device.DevicePerformance
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -82,10 +83,10 @@ class NetworkImageRepository(
   private val thumbnailDir = File(context.filesDir, "thumbnails/network").apply { mkdirs() }
 
   /** In-memory cache for thumbnails shown in browser grids/lists. */
-  private val memoryCache: LruCache<String, Bitmap>
+  private val memoryCache = BitmapMemoryCache<String>(heapDivisor = 32, maxSizeMiB = 12)
 
   /** Viewer memory cache (lifecycle-bound, cleared on viewer exit). */
-  private val viewerMemoryCache: LruCache<String, Bitmap>
+  private val viewerMemoryCache = BitmapMemoryCache<String>(heapDivisor = 16, maxSizeMiB = 32)
 
   /**
    * In-flight downloads, keyed by cache key. A second caller awaits the same [Deferred] instead of
@@ -110,18 +111,7 @@ class NetworkImageRepository(
   private val undecodableKeys = ConcurrentHashMap.newKeySet<String>()
 
   private val transferSemaphore = Semaphore(MAX_CONCURRENT_TRANSFERS)
-
-  init {
-    val maxMemoryKb = (Runtime.getRuntime().maxMemory() / 1024L).toInt()
-    memoryCache =
-      object : LruCache<String, Bitmap>(maxMemoryKb / 32) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
-      }
-    viewerMemoryCache =
-      object : LruCache<String, Bitmap>(maxMemoryKb / 16) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
-      }
-  }
+  private val decodeSemaphore = Semaphore(if (DevicePerformance.isLowEnd) 1 else 2)
 
   /**
    * Returns a thumbnail [Bitmap] for the given network image file.
@@ -145,31 +135,37 @@ class NetworkImageRepository(
 
     val thumbFile = File(thumbnailDir, "$key.thumb")
     if (thumbFile.exists() && thumbFile.length() > 0) {
-      scaleToRequest(thumbFile, widthPx, heightPx)?.let {
-        memoryCache.put(memKey, it)
+      decodeSemaphore.withPermit {
+        memoryCache.get(memKey) ?: scaleToRequest(thumbFile, widthPx, heightPx)?.also {
+          memoryCache.put(memKey, it)
+        }
+      }?.let {
         return@withContext it
       }
     }
 
     val fullFile = getFullImageFile(connectionId, file) ?: return@withContext null
 
-    // Generate at a size that serves every caller, then hand this caller its exact size.
-    val stored = decodeScaledBitmap(fullFile, THUMBNAIL_STORE_MIN_EDGE, THUMBNAIL_STORE_MIN_EDGE)
-    if (stored == null) {
-      // A null here is either an unreadable format or a transient allocation failure; only the
-      // former is worth remembering, and the header check tells them apart.
-      if (!isDecodable(fullFile)) undecodableKeys.add(key)
-      // Drop the stored original so the next request re-downloads instead of failing on the same
-      // bytes forever.
-      runCatching { fullFile.delete() }
-      return@withContext null
-    }
-    runCatching { thumbFile.writeBitmap(stored) }
-    undecodableKeys.remove(key)
+    decodeSemaphore.withPermit {
+      memoryCache.get(memKey)?.let { return@withPermit it }
+      // Generate at a size that serves every caller, then hand this caller its exact size.
+      val stored = decodeScaledBitmap(fullFile, THUMBNAIL_STORE_MIN_EDGE, THUMBNAIL_STORE_MIN_EDGE)
+      if (stored == null) {
+        // A null here is either an unreadable format or a transient allocation failure; only the
+        // former is worth remembering, and the header check tells them apart.
+        if (!isDecodable(fullFile)) undecodableKeys.add(key)
+        // Drop the stored original so the next request re-downloads instead of failing on the same
+        // bytes forever.
+        runCatching { fullFile.delete() }
+        return@withPermit null
+      }
+      runCatching { thumbFile.writeBitmap(stored) }
+      undecodableKeys.remove(key)
 
-    val requested = stored.scaleTo(widthPx, heightPx)
-    memoryCache.put(memKey, requested)
-    requested
+      val requested = stored.scaleTo(widthPx, heightPx)
+      memoryCache.put(memKey, requested)
+      requested
+    }
   }
 
   /**
@@ -201,9 +197,10 @@ class NetworkImageRepository(
     force: Boolean = false,
   ): Bitmap? = withContext(Dispatchers.IO) {
     val key = cacheKey(connectionId, file)
+    val memKey = "$key|full|$maxPixels"
 
     // 1. Check viewer memory cache
-    viewerMemoryCache.get(key)?.let {
+    viewerMemoryCache.get(memKey)?.let {
       return@withContext it
     }
     if (!force && key in undecodableKeys) return@withContext null
@@ -211,17 +208,20 @@ class NetworkImageRepository(
     // 2. Check full image disk cache
     val cached = getFullImageFile(connectionId, file) ?: return@withContext null
 
-    val decoded = decodeScaledBitmap(cached, maxPixels)
-    if (decoded == null) {
-      if (!isDecodable(cached)) undecodableKeys.add(key)
-      // The stored file cannot be decoded — drop it so the next request re-downloads instead of
-      // serving the same broken bytes forever.
-      runCatching { cached.delete() }
-      return@withContext null
+    decodeSemaphore.withPermit {
+      viewerMemoryCache.get(memKey)?.let { return@withPermit it }
+      val decoded = decodeScaledBitmap(cached, maxPixels)
+      if (decoded == null) {
+        if (!isDecodable(cached)) undecodableKeys.add(key)
+        // The stored file cannot be decoded — drop it so the next request re-downloads instead of
+        // serving the same broken bytes forever.
+        runCatching { cached.delete() }
+        return@withPermit null
+      }
+      viewerMemoryCache.put(memKey, decoded)
+      undecodableKeys.remove(key)
+      decoded
     }
-    viewerMemoryCache.put(key, decoded)
-    undecodableKeys.remove(key)
-    decoded
   }
 
   /** Clear viewer memory cache (call when viewer exits). */
