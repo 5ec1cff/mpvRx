@@ -78,6 +78,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -93,6 +94,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -127,6 +130,7 @@ import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.theme.AppMotion
@@ -229,9 +233,14 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   val isMiniPlayerVisible = visibilityState.currentState || visibilityState.targetState
   SideEffect {
     NavigationBarState.isMiniPlayerVisible = isMiniPlayerVisible
+    NavigationBarState.miniPlayerConnectionEnabled = visibilityState.targetState
   }
   DisposableEffect(Unit) {
-    onDispose { NavigationBarState.isMiniPlayerVisible = false }
+    onDispose {
+      NavigationBarState.isMiniPlayerVisible = false
+      NavigationBarState.miniPlayerBounds = Rect.Zero
+      NavigationBarState.miniPlayerConnectionEnabled = false
+    }
   }
 
   val reduceMotion = AppMotion.shouldReduceMotion()
@@ -303,6 +312,10 @@ private fun MiniPlayerContent(
   val videoWidth by PlaybackSession.propLong["video-params/w"].collectAsStateWithLifecycle()
   val videoHeight by PlaybackSession.propLong["video-params/h"].collectAsStateWithLifecycle()
   val videoRotate by PlaybackSession.propInt["video-params/rotate"].collectAsStateWithLifecycle()
+  val loopA by PlaybackSession.propDouble["ab-loop-a"].collectAsStateWithLifecycle()
+  val loopB by PlaybackSession.propDouble["ab-loop-b"].collectAsStateWithLifecycle()
+  val isLoopASet = loopA?.let { it.isFinite() && it >= 0.0 } == true
+  val isLoopBSet = loopB?.let { it.isFinite() && it >= 0.0 } == true
 
   val isPlaying = paused == false
   val activeBook by app.gyrolet.mpvrx.ui.player.AudiobookPlayback.book.collectAsStateWithLifecycle()
@@ -503,6 +516,9 @@ private fun MiniPlayerContent(
         rotationZ = (dismissOffset / width * DISMISS_TILT_DEGREES)
           .coerceIn(-DISMISS_MAX_TILT_DEGREES, DISMISS_MAX_TILT_DEGREES)
         transformOrigin = TransformOrigin(0.5f, 1f)
+      }
+      .onGloballyPositioned {
+        NavigationBarState.miniPlayerBounds = if (tossed) Rect.Zero else it.boundsInRoot()
       }
       .then(
         if (isAudioOnlyItem) {
@@ -778,13 +794,28 @@ private fun MiniPlayerContent(
             }
             else -> stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused)
           }
-          Text(
-            text = statusText,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-          )
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            if (isLoopASet || isLoopBSet) {
+              val loopDescription = stringResource(R.string.btn_label_ab_loop)
+              AbLoopIcon(
+                modifier = Modifier.size(20.dp).semantics { contentDescription = loopDescription },
+                tint = MaterialTheme.colorScheme.primary,
+                isASet = isLoopASet,
+                isBSet = isLoopBSet,
+              )
+            }
+            Text(
+              text = statusText,
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.weight(1f),
+            )
+          }
         }
 
         Spacer(modifier = Modifier.width(8.dp))

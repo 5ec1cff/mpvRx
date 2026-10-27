@@ -348,12 +348,10 @@ fun Modifier.inAppMusicSheetMiniSource(state: InAppMusicSheetState?, shape: Shap
       val outline = shape.createOutline(bounds.size, direction, density)
       state.miniCornerRadius = (outline as? Outline.Rounded)?.roundRect?.topLeftCornerRadius?.x ?: 0f
     }
+    .graphicsLayer { alpha = if (state.isMiniHidden) 0f else 1f }
     .drawWithContent {
       layer.record { this@drawWithContent.drawContent() }
-      if (!state.isMiniHidden) {
-        layer.alpha = 1f
-        drawLayer(layer)
-      }
+      drawLayer(layer)
     }
     .then(InAppMusicSheetCoverElement(state))
 }
@@ -539,6 +537,7 @@ fun InAppMusicPlayerSheet(
   val slidePx = with(density) { 24.dp.toPx() }
   val miniBackground = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)
   val fullBackground = MaterialTheme.colorScheme.surface
+  val miniOverlayLayer = rememberGraphicsLayer()
   Box(
     modifier =
       modifier
@@ -559,7 +558,7 @@ fun InAppMusicPlayerSheet(
       modifier =
         Modifier
           .fillMaxSize()
-          .drawBehind { drawSheetSurface(state, miniBackground, fullBackground) },
+          .drawBehind { drawSheetSurface(state, miniBackground, fullBackground, miniOverlayLayer) },
     )
     Box(
       modifier =
@@ -602,6 +601,7 @@ private fun DrawScope.drawSheetSurface(
   state: InAppMusicSheetState,
   miniBackground: Color,
   fullBackground: Color,
+  miniOverlayLayer: GraphicsLayer,
 ) {
   if (!state.isVisible) return
   val fraction = state.expansion
@@ -617,8 +617,9 @@ private fun DrawScope.drawSheetSurface(
   val mini = state.miniRect()
   val layer = state.miniLayer ?: return
   if (miniAlpha <= 0f || mini.isEmpty) return
-  layer.alpha = miniAlpha
-  translate(rect.center.x - mini.width / 2f, rect.top) { drawLayer(layer) }
+  miniOverlayLayer.record(size = layer.size) { drawLayer(layer) }
+  miniOverlayLayer.alpha = miniAlpha
+  translate(rect.center.x - mini.width / 2f, rect.top) { drawLayer(miniOverlayLayer) }
 }
 
 private class SheetClipShape(

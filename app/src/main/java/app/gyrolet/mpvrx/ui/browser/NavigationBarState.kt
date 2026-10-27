@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Dp
@@ -46,6 +47,9 @@ object NavigationBarState {
   // Mini player coordination state (published by MiniPlayer/MainScreen so the
   // browser layout can adapt when the mini player is on screen).
   var isMiniPlayerVisible: Boolean by mutableStateOf(false)
+
+  internal var miniPlayerBounds: Rect by mutableStateOf(Rect.Zero)
+  internal var miniPlayerConnectionEnabled: Boolean by mutableStateOf(false)
 
   // Includes both navigation styles, but not bars belonging to a covered screen.
   var isNavBarVisible: Boolean by mutableStateOf(false)
