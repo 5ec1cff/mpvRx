@@ -363,7 +363,7 @@ object FoldersPreferencesScreen : Screen {
               preferences.sharedIgnoredMarkers.set(ignoredMarkers.intersect(markers))
               onScanPreferenceChanged()
             },
-            modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title),
+            modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_enable_in),
           )
           // Scan filters finish the Media Library group; they open a list of limits.
           SettingsNavigationRow(
@@ -1327,34 +1327,21 @@ private fun HiddenScanSettingsCard(
       shape = shape,
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
+      Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
       Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-          Text(
-            text = stringResource(R.string.pref_hidden_scan_per_mode_title),
-            style = MaterialTheme.typography.titleSmallEmphasized,
-            maxLines = 1,
-          )
-        }
+        Text(
+          text = stringResource(R.string.pref_hidden_scan_enable_in),
+          style = MaterialTheme.typography.labelMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.weight(1f),
+        )
         if (showMasterToggle) {
           IconSwitch(checked = enabled, onCheckedChange = onEnabledChange)
         }
       }
-    }
-    Card(
-      modifier = Modifier.fillMaxWidth(),
-      shape = rememberConnectedShape(offset + 1, groupSize, ConnectedLayout.Vertical),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-      Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-      Text(
-        text = stringResource(R.string.pref_hidden_scan_enable_in),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 8.dp),
-      )
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),
@@ -1391,18 +1378,18 @@ private fun HiddenScanSettingsCard(
       checked = markerEnabled,
       enabled = enabled,
       onCheckedChange = onMarkerChanged,
-      shape = rememberConnectedShape(offset + 2, groupSize, ConnectedLayout.Vertical),
+      shape = rememberConnectedShape(offset + 1, groupSize, ConnectedLayout.Vertical),
     )
     CompactHiddenScanOption(
       title = stringResource(R.string.pref_hidden_scan_dot),
       checked = dotEnabled,
       enabled = enabled,
       onCheckedChange = onDotChanged,
-      shape = rememberConnectedShape(offset + 3, groupSize, ConnectedLayout.Vertical),
+      shape = rememberConnectedShape(offset + 2, groupSize, ConnectedLayout.Vertical),
     )
     Card(
       modifier = Modifier.fillMaxWidth(),
-      shape = rememberConnectedShape(offset + 4, groupSize, ConnectedLayout.Vertical),
+      shape = rememberConnectedShape(offset + 3, groupSize, ConnectedLayout.Vertical),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
       LazyRow(
@@ -1841,7 +1828,7 @@ private val VideoDurationFilterSeconds = listOf(0, 5, 15, 30, 60)
 private val FileSizeFilterBytes = listOf(0L, 500L * 1024L, 1024L * 1024L, 5L * 1024L * 1024L)
 
 // Rows drawn by HiddenScanSettingsCard, and the scan-filter rows that complete its group.
-private const val HIDDEN_SCAN_ROW_COUNT = 5
+private const val HIDDEN_SCAN_ROW_COUNT = 4
 private const val SCAN_FILTER_ROW_COUNT = 2
 
 private fun scanDurationLabel(seconds: Int, noLimit: String): String = if (seconds == 0) noLimit else "${seconds}s"
