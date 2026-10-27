@@ -155,6 +155,3 @@ lint/tmp/
 # Profiling
 # =========================
 *.hprof
-
-# Legacy graft-map cache. Trail's current cache is ignored by .trail/.gitignore.
-graft/
