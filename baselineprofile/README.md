@@ -31,7 +31,8 @@ The folder screen reports fully drawn after initial data or a usable permission/
 The scrolling benchmark records frame timing. Emulator timings are not release performance evidence.
 Ordinary app builds keep automatic profile generation disabled and require no connected device.
 
-Every CI release build also uploads `size-report-<distribution>` and adds an archive breakdown to
+Standard CI also compiles the artwork regression tests and profile capture sources without requiring
+a device. Every CI release build uploads `size-report-<distribution>` and adds an archive breakdown to
 the job summary: DEX, fonts, assets, native libraries per ABI and the ART profile budget. Compare
 the same distribution/ABI at two commits. Universal APK size and AAB archive size do not describe
 a single device's Play download. Oversized binary Baseline Profiles fail the reporting step.
