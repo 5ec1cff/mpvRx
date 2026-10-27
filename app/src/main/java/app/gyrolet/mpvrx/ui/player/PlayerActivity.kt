@@ -6133,7 +6133,14 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
 
           // Prepare YouTube artwork and the cookie jar in load order, before invoking mpv.
           val itemWithArtwork =
-            if (item.artworkUri.isNullOrBlank() && HttpUtils.isMusicStreamingUrl(resolvedOriginalUri)) {
+            if (HttpUtils.isYouTubeUrl(resolvedOriginalUri)) {
+              val metadata = HttpUtils.fetchYouTubeMetadata(resolvedOriginalUri)
+              if (metadata != null) item.copy(
+                title = if (HttpUtils.isLikelyJunkTitle(item.title)) metadata.title else item.title,
+                artist = item.artist?.takeIf { it.isNotBlank() } ?: metadata.author,
+                artworkUri = item.artworkUri?.takeIf { it.isNotBlank() } ?: metadata.thumbnailUrl,
+              ) else item
+            } else if (item.artworkUri.isNullOrBlank() && HttpUtils.isMusicStreamingUrl(resolvedOriginalUri)) {
               val artwork = HttpUtils.fetchMusicStreamingArtwork(resolvedOriginalUri)
               if (!artwork.isNullOrBlank()) item.copy(artworkUri = artwork) else item
             } else {

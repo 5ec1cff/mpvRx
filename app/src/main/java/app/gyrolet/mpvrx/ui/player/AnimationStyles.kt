@@ -103,7 +103,7 @@ fun buildControlsEnterH(
   offsetX: (fullWidth: Int) -> Int,
 ): EnterTransition =
   when {
-    style == ControlsAnimationStyle.None -> EnterTransition.None
+    reduceMotion || style == ControlsAnimationStyle.None -> EnterTransition.None
 
     style == ControlsAnimationStyle.Minimal ->
       fadeIn(tween(durationMillis = enterMs, easing = LinearOutSlowInEasing))
@@ -157,7 +157,7 @@ fun buildControlsExitH(
   offsetX: (fullWidth: Int) -> Int,
 ): ExitTransition =
   when {
-    style == ControlsAnimationStyle.None -> ExitTransition.None
+    reduceMotion || style == ControlsAnimationStyle.None -> ExitTransition.None
 
     style == ControlsAnimationStyle.Minimal ->
       fadeOut(tween(durationMillis = exitMs, easing = FastOutSlowInEasing))
@@ -225,7 +225,7 @@ fun buildControlsEnterV(
   offsetY: (fullHeight: Int) -> Int,
 ): EnterTransition =
   when {
-    style == ControlsAnimationStyle.None -> EnterTransition.None
+    reduceMotion || style == ControlsAnimationStyle.None -> EnterTransition.None
 
     style == ControlsAnimationStyle.Minimal ->
       fadeIn(tween(durationMillis = enterMs, easing = LinearOutSlowInEasing))
@@ -279,7 +279,7 @@ fun buildControlsExitV(
   offsetY: (fullHeight: Int) -> Int,
 ): ExitTransition =
   when {
-    style == ControlsAnimationStyle.None -> ExitTransition.None
+    reduceMotion || style == ControlsAnimationStyle.None -> ExitTransition.None
 
     style == ControlsAnimationStyle.Minimal ->
       fadeOut(tween(durationMillis = exitMs, easing = FastOutSlowInEasing))

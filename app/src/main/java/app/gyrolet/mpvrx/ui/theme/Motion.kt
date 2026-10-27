@@ -62,11 +62,12 @@ val LocalMotionPolicy = staticCompositionLocalOf { MotionPolicy() }
 
 @Composable
 fun rememberMotionPolicy(): MotionPolicy {
+  val reducedByPreference by koinInject<PlayerPreferences>().reduceMotion.collectAsState()
   var animationsDisabled by remember { mutableStateOf(!ValueAnimator.areAnimatorsEnabled()) }
   LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
     animationsDisabled = !ValueAnimator.areAnimatorsEnabled()
   }
-  return MotionPolicy(reduceMotion = animationsDisabled)
+  return MotionPolicy(reduceMotion = animationsDisabled || reducedByPreference)
 }
 
 /**

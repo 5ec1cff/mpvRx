@@ -32,6 +32,7 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -284,11 +285,12 @@ internal fun AudioPlayerScreen(
   val queuedTitle =
     playbackQueue.currentItem?.title?.takeIf { playbackQueue.isExplicitQueue && it.isNotBlank() }
   val currentTitleForControls by rememberUpdatedState(titleForControls)
+  val isYouTubeSource = app.gyrolet.mpvrx.utils.media.HttpUtils.isYouTubeUrl(currentPlaybackItem?.originalUri)
   val mediaTitle =
-    remember(queuedTitle, rawMediaTitle) {
-      queuedTitle
-        ?: currentTitleForControls()
-        ?: rawMediaTitle?.takeIf { it.isNotBlank() }
+    remember(queuedTitle, rawMediaTitle, currentPlaybackItem?.title, isYouTubeSource) {
+      sequenceOf(queuedTitle, currentTitleForControls(), rawMediaTitle, currentPlaybackItem?.title)
+        .filterNotNull()
+        .firstOrNull { it.isNotBlank() && (!isYouTubeSource || !app.gyrolet.mpvrx.utils.media.HttpUtils.isLikelyJunkTitle(it)) }
     }
 
   val sheetShown by viewModel.sheetShown.collectAsState()
@@ -709,7 +711,9 @@ fun PlayerControls(
   val transparentOverlay by animateFloatAsState(
     if (controlsShown && !areControlsLocked && !areSlidersShown) .8f else 0f,
     animationSpec =
-      if (controlsShown && !areControlsLocked && !areSlidersShown) {
+      if (reduceMotion) {
+        snap()
+      } else if (controlsShown && !areControlsLocked && !areSlidersShown) {
         playerControlsEnterAnimationSpec((100 * animSpeed).toInt().coerceAtLeast(30))
       } else {
         playerControlsExitAnimationSpec((300 * animSpeed).toInt().coerceAtLeast(50))
@@ -722,7 +726,9 @@ fun PlayerControls(
   val edgeVignetteAlpha by animateFloatAsState(
     if (controlsShown && !areControlsLocked && !areSlidersShown) 1f else 0f,
     animationSpec =
-      if (controlsShown && !areControlsLocked && !areSlidersShown) {
+      if (reduceMotion) {
+        snap()
+      } else if (controlsShown && !areControlsLocked && !areSlidersShown) {
         playerControlsEnterAnimationSpec((100 * animSpeed).toInt().coerceAtLeast(30))
       } else {
         playerControlsExitAnimationSpec((300 * animSpeed).toInt().coerceAtLeast(50))

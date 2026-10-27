@@ -179,6 +179,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.flow.collect
 import kotlin.math.roundToInt
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
 import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
@@ -559,12 +560,13 @@ private fun AudioVisualizerViewport(
 @Composable
 private fun AudioSpectrumCaptureEffect(
   enabled: Boolean,
+  requestPermission: Boolean,
   features: AudioFeatures,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val analyzerActive = remember(features) { AtomicBoolean(false) }
-  var hasRecordPermission by remember {
+  var hasRecordPermission by remember(context) {
     mutableStateOf(
       ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
         PackageManager.PERMISSION_GRANTED,
@@ -575,8 +577,15 @@ private fun AudioSpectrumCaptureEffect(
       hasRecordPermission = granted
     }
 
-  LaunchedEffect(enabled, hasRecordPermission) {
-    if (enabled && !hasRecordPermission) {
+  androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+    hasRecordPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+      PackageManager.PERMISSION_GRANTED
+  }
+
+  LaunchedEffect(requestPermission) {
+    hasRecordPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+      PackageManager.PERMISSION_GRANTED
+    if (requestPermission && !hasRecordPermission) {
       recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
   }
@@ -815,15 +824,22 @@ fun AudioPlayerControls(
     return titleWithoutExt
   }
 
-  var lastValidTitle by remember {
+  val isYouTubeSource = HttpUtils.isYouTubeUrl(currentItem?.originalUri)
+  val itemTitle = currentItem?.title?.takeIf {
+    it.isNotBlank() && (!isYouTubeSource || !HttpUtils.isLikelyJunkTitle(it))
+  }
+  val controlsTitle = mediaTitle?.takeIf {
+    it.isNotBlank() && (!isYouTubeSource || !HttpUtils.isLikelyJunkTitle(it))
+  }
+  var lastValidTitle by remember(currentItem?.stableId) {
     mutableStateOf(
-      currentItem?.title?.takeIf { it.isNotBlank() }?.stripAudioExtension()
-        ?: mediaTitle?.takeIf { it.isNotBlank() }?.stripAudioExtension()
+      itemTitle?.stripAudioExtension()
+        ?: controlsTitle?.stripAudioExtension()
         ?: "Audio Track",
     )
   }
-  LaunchedEffect(currentItem?.stableId, currentItem?.title, mediaTitle) {
-    val updatedTitle = currentItem?.title?.takeIf { it.isNotBlank() } ?: mediaTitle
+  LaunchedEffect(currentItem?.stableId, itemTitle, controlsTitle) {
+    val updatedTitle = itemTitle ?: controlsTitle
     if (!updatedTitle.isNullOrBlank()) {
       lastValidTitle = updatedTitle.stripAudioExtension()
     }
@@ -939,9 +955,11 @@ fun AudioPlayerControls(
   AudioSpectrumCaptureEffect(
     enabled =
       isPlaying &&
+        inAppSheet?.isVisible != false &&
         !isSheetOpen &&
         ((showVisualizer && !showInPlaceLyrics) ||
           (audioWavySeekbar && !isLyricsFullscreen)),
+    requestPermission = showVisualizer && !showInPlaceLyrics && !isLyricsFullscreen && !isSheetOpen && inAppSheet?.isSettledOpen != false,
     features = visualizerFeatures,
   )
 

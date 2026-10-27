@@ -31,7 +31,7 @@ class AudioPreferences(
   private val videoBackgroundPlaybackIds = preferenceStore.getStringSet("background_playback_video_ids", emptySet())
   private val videoBackgroundPlaybackLock = Any()
   /** Audio-player-only background playback; video retains [backgroundPlayback]. */
-  val audioBackgroundPlayback = preferenceStore.getBoolean("audio_player_background_playback", false)
+  val audioBackgroundPlayback = preferenceStore.getBoolean("audio_player_background_playback", true)
   val miniPlayerTrackSwitching = preferenceStore.getBoolean("audio_mini_player_track_switching", false)
   val volumeNormalization = preferenceStore.getBoolean("audio_volume_normalization", false)
   val drcEnabled = preferenceStore.getBoolean("audio_drc_enabled", false)

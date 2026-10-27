@@ -173,7 +173,12 @@ object HttpUtils {
     withContext(Dispatchers.IO) {
       var connection: HttpURLConnection? = null
       try {
-        val oEmbedUrl = "https://www.youtube.com/oembed?url=" + java.net.URLEncoder.encode(url, "UTF-8") + "&format=json"
+        val videoId = extractYouTubeVideoId(Uri.parse(url))
+        val canonicalUrl = videoId?.let {
+          Uri.Builder().scheme("https").authority("www.youtube.com").path("watch")
+            .appendQueryParameter("v", it).build().toString()
+        } ?: url
+        val oEmbedUrl = "https://www.youtube.com/oembed?url=" + java.net.URLEncoder.encode(canonicalUrl, "UTF-8") + "&format=json"
         connection = URL(oEmbedUrl).openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = CONNECTION_TIMEOUT
@@ -188,7 +193,11 @@ object HttpUtils {
           val author = json.optString("author_name").takeIf { it.isNotBlank() }
           val thumbnail = json.optString("thumbnail_url").takeIf { it.isNotBlank() }
           if (title != null) {
-            return@withContext YouTubeMetadata(title = title, author = author, thumbnailUrl = thumbnail)
+            return@withContext YouTubeMetadata(
+              title = title,
+              author = author,
+              thumbnailUrl = highQualityYouTubeArtwork(videoId, thumbnail),
+            )
           }
         }
         null
@@ -199,6 +208,28 @@ object HttpUtils {
         connection?.disconnect()
       }
     }
+
+  private fun highQualityYouTubeArtwork(videoId: String?, fallback: String?): String? {
+    if (videoId == null) return fallback
+    for (quality in listOf("maxresdefault.jpg", "sddefault.jpg")) {
+      val candidate = Uri.Builder().scheme("https").authority("i.ytimg.com")
+        .appendPath("vi").appendPath(videoId).appendPath(quality).build().toString()
+      var connection: HttpURLConnection? = null
+      try {
+        connection = (URL(candidate).openConnection() as HttpURLConnection).apply {
+          requestMethod = "HEAD"
+          connectTimeout = 1_500
+          readTimeout = 1_500
+          instanceFollowRedirects = true
+        }
+        if (connection.responseCode == HttpURLConnection.HTTP_OK) return candidate
+      } catch (_: IOException) {
+      } finally {
+        connection?.disconnect()
+      }
+    }
+    return fallback
+  }
 
   suspend fun extractFilenameFromUrl(url: String): String? =
     withContext(Dispatchers.IO) {

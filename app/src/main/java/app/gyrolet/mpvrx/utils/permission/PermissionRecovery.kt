@@ -98,7 +98,7 @@ object PermissionRecovery {
    * opens its settings page instead, and only when no dialog is launched in the same pass.
    */
   fun requestRevoked(activity: Activity, dialogLauncher: ActivityResultLauncher<Array<String>>) {
-    val pending = pendingRevocations(activity)
+    val pending = pendingRevocations(activity).filterNot { it == Kind.AUDIO }
     if (pending.isEmpty()) return
     val dialogKinds = pending.filter { runtimePermission(it) != null }
     if (dialogKinds.isNotEmpty()) {

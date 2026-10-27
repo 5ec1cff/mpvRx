@@ -247,7 +247,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     enter = if (collapseHoldId != null || sheetMotion != null) {
       EnterTransition.None
     } else if (reduceMotion) {
-      fadeIn(animationSpec = tween(120))
+      EnterTransition.None
     } else {
       slideInVertically(
         animationSpec = tween(320, easing = FastOutSlowInEasing),
@@ -256,7 +256,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     },
     exit = when {
       expansionHoldId != null || sheetMotion != null || exitAfterToss -> ExitTransition.None
-      reduceMotion -> fadeOut(animationSpec = tween(120))
+      reduceMotion -> ExitTransition.None
       else ->
         slideOutVertically(
           animationSpec = tween(260, easing = FastOutLinearInEasing),
@@ -330,10 +330,11 @@ private fun MiniPlayerContent(
   }
   fun progressFraction(): Float = if (totalDurSec > 0f) (totalPosSec() / totalDurSec).coerceIn(0f, 1f) else 0f
 
+  val isYouTubeSource = app.gyrolet.mpvrx.utils.media.HttpUtils.isYouTubeUrl(currentItem?.originalUri)
   val title =
     audiobook?.book?.title
       ?: queueState.currentItem?.title?.takeIf { queueState.isExplicitQueue && it.isNotBlank() }
-      ?: rawMediaTitle?.takeIf { it.isNotBlank() }
+      ?: rawMediaTitle?.takeIf { it.isNotBlank() && (!isYouTubeSource || !app.gyrolet.mpvrx.utils.media.HttpUtils.isLikelyJunkTitle(it)) }
       ?: currentItem?.title?.takeIf { it.isNotBlank() }
       ?: "Media Track"
 
