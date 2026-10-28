@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">Одиночное касание (по центру)</string>
   <string name="pref_gesture_double_tap_right_title">Двойное касание (справа)</string>
   <string name="pref_gesture_single_tap_right_title">Одиночное касание (справа)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Использовать одиночное касание для левого жеста</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Использовать одиночное касание для центрального жеста</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Использовать одиночное касание для правого жеста</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Одно касание вместо двух в средней области высотой 30% экрана. Верхние и нижние 35% показывают или скрывают элементы управления плеером.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Одно касание слева</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Одно касание по центру</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Одно касание справа</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Коснитесь один раз вместо двух, чтобы выполнить действие слева.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Коснитесь центральной зоны один раз (ширина по умолчанию 30%, высота 30%). Другие касания в центре показывают или скрывают элементы управления.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Коснитесь один раз вместо двух, чтобы выполнить действие справа.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Перемещение субтитров перетаскиванием</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Удерживайте палец в центре и перетаскивайте вверх или вниз для перемещения основных субтитров. Удерживайте палец прямо на субтитрах, чтобы переместить эту дорожку отдельно. Обычные свайпы по-прежнему открывают плейлист.</string>
   <string name="pref_gesture_double_tap_custom_info">Пользовательские действия можно назначить этим жестам в input.conf с помощью следующих кодов клавиш:

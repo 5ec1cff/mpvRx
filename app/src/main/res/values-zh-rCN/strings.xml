@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">单击（中间）</string>
   <string name="pref_gesture_double_tap_right_title">双击（右侧）</string>
   <string name="pref_gesture_single_tap_right_title">单击（右侧）</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">左侧手势使用单击</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">中间手势使用单击</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">右侧手势使用单击</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">在屏幕高度中间30%的区域内，用单击代替双击。顶部和底部各35%的区域用于显示或隐藏播放器控件。</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">左侧单击</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">中央单击</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">右侧单击</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">轻点一次而非两次，即可执行左侧操作。</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">轻点一次中央区域（默认宽度为30%，高度为30%）。中央区域的其他点击可显示或隐藏播放控件。</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">轻点一次而非两次，即可执行右侧操作。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">拖动以移动字幕</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">长按屏幕中央后上下拖动，可移动主字幕。直接长按任意字幕后拖动，可单独移动该字幕轨道。普通滑动仍会打开播放列表。</string>
   <string name="pref_gesture_double_tap_custom_info">可在 input.conf 中使用以下按键代码为这些手势绑定自定义操作：

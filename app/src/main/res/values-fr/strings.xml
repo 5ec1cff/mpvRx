@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">Appui simple (centre)</string>
   <string name="pref_gesture_double_tap_right_title">Double appui (droite)</string>
   <string name="pref_gesture_single_tap_right_title">Appui simple (droite)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Utiliser un appui simple pour le geste gauche</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Utiliser un appui simple pour le geste central</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Utiliser un appui simple pour le geste droit</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Un seul appui au lieu de deux dans les 30% centraux de la hauteur de l’écran. Les 35% du haut et du bas affichent ou masquent les commandes du lecteur.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Un appui à gauche</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Un appui au centre</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Un appui à droite</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Appuyez une fois au lieu de deux pour lancer l’action de gauche.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Appuyez une fois dans la zone centrale (30 % de largeur par défaut et 30 % de hauteur). Les autres appuis centraux affichent ou masquent les commandes.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Appuyez une fois au lieu de deux pour lancer l’action de droite.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Faire glisser pour déplacer les sous-titres</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Appuyez longuement au centre, puis faites glisser vers le haut ou le bas pour déplacer les sous-titres principaux. Appuyez longuement sur un sous-titre pour déplacer cette piste séparément. Les balayages ordinaires ouvrent toujours la liste de lecture.</string>
   <string name="pref_gesture_double_tap_custom_info">Vous pouvez associer des actions personnalisées à ces gestes dans input.conf avec les codes de touche suivants :

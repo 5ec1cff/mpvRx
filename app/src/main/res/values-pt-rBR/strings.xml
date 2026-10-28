@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">Toque único (centro)</string>
   <string name="pref_gesture_double_tap_right_title">Toque duplo (direita)</string>
   <string name="pref_gesture_single_tap_right_title">Toque único (direita)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Usar toque único para o gesto à esquerda</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Usar toque único para o gesto central</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Usar toque único para o gesto à direita</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Use um toque em vez de dois nos 30% centrais da altura da tela. Os 35% superiores e os 35% inferiores mostram ou ocultam os controles do player.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Um toque à esquerda</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Um toque no centro</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Um toque à direita</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Toque uma vez em vez de duas para executar a ação à esquerda.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Toque uma vez na área central (30% de largura por padrão e 30% de altura). Outros toques no centro mostram ou ocultam os controles.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Toque uma vez em vez de duas para executar a ação à direita.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Arrastar para mover legendas</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Mantenha o centro pressionado e arraste para cima ou para baixo para mover as legendas principais. Mantenha uma legenda pressionada para mover essa faixa separadamente. Os deslizes normais continuam abrindo a lista de reprodução.</string>
   <string name="pref_gesture_double_tap_custom_info">Você pode vincular ações personalizadas a estes gestos no input.conf usando os seguintes códigos de tecla:

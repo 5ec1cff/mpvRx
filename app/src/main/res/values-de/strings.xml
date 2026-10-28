@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">Einfaches Tippen (Mitte)</string>
   <string name="pref_gesture_double_tap_right_title">Doppeltipp (rechts)</string>
   <string name="pref_gesture_single_tap_right_title">Einfaches Tippen (rechts)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Einfaches Tippen für linke Geste verwenden</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Einfaches Tippen für mittlere Geste verwenden</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Einfaches Tippen für rechte Geste verwenden</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Im mittleren Bereich (30% der Bildschirmhöhe) einmal statt zweimal tippen. Die oberen und unteren 35% zeigen oder verbergen die Wiedergabesteuerung.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Einmal tippen: links</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Einmal tippen: Mitte</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Einmal tippen: rechts</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Einmal statt zweimal tippen, um die linke Aktion auszuführen.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Einmal in der mittleren Zone tippen (standardmäßig 30 % breit und 30 % hoch). Andere Tipps in der Mitte zeigen oder verbergen die Steuerung.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Einmal statt zweimal tippen, um die rechte Aktion auszuführen.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Untertitel durch Ziehen verschieben</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Halte die Mitte gedrückt und ziehe nach oben oder unten, um die primären Untertitel zu verschieben. Halte direkt einen Untertitel gedrückt, um diese Spur einzeln zu verschieben. Normale Wischgesten öffnen weiterhin die Wiedergabeliste.</string>
   <string name="pref_gesture_double_tap_custom_info">Diesen Gesten können in input.conf mit den folgenden Tastencodes benutzerdefinierte Aktionen zugewiesen werden:

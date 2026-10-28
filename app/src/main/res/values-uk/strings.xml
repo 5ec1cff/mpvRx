@@ -275,10 +275,12 @@
   <string name="pref_gesture_single_tap_center_title">Одинарний дотик (по центру)</string>
   <string name="pref_gesture_double_tap_right_title">Подвійний дотик (праворуч)</string>
   <string name="pref_gesture_single_tap_right_title">Одинарний дотик (праворуч)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Одинарний дотик для лівого жесту</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Одинарний дотик для центрального жесту</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Одинарний дотик для правого жесту</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Один дотик замість двох у середній області заввишки 30% екрана. Верхні та нижні 35% показують або приховують елементи керування програвачем.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Один дотик ліворуч</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Один дотик по центру</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Один дотик праворуч</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Торкніться один раз замість двох, щоб виконати дію ліворуч.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Торкніться центральної зони один раз (ширина за замовчуванням 30%, висота 30%). Інші дотики в центрі показують або приховують елементи керування.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Торкніться один раз замість двох, щоб виконати дію праворуч.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Переміщення субтитрів перетягуванням</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Утримуйте палець у центрі та перетягуйте вгору або вниз, щоб перемістити основні субтитри. Утримуйте палець безпосередньо на субтитрах, щоб перемістити цю доріжку окремо. Звичайні свайпи й надалі відкривають список відтворення.</string>
   <string name="pref_gesture_double_tap_custom_info">Ви можете призначити власні дії для цих жестів у input.conf за допомогою таких кодів клавіш:

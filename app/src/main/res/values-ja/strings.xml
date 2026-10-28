@@ -234,10 +234,12 @@
   <string name="pref_gesture_single_tap_center_title">シングルタップ（中央）</string>
   <string name="pref_gesture_double_tap_right_title">ダブルタップ（右）</string>
   <string name="pref_gesture_single_tap_right_title">シングルタップ（右）</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">左側ジェスチャーにシングルタップを使用</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">中央ジェスチャーにシングルタップを使用</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">右側ジェスチャーにシングルタップを使用</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">画面の高さの中央30%では、2回の代わりに1回タップします。上部と下部それぞれ35%ではプレーヤーの操作ボタンを表示・非表示にします。</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">左側をシングルタップ</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">中央をシングルタップ</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">右側をシングルタップ</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">2回の代わりに1回タップして、左側の操作を実行します。</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">中央の範囲（幅は初期設定で30%、高さは30%）を1回タップします。中央のそれ以外の場所では操作ボタンを表示・非表示にします。</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">2回の代わりに1回タップして、右側の操作を実行します。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">ドラッグで字幕を移動</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">中央を長押しして上下にドラッグすると主字幕を移動できます。字幕を直接長押しすると、そのトラックを個別に移動できます。通常のスワイプでは引き続きプレイリストが開きます。</string>
   <string name="pref_gesture_double_tap_custom_info">input.confで次のキーコードを使用して、これらのジェスチャーにカスタム操作を割り当てられます：

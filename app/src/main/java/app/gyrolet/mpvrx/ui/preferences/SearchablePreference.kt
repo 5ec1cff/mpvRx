@@ -762,7 +762,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_use_single_tap_for_left_title,
-          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          summaryRes = R.string.pref_gesture_use_single_tap_for_left_summary,
           keywords = listOf("single", "tap", "left", "seek", "rewind", "controls", "zone"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
@@ -771,7 +771,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_use_single_tap_for_center_title,
-          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          summaryRes = R.string.pref_gesture_use_single_tap_for_center_summary,
           keywords = listOf("single", "tap", "center", "play", "pause", "controls", "zone"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
@@ -780,7 +780,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_use_single_tap_for_right_title,
-          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          summaryRes = R.string.pref_gesture_use_single_tap_for_right_summary,
           keywords = listOf("single", "tap", "right", "seek", "forward", "controls", "zone"),
           category = "Gestures",
           screen = GesturePreferencesScreen,

@@ -72,7 +72,7 @@ import kotlin.math.sqrt
 private val holdSpeedPresets = listOf(0.5f, 1f, 1.5f, 2f, 2.5f, 3f, 3.5f, 4f)
 private const val SPEED_HOLD_INTENT_THRESHOLD_MS = 250L
 private const val MULTI_TAP_SEEK_TIMEOUT_MS = 1_000L
-private const val SINGLE_TAP_CONTROLS_EDGE_FRACTION = 0.35f
+private const val CENTER_SINGLE_TAP_VERTICAL_EDGE_FRACTION = 0.35f
 
 private data class TapSeekFeedback(
   val region: String,
@@ -397,9 +397,11 @@ fun GestureHandler(
                 "right" -> useSingleTapForRight
                 else -> useSingleTapForCenter
               }
-              val isSingleTapActionArea =
-                downPosition.y >= size.height * SINGLE_TAP_CONTROLS_EDGE_FRACTION &&
-                  downPosition.y < size.height * (1f - SINGLE_TAP_CONTROLS_EDGE_FRACTION)
+              // Only center single taps use the middle 30% of the player's height.
+              // The existing horizontal regions give the center 30% width by default.
+              val isSingleTapActionArea = region != "center" ||
+                (downPosition.y >= size.height * CENTER_SINGLE_TAP_VERTICAL_EDGE_FRACTION &&
+                  downPosition.y < size.height * (1f - CENTER_SINGLE_TAP_VERTICAL_EDGE_FRACTION))
               val seekRegionWidth = (size.width * seekAreaFraction).coerceAtLeast(1f)
               val seekRegionStart = if (region == "right") rightBoundary else 0f
               val ripplePosition = Offset(

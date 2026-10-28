@@ -228,10 +228,12 @@
   <string name="pref_gesture_single_tap_center_title">सिंगल टैप (बीच में)</string>
   <string name="pref_gesture_double_tap_right_title">डबल टैप (दाएं)</string>
   <string name="pref_gesture_single_tap_right_title">सिंगल टैप (दाएं)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">बाएं के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">बीच के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">दाएं के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">स्क्रीन की ऊंचाई के बीच वाले 30% हिस्से में दो की जगह एक टैप करें। ऊपर और नीचे के 35% हिस्से प्लेयर कंट्रोल दिखाते या छिपाते हैं।</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">बाईं ओर सिंगल टैप</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">बीच में सिंगल टैप</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">दाईं ओर सिंगल टैप</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">बाईं ओर की कार्रवाई के लिए दो बार की जगह एक बार टैप करें।</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">बीच के क्षेत्र में एक बार टैप करें (डिफ़ॉल्ट चौड़ाई 30% और ऊँचाई 30%)। बीच के बाकी टैप कंट्रोल दिखाते या छिपाते हैं।</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">दाईं ओर की कार्रवाई के लिए दो बार की जगह एक बार टैप करें।</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">खींचकर उपशीर्षक खिसकाएँ</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">मुख्य उपशीर्षक को खिसकाने के लिए बीच में दबाकर रखें, फिर ऊपर या नीचे खींचें। किसी भी उपशीर्षक को सीधे दबाकर रखने पर उसका ट्रैक अलग से खिसकाया जा सकता है। सामान्य स्वाइप से प्लेलिस्ट पहले की तरह खुलती है।</string>
   <string name="pref_gesture_double_tap_custom_info">आप input.conf में इन की-कोड्स का इस्तेमाल करके इन जेस्चरों पर कस्टम एक्शन बांध सकते हैं:\n\nबाएं: MBTN_LEFT_DBL\nबीच: MBTN_MID_DBL\nदाएं: MBTN_RIGHT_DBL</string>

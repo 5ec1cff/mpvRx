@@ -312,10 +312,12 @@
   <string name="pref_gesture_single_tap_center_title">Single tap (center)</string>
   <string name="pref_gesture_double_tap_right_title">Double tap (right)</string>
   <string name="pref_gesture_single_tap_right_title">Single tap (right)</string>
-  <string name="pref_gesture_use_single_tap_for_left_title">Use single tap for left gesture</string>
-  <string name="pref_gesture_use_single_tap_for_center_title">Use single tap for center gesture</string>
-  <string name="pref_gesture_use_single_tap_for_right_title">Use single tap for right gesture</string>
-  <string name="pref_gesture_use_single_tap_summary" formatted="false">Use one tap instead of two in the middle 30% of screen height. The top and bottom 35% each show or hide player controls.</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Single tap on left</string>
+  <string name="pref_gesture_use_single_tap_for_center_title">Single tap in center</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Single tap on right</string>
+  <string name="pref_gesture_use_single_tap_for_left_summary">Tap once instead of twice to run the left-side action.</string>
+  <string name="pref_gesture_use_single_tap_for_center_summary" formatted="false">Tap once inside the center zone (30% wide by default, 30% tall). Other center taps toggle controls.</string>
+  <string name="pref_gesture_use_single_tap_for_right_summary">Tap once instead of twice to run the right-side action.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Hold and drag subtitles</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Hold the center, then drag up or down to move primary subtitles. Hold directly on either subtitle to move that track independently. Normal swipes still open the playlist.</string>
   <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL</string>

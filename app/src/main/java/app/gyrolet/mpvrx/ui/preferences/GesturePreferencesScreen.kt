@@ -502,7 +502,7 @@ object GesturePreferencesScreen : Screen {
                 title = { Text(stringResource(R.string.pref_gesture_use_single_tap_for_left_title)) },
                 summary = {
                   Text(
-                    stringResource(R.string.pref_gesture_use_single_tap_summary),
+                    text = stringResource(R.string.pref_gesture_use_single_tap_for_left_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
@@ -521,7 +521,7 @@ object GesturePreferencesScreen : Screen {
                 },
                 summary = {
                   Text(
-                    text = stringResource(id = R.string.pref_gesture_use_single_tap_summary),
+                    text = stringResource(R.string.pref_gesture_use_single_tap_for_center_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
@@ -536,7 +536,7 @@ object GesturePreferencesScreen : Screen {
                 title = { Text(stringResource(R.string.pref_gesture_use_single_tap_for_right_title)) },
                 summary = {
                   Text(
-                    stringResource(R.string.pref_gesture_use_single_tap_summary),
+                    text = stringResource(R.string.pref_gesture_use_single_tap_for_right_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
