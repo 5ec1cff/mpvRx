@@ -352,9 +352,17 @@ fun GestureHandler(
     modifier =
       modifier
         .fillMaxSize()
-        .pointerInput(areControlsLocked, doubleTapSeekAreaWidth, gesturePreferences, isVerticalGestureActive, mediaGeneration) {
+        .pointerInput(
+          areControlsLocked,
+          doubleTapSeekAreaWidth,
+          gesturePreferences,
+          isVerticalGestureActive,
+          mediaGeneration,
+          externalPanelShown,
+          blockGesturesInExternalPanel,
+        ) {
           // Isolated double-tap detection that doesn't interfere with other gestures
-          if (isVerticalGestureActive) return@pointerInput
+          if (isVerticalGestureActive || (externalPanelShown && blockGesturesInExternalPanel)) return@pointerInput
           awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             beginGesture(down.id.value, down.uptimeMillis)

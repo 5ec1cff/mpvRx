@@ -2511,11 +2511,15 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     if (reference != null) {
       val proxy = NetworkStreamingProxy.getInstance()
       val streamId = "playback-${streamSequence.incrementAndGet()}"
+      val listedSource = item.networkSource?.takeIf {
+        it.connectionId == reference.connectionId && it.relativePath == reference.path.value
+      }
       val uri =
         proxy.registerStream(
           streamId = streamId,
           connectionId = reference.connectionId,
           filePath = reference.path.value,
+          fileSize = listedSource?.fileSize ?: -1L,
           mimeType = item.mimeType ?: "application/octet-stream",
         )
       return ResolvedPlayable(uri, NetworkStreamRegistration(proxy = proxy, streamId = streamId))

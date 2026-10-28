@@ -46,6 +46,9 @@ internal class RangeChunkCache(
     val isComplete: Boolean
       get() = lock.withLock { complete }
 
+    val availableBytes: Int
+      get() = lock.withLock { filled }
+
     /** Blocks until at least [minBytes] are resident, the fill ends, or the deadline passes. */
     fun awaitAvailable(
       minBytes: Int,

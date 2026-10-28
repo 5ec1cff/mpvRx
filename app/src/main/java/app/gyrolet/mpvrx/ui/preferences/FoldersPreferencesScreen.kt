@@ -89,6 +89,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -363,7 +365,9 @@ object FoldersPreferencesScreen : Screen {
               preferences.sharedIgnoredMarkers.set(ignoredMarkers.intersect(markers))
               onScanPreferenceChanged()
             },
-            modifier = Modifier.settingsSearchTarget(R.string.pref_hidden_scan_enable_in),
+            modifier = Modifier
+              .settingsSearchTarget(R.string.pref_hidden_scan_per_mode_title)
+              .settingsSearchTarget(R.string.pref_hidden_scan_enable_in),
           )
           // Scan filters finish the Media Library group; they open a list of limits.
           SettingsNavigationRow(
@@ -1333,15 +1337,21 @@ private fun HiddenScanSettingsCard(
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Text(
-          text = stringResource(R.string.pref_hidden_scan_enable_in),
-          style = MaterialTheme.typography.labelMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.weight(1f),
+          text = stringResource(R.string.pref_hidden_scan_per_mode_title),
+          style = MaterialTheme.typography.titleSmall,
+          color = MaterialTheme.colorScheme.onSurface,
+          modifier = Modifier.weight(1f).semantics { heading() },
         )
         if (showMasterToggle) {
           IconSwitch(checked = enabled, onCheckedChange = onEnabledChange)
         }
       }
+      Text(
+        text = stringResource(R.string.pref_hidden_scan_enable_in),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(bottom = 8.dp),
+      )
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing),

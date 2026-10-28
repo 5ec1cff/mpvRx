@@ -230,7 +230,9 @@ class NetworkBrowserViewModel(
           uri = networkUri,
           title = networkFile.name,
           mimeType = networkFile.mimeType,
-          networkSource = NetworkPlaybackSource(connection.id, networkFile.path),
+          networkSource = NetworkPlaybackSource(
+            connection.id, networkFile.path, networkFile.size.coerceAtLeast(-1L),
+          ),
         )
       }
     val launchToken = PreparedPlaybackLaunchStore.stage(

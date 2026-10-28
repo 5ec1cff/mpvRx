@@ -459,19 +459,13 @@ class SmbClient(
                           System.arraycopy(readBuffer, 0, b, off, bytesRead)
                         }
                         currentPosition += bytesRead
+                        markActive()
                         return bytesRead
                       }
                     } catch (error: Exception) {
                       throw IOException("SMB stream read failed", error)
                     }
                   }
-
-                  override fun available(): Int =
-                    runCatching {
-                      (file.fileInformation.standardInformation.endOfFile - currentPosition)
-                        .coerceIn(0L, Int.MAX_VALUE.toLong())
-                        .toInt()
-                    }.getOrDefault(0)
 
                   override fun close() {
                     if (closed) return
@@ -480,10 +474,14 @@ class SmbClient(
                     // session-cached tree connect and is shared with concurrent range
                     // streams; closing it here triggers TREE_DISCONNECT and breaks any
                     // sibling stream that is still reading.
-                    runCatching { file.close() }
+                    runCatching { file.closeNoWait() }.onFailure { error ->
+                      android.util.Log.w("SmbClient", "Could not release SMB file handle", error)
+                    }
                   }
                 }
 
+              // Only locally buffered bytes are immediately available; never query SMB metadata
+              // from available(), which HTTP streaming may call repeatedly.
               BufferedInputStream(inputStream, SMB_STREAM_BUFFER_SIZE)
             } catch (e: Exception) {
               // See above: the cached DiskShare must not be closed here either.

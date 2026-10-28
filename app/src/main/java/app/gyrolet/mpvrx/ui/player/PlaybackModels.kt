@@ -40,6 +40,8 @@ enum class PlaybackPhase {
 data class NetworkPlaybackSource(
   val connectionId: Long,
   val relativePath: String,
+  /** Size already supplied by a fresh directory listing, or -1 when reopening a saved reference. */
+  val fileSize: Long = -1L,
 )
 
 /**

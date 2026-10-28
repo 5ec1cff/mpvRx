@@ -253,7 +253,6 @@ internal fun PlayerSettingsDrawer(
             portraitHeightFraction = panelHeightFraction,
             maxPanelWidth = panelWidth,
             allowVerticalDrag = true,
-            consumeBackgroundTouches = true,
             containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             header = {

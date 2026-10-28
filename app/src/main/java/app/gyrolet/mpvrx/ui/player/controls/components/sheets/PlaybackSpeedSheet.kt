@@ -48,7 +48,6 @@ import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
-import me.zhanghai.compose.preference.ProvidePreferenceLocals
 import org.koin.compose.koinInject
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -222,35 +221,21 @@ fun PlaybackSpeedSheet(
         }
       }
 
-      ProvidePreferenceLocals {
-        val audioPreferences = koinInject<AudioPreferences>()
-
-        // Audio Pitch Correction
-        val pitchCorrection by audioPreferences.audioPitchCorrection.collectAsState()
-
-        SwitchPreference(
-          value = pitchCorrection,
-          enabled = pitchCorrectionEnabled,
-          onValueChange = { newValue ->
-            audioPreferences.audioPitchCorrection.set(newValue)
-            PlaybackSession.setPropertyBoolean("audio-pitch-correction", newValue)
-          },
-          title = {
-            Text(
-              text = stringResource(id = R.string.pref_audio_pitch_correction_title),
-              style = MaterialTheme.typography.bodyMedium,
-              fontWeight = FontWeight.SemiBold,
-            )
-          },
-          summary = {
-            Text(
-              text = stringResource(id = R.string.pref_audio_pitch_correction_summary),
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-          },
-        )
-      }
+      val audioPreferences = koinInject<AudioPreferences>()
+      val pitchCorrection by audioPreferences.audioPitchCorrection.collectAsState()
+      SwitchPreference(
+        value = pitchCorrection,
+        enabled = pitchCorrectionEnabled,
+        onValueChange = { newValue ->
+          audioPreferences.audioPitchCorrection.set(newValue)
+          PlaybackSession.setPropertyBoolean("audio-pitch-correction", newValue)
+        },
+        title = { Text(stringResource(R.string.pref_audio_pitch_correction_title)) },
+        summary = { Text(stringResource(R.string.pref_audio_pitch_correction_summary)) },
+        titleStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+        summaryStyle = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+      )
     }
   }
 }

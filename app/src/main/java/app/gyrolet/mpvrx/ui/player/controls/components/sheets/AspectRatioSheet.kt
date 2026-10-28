@@ -22,11 +22,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import app.gyrolet.mpvrx.presentation.components.AppTextField as OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,7 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.PlayerSheet
 import app.gyrolet.mpvrx.presentation.components.PlayerSheetSectionHeader
-import app.gyrolet.mpvrx.ui.components.IconSwitch
+import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.player.AutoCropState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -102,38 +98,16 @@ fun AspectRatioSheet(
           autoCropState == AutoCropState.ERROR -> app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars_failed
           else -> app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars_summary
         }
-      Surface(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = MaterialTheme.shapes.extraLarge,
-        color =
-          if (autoCropEnabled) {
-            MaterialTheme.colorScheme.secondaryContainer
-          } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
-          },
-      ) {
-        ListItem(
-          content = {
-            Text(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars))
-          },
-          supportingContent = { Text(androidx.compose.ui.res.stringResource(autoCropSummary)) },
-          trailingContent = {
-            IconSwitch(
-              checked = autoCropEnabled,
-              onCheckedChange = null,
-              enabled = autoCropControlEnabled,
-            )
-          },
-          modifier =
-            Modifier.clickable(enabled = autoCropControlEnabled) {
-              onAutoCropChanged(!autoCropEnabled)
-            },
-          colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        )
-      }
+      SwitchPreference(
+        value = autoCropEnabled,
+        onValueChange = onAutoCropChanged,
+        enabled = autoCropControlEnabled,
+        title = {
+          Text(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_auto_crop_black_bars))
+        },
+        summary = { Text(androidx.compose.ui.res.stringResource(autoCropSummary)) },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+      )
 
       // Preset ratios
       PlayerSheetSectionHeader(androidx.compose.ui.res.stringResource(app.gyrolet.mpvrx.R.string.ui_presets))

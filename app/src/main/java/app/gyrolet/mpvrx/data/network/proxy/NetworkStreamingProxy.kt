@@ -131,6 +131,9 @@ class NetworkStreamingProxy private constructor() :
 
     @Volatile
     var client: NetworkClient? = null
+
+    @Volatile
+    var closed: Boolean = false
   }
 
   private class HeadResponse(
@@ -349,6 +352,7 @@ class NetworkStreamingProxy private constructor() :
     private val endInclusive: Long,
   ) : InputStream() {
     private var position = start
+    private val initialPosition = start
     private val initialChunkIndex = start / RANGE_CHUNK_BYTES
     private var upstream: InputStream? = null
     private var upstreamPosition = -1L
@@ -374,11 +378,19 @@ class NetworkStreamingProxy private constructor() :
       // Only the chunk the response starts in is filled on demand. Later chunks are served from
       // prefetch when resident; otherwise the response streams directly from upstream so
       // sequential playback never waits on a fill.
-      val chunk =
+      val candidate =
         streamInfo.chunkCache.get(path, index)
-          ?: if (index == initialChunkIndex) obtainChunk(index) else null
+          ?: if (index == initialChunkIndex) obtainChunk(index, position) else null
+      val chunk = candidate?.takeIf { position >= it.start && position - it.start < it.capacity }
       if (chunk != null) {
         val offsetInChunk = (position - chunk.start).toInt()
+        // A different request may have started filling this bin earlier. Never wait through its
+        // unread prefix before serving a new seek/resume position; open that exact offset instead.
+        if ((position == initialPosition || upstream != null) &&
+          offsetInChunk > 0 && chunk.availableBytes <= offsetInChunk
+        ) {
+          return readUpstream(b, off, maxRead)
+        }
         val available =
           runCatching {
             chunk.awaitAvailable(
@@ -390,7 +402,7 @@ class NetworkStreamingProxy private constructor() :
           val count = chunk.copyTo(offsetInChunk, b, off, maxRead)
           if (count > 0) {
             position += count
-            if (position - chunk.start >= RANGE_CHUNK_BYTES / 2) {
+            if (position - chunk.start >= chunk.capacity / 2) {
               prefetchChunk(index + 1)
             }
             return count
@@ -406,15 +418,16 @@ class NetworkStreamingProxy private constructor() :
       closeUpstream()
     }
 
-    private fun obtainChunk(index: Long): RangeChunkCache.Chunk? {
-      val start = index * RANGE_CHUNK_BYTES
+    private fun obtainChunk(index: Long, start: Long): RangeChunkCache.Chunk? {
       if (start >= fileSize) return null
+      // Keep fixed bin keys, but fill from the requested byte, not up to 8 MiB before it.
+      val offsetInBin = start % RANGE_CHUNK_BYTES
       return runCatching {
         streamInfo.chunkCache.obtain(
           path,
           index,
           start,
-          minOf(RANGE_CHUNK_BYTES, fileSize - start).toInt(),
+          minOf(RANGE_CHUNK_BYTES - offsetInBin, fileSize - start).toInt(),
           proxyScope,
         ) { chunk, context -> fillChunk(streamInfo, path, chunk, context) }
       }.getOrNull()
@@ -539,9 +552,25 @@ class NetworkStreamingProxy private constructor() :
     operation: suspend (NetworkClient) -> Result<T>,
   ): Result<T> {
     val client = ensureClient(streamInfo).getOrElse { return Result.failure(it) }
+    if (streamInfo.closed) return Result.failure(IOException("Network stream is no longer registered"))
     // The operation runs outside the mutex: opening the video and audio chunks at once must not
     // serialize the two upstream requests behind each other.
     val result = operation(client)
+    if (streamInfo.closed) {
+      // An open may have raced unregistration and reconnected inside the protocol client.
+      // Discard both the late result and that transport instead of leaving an orphan session.
+      withContext(NonCancellable) {
+        runCatching { client.disconnect() }.onFailure { error ->
+          Log.w(TAG, "Failed to disconnect abandoned upstream client (${error::class.java.simpleName})")
+        }
+        (result.getOrNull() as? InputStream)?.let { stream ->
+          runCatching { stream.close() }.onFailure { error ->
+            Log.w(TAG, "Failed to close abandoned upstream stream (${error::class.java.simpleName})")
+          }
+        }
+      }
+      return Result.failure(IOException("Network stream was unregistered during the upstream operation"))
+    }
     result.exceptionOrNull()?.let { error ->
       if (error is CancellationException) throw error
       // Client error messages are app-constructed (HTTP status etc.) and carry no URLs/credentials.
@@ -562,6 +591,7 @@ class NetworkStreamingProxy private constructor() :
 
   private suspend fun ensureClient(streamInfo: StreamInfo): Result<NetworkClient> =
     streamInfo.clientMutex.withLock {
+      if (streamInfo.closed) return@withLock Result.failure(IOException("Network stream is no longer registered"))
       var client = streamInfo.client
       if (client == null) {
         val candidate =
@@ -571,6 +601,7 @@ class NetworkStreamingProxy private constructor() :
           }
         try {
           candidate.connect().getOrThrow()
+          if (streamInfo.closed) throw IOException("Network stream was unregistered during connection")
           streamInfo.client = candidate
           client = candidate
         } catch (cancellation: CancellationException) {
@@ -586,6 +617,7 @@ class NetworkStreamingProxy private constructor() :
         if (!existingClient.isConnected()) {
           try {
             existingClient.connect().getOrThrow()
+            if (streamInfo.closed) throw IOException("Network stream was unregistered during reconnection")
           } catch (cancellation: CancellationException) {
             throw cancellation
           } catch (error: Exception) {
@@ -672,6 +704,7 @@ class NetworkStreamingProxy private constructor() :
     }
 
   private fun closeAsync(streamInfo: StreamInfo) {
+    streamInfo.closed = true
     if (!closingStreams.add(streamInfo)) return
     proxyScope.launch {
       try {
@@ -684,12 +717,17 @@ class NetworkStreamingProxy private constructor() :
 
   private suspend fun close(streamInfo: StreamInfo) =
     withContext(NonCancellable) {
-      streamInfo.chunkCache.dispose()
+      streamInfo.closed = true
+      // Terminate transport reads before closing their buffered streams: close() can otherwise
+      // wait on the same monitor as a blocked read, keeping an old SMB transfer alive on reopen.
       streamInfo.clientMutex.withLock {
         val client = streamInfo.client
         streamInfo.client = null
-        runCatching { client?.disconnect() }
+        runCatching { client?.disconnect() }.onFailure { error ->
+          Log.w(TAG, "Failed to disconnect released upstream client (${error::class.java.simpleName})")
+        }
       }
+      streamInfo.chunkCache.dispose()
     }
 
   private fun cleanup() {
