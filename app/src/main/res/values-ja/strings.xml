@@ -2832,4 +2832,7 @@
   <string name="pref_layout_center_seekbar_below">中央再生・操作ボタンの下にシークバー</string>
   <string name="pref_layout_playback_above">シークバーの上に再生と操作ボタン</string>
   <string name="pref_layout_playback_below">シークバーの下に再生と操作ボタン</string>
+  <string name="player_layout_preset_title">再生操作の配置</string>
+  <string name="player_layout_preview_hint">表示はサンプルです。変更はすぐに保存されます。</string>
+  <string name="player_layout_shared_landscape_hint">横向き画面のすべての操作領域で共通です。</string>
 </resources>

@@ -245,6 +245,9 @@
   <string name="pref_layout_bottom_left_controls">Bottom Left Controls</string>
   <string name="pref_layout_portrait_bottom_controls">Portrait Bottom Controls</string>
   <string name="pref_layout_preview">Preview</string>
+  <string name="player_layout_preset_title">Playback layout</string>
+  <string name="player_layout_preview_hint">Sample only. Edits save immediately.</string>
+  <string name="player_layout_shared_landscape_hint">Shared by all landscape regions.</string>
   <string name="pref_player">Player</string>
   <string name="pref_player_summary">Orientation, gestures and controls</string>
   <string name="pref_player_orientation">Orientation</string>

@@ -2848,4 +2848,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_layout_center_seekbar_below">Centré · barre sous les actions</string>
   <string name="pref_layout_playback_above">Lecture et actions au-dessus de la barre</string>
   <string name="pref_layout_playback_below">Lecture et actions sous la barre</string>
+  <string name="player_layout_preset_title">Disposition de lecture</string>
+  <string name="player_layout_preview_hint">Aperçu simulé. Modifications enregistrées.</string>
+  <string name="player_layout_shared_landscape_hint">Commun à toutes les zones en paysage.</string>
 </resources>

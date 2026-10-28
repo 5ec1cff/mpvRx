@@ -2848,4 +2848,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_layout_center_seekbar_below">Mitte · Zeitleiste unter Aktionen</string>
   <string name="pref_layout_playback_above">Wiedergabe + Aktionen über Zeitleiste</string>
   <string name="pref_layout_playback_below">Wiedergabe + Aktionen unter Zeitleiste</string>
+  <string name="player_layout_preset_title">Wiedergabelayout</string>
+  <string name="player_layout_preview_hint">Nur Vorschau. Änderungen werden sofort gespeichert.</string>
+  <string name="player_layout_shared_landscape_hint">Gilt für alle Bereiche im Querformat.</string>
 </resources>

@@ -2880,4 +2880,7 @@
   <string name="pref_layout_center_seekbar_below">По центру · шкала под кнопками</string>
   <string name="pref_layout_playback_above">Воспроизведение и кнопки над шкалой</string>
   <string name="pref_layout_playback_below">Воспроизведение и кнопки под шкалой</string>
+  <string name="player_layout_preset_title">Расположение управления</string>
+  <string name="player_layout_preview_hint">Только пример. Изменения сохраняются сразу.</string>
+  <string name="player_layout_shared_landscape_hint">Общее для всех зон в альбомном режиме.</string>
 </resources>

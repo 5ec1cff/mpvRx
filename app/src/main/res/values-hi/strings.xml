@@ -2752,4 +2752,7 @@
   <string name="pref_layout_center_seekbar_below">बीच में प्लेबैक · बटनों के नीचे सीक बार</string>
   <string name="pref_layout_playback_above">सीक बार के ऊपर प्लेबैक और बटन</string>
   <string name="pref_layout_playback_below">सीक बार के नीचे प्लेबैक और बटन</string>
+  <string name="player_layout_preset_title">प्लेबैक लेआउट</string>
+  <string name="player_layout_preview_hint">सिर्फ़ नमूना। बदलाव तुरंत सहेजे जाते हैं।</string>
+  <string name="player_layout_shared_landscape_hint">लैंडस्केप की सभी जगहों पर लागू होता है।</string>
 </resources>

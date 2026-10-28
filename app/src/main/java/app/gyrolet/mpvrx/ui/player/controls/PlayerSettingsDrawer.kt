@@ -85,6 +85,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.panels.VideoSettingsFilte
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.VideoSettingsFiltersCard
 import app.gyrolet.mpvrx.ui.preferences.AudioPreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.ControlLayoutEditorScreen
+import app.gyrolet.mpvrx.ui.preferences.ControlRegion
 import app.gyrolet.mpvrx.ui.preferences.GesturePreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.LiquidGlassPreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.LocalLivePlayerSettingsContent
@@ -368,7 +369,9 @@ private fun SettingsPanelHome(
   val store = koinInject<PreferenceStore>()
   val favoritesPreference = remember(store) { store.getStringSet("player_settings_favorites", emptySet()) }
   val favorites by favoritesPreference.collectAsState()
-  val screens = remember(categories) { categories.map { it.screen }.toSet() }
+  val screens = remember(categories) {
+    (categories.map { it.screen } + ControlRegion.entries.map { ControlLayoutEditorScreen(it) }).toSet()
+  }
   val categoryEntries = remember(categories) {
     categories.map {
       SearchablePreference(
@@ -512,7 +515,15 @@ private fun SettingsPanelHome(
   }
 }
 
-private fun SearchablePreference.favoriteKey() = "${screen.javaClass.name}:$searchTargetKey"
+private fun SearchablePreference.favoriteKey(): String {
+  val presetTarget = (targetRes ?: titleRes) in setOf(
+    R.string.ui_landscape_seekbar_position, R.string.ui_landscape_playback_buttons,
+    R.string.ui_portrait_seekbar_position, R.string.ui_portrait_playback_buttons,
+  )
+  // Keep existing pins when these settings move from the parent page into the region editors.
+  val owner = if (screen is ControlLayoutEditorScreen && presetTarget) PlayerControlsPreferencesScreen else screen
+  return "${owner.javaClass.name}:$searchTargetKey"
+}
 
 @Composable
 private fun SettingsResultRow(

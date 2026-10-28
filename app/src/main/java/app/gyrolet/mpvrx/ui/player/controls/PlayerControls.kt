@@ -138,7 +138,6 @@ import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
-import app.gyrolet.mpvrx.preferences.PlaybackControlsPosition
 import app.gyrolet.mpvrx.preferences.allPlayerButtons
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.preferences.preference.deleteAndGet
@@ -185,6 +184,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusReq
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.toFixed
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.controlColor
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.theme.playerRippleConfiguration
@@ -1147,27 +1147,28 @@ fun PlayerControls(
               })
           val controlsWidth =
             if (playerBounds.width > 0) with(density) { playerBounds.width.toDp() } else configuration.screenWidthDp.dp
-          val compactPlayback =
-            controlsWidth < 360.dp || (playbackPosition != PlaybackControlsPosition.Center && controlsWidth < 480.dp)
-          val playPauseSize = if (compactPlayback) 56.dp else PlaybackPlayPauseButtonSize
-          val skipButtonSize = if (compactPlayback) 48.dp else PlaybackSkipButtonSize
-          val playbackButtonGap = if (compactPlayback) 4.dp else if (hideBackground) spacing.small else spacing.large
-          val playbackRowHalfWidth =
-            (playPauseSize + if (hasPlaylistControls) (skipButtonSize + playbackButtonGap) * 2 else 0.dp) / 2
-          val sideGap = if (compactPlayback || hideBackground) spacing.smaller else spacing.medium
           val safeHorizontalInsets = with(density) {
             val insets = WindowInsets.safeDrawing
             (insets.getLeft(this, LayoutDirection.Ltr) + insets.getRight(this, LayoutDirection.Ltr)).toDp()
           }
-          val minimumSharedWidth =
-            playbackRowHalfWidth * 2 + spacing.large * 2 + safeHorizontalInsets +
-              if (hasBottomActions) 96.dp + sideGap * 2 else 0.dp
+          val playbackGeometry = resolvePlaybackControlsGeometry(
+            width = controlsWidth,
+            playbackPosition = playbackPosition,
+            hasPlaylistControls = hasPlaylistControls,
+            hasActions = hasBottomActions,
+            hideBackground = hideBackground,
+            spacing = spacing,
+            horizontalInsets = safeHorizontalInsets,
+          )
+          val playPauseSize = playbackGeometry.playPauseSize
+          val skipButtonSize = playbackGeometry.skipButtonSize
+          val playbackButtonGap = playbackGeometry.buttonGap
           val bottomLayout =
             resolveBottomControlsLayout(
               seekbarPlacement = if (isPortrait) portraitSeekbarPlacement else landscapeSeekbarPlacement,
               playbackPosition = playbackPosition,
               hasButtons = hasBottomActions,
-              allowSharedRow = controlsWidth >= minimumSharedWidth,
+              allowSharedRow = playbackGeometry.canShareRow,
             )
           val buttonsBesidePlayback = bottomLayout.buttonsBesidePlayback
           val playbackNearSeekbar = buttonsBesidePlayback
@@ -1181,7 +1182,7 @@ fun PlayerControls(
           val sharedPlaybackRowCenterX = createGuidelineFromStart(0.5f)
           val sharedRowSideInset =
             if (buttonsBesidePlayback) {
-              playbackRowHalfWidth + sideGap
+              playbackGeometry.rowHalfWidth + playbackGeometry.sideGap
             } else {
               0.dp
             }
@@ -3159,9 +3160,6 @@ private val BottomClusterFallbackRowHeight = 48.dp
 private val CustomButtonsRowInsetHorizontal = 8.dp
 private val CustomButtonsRowInsetVertical = 8.dp
 private val CustomButtonsRowFallbackHeight = 36.dp + CustomButtonsRowInsetVertical * 2
-
-private val PlaybackPlayPauseButtonSize = 68.dp
-private val PlaybackSkipButtonSize = 60.dp
 
 private val FullScreenScrimBrush =
   Brush.verticalGradient(

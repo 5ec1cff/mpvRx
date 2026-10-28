@@ -16,13 +16,17 @@ Dynamic color follows the supported Android system palette. Fixed themes are use
 
 ## Player layout
 
-Assign actions to top-left, top-right, bottom-left, bottom-right, and portrait-bottom zones. Keep high-frequency controls near the edge reached by your normal grip, and move infrequent actions into the More sheet.
+Edit the top-right, bottom-left, bottom-right, and portrait-bottom control zones. Keep high-frequency controls near the edge reached by your normal grip, and move infrequent actions into the More sheet.
 
 :::tip
 Configure portrait and landscape separately. A comfortable phone layout often becomes too sparse on a tablet or landscape display.
 :::
 
-Android video playback has four compact presets per orientation: centered playback with the seekbar above or below the actions, or a shared playback/actions row above or below the seekbar. Existing saved positions map to these presets without resetting your action buttons. The settings page shows the preset selector without a separate arrangement preview.
+Each zone editor includes a live sample-player preview and a **Playback layout** selector. Adding, removing, reordering, or resetting buttons updates the highlighted region immediately, and changes are saved as you edit. The preview stays visible as the palette scrolls; wider or short windows place it beside the palette. Its Playlist toggle shows or hides sample Previous/Next buttons without changing your actual playlist preference.
+
+Android video playback has four compact presets per orientation: centered playback with the seekbar above or below the actions, or a shared playback/actions row above or below the seekbar. The three landscape editors share one landscape preset; the portrait editor has its own. Existing saved positions map to these presets without resetting your action buttons. Search links for playback or seekbar placement open the appropriate editor directly.
+
+The preview uses sample content, not a second video player. It shares the playback layout and sizing rules, reflects button background and seekbar styling, and does not run playback, Cast, PiP, or script actions. Reset affects the current region's buttons and does not move buttons already used in another region or reset the orientation preset.
 
 Shared rows keep Play/Pause and playlist Previous/Next accessible while the side actions scroll. A single video reserves only Play/Pause, and empty action groups do not create an extra row. Very narrow windows fall back to centered playback rather than clipping touch targets. These presets do not change TV or audio-player layouts.
 

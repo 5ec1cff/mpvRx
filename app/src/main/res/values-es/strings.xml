@@ -2848,4 +2848,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_layout_center_seekbar_below">Centrado · barra bajo acciones</string>
   <string name="pref_layout_playback_above">Reproducción y acciones sobre la barra</string>
   <string name="pref_layout_playback_below">Reproducción y acciones bajo la barra</string>
+  <string name="player_layout_preset_title">Diseño de reproducción</string>
+  <string name="player_layout_preview_hint">Solo vista previa. Los cambios se guardan al instante.</string>
+  <string name="player_layout_shared_landscape_hint">Se aplica a todas las zonas horizontales.</string>
 </resources>

@@ -51,15 +51,11 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerClockFormat
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
-import app.gyrolet.mpvrx.preferences.PlaybackControlsPosition
-import app.gyrolet.mpvrx.preferences.SeekbarPlacement
 import app.gyrolet.mpvrx.preferences.SeekbarStyle
-import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.player.controls.VideoControlsLayoutPreset
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarStyleLivePreview
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference
 import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
@@ -74,11 +70,14 @@ import kotlin.math.roundToInt
 
 // Enum to identify which region we are editing
 @Serializable
-enum class ControlRegion {
-  TOP_RIGHT,
-  BOTTOM_RIGHT,
-  BOTTOM_LEFT,
-  PORTRAIT_BOTTOM,
+enum class ControlRegion(@StringRes val titleRes: Int) {
+  TOP_RIGHT(R.string.pref_layout_top_right_controls),
+  BOTTOM_RIGHT(R.string.pref_layout_bottom_right_controls),
+  BOTTOM_LEFT(R.string.pref_layout_bottom_left_controls),
+  PORTRAIT_BOTTOM(R.string.pref_layout_portrait_bottom_controls),
+  ;
+
+  val isPortrait: Boolean get() = this == PORTRAIT_BOTTOM
 }
 
 @Serializable
@@ -179,12 +178,6 @@ object PlayerControlsPreferencesScreen : Screen {
                     PreferenceIconSummary(buttons = bottomLeftButtons)
                   }
                 }
-                BottomLayoutPreferences(
-                  seekbarPlacement = appearancePrefs.landscapeSeekbarPlacement,
-                  seekbarTitleRes = R.string.ui_landscape_seekbar_position,
-                  playbackPosition = appearancePrefs.landscapePlaybackControlsPosition,
-                  playbackTitleRes = R.string.ui_landscape_playback_buttons,
-                )
               }
             }
 
@@ -205,12 +198,6 @@ object PlayerControlsPreferencesScreen : Screen {
                     PreferenceIconSummary(buttons = portraitBottomButtons)
                   }
                 }
-                BottomLayoutPreferences(
-                  seekbarPlacement = appearancePrefs.portraitSeekbarPlacement,
-                  seekbarTitleRes = R.string.ui_portrait_seekbar_position,
-                  playbackPosition = appearancePrefs.portraitPlaybackControlsPosition,
-                  playbackTitleRes = R.string.ui_portrait_playback_buttons,
-                )
               }
             }
           }
@@ -488,32 +475,6 @@ object PlayerControlsPreferencesScreen : Screen {
           }
         }
       }
-    }
-  }
-
-  @Composable
-  private fun BottomLayoutPreferences(
-    seekbarPlacement: Preference<SeekbarPlacement>,
-    @StringRes seekbarTitleRes: Int,
-    playbackPosition: Preference<PlaybackControlsPosition>,
-    @StringRes playbackTitleRes: Int,
-  ) {
-    val placement by seekbarPlacement.collectAsState()
-    val position by playbackPosition.collectAsState()
-    val preset = VideoControlsLayoutPreset.fromPreferences(placement, position)
-    ExpressivePreferenceItem(standalone = true) {
-      ListPreference(
-        modifier = Modifier.settingsSearchTarget(seekbarTitleRes).settingsSearchTarget(playbackTitleRes),
-        value = preset,
-        onValueChange = {
-          seekbarPlacement.set(it.seekbarPlacement)
-          playbackPosition.set(it.playbackPosition)
-        },
-        values = VideoControlsLayoutPreset.entries,
-        valueToText = { AnnotatedString(stringResource(it.titleRes)) },
-        title = { Text(stringResource(playbackTitleRes)) },
-        summary = { Text(stringResource(preset.titleRes)) },
-      )
     }
   }
 
