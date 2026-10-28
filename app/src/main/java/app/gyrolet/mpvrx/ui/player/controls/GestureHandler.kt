@@ -1478,8 +1478,7 @@ fun GestureHandler(
                         val clampedPosition = targetPosition.coerceAtMost(maxDuration)
                         pendingSeekPosition = clampedPosition
 
-                        // Keep the live preview bounded and keyframe-only while scrubbing. The final
-                        // exact seek is issued once on gesture release below.
+                        // Stream targets update feedback only; local decoder previews stay bounded.
                         viewModel.seekPreviewTo(clampedPosition)
 
                         // Format and display time position updates
@@ -1526,12 +1525,12 @@ fun GestureHandler(
 
             // Apply the final seek when gesture ends
             if (hasStartedSeeking) {
-              // Finalize with the last bounded preview target; seekTo cancels any pending preview.
-              pendingSeekPosition?.let { viewModel.seekTo(it.toInt()) }
-
-              // Only the scrub seek paused playback; a subtitle swipe must leave it as it was.
-              if (gestureType == "horizontal_seek" && !wasPlayerAlreadyPaused) {
-                viewModel.unpause()
+              pendingSeekPosition?.let {
+                if (gestureType == "horizontal_seek") {
+                  viewModel.seekFromScrub(it, resumePlayback = !wasPlayerAlreadyPaused)
+                } else {
+                  viewModel.seekTo(it.toInt())
+                }
               }
 
               // Keep the chip visible briefly after the gesture settles.

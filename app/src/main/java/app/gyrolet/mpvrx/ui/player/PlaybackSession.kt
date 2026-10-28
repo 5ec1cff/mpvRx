@@ -1344,6 +1344,22 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       true
     }
 
+  /** Network scrubbing updates the UI only; speculative decoder seeks can evict useful read-ahead. */
+  internal fun previewSeekForGeneration(expectedGeneration: Long, position: Float): Boolean =
+    withReadyCore(false) {
+      if (_state.value.generation != expectedGeneration || loadedGeneration != expectedGeneration ||
+        activeFileUsesNetworkLocked()
+      ) return@withReadyCore false
+      commandForGeneration(expectedGeneration, "seek", position.toString(), "absolute+keyframes")
+    }
+
+  internal fun setPausedForGeneration(expectedGeneration: Long, paused: Boolean): Boolean =
+    withReadyCore(false) {
+      if (_state.value.generation != expectedGeneration || loadedGeneration != expectedGeneration) return@withReadyCore false
+      setPropertyBoolean("pause", paused)
+      true
+    }
+
   fun commandNode(vararg command: String): MPVNode? = withCore(null) { MPVLib.commandNode(*command) }
 
   internal fun removeVideoFilter(label: String) {

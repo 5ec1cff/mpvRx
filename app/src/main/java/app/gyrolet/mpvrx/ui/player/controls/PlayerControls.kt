@@ -2206,18 +2206,13 @@ fun PlayerControls(
                 }
                 isSeeking = true
                 resetControlsTimestamp = System.currentTimeMillis()
-                // Live preview only during scrub; the final seek is emitted once on release.
+                // Stream scrubbing previews the UI only; local files may preview decoder frames.
                 viewModel.seekPreviewTo(it)
               },
               onValueChangeFinished = { targetPosition ->
                 isSeeking = false
                 resetControlsTimestamp = System.currentTimeMillis()
-                // Finalize the release position with the normal seek mode.
-                viewModel.seekTo(targetPosition.toInt())
-                // Unpause if it wasn't paused before seeking
-                if (!wasPlayerAlreadyPaused) {
-                  viewModel.unpause()
-                }
+                viewModel.seekFromScrub(targetPosition, resumePlayback = !wasPlayerAlreadyPaused)
                 viewModel.showControls()
               },
               timersInverted = Pair(false, invertDuration),

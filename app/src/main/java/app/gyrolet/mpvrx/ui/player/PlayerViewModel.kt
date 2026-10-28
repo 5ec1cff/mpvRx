@@ -103,6 +103,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
@@ -1048,7 +1049,7 @@ class PlayerViewModel(
   fun seekAudioTo(positionSeconds: Float) {
     if (!positionSeconds.isFinite()) return
     if (PlaybackSession.state.value.currentItem?.audiobook != null) AudiobookPlayback.seekInBook((positionSeconds * 1000).toLong())
-    else seekTo(positionSeconds.toInt(), fast = false)
+    else seekFromScrub(positionSeconds)
   }
 
   // Audio player UI state
@@ -3422,6 +3423,7 @@ fun restartFromBeginning() {
   private var seekCoalesceJob: Job? = null
   private val seekPreviewLock = Any()
   private var pendingSeekPreviewPosition: Float? = null
+  private var seekPreviewIsFrame = false
 
   // Move the thumb immediately while a native seek runs. The poller resumes when an exact
   // target lands or the bounded hold expires, allowing fast keyframe seeks to settle too.
@@ -3499,9 +3501,7 @@ fun restartFromBeginning() {
     const val ABSOLUTE_SEEK_FEEDBACK_HOLD_MS = 3000L
     // The thumb updates immediately; decoder previews only need a modest cadence.
     const val PREVIEW_SEEK_INTERVAL_MS = 200L
-    // Network previews open remote ranges; keep them rare so the final seek is not queued behind
-    // abandoned preview work.
-    const val NETWORK_PREVIEW_SEEK_INTERVAL_MS = 800L
+    const val NETWORK_FRAME_PREVIEW_SEEK_INTERVAL_MS = 800L
     const val FRAME_SEEK_POLL_INTERVAL_MS = 10L
     const val FRAME_SEEK_MIN_SETTLE_POLLS = 8
     const val FRAME_SEEK_MAX_SETTLE_POLLS = 75
@@ -5230,44 +5230,62 @@ fun restartFromBeginning() {
   /**
    * Conflated live preview used by the legacy/full-screen seek mode and the audio seekbar.
    * Pointer events can arrive much faster than a decoder can seek, so only the newest target is
-   * applied at a bounded rate. Preview seeks are keyframe-only and never spam Syncplay peers.
+   * applied at a bounded rate. Local preview seeks are keyframe-only and never spam Syncplay peers.
+   * Network targets update the thumb/time only until release, preserving the demuxer's read-ahead.
    */
-  fun seekPreviewTo(position: Float) {
+  fun seekPreviewTo(position: Float) = scheduleSeekPreview(position, framePreview = false)
+
+  private fun scheduleSeekPreview(position: Float, framePreview: Boolean) {
     cancelFrameSeek()
     val generation = PlaybackSession.state.value.generation
     previewAbsoluteSeekPositionOptimistically(position.coerceAtLeast(0f).toDouble())
     synchronized(seekPreviewLock) {
       pendingSeekPreviewPosition = position.coerceAtLeast(0f)
-      if (seekPreviewJob?.isActive == true) return
-      seekPreviewJob = viewModelScope.launch(Dispatchers.IO) { runSeekPreviewLoop(generation) }
+      if (seekPreviewJob?.isActive == true && seekPreviewIsFrame == framePreview) return
+      seekPreviewJob?.cancel()
+      seekPreviewIsFrame = framePreview
+      seekPreviewJob = viewModelScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+        runSeekPreviewLoop(generation, framePreview)
+      }
+      seekPreviewJob?.start()
     }
   }
 
-  private suspend fun runSeekPreviewLoop(generation: Long) {
+  private suspend fun runSeekPreviewLoop(generation: Long, framePreview: Boolean) {
     var lastSentPosition: Float? = null
-    // Network seek previews each cost an upstream range open on some servers (SMB/WebDAV can take
-    // most of a second per open), so they run at a much lower cadence than local previews.
-    val isNetworkItem =
-      PlaybackSession.state.value.currentItem?.let { item ->
-        item.networkSource != null || item.originalUri.startsWith("mpvrx-network://")
-      } == true
-    val intervalMs = if (isNetworkItem) NETWORK_PREVIEW_SEEK_INTERVAL_MS else PREVIEW_SEEK_INTERVAL_MS
-    while (kotlinx.coroutines.currentCoroutineContext().isActive) {
-      val target =
-        synchronized(seekPreviewLock) {
-          pendingSeekPreviewPosition?.also { pendingSeekPreviewPosition = null }
-            ?: run {
-              seekPreviewJob = null
-              return
-            }
+    val owner = currentCoroutineContext()[Job]
+    val networkFrame = framePreview && PlaybackSession.state.value.currentItem?.let {
+      it.networkSource != null || it.originalUri.startsWith("mpvrx-network://")
+    } == true
+    val intervalMs = if (networkFrame) NETWORK_FRAME_PREVIEW_SEEK_INTERVAL_MS else PREVIEW_SEEK_INTERVAL_MS
+    try {
+      while (currentCoroutineContext().isActive) {
+        val target = synchronized(seekPreviewLock) {
+          if (seekPreviewJob !== owner) return
+          pendingSeekPreviewPosition?.also { pendingSeekPreviewPosition = null } ?: return
         }
-      // Repeated pointer events at effectively the same time position should not cause another
-      // MediaCodec flush. A final exact seek still runs when the user releases the thumb.
-      val previous = lastSentPosition
-      if (previous != null && kotlin.math.abs(target - previous) < 0.5f) continue
-      if (!PlaybackSession.commandForGeneration(generation, "seek", target.toString(), "absolute+keyframes")) return
-      lastSentPosition = target
-      delay(intervalMs)
+        val previous = lastSentPosition
+        if (previous != null && kotlin.math.abs(target - previous) < 0.5f) continue
+        val issued = synchronized(seekPreviewLock) {
+          // Cancellation and native issuance share this lock, so a late preview cannot overtake release.
+          if (seekPreviewJob !== owner || owner?.isActive != true) return
+          if (framePreview) {
+            PlaybackSession.commandForGeneration(generation, "seek", target.toString(), "absolute+keyframes")
+          } else {
+            PlaybackSession.previewSeekForGeneration(generation, target)
+          }
+        }
+        if (!issued) return
+        lastSentPosition = target
+        delay(intervalMs)
+      }
+    } finally {
+      synchronized(seekPreviewLock) {
+        if (seekPreviewJob === owner) {
+          seekPreviewJob = null
+          pendingSeekPreviewPosition = null
+        }
+      }
     }
   }
 
@@ -5283,11 +5301,24 @@ fun restartFromBeginning() {
     position: Int,
     fast: Boolean = false,
   ) {
+    commitSeek(position, if (fast) "absolute+keyframes" else "absolute+exact")
+  }
+
+  /** Like relative skips, a user scrub honors hr-seek and mpv.conf instead of forcing exact decoding. */
+  fun seekFromScrub(position: Float, resumePlayback: Boolean = false) {
+    if (!position.isFinite()) {
+      Log.w(TAG, "Ignoring a non-finite scrub target")
+      return
+    }
+    commitSeek(position.toInt(), "absolute", resumePlayback)
+  }
+
+  private fun commitSeek(position: Int, seekMode: String, resumePlayback: Boolean = false) {
     cancelFrameSeek()
     cancelSeekPreview()
     val generation = PlaybackSession.state.value.generation
     seekCommitJob?.cancel()
-    seekCommitJob = viewModelScope.launch(Dispatchers.IO) {
+    seekCommitJob = viewModelScope.launch(playbackStateDispatcher) {
       if (!PlaybackSession.isCurrentGeneration(generation)) return@launch
       val maxDuration =
         (PlaybackSession.getPropertyDouble("duration")?.toInt() ?: duration ?: _preciseDuration.value.toInt())
@@ -5311,14 +5342,14 @@ fun restartFromBeginning() {
       // Cancel pending relative seek before absolute seek
       cancelPendingRelativeSeek()
 
-      // Every committed seek lands exactly on the requested position. Keyframe seeking would
-      // leave the player at a different time than the thumb already showed, so the bar would
-      // visibly snap back once the seek finished. Flags stay within the vocabulary mpv accepts
-      // for the seek command; "hr-seek" is an option, not a flag, and using it here made mpv
-      // reject the command, so the thumb moved while the video stayed put.
-      val seekMode =
-        if (!fast) "absolute+exact" else "absolute+keyframes"
+      currentCoroutineContext().ensureActive()
       if (!PlaybackSession.commandForGeneration(generation, "seek", clampedPosition.toString(), seekMode)) return@launch
+      if (resumePlayback) {
+        val focusGranted = withContext(Dispatchers.Main) { host?.requestAudioFocus() ?: false }
+        currentCoroutineContext().ensureActive()
+        if (!PlaybackSession.isCurrentGeneration(generation)) return@launch
+        if (focusGranted && !PlaybackSession.setPausedForGeneration(generation, false)) return@launch
+      }
       syncplayManager.updatePlayerState(
         clampedPosition.toDouble(),
         PlaybackSession.getPropertyBoolean("pause") ?: false,
@@ -6520,7 +6551,7 @@ fun restartFromBeginning() {
       }
 
     if (!finished) {
-      seekPreviewTo(targetPosition.toFloat())
+      scheduleSeekPreview(targetPosition.toFloat(), framePreview = true)
       return
     }
 
