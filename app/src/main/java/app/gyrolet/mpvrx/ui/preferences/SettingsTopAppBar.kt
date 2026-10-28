@@ -28,6 +28,7 @@ internal fun SettingsTopAppBar(
   onClose: (() -> Unit)? = null,
   windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
 ) {
+  if (LocalPlayerSettingsPanel.current) return
   TopAppBar(
     title = {
       Text(

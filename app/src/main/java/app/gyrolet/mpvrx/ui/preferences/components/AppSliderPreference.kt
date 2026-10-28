@@ -16,6 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.gyrolet.mpvrx.ui.components.AppSlider
 import app.gyrolet.mpvrx.ui.preferences.ExpressivePreferenceItem
+import app.gyrolet.mpvrx.ui.preferences.PlayerSettingSummary
+import app.gyrolet.mpvrx.ui.preferences.playerSettingSummary
+import app.gyrolet.mpvrx.ui.preferences.playerSettingAvailability
 import me.zhanghai.compose.preference.LocalPreferenceTheme
 import me.zhanghai.compose.preference.Preference
 
@@ -34,20 +37,23 @@ fun AppSliderPreference(
   summary: (@Composable () -> Unit)? = null,
   valueText: (@Composable () -> Unit)? = null,
 ) {
+  val availability = playerSettingAvailability(modifier)
+  if (!availability.visible) return
+  val canChange = enabled && availability.enabled
   val glassEnabled = liquidGlassActive()
   if (!glassEnabled) {
     ExpressivePreferenceItem(modifier = modifier) {
       me.zhanghai.compose.preference.SliderPreference(
       value = value,
-      onValueChange = onValueChange,
+      onValueChange = { if (canChange) onValueChange(it) },
       sliderValue = sliderValue,
-      onSliderValueChange = onSliderValueChange,
+      onSliderValueChange = { if (canChange) onSliderValueChange(it) },
       title = title,
       valueRange = valueRange,
       valueSteps = valueSteps,
-      enabled = enabled,
+      enabled = canChange,
       icon = icon,
-      summary = summary,
+      summary = playerSettingSummary(availability, enabled, summary),
       valueText = valueText,
       )
     }
@@ -57,18 +63,18 @@ fun AppSliderPreference(
   var observedValue by remember { mutableFloatStateOf(value) }
   SideEffect {
     if (observedValue != value) {
-      onSliderValueChange(value)
+      if (canChange) onSliderValueChange(value)
       observedValue = value
     }
   }
   ExpressivePreferenceItem(modifier = modifier) {
   Preference(
     title = title,
-    enabled = enabled,
+    enabled = canChange,
     icon = icon,
     summary = {
       Column {
-        summary?.invoke()
+        PlayerSettingSummary(availability, enabled, summary)
         Row(verticalAlignment = Alignment.CenterVertically) {
           // Completion may arrive after recomposition; retain the last pointer value.
           var latestSliderValue by remember { mutableFloatStateOf(sliderValue) }
@@ -78,13 +84,13 @@ fun AppSliderPreference(
             value = sliderValue,
             onValueChange = { changedValue ->
               latestSliderValue = changedValue
-              onSliderValueChange(changedValue)
+              if (canChange) onSliderValueChange(changedValue)
             },
             modifier = Modifier.weight(1f),
-            enabled = enabled,
+            enabled = canChange,
             valueRange = valueRange,
             steps = valueSteps,
-            onValueChangeFinished = { onValueChange(latestSliderValue) },
+            onValueChangeFinished = { if (canChange) onValueChange(latestSliderValue) },
             onInteractionChange = { isUserInteracting = it },
           )
           if (valueText != null) {

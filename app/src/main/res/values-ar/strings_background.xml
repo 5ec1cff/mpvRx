@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">حركة الخلفية</string>
-  <string name="bg_picker_title">حركة الخلفية</string>
   <string name="bg_picker_description">الحركة التي تُعرض خلف شاشات التطبيق</string>
-  <string name="bg_close">إغلاق</string>
   <string name="bg_circles">دوائر</string>
   <string name="bg_rings">حلقات</string>
   <string name="bg_space">الفضاء</string>

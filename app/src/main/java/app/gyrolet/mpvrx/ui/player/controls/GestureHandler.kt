@@ -126,6 +126,7 @@ fun GestureHandler(
   viewModel: PlayerViewModel,
   modifier: Modifier = Modifier,
   externalPanelShown: Boolean = false,
+  blockGesturesInExternalPanel: Boolean = false,
   onDismissExternalPanel: () -> Unit = {},
   onLockedTouchSideChanged: (isLeft: Boolean) -> Unit = {},
   onSeekRipple: (SeekRippleRequest) -> Unit = {},
@@ -169,7 +170,8 @@ fun GestureHandler(
 
   val panelShown by viewModel.panelShown.collectAsState()
   val anyPanelShown = panelShown != Panels.None || externalPanelShown
-  val allowGesturesInPanels by playerPreferences.allowGesturesInPanels.collectAsState()
+  val allowPanelGesturesPreference by playerPreferences.allowGesturesInPanels.collectAsState()
+  val allowGesturesInPanels = allowPanelGesturesPreference && !blockGesturesInExternalPanel
   val paused by PlaybackSession.propBoolean["pause"].collectAsState()
   val duration by PlaybackSession.propInt["duration"].collectAsState()
   val position by PlaybackSession.propInt["time-pos"].collectAsState()
@@ -283,7 +285,7 @@ fun GestureHandler(
     AndroidViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
   }
 
-  LaunchedEffect(mediaGeneration, areControlsLocked, doubleTapSeekAreaWidth) {
+  LaunchedEffect(mediaGeneration, areControlsLocked, doubleTapSeekAreaWidth, externalPanelShown) {
     tapCount = 0
     lastTapRegion = null
     pendingSingleTapRegion = null

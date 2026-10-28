@@ -186,7 +186,7 @@
   <string name="pref_player_autoplay_after_screen_unlock_title">Автовідтворення після розблокування екрана</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary">Автоматично відновлювати відео після розблокування, якщо воно грало до блокування екрана</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary_disabled">Залишати відео на паузі після розблокування екрана</string>
-  <string name="pref_player_show_buffered_range_title">Показувати буферизований відрізок на смузі перемотування</string>
+  <string name="pref_player_show_buffered_range_title">Буферизована ділянка на шкалі</string>
   <string name="pref_player_show_buffered_range_summary">Відображати завантажений буфер перед поточною позицією на смузі перемотування.</string>
   <string name="pref_player_show_chapter_indicators_title">Показувати позначки розділів на смузі перемотування</string>
   <string name="pref_player_show_chapter_indicators_summary">Візуально розділяти розділи вздовж смуги перемотування.</string>
@@ -617,8 +617,6 @@
   <string name="pref_folders_include_hidden_title">Включати приховані медіапапки</string>
   <string name="pref_folders_include_hidden_summary">Сканувати відео в папках із крапкою на початку та в папках із вибраними файлами-маркерами.</string>
   <string name="pref_folders_hidden_markers_title">Файли-маркери</string>
-  <string name="pref_folders_hidden_markers_summary">Папки з цими файлами та їхні підпапки буде включено. Папки з крапкою на початку включаються завжди.</string>
-  <string name="pref_folders_hidden_markers_empty">Файли-маркери не налаштовано. Папки з крапкою все одно включаються.</string>
   <string name="pref_folders_add_marker">Додати файл-маркер</string>
   <string name="pref_folders_add_marker_title">Додати маркер прихованої папки</string>
   <string name="pref_folders_marker_name">Назва файлу</string>
@@ -886,7 +884,6 @@
   <string name="pref_custom_format_prompt_label">Власний промпт форматування субтитрів</string>
   <string name="pref_legacy_prompt_info">Збережено застарілий глобальний промпт. Він використовуватиметься, якщо спеціальний промпт завдання порожній.</string>
   <string name="pref_media_library_section">Медіатека</string>
-  <string name="pref_hidden_folders_section">Приховані папки</string>
   <string name="pref_clear_content_desc">Очистити</string>
   <string name="search_api_key_config_title">Налаштування ключа API</string>
   <string name="search_ai_model_selection_title">Вибір моделі ШІ</string>
@@ -901,10 +898,6 @@
   <string name="pref_config_cache_size">Розмір: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Видалити всі збережені мініатюри відео (буде створено наново під час перегляду папок)</string>
   <string name="pref_thumbnail_cache_size">Розмір: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Очистити кеш анімованих обкладинок</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Видалити завантажені анімовані обкладинки альбомів (буде завантажено знову під час показу)</string>
-  <string name="pref_animated_artwork_cache_size">Розмір: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Кеш анімованих обкладинок очищено</string>
   <string name="pref_fonts_cache_size">Розмір: %1$s · шрифтів: %2$d</string>
   <string name="pref_failed_to_clear">Не вдалося очистити: %1$s</string>
   <string name="pref_export_failed">Помилка експорту: %1$s</string>
@@ -1570,9 +1563,6 @@
   <string name="ui_check_on_startup">Перевіряти під час запуску</string>
   <string name="ui_check_for_updates_now">Перевірити наявність оновлень зараз</string>
   <string name="ui_update_channel">Канал оновлень</string>
-  <string name="ui_stable_releases">Стабільний</string>
-  <string name="ui_preview_builds">Попередній (Nightly)</string>
-  <string name="ui_preview_builds_summary">Попередні збірки — це підписані тестові версії з останніми змінами mpvRx, вони можуть бути нестабільними.</string>
   <string name="update_whats_new">Що нового</string>
   <string name="update_no_release_notes">Примітки до випуску відсутні.</string>
   <string name="update_ready_to_install">Готово до встановлення</string>
@@ -1834,7 +1824,6 @@
   <string name="secure_folder_move_items_subtitle">Вони зникнуть із цього списку та решти додатка до моменту їхнього відновлення.</string>
   <string name="secure_folder_moved_success">Переміщено %1$d файл(ів) до захищеної папки</string>
   <string name="secure_folder_moved_partial">Переміщено %1$d, помилок: %2$d</string>
-  <string name="secure_folder_move_failed">Не вдалося перемістити файли до захищеної папки</string>
   <string name="secure_folder_error_incorrect_pin">Неправильний PIN-код</string>
   <string name="secure_folder_error_pins_dont_match">PIN-коди не збігаються</string>
   <string name="secure_folder_error_answer_question">Будь ласка, дайте відповідь на запитання</string>
@@ -2299,7 +2288,6 @@
   <string name="snapshot_delete_title">Видалити знімок?</string>
   <string name="snapshot_delete_selected_title">Видалити %1$d знімків?</string>
   <string name="snapshot_delete_message">Це вилучить запис із додатку. Зображення залишиться у вашій галереї.</string>
-  <string name="snapshot_delete">Видалити</string>
   <string name="snapshot_remove">Вилучити</string>
   <string name="snapshot_root">Корінь</string>
   <string name="snapshot_section_folders">Папки</string>
@@ -2439,9 +2427,6 @@
   <string name="pref_appearance_category_liquid_glass">Рідке скло</string>
   <string name="pref_subtitles_secondary_pinch_zoom">Масштабувати вторинні субтитри жестом</string>
   <string name="pref_subtitles_secondary_pinch_zoom_summary">Під час масштабування основних субтитрів жестом також масштабувати вторинні</string>
-  <string name="player_sheets_delay_quick_sync_summary">Швидка синхронізація задає абсолютний зсув, тому повторне натискання тієї самої кнопки не змінює значення.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d с</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 с</string>
   <string name="hall_of_fame_subtitle">Відзначаємо провідних учасників</string>
   <string name="hall_of_fame_featured_subtitle">Чудові люди, які роблять цей проєкт кращим</string>
   <string name="hall_of_fame_view_all">Показати всіх</string>
@@ -2543,20 +2528,13 @@
   <string name="app_icon_create_custom_shortcut">Додати точну власну піктограму на головний екран</string>
   <string name="pref_experimental_badge">Експериментально</string>
   <string name="pref_liquid_glass_experimental_note">Ефекти рідкого скла є експериментальними й можуть відрізнятися залежно від пристрою.</string>
-  <string name="pref_hidden_scan_per_mode_summary">Виберіть, чи скануватиме кожен режим головного екрана папки, приховані маркером або з крапкою на початку назви. Після вимкнення їх також буде пропущено під час перегляду. Перемикач угорі вмикає приховані медіафайли в усьому застосунку.</string>
-  <string name="pref_hidden_scan_scoped_summary">Кожен режим перегляду може включати або пропускати папки з крапкою на початку назви чи приховані маркером лише в межах папок, до яких надано доступ в Android. Інші папки залишаються недоступними.</string>
   <string name="pref_hidden_scan_library">Медіатека</string>
   <string name="pref_hidden_scan_tree">Дерево</string>
   <string name="pref_hidden_scan_folders">Папки</string>
-  <string name="pref_hidden_scan_marked">Сканувати папки, приховані маркером</string>
-  <string name="pref_hidden_scan_marked_summary">Папки з файлом .nomedia або іншим маркером із вашого списку</string>
-  <string name="pref_hidden_scan_single_marker_summary">Включати папки з цим маркером у цьому поданні</string>
-  <string name="pref_hidden_scan_dot_summary">Папки, назви яких починаються з крапки, наприклад .Videos</string>
   <string name="ambient_cinema">Кіно</string>
   <string name="ambient_echo">Відлуння</string>
   <string name="ambient_mirror">Дзеркало</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">Цей режим повністю автоматичний: параметри зафіксовано для найкращого візуального результату, змінити їх не можна.</string>
   <string name="app_icon_bg_crimson">Багряний</string>
   <string name="app_icon_bg_rose">Рожевий</string>
   <string name="app_icon_bg_peach">Персиковий</string>
@@ -2582,7 +2560,6 @@
   <string name="pref_nav_home_title">Головна / Файли</string>
   <string name="pref_nav_home_summary">Перегляд локальних папок і файлів (завжди доступний)</string>
   <string name="pref_nav_actions_section">Дії навігації</string>
-  <string name="pref_about_playback_libraries">Бібліотеки відтворення</string>
   <string name="color_picker_field">Вибір кольору</string>
   <string name="color_picker_sliders">Повзунки</string>
   <string name="color_picker_field_description">Насиченість і яскравість. Для точного налаштування скористайтеся повзунками.</string>
@@ -2592,15 +2569,12 @@
   <string name="app_icon_custom_background">Власне тло</string>
   <string name="app_icon_custom_background_hint">Виберіть колір. Android використовує найближчу вбудовану піктограму в списку застосунків. Точний колір можна зберегти як піктограму головного екрана й використовувати в нещодавніх застосунках.</string>
   <string name="app_icon_custom_logo_hint">Виберіть логотип для накладання на власне тло.</string>
-  <string name="app_icon_shortcut_preview">Попередній перегляд ярлика головного екрана</string>
   <string name="app_icon_custom_requested">Ваш дизайн</string>
   <string name="app_icon_custom_native_match">Фактична піктограма лаунчера</string>
   <string name="app_icon_use_wallpaper_colors">Використати кольори шпалер</string>
-  <string name="app_icon_shortcut_apply">Додати або оновити ярлик</string>
   <string name="app_icon_shortcut_requested">Запит надіслано. Підтвердьте додавання ярлика в лаунчері.</string>
   <string name="app_icon_shortcut_updated">Ярлик головного екрана оновлено</string>
   <string name="app_icon_shortcut_unsupported">Цей лаунчер не підтримує додавання ярликів на головний екран.</string>
-  <string name="app_icon_shortcut_failed">Не вдалося зберегти ярлик. Спробуйте ще раз.</string>
   <string name="color_picker_wheel">Колірне коло</string>
   <string name="color_picker_brightness">Яскравість</string>
     <string name="only_for_video_list">Лише для списку відео</string>
@@ -2771,7 +2745,6 @@
   <string name="jellyfin_more_like_this">Схоже</string>
   <string name="jellyfin_watched">Переглянуто</string>
   <string name="jellyfin_search_hint">Пошук фільмів, серіалів і епізодів…</string>
-  <string name="pref_scan_filters">Фільтри сканування</string>
   <string name="pref_filter_short_videos">Фільтр коротких відео</string>
   <string name="pref_filter_short_videos_summary">Пропускати відео коротші за вибрану тривалість під час сканування</string>
   <string name="pref_filter_small_files">Фільтр малих файлів</string>
@@ -2843,4 +2816,8 @@
   <string name="clip_quick_length">Швидкий вибір тривалості</string>
   <string name="clip_length_seconds">%1$d с</string>
   <string name="clip_crop_reset">Використати повний кадр</string>
+  <string name="pref_layout_center_seekbar_above">По центру · шкала над кнопками</string>
+  <string name="pref_layout_center_seekbar_below">По центру · шкала під кнопками</string>
+  <string name="pref_layout_playback_above">Відтворення й кнопки над шкалою</string>
+  <string name="pref_layout_playback_below">Відтворення й кнопки під шкалою</string>
 </resources>

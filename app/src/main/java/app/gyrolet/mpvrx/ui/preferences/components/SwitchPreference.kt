@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.preferences.LocalInsidePreferenceCard
 import app.gyrolet.mpvrx.ui.preferences.SelectedPreferenceTile
+import app.gyrolet.mpvrx.ui.preferences.playerSettingSummary
+import app.gyrolet.mpvrx.ui.preferences.playerSettingAvailability
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.appPressFeedback
@@ -61,6 +63,10 @@ fun SwitchPreference(
   groupIndex: Int? = null,
   groupSize: Int? = null,
 ) {
+  val availability = playerSettingAvailability(modifier)
+  if (!availability.visible) return
+  val canChange = enabled && availability.enabled
+  val effectiveSummary = playerSettingSummary(availability, enabled, summary)
   require((groupIndex == null) == (groupSize == null)) {
     "groupIndex and groupSize must either both be set or both be null"
   }
@@ -73,7 +79,7 @@ fun SwitchPreference(
   val haptics = rememberAppHaptics()
   val interactionSource = remember { MutableInteractionSource() }
   val updateValue: (Boolean) -> Unit = { checked ->
-    if (checked != value) {
+    if (canChange && checked != value) {
       onValueChange(checked)
       haptics.selection(checked)
     }
@@ -110,7 +116,7 @@ fun SwitchPreference(
       modifier
         .fillMaxWidth()
         .then(if (insideConnectedCard && value) Modifier.layoutId(SelectedPreferenceTile) else Modifier)
-        .tvFocusHighlight(shape, enabled = enabled, focusedScale = 1.01f),
+        .tvFocusHighlight(shape, enabled = canChange, focusedScale = 1.01f),
     shape = shape,
     color = containerColor,
   ) {
@@ -118,11 +124,11 @@ fun SwitchPreference(
       modifier =
         Modifier
           .fillMaxWidth()
-          .then(if (lowEnd) Modifier else Modifier.appPressFeedback(interactionSource, enabled = enabled, pressedScale = 0.99f))
+          .then(if (lowEnd) Modifier else Modifier.appPressFeedback(interactionSource, enabled = canChange, pressedScale = 0.99f))
           .clip(shape)
           .toggleable(
             value = value,
-            enabled = enabled,
+            enabled = canChange,
             role = Role.Switch,
             interactionSource = interactionSource,
             indication = androidx.compose.material3.ripple(),
@@ -150,9 +156,9 @@ fun SwitchPreference(
         ProvideTextStyle(value = titleStyle) {
           title()
         }
-        if (summary != null) {
+        if (effectiveSummary != null) {
           ProvideTextStyle(value = summaryStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
-            summary()
+            effectiveSummary()
           }
         }
       }
@@ -160,7 +166,7 @@ fun SwitchPreference(
       IconSwitch(
         checked = value,
         onCheckedChange = updateValue,
-        enabled = enabled,
+        enabled = canChange,
         modifier = switchModifier,
       )
     }

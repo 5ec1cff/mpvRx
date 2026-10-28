@@ -426,9 +426,6 @@
   <string name="player_sheets_sub_misc_card_title">其他</string>
   <string name="player_sheets_sub_delay_card_title">字幕延迟</string>
   <string name="player_sheets_sub_delay_card_delay">延迟</string>
-  <string name="player_sheets_delay_quick_sync_summary">快速同步会设定一个绝对偏移量，因此重复点击同一个按钮会保持相同的数值。</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d 秒</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 秒</string>
   <string name="player_sheets_sub_delay_card_speed">速度</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">听到人声</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">看到文字</string>
@@ -816,7 +813,6 @@
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">媒体库</string>
-  <string name="pref_hidden_folders_section">隐藏文件夹</string>
   <string name="pref_clear_content_desc">清除</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -847,10 +843,6 @@
   <string name="pref_config_cache_size">大小：%1$s</string>
   <string name="pref_thumbnail_cache_summary">删除所有缓存的视频缩略图（浏览文件夹时将重新生成）</string>
   <string name="pref_thumbnail_cache_size">大小：%1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">清除动态专辑封面缓存</string>
-  <string name="pref_clear_animated_artwork_cache_summary">删除已下载的动态专辑封面（显示时会重新下载）</string>
-  <string name="pref_animated_artwork_cache_size">大小：%1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">动态专辑封面缓存已清除</string>
   <string name="pref_fonts_cache_size">大小：%1$s · %2$d 个字体</string>
   <string name="pref_failed_to_clear">清除失败：%1$s</string>
   <string name="pref_export_failed">导出失败：%1$s</string>
@@ -1654,7 +1646,6 @@
   <string name="secure_folder_move_items_subtitle">它们将从列表和应用其他位置消失，直到恢复。</string>
   <string name="secure_folder_moved_success">已将 %1$d 个文件移动到安全文件夹</string>
   <string name="secure_folder_moved_partial">已移动 %1$d 个文件，%2$d 个失败</string>
-  <string name="secure_folder_move_failed">无法将文件移动到安全文件夹</string>
   <string name="secure_folder_error_incorrect_pin">PIN码错误</string>
   <string name="secure_folder_error_pins_dont_match">PIN码不匹配</string>
   <string name="secure_folder_error_answer_question">请回答安全问题</string>
@@ -1891,9 +1882,6 @@
   <string name="ui_yt_dlp_commit">提交 %1$s</string>
   <string name="ui_version_unavailable">版本不可用</string>
   <string name="ui_update_channel">更新渠道</string>
-  <string name="ui_stable_releases">稳定版</string>
-  <string name="ui_preview_builds">预览版（Nightly）</string>
-  <string name="ui_preview_builds_summary">预览版是根据 mpvRx 最新更改发布的签名测试版本，可能不稳定。</string>
   <string name="update_whats_new">新增内容</string>
   <string name="update_no_release_notes">未提供发行说明。</string>
   <string name="update_ready_to_install">可以安装</string>
@@ -2083,8 +2071,6 @@
   <string name="pref_appearance_custom_wallpaper_transparency">透明度</string>
   <string name="pref_folders_add_marker">添加标记文件</string>
   <string name="pref_folders_add_marker_title">添加隐藏文件夹标记</string>
-  <string name="pref_folders_hidden_markers_empty">尚未配置标记文件。仍会包含名称以点开头的文件夹。</string>
-  <string name="pref_folders_hidden_markers_summary">包含这些文件的文件夹及其子文件夹都会被纳入。名称以点开头的文件夹始终会被纳入。</string>
   <string name="pref_folders_hidden_markers_title">标记文件</string>
   <string name="pref_folders_include_hidden_summary">扫描名称以点开头的文件夹，以及包含所选标记文件的文件夹中的视频。</string>
   <string name="pref_folders_include_hidden_title">包含隐藏的媒体文件夹</string>
@@ -2273,7 +2259,6 @@
   <string name="snapshot_delete_title">删除快照？</string>
   <string name="snapshot_delete_selected_title">删除 %1$d 个快照？</string>
   <string name="snapshot_delete_message">仅从应用中移除记录，图片仍保留在相册中。</string>
-  <string name="snapshot_delete">删除</string>
   <string name="snapshot_remove">移除</string>
 
   <string name="snapshot_root">根目录</string>
@@ -2565,20 +2550,13 @@
   <string name="app_icon_create_custom_shortcut">将精确的自定义图标添加到主屏幕</string>
   <string name="pref_experimental_badge">实验性</string>
   <string name="pref_liquid_glass_experimental_note">液态玻璃效果仍处于实验阶段，显示效果可能因设备而异。</string>
-  <string name="pref_hidden_scan_per_mode_summary">选择各主页模式是否扫描由标记文件隐藏或名称以点开头的文件夹。关闭后，浏览时也会跳过这些内容。上方开关用于全局启用隐藏媒体。</string>
-  <string name="pref_hidden_scan_scoped_summary">每种视图只能在您已授予 Android 访问权限的文件夹内包含或跳过点开头及标记隐藏的文件夹。未选择的文件夹仍无法访问。</string>
   <string name="pref_hidden_scan_library">媒体库</string>
   <string name="pref_hidden_scan_tree">树状视图</string>
   <string name="pref_hidden_scan_folders">文件夹</string>
-  <string name="pref_hidden_scan_marked">扫描由标记隐藏的文件夹</string>
-  <string name="pref_hidden_scan_marked_summary">包含 .nomedia 或列表中其他标记的文件夹</string>
-  <string name="pref_hidden_scan_single_marker_summary">在此视图中包含带有此标记的文件夹</string>
-  <string name="pref_hidden_scan_dot_summary">名称以点开头的文件夹，例如 .Videos</string>
   <string name="ambient_cinema">影院</string>
   <string name="ambient_echo">回声</string>
   <string name="ambient_mirror">镜像</string>
   <string name="ambient_ambilight">流光溢彩</string>
-  <string name="ambient_fx_auto_hint">此模式完全自动运行。为获得最佳视觉效果，参数已固定，无法调整。</string>
   <string name="app_icon_bg_crimson">深红</string>
   <string name="app_icon_bg_rose">玫瑰粉</string>
   <string name="app_icon_bg_peach">蜜桃色</string>
@@ -2604,7 +2582,6 @@
   <string name="pref_nav_home_title">主页 / 文件</string>
   <string name="pref_nav_home_summary">浏览本地文件夹和文件（始终可用）</string>
   <string name="pref_nav_actions_section">导航操作</string>
-  <string name="pref_about_playback_libraries">播放库</string>
   <string name="color_picker_field">选色器</string>
   <string name="color_picker_sliders">滑块</string>
   <string name="color_picker_field_description">饱和度和亮度。使用滑块进行精细调整。</string>
@@ -2614,15 +2591,12 @@
   <string name="app_icon_custom_background">自定义背景</string>
   <string name="app_icon_custom_background_hint">选择一种颜色。Android 会在应用抽屉中使用最接近的内置图标。您选择的精确颜色可保存为主屏幕图标，也可用于最近使用的应用。</string>
   <string name="app_icon_custom_logo_hint">选择要叠加在自定义背景上的任意徽标。</string>
-  <string name="app_icon_shortcut_preview">主屏幕快捷方式预览</string>
   <string name="app_icon_custom_requested">您的设计</string>
   <string name="app_icon_custom_native_match">实际启动器图标</string>
   <string name="app_icon_use_wallpaper_colors">改用壁纸颜色</string>
-  <string name="app_icon_shortcut_apply">添加或更新快捷方式</string>
   <string name="app_icon_shortcut_requested">请求已发送。请在启动器中确认添加快捷方式。</string>
   <string name="app_icon_shortcut_updated">主屏幕快捷方式已更新</string>
   <string name="app_icon_shortcut_unsupported">此启动器不支持添加主屏幕快捷方式。</string>
-  <string name="app_icon_shortcut_failed">无法保存快捷方式，请重试。</string>
   <string name="color_picker_wheel">色轮</string>
   <string name="color_picker_brightness">亮度</string>
     <string name="only_for_video_list">仅用于视频列表</string>
@@ -2781,7 +2755,6 @@
   <string name="jellyfin_more_like_this">更多类似内容</string>
   <string name="jellyfin_watched">已观看</string>
   <string name="jellyfin_search_hint">搜索电影、剧集和单集…</string>
-  <string name="pref_scan_filters">扫描过滤</string>
   <string name="pref_filter_short_videos">过滤短视频</string>
   <string name="pref_filter_short_videos_summary">扫描时忽略短于所选时长的视频</string>
   <string name="pref_filter_small_files">过滤小文件</string>
@@ -2853,4 +2826,8 @@
   <string name="clip_quick_length">快速时长</string>
   <string name="clip_length_seconds">%1$d秒</string>
   <string name="clip_crop_reset">使用完整画面</string>
+  <string name="pref_layout_center_seekbar_above">居中播放 · 进度条在操作按钮上方</string>
+  <string name="pref_layout_center_seekbar_below">居中播放 · 进度条在操作按钮下方</string>
+  <string name="pref_layout_playback_above">播放与操作按钮在进度条上方</string>
+  <string name="pref_layout_playback_below">播放与操作按钮在进度条下方</string>
 </resources>

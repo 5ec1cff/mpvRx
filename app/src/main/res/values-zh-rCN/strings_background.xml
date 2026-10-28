@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">背景动画</string>
-  <string name="bg_picker_title">背景动画</string>
   <string name="bg_picker_description">在应用界面后方播放的动画</string>
-  <string name="bg_close">关闭</string>
   <string name="bg_circles">圆圈</string>
   <string name="bg_rings">圆环</string>
   <string name="bg_space">太空</string>

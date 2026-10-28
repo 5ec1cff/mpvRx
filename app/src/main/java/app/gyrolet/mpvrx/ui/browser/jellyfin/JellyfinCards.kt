@@ -60,7 +60,6 @@ import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext

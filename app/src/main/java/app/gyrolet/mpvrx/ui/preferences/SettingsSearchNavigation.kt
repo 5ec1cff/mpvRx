@@ -47,6 +47,7 @@ data class SettingsSearchTarget(
   val screen: Screen,
   val key: String,
   val anchorItemIndex: Int? = null,
+  val requestId: Long = System.nanoTime(),
 )
 
 private data class SettingsSearchListAnchor(
@@ -348,7 +349,7 @@ fun Modifier.settingsSearchTarget(
 fun Modifier.settingsSearchTarget(
   @StringRes titleRes: Int,
   fallback: Boolean = false,
-): Modifier = settingsSearchTarget("res:$titleRes", fallback)
+): Modifier = then(PlayerSettingKey(titleRes)).settingsSearchTarget("res:$titleRes", fallback)
 
 @Composable
 fun Modifier.highlightBackground(highlighted: Boolean): Modifier {

@@ -88,7 +88,7 @@
   <string name="pref_appearance_unlimited_name_lines_summary">Show full folder and video names without truncation</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Hide player buttons background</string>
   <string name="pref_appearance_hide_player_buttons_background_summary">Hide the background of all player control buttons</string>
-  <string name="pref_appearance_force_dark_player_buttons_background_title">Always use dark player button backgrounds</string>
+  <string name="pref_appearance_force_dark_player_buttons_background_title">Always use dark button backgrounds</string>
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Keep player control button backgrounds dark in light, dark, and automatic themes</string>
   <string name="pref_appearance_category_file_browser">File Browser</string>
   <string name="pref_appearance_category_thumbnails">Thumbnails</string>
@@ -539,9 +539,6 @@
   <string name="player_sheets_sub_misc_card_title">Miscellaneous</string>
   <string name="player_sheets_sub_delay_card_title">Subtitle delay</string>
   <string name="player_sheets_sub_delay_card_delay">Delay</string>
-  <string name="player_sheets_delay_quick_sync_summary">Quick sync picks an absolute offset, so tapping the same chip twice keeps the same value.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d s</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 s</string>
   <string name="player_sheets_sub_delay_card_speed">Speed</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Voice heard</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Text seen</string>
@@ -703,20 +700,12 @@
   <string name="pref_folders_include_hidden_title">Include hidden media folders</string>
   <string name="pref_folders_include_hidden_summary">Scan videos in dot-prefixed folders and folders containing selected marker files.</string>
   <string name="pref_folders_hidden_markers_title">Marker files</string>
-  <string name="pref_folders_hidden_markers_summary">Folders containing these marker files can be scanned in the views you enable below.</string>
-  <string name="pref_folders_hidden_markers_empty">No marker files configured. Add .nomedia or another dot-prefixed marker.</string>
   <string name="pref_hidden_scan_per_mode_title">Hidden folder scan</string>
   <string name="pref_hidden_scan_enable_in">Enable in</string>
-  <string name="pref_hidden_scan_per_mode_summary">Choose whether each Home mode scans marker-hidden or dot-prefixed folders. Turning either off also skips that content during browsing. The switch above enables hidden media globally.</string>
-  <string name="pref_hidden_scan_scoped_summary">Each view can include or skip dot-prefixed and marker-hidden folders inside your selected Android folder grants only. Unselected folders remain inaccessible.</string>
   <string name="pref_hidden_scan_library">Library</string>
   <string name="pref_hidden_scan_tree">Tree</string>
   <string name="pref_hidden_scan_folders">Folders</string>
-  <string name="pref_hidden_scan_marked">Scan marker-hidden folders</string>
-  <string name="pref_hidden_scan_marked_summary">Folders containing .nomedia or another marker from your list</string>
-  <string name="pref_hidden_scan_single_marker_summary">Include folders containing this marker in this view</string>
   <string name="pref_hidden_scan_dot">Dot folders</string>
-  <string name="pref_hidden_scan_dot_summary">Folders with names starting with a dot, such as .Videos</string>
   <string name="pref_folders_add_marker">Add marker file</string>
   <string name="pref_folders_add_marker_title">Add hidden-folder marker</string>
   <string name="pref_folders_marker_name">File name</string>
@@ -828,6 +817,24 @@
   <string name="pref_section_display_controls">Display &amp; Controls</string>
   <string name="pref_player_controls_drawer_title">Controls drawer</string>
   <string name="pref_player_controls_drawer_summary">Display edge handle to drag open the controls panel</string>
+  <string name="pref_player_settings_drawer_title">Settings drawer</string>
+  <string name="pref_player_settings_drawer_summary">Swipe the left handle to adjust player settings while watching</string>
+  <string name="player_settings_title">Player settings</string>
+  <string name="player_settings_open">Open player settings</string>
+  <string name="player_settings_close">Close player settings</string>
+  <string name="player_settings_search">Search player settings</string>
+  <string name="player_settings_clear_search">Clear search</string>
+  <string name="player_settings_expand">Expand settings panel</string>
+  <string name="player_settings_compact">Compact settings panel</string>
+  <string name="player_settings_live_hint">Settings available during this video. Restart-only and next-video options are in the main Settings.</string>
+  <string name="player_settings_favorites">Favorites</string>
+  <string name="player_settings_categories">All player settings</string>
+  <string name="player_settings_subtitle_appearance">Subtitle appearance</string>
+  <string name="player_settings_pin_hint">Use the heart beside a search result to keep it in Favorites.</string>
+  <string name="player_settings_pin">Add to Favorites</string>
+  <string name="player_settings_unpin">Remove from Favorites</string>
+  <string name="player_settings_dependency">Unavailable with the current settings or media.</string>
+  <string name="player_settings_config_owned">Controlled by mpv.conf</string>
   <string name="pref_nav_bar_title">Show navigation bar with controls</string>
   <string name="pref_nav_bar_summary">Display the Android system navigation bar over player controls</string>
 
@@ -1028,7 +1035,6 @@
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">Media Library</string>
-  <string name="pref_hidden_folders_section">Hidden Folders</string>
   <string name="pref_clear_content_desc">Clear</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -1059,10 +1065,6 @@
   <string name="pref_config_cache_size">Size: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Delete all cached video thumbnails (will regenerate as you browse folders)</string>
   <string name="pref_thumbnail_cache_size">Size: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Clear animated artwork cache</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Delete downloaded animated album covers (downloaded again when shown)</string>
-  <string name="pref_animated_artwork_cache_size">Size: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Animated artwork cache cleared</string>
   <string name="pref_fonts_cache_size">Size: %1$s · %2$d font(s)</string>
   <string name="pref_failed_to_clear">Failed to clear: %1$s</string>
   <string name="pref_export_failed">Export failed: %1$s</string>
@@ -1242,7 +1244,6 @@
   <string name="ambient_echo">Echo</string>
   <string name="ambient_mirror">Mirror</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">This mode is fully automatic — parameters are fixed for the best visual result and cannot be adjusted.</string>
   <string name="lua_delete_script_title">Delete Script?</string>
   <string name="lua_delete_script_message">Are you sure you want to delete \"%1$s\"? This action cannot be undone.</string>
   <string name="search_category_advanced">Advanced</string>
@@ -1733,9 +1734,6 @@
   <string name="ui_update_channel_experimental_short" translatable="false">Exp.</string>
   <string name="ui_update_channels_summary">Stable releases, nightly previews, or experimental CI builds.</string>
   <string name="update_experimental_build_format">Exp. r%1$d</string>
-  <string name="ui_stable_releases">Stable</string>
-  <string name="ui_preview_builds">Preview (Nightly)</string>
-  <string name="ui_preview_builds_summary">Preview builds are signed test versions published from the latest mpvRx changes and may be unstable.</string>
   <string name="update_whats_new">What’s New</string>
   <string name="update_no_release_notes">No release notes provided.</string>
   <string name="update_ready_to_install">Ready to Install</string>
@@ -1805,13 +1803,10 @@
   <string name="ui_landscape_playback_buttons">Landscape playback buttons</string>
   <string name="ui_portrait_seekbar_position">Portrait seekbar position</string>
   <string name="ui_landscape_seekbar_position">Landscape seekbar position</string>
-  <string name="pref_layout_arrangement">Arrangement</string>
-  <string name="pref_layout_playback_centered">Play/pause and previous/next: center of screen</string>
-  <string name="pref_layout_buttons_row">Layout buttons</string>
-  <string name="pref_layout_playback_row">Play/pause and previous/next</string>
-  <string name="pref_layout_shared_buttons_row">Layout buttons beside play/pause and previous/next</string>
-  <string name="pref_layout_seekbar_row">Seekbar</string>
-  <string name="pref_layout_top_to_bottom">Top to bottom: %1$s</string>
+  <string name="pref_layout_center_seekbar_above">Centered · seekbar above actions</string>
+  <string name="pref_layout_center_seekbar_below">Centered · seekbar below actions</string>
+  <string name="pref_layout_playback_above">Playback and actions above seekbar</string>
+  <string name="pref_layout_playback_below">Playback and actions below seekbar</string>
   <string name="pref_player_buttons_opacity">Player button background opacity</string>
   <string name="ui_time_network_clock">Time + Network clock</string>
   <string name="ui_show_media_info_in_chooser">Show Media Info in chooser</string>
@@ -2065,7 +2060,6 @@
   <string name="secure_folder_move_items_subtitle">They\'ll disappear from this list and everywhere else in the app until restored.</string>
   <string name="secure_folder_moved_success">Moved %1$d file(s) to Secure Folder</string>
   <string name="secure_folder_moved_partial">Moved %1$d, failed %2$d</string>
-  <string name="secure_folder_move_failed">Failed to move files to Secure Folder</string>
   <string name="secure_folder_move_failed_details">Failed to move files to Secure Folder:\n%1$s</string>
   <string name="secure_folder_source_unreadable">Could not open %1$s. Check media access and try again.</string>
   <string name="storage_source_delete_not_approved">Deletion was not approved. The original file was kept.</string>
@@ -2587,7 +2581,6 @@
   <string name="snapshot_delete_title">Delete snapshot?</string>
   <string name="snapshot_delete_selected_title">Delete %1$d snapshots?</string>
   <string name="snapshot_delete_message">This removes the record from the app. The image stays in your gallery.</string>
-  <string name="snapshot_delete">Delete</string>
   <string name="snapshot_remove">Remove</string>
 
   <string name="snapshot_root">Root</string>
@@ -2799,7 +2792,6 @@
   <string name="pref_nav_actions_section">Navigation actions</string>
   <string name="connected_mini_player_navigation_title">Connected mini-player and navigation</string>
   <string name="connected_mini_player_navigation_summary">Use a stacked dock with shared corners instead of separate panels</string>
-  <string name="pref_about_playback_libraries">Playback libraries</string>
     <string name="color_picker_field">Picker</string>
     <string name="color_picker_sliders">Sliders</string>
     <string name="color_picker_field_description">Saturation and brightness. Use Sliders for precise adjustment.</string>
@@ -2809,15 +2801,12 @@
     <string name="app_icon_custom_background">Custom background</string>
     <string name="app_icon_custom_background_hint">Choose a color. Android uses the closest built-in icon in your app drawer. Your exact color can be saved as a home-screen icon and used in Recents.</string>
     <string name="app_icon_custom_logo_hint">Choose any logo to overlay on your custom background.</string>
-    <string name="app_icon_shortcut_preview">Home-screen shortcut preview</string>
     <string name="app_icon_custom_requested">Your design</string>
     <string name="app_icon_custom_native_match">Actual launcher icon</string>
     <string name="app_icon_use_wallpaper_colors">Use wallpaper colors instead</string>
-    <string name="app_icon_shortcut_apply">Add or update shortcut</string>
     <string name="app_icon_shortcut_requested">Request sent. Confirm in your launcher to add the shortcut.</string>
     <string name="app_icon_shortcut_updated">Home-screen shortcut updated</string>
     <string name="app_icon_shortcut_unsupported">This launcher does not support adding home-screen shortcuts</string>
-    <string name="app_icon_shortcut_failed">Could not save the shortcut. Please try again.</string>
   <string name="color_picker_wheel">Wheel</string>
   <string name="color_picker_brightness">Brightness</string>
     <string name="only_for_video_list">Only for video list</string>
@@ -2952,7 +2941,6 @@
   <string name="pref_persistent_status_micro_battery">Show micro battery icon</string>
   <string name="pref_persistent_status_est_prefix">Est.</string>
   <string name="pref_persistent_status_time_unknown">—</string>
-  <string name="pref_scan_filters">Scan filters</string>
   <string name="pref_filter_short_videos">Filter short videos</string>
   <string name="pref_filter_short_videos_summary">Ignore videos shorter than the selected duration during scanning</string>
   <string name="pref_filter_small_files">Filter small files</string>

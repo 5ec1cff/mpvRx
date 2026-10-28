@@ -78,6 +78,7 @@ fun PreferenceCard(
   val innerRadius = AppConnectedShapeTokens.innerCorner
   var tileFrames by remember { mutableStateOf(emptyList<ConnectedPreferenceFrame>()) }
   val reduceMotion = AppMotion.shouldReduceMotion()
+  val playerPanel = LocalPlayerSettingsPanel.current
   val lowEnd = rememberLowEndDevice()
   val frames = tileFrames
   val tileColors = frames.map { frame ->
@@ -92,7 +93,7 @@ fun PreferenceCard(
   Column(
     modifier = modifier
       .fillMaxWidth()
-      .padding(horizontal = 16.dp, vertical = 8.dp)
+      .padding(horizontal = 16.dp, vertical = if (playerPanel) 0.dp else 8.dp)
       .then(if (lowEnd || reduceMotion) Modifier else Modifier.animateContentSize(AppMotion.IntSizeSpring)),
   ) {
     val columnScope = this
@@ -138,6 +139,7 @@ fun PreferenceCard(
       var y = 0
       var precedingTile = false
       placeables.forEachIndexed { index, placeable ->
+        if (placeable.height == 0) return@forEachIndexed
         val isDivider = measurables[index].layoutId == ConnectedPreferenceGap
         // Adjacent rows without an explicit PreferenceDivider still get a small connected gap.
         if (!isDivider && precedingTile) y += spacingPx
@@ -271,6 +273,7 @@ fun ExpressivePreferenceItem(
  */
 @Composable
 fun PreferenceDivider(modifier: Modifier = Modifier) {
+  if (LocalPlayerSettingsPanel.current) return
   if (LocalInsidePreferenceCard.current) {
     Spacer(modifier = modifier.fillMaxWidth().height(AppConnectedShapeTokens.spacing).layoutId(ConnectedPreferenceGap))
   } else {

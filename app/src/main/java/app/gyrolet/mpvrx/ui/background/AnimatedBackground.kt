@@ -81,13 +81,6 @@ fun rememberActiveBackground(): ActiveBackground {
   return ActiveBackground(shown, parallax, overWallpaper, event?.takeIf { seasonal })
 }
 
-/**
- * String resource of today's festive greeting, or null on an ordinary day or when seasonal themes
- * are off. A pick of NONE does not switch greetings off: only the seasonal switch does.
- */
-@Composable
-fun rememberSeasonalGreeting(): Int? = rememberSeasonalEvent()?.greetingRes
-
 @Composable
 fun rememberSeasonalEvent(): SeasonalEvent? {
   val prefs = koinInject<AppearancePreferences>()

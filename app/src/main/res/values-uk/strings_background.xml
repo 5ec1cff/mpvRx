@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">Анімація фону</string>
-  <string name="bg_picker_title">Анімація фону</string>
   <string name="bg_picker_description">Анімація, яка відтворюється за екранами застосунку</string>
-  <string name="bg_close">Закрити</string>
   <string name="bg_circles">Кола</string>
   <string name="bg_rings">Кільця</string>
   <string name="bg_space">Космос</string>

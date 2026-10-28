@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">बैकग्राउंड एनिमेशन</string>
-  <string name="bg_picker_title">बैकग्राउंड एनिमेशन</string>
   <string name="bg_picker_description">ऐप की स्क्रीन के पीछे चलने वाला एनिमेशन</string>
-  <string name="bg_close">बंद करें</string>
   <string name="bg_circles">सर्कल</string>
   <string name="bg_rings">रिंग्स</string>
   <string name="bg_space">अंतरिक्ष</string>

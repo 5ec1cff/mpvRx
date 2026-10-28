@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -86,6 +87,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonBorderColor
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContainerColor
 import app.gyrolet.mpvrx.ui.theme.controlColor as defaultControlColor
 import app.gyrolet.mpvrx.ui.theme.spacing
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.utils.isAnyMpvOptionOwnedByConfig
 import app.gyrolet.mpvrx.ui.utils.isMpvOptionOwnedByConfig
 import dev.vivvvek.seeker.Segment
@@ -1172,12 +1174,14 @@ fun RenderPlayerButton(
       val isExpanded = abLoop.isExpanded
       val loopA = abLoop.a
       val loopB = abLoop.b
+      val reducedMotion = AppMotion.playerReducedMotion()
 
       AnimatedContent(
         targetState = isExpanded && !compact,
         transitionSpec = {
-          (fadeIn(animationSpec = tween(200)) + expandHorizontally(animationSpec = tween(250)))
-            .togetherWith(fadeOut(animationSpec = tween(200)) + shrinkHorizontally(animationSpec = tween(250)))
+          val duration = if (reducedMotion) 0 else 180
+          (fadeIn(animationSpec = tween(duration)) + expandHorizontally(animationSpec = tween(duration)))
+            .togetherWith(fadeOut(animationSpec = tween(duration)) + shrinkHorizontally(animationSpec = tween(duration)))
             .using(SizeTransform(clip = false))
         },
         label = "ABLoopExpandCollapse",
@@ -1192,6 +1196,9 @@ fun RenderPlayerButton(
             ) {
               LiquidPillButton(
                 onClick = { viewModel.setLoopA() },
+                modifier =
+                  if (loopA == null) Modifier.requiredSize(buttonSize - 4.dp)
+                  else Modifier.widthIn(min = buttonSize - 4.dp),
                 height = buttonSize - 4.dp,
                 horizontalPadding = if (loopA != null) 8.dp else 4.dp,
                 surfaceColor = if (loopA != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,
@@ -1213,6 +1220,9 @@ fun RenderPlayerButton(
               )
               LiquidPillButton(
                 onClick = { viewModel.setLoopB() },
+                modifier =
+                  if (loopB == null) Modifier.requiredSize(buttonSize - 4.dp)
+                  else Modifier.widthIn(min = buttonSize - 4.dp),
                 height = buttonSize - 4.dp,
                 horizontalPadding = if (loopB != null) 8.dp else 4.dp,
                 surfaceColor = if (loopB != null) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent,

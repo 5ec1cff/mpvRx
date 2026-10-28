@@ -57,7 +57,7 @@
   <string name="pref_appearance_unlimited_name_lines_title">Vollständige Namen anzeigen</string>
   <string name="pref_appearance_unlimited_name_lines_summary">Vollständige Ordner- und Videonamen ohne Kürzung anzeigen</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Hintergrund der Player-Schaltflächen ausblenden</string>
-  <string name="pref_appearance_force_dark_player_buttons_background_title">Immer dunkle Hintergründe für Player-Schaltflächen verwenden</string>
+  <string name="pref_appearance_force_dark_player_buttons_background_title">Schaltflächen immer dunkel hinterlegen</string>
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Hintergründe der Player-Steuerelemente im hellen, dunklen und automatischen Design dunkel halten</string>
   <string name="pref_appearance_hide_player_buttons_background_summary">Den Hintergrund aller Player-Steuerungsschaltflächen ausblenden</string>
   <string name="pref_appearance_category_file_browser">Dateibrowser</string>
@@ -426,9 +426,6 @@ Weiter: NEXT</string>
   <string name="player_sheets_sub_misc_card_title">Verschiedenes</string>
   <string name="player_sheets_sub_delay_card_title">Untertitelverzögerung</string>
   <string name="player_sheets_sub_delay_card_delay">Verzögerung</string>
-  <string name="player_sheets_delay_quick_sync_summary">Die Schnellsynchronisation setzt einen absoluten Wert, sodass mehrmaliges Tippen denselben Wert beibehält.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d s</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 s</string>
   <string name="player_sheets_sub_delay_card_speed">Geschwindigkeit</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Stimme gehört</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Text gesehen</string>
@@ -814,7 +811,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">Medienbibliothek</string>
-  <string name="pref_hidden_folders_section">Ausgeblendete Ordner</string>
   <string name="pref_clear_content_desc">Leeren</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -845,10 +841,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_config_cache_size">Größe: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Alle zwischengespeicherten Video-Miniaturbilder löschen (werden beim Durchsuchen neu erstellt)</string>
   <string name="pref_thumbnail_cache_size">Größe: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Cache für animierte Albumcover leeren</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Heruntergeladene animierte Albumcover löschen (werden bei Anzeige erneut geladen)</string>
-  <string name="pref_animated_artwork_cache_size">Größe: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Cache für animierte Albumcover geleert</string>
   <string name="pref_fonts_cache_size">Größe: %1$s · %2$d Schriftart(en)</string>
   <string name="pref_failed_to_clear">Löschen fehlgeschlagen: %1$s</string>
   <string name="pref_export_failed">Export fehlgeschlagen: %1$s</string>
@@ -1636,7 +1628,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="secure_folder_move_items_subtitle">Sie werden aus dieser Liste und überall sonst in der App ausgeblendet, bis sie wiederhergestellt werden.</string>
   <string name="secure_folder_moved_success">%1$d Datei(en) in Sicheren Ordner verschoben</string>
   <string name="secure_folder_moved_partial">%1$d verschoben, %2$d fehlgeschlagen</string>
-  <string name="secure_folder_move_failed">Fehler beim Verschieben der Dateien in den Sicheren Ordner</string>
   <string name="secure_folder_error_incorrect_pin">Falsche PIN</string>
   <string name="secure_folder_error_pins_dont_match">PINs stimmen nicht überein</string>
   <string name="secure_folder_error_answer_question">Bitte beantworten Sie die Sicherheitsfrage</string>
@@ -1873,9 +1864,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="ui_yt_dlp_commit">Commit %1$s</string>
   <string name="ui_version_unavailable">Version nicht verfügbar</string>
   <string name="ui_update_channel">Update-Kanal</string>
-  <string name="ui_stable_releases">Stabil</string>
-  <string name="ui_preview_builds">Vorschau (Nightly)</string>
-  <string name="ui_preview_builds_summary">Vorschau-Builds sind signierte Testversionen aus den neuesten mpvRx-Änderungen und können instabil sein.</string>
   <string name="update_whats_new">Neuigkeiten</string>
   <string name="update_no_release_notes">Keine Versionshinweise vorhanden.</string>
   <string name="update_ready_to_install">Bereit zur Installation</string>
@@ -2066,8 +2054,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_appearance_custom_wallpaper_transparency">Transparenz</string>
   <string name="pref_folders_add_marker">Markierungsdatei hinzufügen</string>
   <string name="pref_folders_add_marker_title">Markierung für versteckte Ordner hinzufügen</string>
-  <string name="pref_folders_hidden_markers_empty">Keine Markierungsdateien konfiguriert. Ordner mit einem Punkt am Namensanfang werden weiterhin einbezogen.</string>
-  <string name="pref_folders_hidden_markers_summary">Ordner mit diesen Dateien und ihre Unterordner werden einbezogen. Ordner mit einem Punkt am Namensanfang werden immer einbezogen.</string>
   <string name="pref_folders_hidden_markers_title">Markierungsdateien</string>
   <string name="pref_folders_include_hidden_summary">Videos in Ordnern mit einem Punkt am Namensanfang und in Ordnern mit ausgewählten Markierungsdateien suchen.</string>
   <string name="pref_folders_include_hidden_title">Versteckte Medienordner einbeziehen</string>
@@ -2274,7 +2260,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="snapshot_delete_title">Schnappschuss löschen?</string>
   <string name="snapshot_delete_selected_title">%1$d Schnappschüsse löschen?</string>
   <string name="snapshot_delete_message">Dadurch wird der Eintrag aus der App entfernt. Das Bild bleibt in deiner Galerie.</string>
-  <string name="snapshot_delete">Löschen</string>
   <string name="snapshot_remove">Entfernen</string>
 
   <string name="snapshot_root">Stammordner</string>
@@ -2579,20 +2564,13 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="app_icon_create_custom_shortcut">Exaktes benutzerdefiniertes Symbol zum Startbildschirm hinzufügen</string>
   <string name="pref_experimental_badge">Experimentell</string>
   <string name="pref_liquid_glass_experimental_note">Liquid-Glass-Effekte sind experimentell und können je nach Gerät variieren.</string>
-  <string name="pref_hidden_scan_per_mode_summary">Für jede Startansicht festlegen, ob Ordner mit Markierungsdateien oder Punkt-Präfix durchsucht werden. Bei Deaktivierung werden sie auch beim Durchsuchen übersprungen. Der Schalter oben aktiviert versteckte Medien global.</string>
-  <string name="pref_hidden_scan_scoped_summary">Jede Ansicht kann Punktordner und durch Markierungen versteckte Ordner nur innerhalb der auf Android freigegebenen Ordner ein- oder ausschließen. Nicht ausgewählte Ordner bleiben unzugänglich.</string>
   <string name="pref_hidden_scan_library">Bibliothek</string>
   <string name="pref_hidden_scan_tree">Baumansicht</string>
   <string name="pref_hidden_scan_folders">Ordner</string>
-  <string name="pref_hidden_scan_marked">Ordner mit Markierungsdateien durchsuchen</string>
-  <string name="pref_hidden_scan_marked_summary">Ordner mit .nomedia oder einer anderen Markierungsdatei aus deiner Liste</string>
-  <string name="pref_hidden_scan_single_marker_summary">Ordner mit dieser Markierungsdatei in dieser Ansicht anzeigen</string>
-  <string name="pref_hidden_scan_dot_summary">Ordner, deren Name mit einem Punkt beginnt, z. B. .Videos</string>
   <string name="ambient_cinema">Kino</string>
   <string name="ambient_echo">Echo</string>
   <string name="ambient_mirror">Spiegel</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">Dieser Modus arbeitet vollautomatisch. Für das beste visuelle Ergebnis sind die Parameter festgelegt und können nicht geändert werden.</string>
   <string name="app_icon_bg_crimson">Karmesinrot</string>
   <string name="app_icon_bg_rose">Rosa</string>
   <string name="app_icon_bg_peach">Pfirsich</string>
@@ -2618,7 +2596,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="pref_nav_home_title">Startseite / Dateien</string>
   <string name="pref_nav_home_summary">Lokale Ordner und Dateien durchsuchen (immer verfügbar)</string>
   <string name="pref_nav_actions_section">Navigationsaktionen</string>
-  <string name="pref_about_playback_libraries">Wiedergabebibliotheken</string>
   <string name="color_picker_field">Farbauswahl</string>
   <string name="color_picker_sliders">Regler</string>
   <string name="color_picker_field_description">Sättigung und Helligkeit. Für genaue Anpassungen die Regler verwenden.</string>
@@ -2628,15 +2605,12 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="app_icon_custom_background">Benutzerdefinierter Hintergrund</string>
   <string name="app_icon_custom_background_hint">Wähle eine Farbe. Android verwendet in der App-Übersicht das nächstliegende integrierte Symbol. Deine genaue Farbe kann als Startbildschirmsymbol gespeichert und in der Übersicht verwendet werden.</string>
   <string name="app_icon_custom_logo_hint">Wähle ein beliebiges Logo für deinen benutzerdefinierten Hintergrund.</string>
-  <string name="app_icon_shortcut_preview">Vorschau der Startbildschirmverknüpfung</string>
   <string name="app_icon_custom_requested">Dein Entwurf</string>
   <string name="app_icon_custom_native_match">Tatsächliches Startprogrammsymbol</string>
   <string name="app_icon_use_wallpaper_colors">Stattdessen Hintergrundfarben verwenden</string>
-  <string name="app_icon_shortcut_apply">Verknüpfung hinzufügen oder aktualisieren</string>
   <string name="app_icon_shortcut_requested">Anfrage gesendet. Bestätige die Verknüpfung in deinem Startprogramm.</string>
   <string name="app_icon_shortcut_updated">Startbildschirmverknüpfung aktualisiert</string>
   <string name="app_icon_shortcut_unsupported">Dieses Startprogramm unterstützt keine Startbildschirmverknüpfungen.</string>
-  <string name="app_icon_shortcut_failed">Verknüpfung konnte nicht gespeichert werden. Bitte erneut versuchen.</string>
   <string name="color_picker_wheel">Farbrad</string>
   <string name="color_picker_brightness">Helligkeit</string>
     <string name="only_for_video_list">Nur für die Videoliste</string>
@@ -2799,7 +2773,6 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="jellyfin_more_like_this">Ähnliche Titel</string>
   <string name="jellyfin_watched">Angesehen</string>
   <string name="jellyfin_search_hint">Filme, Serien und Episoden suchen…</string>
-  <string name="pref_scan_filters">Scanfilter</string>
   <string name="pref_filter_short_videos">Kurze Videos filtern</string>
   <string name="pref_filter_short_videos_summary">Videos unterhalb der gewählten Dauer beim Scannen ignorieren</string>
   <string name="pref_filter_small_files">Kleine Dateien filtern</string>
@@ -2871,4 +2844,8 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="clip_quick_length">Schnellauswahl</string>
   <string name="clip_length_seconds">%1$d s</string>
   <string name="clip_crop_reset">Vollbild verwenden</string>
+  <string name="pref_layout_center_seekbar_above">Mitte · Zeitleiste über Aktionen</string>
+  <string name="pref_layout_center_seekbar_below">Mitte · Zeitleiste unter Aktionen</string>
+  <string name="pref_layout_playback_above">Wiedergabe + Aktionen über Zeitleiste</string>
+  <string name="pref_layout_playback_below">Wiedergabe + Aktionen unter Zeitleiste</string>
 </resources>

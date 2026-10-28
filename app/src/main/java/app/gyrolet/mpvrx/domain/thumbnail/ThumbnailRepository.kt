@@ -1548,33 +1548,6 @@ class ThumbnailRepository(
     return false
   }
 
-  /**
-   * Get a thumbnail for a folder using the first video in the folder.
-   * Returns null if the folder has no videos or thumbnail generation fails.
-   */
-  suspend fun getFolderThumbnail(
-    folderId: String,
-    videos: List<Video>,
-    widthPx: Int,
-    heightPx: Int,
-  ): Bitmap? =
-    withContext(Dispatchers.IO) {
-      if (videos.isEmpty()) return@withContext null
-
-      // Filter out network videos if network thumbnails are disabled
-      val filteredVideos =
-        if (appearancePreferences.showNetworkThumbnails.get()) {
-          videos
-        } else {
-          videos.filterNot { isNetworkUrl(it.path) }
-        }
-
-      if (filteredVideos.isEmpty()) return@withContext null
-
-      // Use the first video as the folder thumbnail
-      getThumbnail(filteredVideos.first(), widthPx, heightPx)
-    }
-
   private fun folderSignature(
     videos: List<Video>,
     widthPx: Int,

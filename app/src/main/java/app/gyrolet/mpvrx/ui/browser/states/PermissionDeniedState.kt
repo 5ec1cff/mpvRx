@@ -112,7 +112,6 @@ import app.gyrolet.mpvrx.ui.theme.expressiveDisplayFontForText
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.utils.media.findChildIgnoreCase
 import app.gyrolet.mpvrx.utils.permission.PermissionRecovery
-import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

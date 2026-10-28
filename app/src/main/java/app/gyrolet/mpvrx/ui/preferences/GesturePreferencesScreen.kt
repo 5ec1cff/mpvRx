@@ -106,7 +106,7 @@ object GesturePreferencesScreen : Screen {
               )
               PreferenceDivider()
 
-              me.zhanghai.compose.preference.Preference(
+              app.gyrolet.mpvrx.ui.preferences.components.AppPreference(
                 title = { Text(stringResource(R.string.pref_video_swipe_title)) },
                 onClick = { backstack.add(VideoSwipePreferencesScreen) },
                 modifier = Modifier.settingsSearchTarget(R.string.pref_video_swipe_title),

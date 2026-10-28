@@ -6,7 +6,6 @@ package app.gyrolet.mpvrx.ui.browser.music
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.gyrolet.mpvrx.database.entities.PlaylistEntity

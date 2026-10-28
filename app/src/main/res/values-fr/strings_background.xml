@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">Animation d’arrière-plan</string>
-  <string name="bg_picker_title">Animation d’arrière-plan</string>
   <string name="bg_picker_description">L’animation qui joue derrière les écrans de l’application</string>
-  <string name="bg_close">Fermer</string>
   <string name="bg_circles">Cercles</string>
   <string name="bg_rings">Anneaux</string>
   <string name="bg_space">Espace</string>

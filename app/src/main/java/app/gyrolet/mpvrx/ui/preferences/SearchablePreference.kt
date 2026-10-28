@@ -74,6 +74,16 @@ private fun MutableList<SearchablePreference>.addSearchEntries(
 object SearchablePreferences {
   private val staticPreferences: List<SearchablePreference> =
     buildList {
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_player_settings_drawer_title,
+          summaryRes = R.string.pref_player_settings_drawer_summary,
+          keywords = listOf("left", "drawer", "panel", "live", "settings"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+          anchorItemIndex = 5,
+        ),
+      )
       // Appearance preferences
       add(
         SearchablePreference(
@@ -2233,10 +2243,16 @@ object SearchablePreferences {
     !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD ||
       (screen != AiIntegrationScreen && titleRes?.let(playStoreHiddenTitles::contains) != true)
 
+  internal fun forScreens(screens: Set<Screen>): List<SearchablePreference> =
+    (staticPreferences + screenFallbackPreferences)
+      .filter { it.screen in screens && it.isAvailable() }
+      .distinctBy { it.screen to it.searchTargetKey }
+
   fun search(
     query: String,
     includeSecureFolder: Boolean = true,
     television: Boolean = false,
+    screens: Set<Screen>? = null,
     getStringRes: (Int) -> String,
   ): List<SettingsSearchResult> {
     if (query.isBlank()) return emptyList()
@@ -2245,7 +2261,8 @@ object SearchablePreferences {
     if (normalizedQuery.isBlank()) return emptyList()
 
     fun available(preference: SearchablePreference): Boolean =
-      preference.isAvailable() && (includeSecureFolder || preference.screen != SecureFolderSettingsScreen) &&
+      (screens == null || preference.screen in screens) &&
+        preference.isAvailable() && (includeSecureFolder || preference.screen != SecureFolderSettingsScreen) &&
         (!television || TvSettingsPolicy.supportsSearch(preference))
 
     val directResults =

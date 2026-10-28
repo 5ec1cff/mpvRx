@@ -426,9 +426,6 @@
   <string name="player_sheets_sub_misc_card_title">متنوع</string>
   <string name="player_sheets_sub_delay_card_title">تأخير الترجمة</string>
   <string name="player_sheets_sub_delay_card_delay">التأخير</string>
-  <string name="player_sheets_delay_quick_sync_summary">المزامنة السريعة تضبط قيمة مطلقة، لذا الضغط على الزر نفسه مرتين يُبقي القيمة نفسها.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d ث</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 ث</string>
   <string name="player_sheets_sub_delay_card_speed">السرعة</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">سماع الصوت</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">رؤية النص</string>
@@ -814,7 +811,6 @@
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">مكتبة الوسائط</string>
-  <string name="pref_hidden_folders_section">المجلدات المخفية</string>
   <string name="pref_clear_content_desc">مسح</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -845,10 +841,6 @@
   <string name="pref_config_cache_size">الحجم: %1$s</string>
   <string name="pref_thumbnail_cache_summary">حذف جميع الصور المصغرة المخزّنة مؤقتًا (ستُنشأ مجددًا أثناء تصفح المجلدات)</string>
   <string name="pref_thumbnail_cache_size">الحجم: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">مسح ذاكرة التخزين المؤقت لأغلفة الألبومات المتحركة</string>
-  <string name="pref_clear_animated_artwork_cache_summary">حذف أغلفة الألبومات المتحركة التي تم تنزيلها (يُعاد تنزيلها عند عرضها)</string>
-  <string name="pref_animated_artwork_cache_size">الحجم: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">تم مسح ذاكرة التخزين المؤقت لأغلفة الألبومات المتحركة</string>
   <string name="pref_fonts_cache_size">الحجم: %1$s · %2$d خط</string>
   <string name="pref_failed_to_clear">تعذّر المسح: %1$s</string>
   <string name="pref_export_failed">فشل التصدير: %1$s</string>
@@ -1660,7 +1652,6 @@
   <string name="secure_folder_move_items_subtitle">ستختفي من هذه القائمة ومن أي مكان آخر في التطبيق حتى تمت استعادتها.</string>
   <string name="secure_folder_moved_success">تم نقل %1$d ملف إلى المجلد الآمن</string>
   <string name="secure_folder_moved_partial">تم نقل %1$d، وفشل %2$d</string>
-  <string name="secure_folder_move_failed">فشل نقل الملفات إلى المجلد الآمن</string>
   <string name="secure_folder_error_incorrect_pin">رمز PIN غير صحيح</string>
   <string name="secure_folder_error_pins_dont_match">رموز PIN غير متطابقة</string>
   <string name="secure_folder_error_answer_question">يرجى الإجابة على سؤال الأمان</string>
@@ -1899,9 +1890,6 @@
   <string name="ui_yt_dlp_commit">الالتزام %1$s</string>
   <string name="ui_version_unavailable">الإصدار غير متاح</string>
   <string name="ui_update_channel">قناة التحديث</string>
-  <string name="ui_stable_releases">مستقر</string>
-  <string name="ui_preview_builds">معاينة (ليلي)</string>
-  <string name="ui_preview_builds_summary">إصدارات المعاينة هي نسخ اختبار موقّعة تُنشر من أحدث تغييرات mpvRx وقد تكون غير مستقرة.</string>
   <string name="update_whats_new">ما الجديد</string>
   <string name="update_no_release_notes">لا توجد ملاحظات إصدار.</string>
   <string name="update_ready_to_install">جاهز للتثبيت</string>
@@ -2092,8 +2080,6 @@
   <string name="pref_appearance_custom_wallpaper_transparency">الشفافية</string>
   <string name="pref_folders_add_marker">إضافة ملف علامة</string>
   <string name="pref_folders_add_marker_title">إضافة علامة مجلد مخفي</string>
-  <string name="pref_folders_hidden_markers_empty">لم تُضبط ملفات علامات. تظل المجلدات التي تبدأ أسماؤها بنقطة مشمولة.</string>
-  <string name="pref_folders_hidden_markers_summary">تُشمل المجلدات التي تحتوي على هذه الملفات ومجلداتها الفرعية. وتُشمل دائمًا المجلدات التي تبدأ أسماؤها بنقطة.</string>
   <string name="pref_folders_hidden_markers_title">ملفات العلامات</string>
   <string name="pref_folders_include_hidden_summary">البحث عن الفيديوهات في المجلدات التي تبدأ أسماؤها بنقطة أو تحتوي على ملفات العلامات المحددة.</string>
   <string name="pref_folders_include_hidden_title">تضمين مجلدات الوسائط المخفية</string>
@@ -2300,7 +2286,6 @@
   <string name="snapshot_delete_title">حذف اللقطة؟</string>
   <string name="snapshot_delete_selected_title">حذف %1$d لقطات؟</string>
   <string name="snapshot_delete_message">يؤدي هذا إلى إزالة السجل من التطبيق. تبقى الصورة في المعرض.</string>
-  <string name="snapshot_delete">حذف</string>
   <string name="snapshot_remove">إزالة</string>
 
   <string name="snapshot_root">الجذر</string>
@@ -2625,20 +2610,13 @@
   <string name="app_icon_create_custom_shortcut">إضافة أيقونة مخصصة مطابقة إلى الشاشة الرئيسية</string>
   <string name="pref_experimental_badge">تجريبي</string>
   <string name="pref_liquid_glass_experimental_note">تأثيرات الزجاج السائل تجريبية وقد تختلف حسب الجهاز.</string>
-  <string name="pref_hidden_scan_per_mode_summary">اختر ما إذا كان كل وضع للشاشة الرئيسية يفحص المجلدات المخفية بعلامة أو التي تبدأ بنقطة. عند إيقاف أي منهما، يتم تخطي هذه المجلدات أثناء التصفح أيضًا. يتيح المفتاح أعلاه الوسائط المخفية في التطبيق كله.</string>
-  <string name="pref_hidden_scan_scoped_summary">يمكن لكل عرض تضمين المجلدات التي تبدأ بنقطة أو المخفية بعلامة أو استبعادها ضمن المجلدات التي منحت التطبيق حق الوصول إليها على Android فقط. وتبقى المجلدات الأخرى غير متاحة.</string>
   <string name="pref_hidden_scan_library">المكتبة</string>
   <string name="pref_hidden_scan_tree">العرض الشجري</string>
   <string name="pref_hidden_scan_folders">المجلدات</string>
-  <string name="pref_hidden_scan_marked">فحص المجلدات المخفية بعلامة</string>
-  <string name="pref_hidden_scan_marked_summary">المجلدات التي تحتوي على .nomedia أو علامة أخرى من قائمتك</string>
-  <string name="pref_hidden_scan_single_marker_summary">تضمين المجلدات التي تحتوي على هذه العلامة في هذا العرض</string>
-  <string name="pref_hidden_scan_dot_summary">المجلدات التي تبدأ أسماؤها بنقطة، مثل .Videos</string>
   <string name="ambient_cinema">سينما</string>
   <string name="ambient_echo">صدى</string>
   <string name="ambient_mirror">مرآة</string>
   <string name="ambient_ambilight">إضاءة محيطية</string>
-  <string name="ambient_fx_auto_hint">يعمل هذا الوضع تلقائيًا بالكامل؛ فقد ثُبتت المعلمات للحصول على أفضل نتيجة بصرية ولا يمكن تعديلها.</string>
   <string name="app_icon_bg_crimson">قرمزي</string>
   <string name="app_icon_bg_rose">وردي</string>
   <string name="app_icon_bg_peach">خوخي</string>
@@ -2664,7 +2642,6 @@
   <string name="pref_nav_home_title">الرئيسية / الملفات</string>
   <string name="pref_nav_home_summary">تصفح المجلدات والملفات المحلية (متاح دائمًا)</string>
   <string name="pref_nav_actions_section">إجراءات التنقل</string>
-  <string name="pref_about_playback_libraries">مكتبات التشغيل</string>
   <string name="color_picker_field">منتقي الألوان</string>
   <string name="color_picker_sliders">أشرطة التمرير</string>
   <string name="color_picker_field_description">التشبع والسطوع. استخدم أشرطة التمرير للضبط الدقيق.</string>
@@ -2674,15 +2651,12 @@
   <string name="app_icon_custom_background">خلفية مخصصة</string>
   <string name="app_icon_custom_background_hint">اختر لونًا. يستخدم Android أقرب أيقونة مدمجة في درج التطبيقات. ويمكن حفظ لونك الدقيق كأيقونة للشاشة الرئيسية واستخدامه في شاشة التطبيقات الحديثة.</string>
   <string name="app_icon_custom_logo_hint">اختر أي شعار لوضعه فوق الخلفية المخصصة.</string>
-  <string name="app_icon_shortcut_preview">معاينة اختصار الشاشة الرئيسية</string>
   <string name="app_icon_custom_requested">تصميمك</string>
   <string name="app_icon_custom_native_match">أيقونة المشغل الفعلية</string>
   <string name="app_icon_use_wallpaper_colors">استخدام ألوان الخلفية بدلاً من ذلك</string>
-  <string name="app_icon_shortcut_apply">إضافة اختصار أو تحديثه</string>
   <string name="app_icon_shortcut_requested">أُرسل الطلب. أكّد الإضافة في مشغل التطبيقات لإضافة الاختصار.</string>
   <string name="app_icon_shortcut_updated">تم تحديث اختصار الشاشة الرئيسية</string>
   <string name="app_icon_shortcut_unsupported">لا يدعم مشغل التطبيقات هذا إضافة اختصارات للشاشة الرئيسية.</string>
-  <string name="app_icon_shortcut_failed">تعذر حفظ الاختصار. يُرجى المحاولة مرة أخرى.</string>
   <string name="color_picker_wheel">عجلة الألوان</string>
   <string name="color_picker_brightness">السطوع</string>
     <string name="only_for_video_list">لقائمة الفيديوهات فقط</string>
@@ -2861,7 +2835,6 @@
   <string name="jellyfin_more_like_this">عناوين مشابهة</string>
   <string name="jellyfin_watched">تمت المشاهدة</string>
   <string name="jellyfin_search_hint">ابحث عن الأفلام والمسلسلات والحلقات…</string>
-  <string name="pref_scan_filters">فلاتر الفحص</string>
   <string name="pref_filter_short_videos">تصفية مقاطع الفيديو القصيرة</string>
   <string name="pref_filter_short_videos_summary">تجاهل الفيديوهات الأقصر من المدة المحددة أثناء الفحص</string>
   <string name="pref_filter_small_files">تصفية الملفات الصغيرة</string>
@@ -2933,4 +2906,8 @@
   <string name="clip_quick_length">مدة سريعة</string>
   <string name="clip_length_seconds">%1$d ث</string>
   <string name="clip_crop_reset">استخدام الإطار الكامل</string>
+  <string name="pref_layout_center_seekbar_above">تشغيل بالوسط · شريط فوق الأزرار</string>
+  <string name="pref_layout_center_seekbar_below">تشغيل بالوسط · شريط تحت الأزرار</string>
+  <string name="pref_layout_playback_above">التشغيل والأزرار فوق الشريط</string>
+  <string name="pref_layout_playback_below">التشغيل والأزرار تحت الشريط</string>
 </resources>

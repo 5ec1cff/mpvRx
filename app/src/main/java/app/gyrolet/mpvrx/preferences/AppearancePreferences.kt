@@ -270,19 +270,15 @@ class AppearancePreferences(
       .toList()
 }
 
-enum class PlaybackControlsPosition(
-  val displayName: String,
-) {
-  Center("Center of screen"),
-  BelowSeekbar("Below seekbar"),
-  AboveSeekbar("Above seekbar"),
+enum class PlaybackControlsPosition {
+  Center,
+  BelowSeekbar,
+  AboveSeekbar,
 }
 
-enum class SeekbarPlacement(
-  val displayName: String,
-) {
-  AboveButtons("Above layout buttons"),
-  BelowButtons("Below layout buttons"),
+enum class SeekbarPlacement {
+  AboveButtons,
+  BelowButtons,
 }
 
 @Composable

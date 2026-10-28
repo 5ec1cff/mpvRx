@@ -12,11 +12,6 @@ package app.gyrolet.mpvrx.ui.player
 import java.net.URI
 
 object M3uPlaybackPolicy {
-  private val networkSchemes =
-    setOf("http", "https", "ftp", "ftps", "rtmp", "rtmps", "rtsp", "rtsps", "mms", "mmsh")
-  private val m3uMimeTypes =
-    setOf("application/x-mpegurl", "application/vnd.apple.mpegurl", "audio/x-mpegurl", "video/x-mpegurl")
-
   fun shouldExpandInApp(
     playableUri: String,
     originalUri: String?,
@@ -42,12 +37,7 @@ object M3uPlaybackPolicy {
   ): Boolean {
     val candidates = listOfNotNull(playableUri, originalUri, fileName).map { it.lowercase() }
     return candidates.any(::hasM3uMarker) ||
-      mimeType?.lowercase()?.let { type ->
-        type.contains("mpegurl") || type.contains("x-mpegurl") || type.contains("vnd.apple.mpegurl")
-      } == true ||
-      mimeType?.lowercase()?.let { type ->
-        m3uMimeTypes.contains(type)
-      } == true
+      mimeType?.lowercase()?.contains("mpegurl") == true
   }
 
   private fun hasM3uMarker(value: String): Boolean {
@@ -77,9 +67,4 @@ object M3uPlaybackPolicy {
     }
   }
 
-  private fun isNetworkUri(value: String?): Boolean {
-    if (value.isNullOrBlank()) return false
-    val scheme = value.substringBefore(":", missingDelimiterValue = "").lowercase()
-    return scheme in networkSchemes
-  }
 }

@@ -64,6 +64,7 @@ object PersistentStatusBarPreferencesScreen : Screen {
     val microBattery by prefs.persistentStatusMicroBattery.collectAsState()
     val clockFormat by prefs.clockFormat.collectAsState()
     val now = rememberHudClock()
+    val embeddedInPlayer = LocalPlayerSettingsPanel.current
 
     Scaffold(
       topBar = {
@@ -77,7 +78,7 @@ object PersistentStatusBarPreferencesScreen : Screen {
         LazyColumn(
           modifier = Modifier.fillMaxSize().padding(padding).tvContentFocus(),
         ) {
-          item {
+          if (!embeddedInPlayer) item {
             Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
               Box(
                 modifier = Modifier.fillMaxWidth()

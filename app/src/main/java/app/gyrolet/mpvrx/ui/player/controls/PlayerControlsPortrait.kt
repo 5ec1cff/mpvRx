@@ -268,6 +268,12 @@ fun BottomPlayerControlsPortrait(
   onOpenPanel: (Panels) -> Unit,
   viewModel: PlayerViewModel,
   activity: PlayerActivity,
+  alignToEnd: Boolean = false,
+  horizontalArrangement: Arrangement.Horizontal =
+    Arrangement.spacedBy(
+      if (hideBackground) MaterialTheme.spacing.extraSmall else MaterialTheme.spacing.medium,
+      Alignment.CenterHorizontally,
+    ),
 ) {
   PlayerButtonTheme(hideBackground) {
     val enableLiquidGlass = liquidGlassActive()
@@ -275,18 +281,14 @@ fun BottomPlayerControlsPortrait(
       modifier =
         Modifier
           .fillMaxWidth()
-          .horizontalScroll(rememberScrollState())
+          .horizontalScroll(rememberScrollState(), reverseScrolling = alignToEnd)
           // Padding after horizontalScroll belongs to scroll content, not its clipping viewport.
           // Vertical room is only for the liquid-glass shadow; the player places this row with its shared gaps.
           .padding(
             horizontal = if (enableLiquidGlass && !hideBackground) 8.dp else 0.dp,
             vertical = if (enableLiquidGlass && !hideBackground) 6.dp else 0.dp,
           ),
-      horizontalArrangement =
-        Arrangement.spacedBy(
-          if (hideBackground) MaterialTheme.spacing.extraSmall else MaterialTheme.spacing.medium,
-          Alignment.CenterHorizontally,
-        ),
+      horizontalArrangement = horizontalArrangement,
       verticalAlignment = Alignment.CenterVertically,
     ) {
       buttons.forEach { button ->

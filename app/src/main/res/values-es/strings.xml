@@ -57,7 +57,7 @@
   <string name="pref_appearance_unlimited_name_lines_title">Mostrar nombres completos</string>
   <string name="pref_appearance_unlimited_name_lines_summary">Mostrar los nombres completos de carpetas y vídeos sin recortarlos</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Ocultar el fondo de los botones del reproductor</string>
-  <string name="pref_appearance_force_dark_player_buttons_background_title">Usar siempre fondos oscuros en los botones del reproductor</string>
+  <string name="pref_appearance_force_dark_player_buttons_background_title">Fondo de botones siempre oscuro</string>
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Mantener oscuros los fondos de los botones del reproductor en los temas claro, oscuro y automático</string>
   <string name="pref_appearance_hide_player_buttons_background_summary">Ocultar el fondo de todos los botones de control del reproductor</string>
   <string name="pref_appearance_category_file_browser">Explorador de archivos</string>
@@ -157,7 +157,7 @@
   <string name="pref_player_autoplay_after_screen_unlock_title">Reproducir automáticamente al desbloquear la pantalla</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary">Reanudar automáticamente el vídeo tras desbloquear si se estaba reproduciendo antes de bloquear la pantalla</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary_disabled">Mantener el vídeo en pausa después de desbloquear la pantalla</string>
-  <string name="pref_player_show_buffered_range_title">Mostrar rango almacenado en búfer en la barra de búsqueda</string>
+  <string name="pref_player_show_buffered_range_title">Mostrar rango en búfer en la barra</string>
   <string name="pref_player_show_buffered_range_summary">Mostrar en la barra de búsqueda el búfer en línea por delante de la posición de reproducción.</string>
   <string name="pref_player_show_chapter_indicators_title">Mostrar indicadores de capítulos en la barra de búsqueda</string>
   <string name="pref_player_show_chapter_indicators_summary">Separar visualmente los capítulos a lo largo de la barra de búsqueda.</string>
@@ -426,9 +426,6 @@ Siguiente: NEXT</string>
   <string name="player_sheets_sub_misc_card_title">Varios</string>
   <string name="player_sheets_sub_delay_card_title">Retraso de subtítulos</string>
   <string name="player_sheets_sub_delay_card_delay">Retraso</string>
-  <string name="player_sheets_delay_quick_sync_summary">La sincronización rápida aplica un valor absoluto, así que pulsar el mismo chip dos veces mantiene el mismo valor.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d s</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 s</string>
   <string name="player_sheets_sub_delay_card_speed">Velocidad</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Voz oída</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Texto visto</string>
@@ -814,7 +811,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">Biblioteca multimedia</string>
-  <string name="pref_hidden_folders_section">Carpetas ocultas</string>
   <string name="pref_clear_content_desc">Borrar</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -845,10 +841,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_config_cache_size">Tamaño: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Eliminar todas las miniaturas de video en caché (se regenerarán al explorar carpetas)</string>
   <string name="pref_thumbnail_cache_size">Tamaño: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Borrar caché de portadas animadas</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Eliminar las portadas de álbum animadas descargadas (se volverán a descargar al mostrarse)</string>
-  <string name="pref_animated_artwork_cache_size">Tamaño: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Caché de portadas animadas borrada</string>
   <string name="pref_fonts_cache_size">Tamaño: %1$s · %2$d fuente(s)</string>
   <string name="pref_failed_to_clear">No se pudo borrar: %1$s</string>
   <string name="pref_export_failed">Error al exportar: %1$s</string>
@@ -1636,7 +1628,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="secure_folder_move_items_subtitle">Desaparecerán de esta lista y de cualquier otro lugar de la aplicación hasta que se restauren.</string>
   <string name="secure_folder_moved_success">Se han movido %1$d archivo(s) a Carpeta segura</string>
   <string name="secure_folder_moved_partial">Se han movido %1$d, fallaron %2$d</string>
-  <string name="secure_folder_move_failed">Error al mover archivos a Carpeta segura</string>
   <string name="secure_folder_error_incorrect_pin">PIN incorrecto</string>
   <string name="secure_folder_error_pins_dont_match">Los PIN no coinciden</string>
   <string name="secure_folder_error_answer_question">Por favor, responde a la pregunta de seguridad</string>
@@ -1873,9 +1864,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="ui_yt_dlp_commit">Commit %1$s</string>
   <string name="ui_version_unavailable">Versión no disponible</string>
   <string name="ui_update_channel">Canal de actualización</string>
-  <string name="ui_stable_releases">Estable</string>
-  <string name="ui_preview_builds">Vista previa (Nightly)</string>
-  <string name="ui_preview_builds_summary">Las compilaciones de vista previa son versiones de prueba firmadas publicadas a partir de los últimos cambios de mpvRx y pueden ser inestables.</string>
   <string name="update_whats_new">Novedades</string>
   <string name="update_no_release_notes">No se proporcionaron notas de la versión.</string>
   <string name="update_ready_to_install">Listo para instalar</string>
@@ -2066,8 +2054,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_appearance_custom_wallpaper_transparency">Transparencia</string>
   <string name="pref_folders_add_marker">Añadir archivo marcador</string>
   <string name="pref_folders_add_marker_title">Añadir marcador de carpeta oculta</string>
-  <string name="pref_folders_hidden_markers_empty">No hay archivos marcadores configurados. Se siguen incluyendo las carpetas cuyo nombre empieza por un punto.</string>
-  <string name="pref_folders_hidden_markers_summary">Se incluyen las carpetas que contienen estos archivos y sus subcarpetas. Las carpetas cuyo nombre empieza por un punto siempre se incluyen.</string>
   <string name="pref_folders_hidden_markers_title">Archivos marcadores</string>
   <string name="pref_folders_include_hidden_summary">Buscar vídeos en carpetas cuyo nombre empieza por un punto y en carpetas que contienen los archivos marcadores seleccionados.</string>
   <string name="pref_folders_include_hidden_title">Incluir carpetas multimedia ocultas</string>
@@ -2274,7 +2260,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="snapshot_delete_title">¿Eliminar la captura?</string>
   <string name="snapshot_delete_selected_title">¿Eliminar %1$d capturas?</string>
   <string name="snapshot_delete_message">Esto quita el registro de la aplicación. La imagen permanece en tu galería.</string>
-  <string name="snapshot_delete">Eliminar</string>
   <string name="snapshot_remove">Quitar</string>
 
   <string name="snapshot_root">Raíz</string>
@@ -2579,20 +2564,13 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="app_icon_create_custom_shortcut">Añadir un icono personalizado exacto a la pantalla de inicio</string>
   <string name="pref_experimental_badge">Experimental</string>
   <string name="pref_liquid_glass_experimental_note">Los efectos de cristal líquido son experimentales y pueden variar según el dispositivo.</string>
-  <string name="pref_hidden_scan_per_mode_summary">Elige si cada modo de Inicio analiza carpetas ocultas por marcadores o que comienzan con un punto. Al desactivarlo, también se omiten al explorar. El interruptor superior habilita los archivos ocultos globalmente.</string>
-  <string name="pref_hidden_scan_scoped_summary">Cada vista puede incluir u omitir carpetas que comienzan con un punto o están ocultas por marcadores, solo dentro de las carpetas autorizadas en Android. Las demás carpetas siguen siendo inaccesibles.</string>
   <string name="pref_hidden_scan_library">Biblioteca</string>
   <string name="pref_hidden_scan_tree">Árbol</string>
   <string name="pref_hidden_scan_folders">Carpetas</string>
-  <string name="pref_hidden_scan_marked">Analizar carpetas ocultas por marcadores</string>
-  <string name="pref_hidden_scan_marked_summary">Carpetas que contienen .nomedia u otro marcador de tu lista</string>
-  <string name="pref_hidden_scan_single_marker_summary">Incluir carpetas con este marcador en esta vista</string>
-  <string name="pref_hidden_scan_dot_summary">Carpetas cuyos nombres empiezan con un punto, como .Videos</string>
   <string name="ambient_cinema">Cine</string>
   <string name="ambient_echo">Eco</string>
   <string name="ambient_mirror">Espejo</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">Este modo es completamente automático: los parámetros están fijados para obtener el mejor resultado visual y no se pueden ajustar.</string>
   <string name="app_icon_bg_crimson">Carmesí</string>
   <string name="app_icon_bg_rose">Rosa</string>
   <string name="app_icon_bg_peach">Melocotón</string>
@@ -2618,7 +2596,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_nav_home_title">Inicio / Archivos</string>
   <string name="pref_nav_home_summary">Explorar carpetas y archivos locales (siempre disponible)</string>
   <string name="pref_nav_actions_section">Acciones de navegación</string>
-  <string name="pref_about_playback_libraries">Bibliotecas de reproducción</string>
   <string name="color_picker_field">Selector</string>
   <string name="color_picker_sliders">Controles deslizantes</string>
   <string name="color_picker_field_description">Saturación y brillo. Usa los controles deslizantes para ajustar con precisión.</string>
@@ -2628,15 +2605,12 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="app_icon_custom_background">Fondo personalizado</string>
   <string name="app_icon_custom_background_hint">Elige un color. Android utiliza el icono integrado más parecido en el cajón de aplicaciones. Puedes guardar el color exacto como icono de inicio y utilizarlo en Recientes.</string>
   <string name="app_icon_custom_logo_hint">Elige cualquier logotipo para superponerlo a tu fondo personalizado.</string>
-  <string name="app_icon_shortcut_preview">Vista previa del acceso directo de inicio</string>
   <string name="app_icon_custom_requested">Tu diseño</string>
   <string name="app_icon_custom_native_match">Icono real del iniciador</string>
   <string name="app_icon_use_wallpaper_colors">Usar los colores del fondo de pantalla</string>
-  <string name="app_icon_shortcut_apply">Añadir o actualizar acceso directo</string>
   <string name="app_icon_shortcut_requested">Solicitud enviada. Confirma en tu iniciador para añadir el acceso directo.</string>
   <string name="app_icon_shortcut_updated">Acceso directo de inicio actualizado</string>
   <string name="app_icon_shortcut_unsupported">Este iniciador no admite accesos directos en la pantalla de inicio.</string>
-  <string name="app_icon_shortcut_failed">No se pudo guardar el acceso directo. Vuelve a intentarlo.</string>
   <string name="color_picker_wheel">Rueda de colores</string>
   <string name="color_picker_brightness">Brillo</string>
     <string name="only_for_video_list">Solo para la lista de vídeos</string>
@@ -2799,7 +2773,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="jellyfin_more_like_this">Similares</string>
   <string name="jellyfin_watched">Visto</string>
   <string name="jellyfin_search_hint">Buscar películas, series y episodios…</string>
-  <string name="pref_scan_filters">Filtros de escaneo</string>
   <string name="pref_filter_short_videos">Filtrar vídeos cortos</string>
   <string name="pref_filter_short_videos_summary">Ignorar vídeos más cortos que la duración seleccionada al escanear</string>
   <string name="pref_filter_small_files">Filtrar archivos pequeños</string>
@@ -2871,4 +2844,8 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="clip_quick_length">Duración rápida</string>
   <string name="clip_length_seconds">%1$d s</string>
   <string name="clip_crop_reset">Usar fotograma completo</string>
+  <string name="pref_layout_center_seekbar_above">Centrado · barra sobre acciones</string>
+  <string name="pref_layout_center_seekbar_below">Centrado · barra bajo acciones</string>
+  <string name="pref_layout_playback_above">Reproducción y acciones sobre la barra</string>
+  <string name="pref_layout_playback_below">Reproducción y acciones bajo la barra</string>
 </resources>

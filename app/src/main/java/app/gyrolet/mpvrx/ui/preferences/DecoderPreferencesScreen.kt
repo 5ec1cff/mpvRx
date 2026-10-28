@@ -389,6 +389,7 @@ object DecoderPreferencesScreen : Screen {
                       Column {
                         val anime4kIn4k by preferences.anime4kIn4k.collectAsState()
                         SwitchPreference(
+                          modifier = Modifier.settingsSearchTarget(R.string.pref_anime4k_in_4k_title),
                           value = anime4kIn4k,
                           onValueChange = { preferences.anime4kIn4k.set(it) },
                           title = { Text(stringResource(R.string.pref_anime4k_in_4k_title)) },
@@ -405,6 +406,7 @@ object DecoderPreferencesScreen : Screen {
                         val anime4kQuality by preferences.anime4kQuality.collectAsState()
                         ExpressivePreferenceItem {
                         ListPreference(
+                          modifier = Modifier.settingsSearchTarget(R.string.pref_anime4k_quality_title),
                           value = anime4kQuality,
                           onValueChange = { preferences.anime4kQuality.set(it) },
                           values = Anime4KManager.Quality.entries,
@@ -423,6 +425,7 @@ object DecoderPreferencesScreen : Screen {
 
                         val anime4kDarken by preferences.anime4kDarken.collectAsState()
                         SwitchPreference(
+                          modifier = Modifier.settingsSearchTarget(R.string.pref_anime4k_darken_title),
                           value = anime4kDarken,
                           onValueChange = { preferences.anime4kDarken.set(it) },
                           title = { Text(stringResource(R.string.pref_anime4k_darken_title)) },
@@ -438,6 +441,7 @@ object DecoderPreferencesScreen : Screen {
 
                         val anime4kThin by preferences.anime4kThin.collectAsState()
                         SwitchPreference(
+                          modifier = Modifier.settingsSearchTarget(R.string.pref_anime4k_thin_title),
                           value = anime4kThin,
                           onValueChange = { preferences.anime4kThin.set(it) },
                           title = { Text(stringResource(R.string.pref_anime4k_thin_title)) },
@@ -453,6 +457,7 @@ object DecoderPreferencesScreen : Screen {
 
                         val anime4kDeblur by preferences.anime4kDeblur.collectAsState()
                         SwitchPreference(
+                          modifier = Modifier.settingsSearchTarget(R.string.pref_anime4k_deblur_title),
                           value = anime4kDeblur,
                           onValueChange = { preferences.anime4kDeblur.set(it) },
                           title = { Text(stringResource(R.string.pref_anime4k_deblur_title)) },

@@ -11,9 +11,6 @@ package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi

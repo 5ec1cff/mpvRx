@@ -2637,6 +2637,30 @@ fun restartFromBeginning() {
         }
     }
 
+    // Embedded settings do not leave/resume the Activity. Apply these preference changes to
+    // the active core as they happen, preserving the current session on the initial emission.
+    viewModelScope.launch(playbackStateDispatcher) {
+      audioPreferences.audioPitchCorrection.changes().distinctUntilChanged().drop(1).collect { enabled ->
+        if (_isMpvCoreReady.value) PlaybackSession.setPropertyBoolean("audio-pitch-correction", enabled)
+      }
+    }
+    viewModelScope.launch(playbackStateDispatcher) {
+      subtitlesPreferences.overrideAssSubs.changes().distinctUntilChanged().drop(1).collect { force ->
+        if (_isMpvCoreReady.value) {
+          applySubtitleLayout(subtitlesPreferences.subPos.get(), force, subtitlesPreferences.secondarySubPos.get())
+        }
+      }
+    }
+    viewModelScope.launch(playbackStateDispatcher) {
+      subtitlesPreferences.scaleByWindow.changes().distinctUntilChanged().drop(1).collect { enabled ->
+        if (_isMpvCoreReady.value) {
+          val value = if (enabled) "yes" else "no"
+          PlaybackSession.setPropertyString("sub-scale-by-window", value)
+          PlaybackSession.setPropertyString("sub-use-margins", value)
+        }
+      }
+    }
+
     // Monitor duration and AB loop changes to automatically enable precise seeking
     viewModelScope.launch(playbackStateDispatcher) {
       combine(_duration, abLoopState) { duration, abLoop ->

@@ -63,9 +63,9 @@ import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
 import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
-import me.zhanghai.compose.preference.Preference
+import app.gyrolet.mpvrx.ui.preferences.components.AppPreference as Preference
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
-import me.zhanghai.compose.preference.TextFieldPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppTextFieldPreference as TextFieldPreference
 import org.koin.compose.koinInject
 import kotlin.math.roundToInt
 
@@ -683,6 +683,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
 
                 val customIntroKeywordsEnabled by preferences.customIntroKeywordsEnabled.collectAsState()
                 SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_custom_intro_keywords_enabled),
                   value = customIntroKeywordsEnabled,
                   onValueChange = preferences.customIntroKeywordsEnabled::set,
                   title = { Text(stringResource(R.string.pref_custom_intro_keywords_enabled)) },
@@ -700,6 +701,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                   val customIntroKeywords by preferences.customIntroKeywords.collectAsState()
                   ExpressivePreferenceItem {
                   TextFieldPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_custom_intro_keywords_title),
                     value = customIntroKeywords,
                     onValueChange = preferences.customIntroKeywords::set,
                     textToValue = { it },
@@ -735,6 +737,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
 
                 val customOutroKeywordsEnabled by preferences.customOutroKeywordsEnabled.collectAsState()
                 SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_custom_outro_keywords_enabled),
                   value = customOutroKeywordsEnabled,
                   onValueChange = preferences.customOutroKeywordsEnabled::set,
                   title = { Text(stringResource(R.string.pref_custom_outro_keywords_enabled)) },
@@ -752,6 +755,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                   val customOutroKeywords by preferences.customOutroKeywords.collectAsState()
                   ExpressivePreferenceItem {
                   TextFieldPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_custom_outro_keywords_title),
                     value = customOutroKeywords,
                     onValueChange = preferences.customOutroKeywords::set,
                     textToValue = { it },
@@ -840,6 +844,17 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                 PreferenceDivider()
 
                 val showSystemStatusBar by preferences.showSystemStatusBar.collectAsState()
+                val showSettingsDrawer by preferences.showSettingsDrawer.collectAsState()
+                SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_player_settings_drawer_title),
+                  value = showSettingsDrawer,
+                  onValueChange = preferences.showSettingsDrawer::set,
+                  title = { Text(stringResource(R.string.pref_player_settings_drawer_title)) },
+                  summary = { Text(stringResource(R.string.pref_player_settings_drawer_summary)) },
+                )
+
+                PreferenceDivider()
+
                 SwitchPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_player_display_show_status_bar),
                   value = showSystemStatusBar,

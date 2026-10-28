@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -145,6 +146,14 @@ data class ControlLayoutEditorScreen(
       )
     }
 
+    val embeddedInPlayer = LocalPlayerSettingsPanel.current
+    LaunchedEffect(embeddedInPlayer, selectedButtons) {
+      if (embeddedInPlayer) {
+        val value = selectedButtons.joinToString(",")
+        if (prefToEdit.get() != value) prefToEdit.set(value)
+      }
+    }
+
     DisposableEffect(Unit) {
       onDispose {
         prefToEdit.set(selectedButtons.joinToString(","))
@@ -191,7 +200,16 @@ data class ControlLayoutEditorScreen(
 
     Scaffold(
       topBar = {
-        TopAppBar(
+        if (embeddedInPlayer) {
+          androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.End,
+          ) {
+            app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(onClick = { showResetDialog = true }) {
+              Text(stringResource(R.string.pref_layout_reset_default))
+            }
+          }
+        } else TopAppBar(
           title = { Text(text = title) },
           navigationIcon = {
             IconButton(onClick = { backstack.popSafely() }) {

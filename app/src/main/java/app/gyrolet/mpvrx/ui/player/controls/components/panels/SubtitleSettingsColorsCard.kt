@@ -41,10 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.alpha
-import androidx.core.graphics.blue
-import androidx.core.graphics.green
-import androidx.core.graphics.red
 import androidx.core.graphics.toColorInt
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.SubtitlesPreferences
@@ -159,13 +155,6 @@ fun SubtitleSettingsColorsCard(
     }
   }
 }
-
-fun Int.copyAsArgb(
-  alpha: Int = this.alpha,
-  red: Int = this.red,
-  green: Int = this.green,
-  blue: Int = this.blue,
-) = (alpha shl 24) or (red shl 16) or (green shl 8) or blue
 
 fun Int.toColorHexString(): String {
   val a = (this shr 24 and 0xFF).toString(16).padStart(2, '0')

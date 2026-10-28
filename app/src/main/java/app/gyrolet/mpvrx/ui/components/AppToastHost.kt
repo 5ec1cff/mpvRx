@@ -165,7 +165,7 @@ internal fun AppToastHost(content: @Composable () -> Unit) {
           .zIndex(Float.MAX_VALUE)
           .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)),
         maxVisibleToasts = 2,
-        swipeable = true,
+        swipeable = false,
         alignment = Alignment.BottomCenter,
         contentPadding = { PaddingValues(0.dp) },
         containerPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
@@ -181,7 +181,11 @@ internal fun AppToastHost(content: @Composable () -> Unit) {
         messageSlot = { toast ->
           val message = (toast.id as? Long)?.let(messages::get)
           if (message != null) {
-            AppToastContent(message, haze, reducedMotion, onDismiss = { toaster.dismiss(toast.id) })
+            androidx.compose.runtime.key(message.id) {
+              SwipeDismissibleToast(onDismiss = { toaster.dismiss(toast.id) }) {
+                AppToastContent(message, haze, reducedMotion, onDismiss = { toaster.dismiss(toast.id) })
+              }
+            }
           }
         },
       )

@@ -99,8 +99,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
-import me.zhanghai.compose.preference.Preference
-import me.zhanghai.compose.preference.TextFieldPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppPreference as Preference
+import app.gyrolet.mpvrx.ui.preferences.components.AppTextFieldPreference as TextFieldPreference
 import org.koin.compose.koinInject
 
 @Serializable
@@ -110,6 +110,7 @@ object SubtitlesPreferencesScreen : Screen {
   override fun Content() {
     val context = LocalContext.current
     val backstack = LocalBackStack.current
+    val playerPanel = LocalPlayerSettingsPanel.current
     val preferences = koinInject<SubtitlesPreferences>()
     val appearancePreferences = koinInject<AppearancePreferences>()
     val googleFontsRepository = koinInject<GoogleFontsRepository>()
@@ -432,6 +433,7 @@ object SubtitlesPreferencesScreen : Screen {
           }
 
           // === FONT SECTION ===
+          if (!playerPanel) {
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_subtitle_fonts))
           }
@@ -581,6 +583,7 @@ object SubtitlesPreferencesScreen : Screen {
             }
           }
 
+          }
           // === ONLINE SUBTITLE SECTION ===
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Last, 
@@ -1374,7 +1377,7 @@ private fun SubtitleApiKeyPreference(
 
   ExpressivePreferenceItem {
   TextFieldPreference(
-    modifier = modifier,
+    modifier = modifier.settingsSearchTarget(spec.titleRes),
     value = spec.value,
     onValueChange = spec.onValueChange,
     textToValue = { it.trim() },

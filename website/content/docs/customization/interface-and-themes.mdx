@@ -22,6 +22,16 @@ Assign actions to top-left, top-right, bottom-left, bottom-right, and portrait-b
 Configure portrait and landscape separately. A comfortable phone layout often becomes too sparse on a tablet or landscape display.
 :::
 
+Android video playback has four compact presets per orientation: centered playback with the seekbar above or below the actions, or a shared playback/actions row above or below the seekbar. Existing saved positions map to these presets without resetting your action buttons. The settings page shows the preset selector without a separate arrangement preview.
+
+Shared rows keep Play/Pause and playlist Previous/Next accessible while the side actions scroll. A single video reserves only Play/Pause, and empty action groups do not create an extra row. Very narrow windows fall back to centered playback rather than clipping touch targets. These presets do not change TV or audio-player layouts.
+
+Custom Lua button rows remain above the bottom controls. Skip markers clear the taller visible Lua row, including when a custom label increases its height. Expanded Liquid Glass A/B endpoint buttons stay square when showing just their letters; recorded timestamps can grow into wider pills.
+
+The left in-player settings dock includes only settings usable during video playback. Restart-only, next-video, music-library, and browser-only settings stay in the main Settings and are excluded from the dock's search and favorites. Settings controlled by `mpv.conf` retain their disabled explanation. The dock's expand/collapse animation respects reduced motion.
+
+In-app toasts retain their normal stack, position, and timing. Swipe left or right to dismiss; vertical drags are not used to dismiss them.
+
 ## Browser layout
 
 Local video and music views can use grids or lists with orientation-specific column counts. Album view emphasizes media groups; Tree view exposes filesystem hierarchy. Tablet layouts can place folders or settings beside their detail content.

@@ -57,7 +57,7 @@
   <string name="pref_appearance_unlimited_name_lines_title">Mostrar nomes completos</string>
   <string name="pref_appearance_unlimited_name_lines_summary">Mostrar nomes completos de pastas e vídeos sem truncamento</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Ocultar fundo dos botões do player</string>
-  <string name="pref_appearance_force_dark_player_buttons_background_title">Sempre usar fundos escuros nos botões do player</string>
+  <string name="pref_appearance_force_dark_player_buttons_background_title">Fundo dos botões sempre escuro</string>
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Manter os fundos dos botões de controle do player escuros nos temas claro, escuro e automático</string>
   <string name="pref_appearance_hide_player_buttons_background_summary">Ocultar o fundo de todos os botões de controle do player</string>
   <string name="pref_appearance_category_file_browser">Navegador de arquivos</string>
@@ -426,9 +426,6 @@ Próximo: NEXT</string>
   <string name="player_sheets_sub_misc_card_title">Diversos</string>
   <string name="player_sheets_sub_delay_card_title">Atraso das legendas</string>
   <string name="player_sheets_sub_delay_card_delay">Atraso</string>
-  <string name="player_sheets_delay_quick_sync_summary">A sincronização rápida aplica um valor absoluto, então tocar no mesmo chip duas vezes mantém o mesmo valor.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d s</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 s</string>
   <string name="player_sheets_sub_delay_card_speed">Velocidade</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Voz ouvida</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Texto visto</string>
@@ -814,7 +811,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">Biblioteca de mídia</string>
-  <string name="pref_hidden_folders_section">Pastas ocultas</string>
   <string name="pref_clear_content_desc">Limpar</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -845,10 +841,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_config_cache_size">Tamanho: %1$s</string>
   <string name="pref_thumbnail_cache_summary">Excluir todas as miniaturas de vídeo em cache (serão recriadas ao navegar pelas pastas)</string>
   <string name="pref_thumbnail_cache_size">Tamanho: %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Limpar cache de capas animadas</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Excluir capas de álbum animadas baixadas (serão baixadas novamente quando exibidas)</string>
-  <string name="pref_animated_artwork_cache_size">Tamanho: %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Cache de capas animadas limpo</string>
   <string name="pref_fonts_cache_size">Tamanho: %1$s · %2$d fonte(s)</string>
   <string name="pref_failed_to_clear">Falha ao limpar: %1$s</string>
   <string name="pref_export_failed">Falha ao exportar: %1$s</string>
@@ -1636,7 +1628,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="secure_folder_move_items_subtitle">Eles desaparecerão desta lista e de qualquer outro lugar do aplicativo até serem restaurados.</string>
   <string name="secure_folder_moved_success">%1$d arquivo(s) movido(s) para a Pasta Segura</string>
   <string name="secure_folder_moved_partial">%1$d movido(s), %2$d falhou(aram)</string>
-  <string name="secure_folder_move_failed">Falha ao mover arquivos para a Pasta Segura</string>
   <string name="secure_folder_error_incorrect_pin">PIN incorreto</string>
   <string name="secure_folder_error_pins_dont_match">Os PINs não coincidem</string>
   <string name="secure_folder_error_answer_question">Por favor, responda à pergunta de segurança</string>
@@ -1873,9 +1864,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="ui_yt_dlp_commit">Commit %1$s</string>
   <string name="ui_version_unavailable">Versão indisponível</string>
   <string name="ui_update_channel">Canal de atualização</string>
-  <string name="ui_stable_releases">Estável</string>
-  <string name="ui_preview_builds">Prévia (Nightly)</string>
-  <string name="ui_preview_builds_summary">As builds de prévia são versões de teste assinadas publicadas a partir das alterações mais recentes do mpvRx e podem ser instáveis.</string>
   <string name="update_whats_new">Novidades</string>
   <string name="update_no_release_notes">Nenhuma nota de versão foi fornecida.</string>
   <string name="update_ready_to_install">Pronto para instalar</string>
@@ -2066,8 +2054,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_appearance_custom_wallpaper_transparency">Transparência</string>
   <string name="pref_folders_add_marker">Adicionar arquivo marcador</string>
   <string name="pref_folders_add_marker_title">Adicionar marcador de pasta oculta</string>
-  <string name="pref_folders_hidden_markers_empty">Nenhum arquivo marcador configurado. Pastas com nomes iniciados por ponto continuam incluídas.</string>
-  <string name="pref_folders_hidden_markers_summary">Pastas que contêm estes arquivos e suas subpastas são incluídas. Pastas com nomes iniciados por ponto são sempre incluídas.</string>
   <string name="pref_folders_hidden_markers_title">Arquivos marcadores</string>
   <string name="pref_folders_include_hidden_summary">Buscar vídeos em pastas com nomes iniciados por ponto e em pastas que contêm os arquivos marcadores selecionados.</string>
   <string name="pref_folders_include_hidden_title">Incluir pastas de mídia ocultas</string>
@@ -2274,7 +2260,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="snapshot_delete_title">Excluir a captura?</string>
   <string name="snapshot_delete_selected_title">Excluir %1$d capturas?</string>
   <string name="snapshot_delete_message">Isso remove o registro do aplicativo. A imagem permanece na sua galeria.</string>
-  <string name="snapshot_delete">Excluir</string>
   <string name="snapshot_remove">Remover</string>
 
   <string name="snapshot_root">Raiz</string>
@@ -2579,20 +2564,13 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="app_icon_create_custom_shortcut">Adicionar ícone personalizado exato à tela inicial</string>
   <string name="pref_experimental_badge">Experimental</string>
   <string name="pref_liquid_glass_experimental_note">Os efeitos de vidro líquido são experimentais e podem variar conforme o dispositivo.</string>
-  <string name="pref_hidden_scan_per_mode_summary">Escolha se cada modo da tela inicial procura pastas ocultas por marcadores ou com nomes iniciados por ponto. Ao desativar uma opção, esse conteúdo também será ignorado na navegação. A chave acima habilita mídias ocultas globalmente.</string>
-  <string name="pref_hidden_scan_scoped_summary">Cada visualização pode incluir ou ignorar pastas com nomes iniciados por ponto ou ocultas por marcadores, somente nas pastas autorizadas no Android. As pastas não selecionadas continuam inacessíveis.</string>
   <string name="pref_hidden_scan_library">Biblioteca</string>
   <string name="pref_hidden_scan_tree">Árvore</string>
   <string name="pref_hidden_scan_folders">Pastas</string>
-  <string name="pref_hidden_scan_marked">Examinar pastas ocultas por marcadores</string>
-  <string name="pref_hidden_scan_marked_summary">Pastas que contêm .nomedia ou outro marcador da sua lista</string>
-  <string name="pref_hidden_scan_single_marker_summary">Incluir pastas com este marcador nesta visualização</string>
-  <string name="pref_hidden_scan_dot_summary">Pastas com nomes iniciados por ponto, como .Videos</string>
   <string name="ambient_cinema">Cinema</string>
   <string name="ambient_echo">Eco</string>
   <string name="ambient_mirror">Espelho</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">Este modo é totalmente automático: os parâmetros são fixos para obter o melhor resultado visual e não podem ser ajustados.</string>
   <string name="app_icon_bg_crimson">Carmesim</string>
   <string name="app_icon_bg_rose">Rosa</string>
   <string name="app_icon_bg_peach">Pêssego</string>
@@ -2618,7 +2596,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="pref_nav_home_title">Início / Arquivos</string>
   <string name="pref_nav_home_summary">Navegar por pastas e arquivos locais (sempre disponível)</string>
   <string name="pref_nav_actions_section">Ações de navegação</string>
-  <string name="pref_about_playback_libraries">Bibliotecas de reprodução</string>
   <string name="color_picker_field">Seletor</string>
   <string name="color_picker_sliders">Controles deslizantes</string>
   <string name="color_picker_field_description">Saturação e brilho. Use os controles deslizantes para ajustes precisos.</string>
@@ -2628,15 +2605,12 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="app_icon_custom_background">Plano de fundo personalizado</string>
   <string name="app_icon_custom_background_hint">Escolha uma cor. O Android usa o ícone integrado mais próximo na gaveta de apps. Sua cor exata pode ser salva como ícone da tela inicial e usada nos apps recentes.</string>
   <string name="app_icon_custom_logo_hint">Escolha um logotipo para sobrepor ao plano de fundo personalizado.</string>
-  <string name="app_icon_shortcut_preview">Prévia do atalho da tela inicial</string>
   <string name="app_icon_custom_requested">Seu design</string>
   <string name="app_icon_custom_native_match">Ícone real do iniciador</string>
   <string name="app_icon_use_wallpaper_colors">Usar as cores do papel de parede</string>
-  <string name="app_icon_shortcut_apply">Adicionar ou atualizar atalho</string>
   <string name="app_icon_shortcut_requested">Solicitação enviada. Confirme no iniciador para adicionar o atalho.</string>
   <string name="app_icon_shortcut_updated">Atalho da tela inicial atualizado</string>
   <string name="app_icon_shortcut_unsupported">Este iniciador não permite adicionar atalhos à tela inicial.</string>
-  <string name="app_icon_shortcut_failed">Não foi possível salvar o atalho. Tente novamente.</string>
   <string name="color_picker_wheel">Círculo cromático</string>
   <string name="color_picker_brightness">Brilho</string>
     <string name="only_for_video_list">Somente para a lista de vídeos</string>
@@ -2799,7 +2773,6 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="jellyfin_more_like_this">Parecidos</string>
   <string name="jellyfin_watched">Assistido</string>
   <string name="jellyfin_search_hint">Buscar filmes, séries e episódios…</string>
-  <string name="pref_scan_filters">Filtros de varredura</string>
   <string name="pref_filter_short_videos">Filtrar vídeos curtos</string>
   <string name="pref_filter_short_videos_summary">Ignorar vídeos menores que a duração escolhida durante a varredura</string>
   <string name="pref_filter_small_files">Filtrar arquivos pequenos</string>
@@ -2871,4 +2844,8 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="clip_quick_length">Duração rápida</string>
   <string name="clip_length_seconds">%1$d s</string>
   <string name="clip_crop_reset">Usar quadro inteiro</string>
+  <string name="pref_layout_center_seekbar_above">Centralizado · barra acima das ações</string>
+  <string name="pref_layout_center_seekbar_below">Centralizado · barra abaixo das ações</string>
+  <string name="pref_layout_playback_above">Reprodução e ações acima da barra</string>
+  <string name="pref_layout_playback_below">Reprodução e ações abaixo da barra</string>
 </resources>

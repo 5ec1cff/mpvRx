@@ -1674,11 +1674,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
 
   fun getPropertyNode(property: String): MPVNode? = withReadyCore(null) { MPVLib.getPropertyNode(property) }
 
-  /** Generation whose file mpv has finished opening, or 0 while a load is still in flight. */
-  fun loadedMediaGeneration(): Long = withReadyCore(0L) {
-    loadedGeneration.takeIf { it > 0L && it == _state.value.generation } ?: 0L
-  }
-
   /**
    * Runs [block] atomically against [generation]'s loaded file.
    *

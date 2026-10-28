@@ -20,7 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -277,13 +276,4 @@ internal fun wave01(x: Float): Float = 0.5f + 0.5f * sin(x)
 internal fun smoothstep(edge0: Float, edge1: Float, x: Float): Float {
   val t = ((x - edge0) / (edge1 - edge0)).coerceIn(0f, 1f)
   return t * t * (3f - 2f * t)
-}
-
-/** Draws [block] shifted by tilt: [depth] is the pixel travel at full tilt, deeper layers move less. */
-internal inline fun DrawScope.parallaxLayer(
-  tilt: Offset,
-  depth: Float,
-  block: DrawScope.() -> Unit,
-) {
-  translate(left = tilt.x * depth, top = tilt.y * depth) { block() }
 }

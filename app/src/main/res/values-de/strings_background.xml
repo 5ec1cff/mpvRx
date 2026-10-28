@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">Hintergrundanimation</string>
-  <string name="bg_picker_title">Hintergrundanimation</string>
   <string name="bg_picker_description">Die Animation, die hinter den Bildschirmen der App läuft</string>
-  <string name="bg_close">Schließen</string>
   <string name="bg_circles">Kreise</string>
   <string name="bg_rings">Ringe</string>
   <string name="bg_space">Weltraum</string>

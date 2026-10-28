@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -1424,20 +1423,6 @@ private fun RemoveFromPlaylistDialog(
     shape = MaterialTheme.shapes.extraLarge,
   )
 }
-
-private fun getFileNameFromUri(
-  context: android.content.Context,
-  uri: Uri,
-): String? =
-  try {
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-      val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-      cursor.moveToFirst()
-      cursor.getString(nameIndex)
-    } ?: uri.lastPathSegment
-  } catch (e: Exception) {
-    uri.lastPathSegment
-  }
 
 private const val M3U_FILTER_ALL = "__m3u_all__"
 

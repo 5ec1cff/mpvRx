@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -277,33 +275,7 @@ fun DelayCardContent( // Renamed from DelayCard and removed the Card wrapper
   }
 }
 
-@Composable
-fun SubtitleDelayTitle(
-  onClose: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  Row(
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.SpaceBetween,
-    modifier =
-      modifier
-        .fillMaxWidth()
-        .padding(horizontal = MaterialTheme.spacing.medium)
-        .padding(top = MaterialTheme.spacing.small),
-  ) {
-    Text(
-      stringResource(R.string.player_sheets_sub_delay_card_title),
-      style = MaterialTheme.typography.titleLarge,
-    )
-    Spacer(Modifier.weight(1f))
-    IconButton(onClick = onClose) {
-      Icon(Icons.RoundedFilled.Close, null, modifier = Modifier.size(32.dp))
-    }
-  }
-}
-
 enum class DelayType {
   Audio,
   Subtitle,
 }
-

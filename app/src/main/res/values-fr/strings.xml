@@ -57,7 +57,7 @@
   <string name="pref_appearance_unlimited_name_lines_title">Afficher les noms complets</string>
   <string name="pref_appearance_unlimited_name_lines_summary">Afficher les noms complets des dossiers et vidéos sans troncature</string>
   <string name="pref_appearance_hide_player_buttons_background_title">Masquer l’arrière-plan des boutons du lecteur</string>
-  <string name="pref_appearance_force_dark_player_buttons_background_title">Toujours utiliser des arrière-plans sombres pour les boutons du lecteur</string>
+  <string name="pref_appearance_force_dark_player_buttons_background_title">Fond des boutons toujours sombre</string>
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Garder les arrière-plans des boutons du lecteur sombres avec les thèmes clair, sombre et automatique</string>
   <string name="pref_appearance_hide_player_buttons_background_summary">Masquer l’arrière-plan de tous les boutons de contrôle du lecteur</string>
   <string name="pref_appearance_category_file_browser">Explorateur de fichiers</string>
@@ -157,7 +157,7 @@
   <string name="pref_player_autoplay_after_screen_unlock_title">Lecture automatique après déverrouillage</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary">Reprendre automatiquement la vidéo après le déverrouillage si elle était en cours de lecture avant le verrouillage</string>
   <string name="pref_player_autoplay_after_screen_unlock_summary_disabled">Garder la vidéo en pause après le déverrouillage de l’écran</string>
-  <string name="pref_player_show_buffered_range_title">Afficher la plage mise en mémoire tampon sur la barre de progression</string>
+  <string name="pref_player_show_buffered_range_title">Afficher la zone tampon sur la barre</string>
   <string name="pref_player_show_buffered_range_summary">Afficher sur la barre de progression le tampon en ligne situé devant la position de lecture.</string>
   <string name="pref_player_show_chapter_indicators_title">Afficher les indicateurs de chapitres sur la barre de progression</string>
   <string name="pref_player_show_chapter_indicators_summary">Séparer visuellement les chapitres le long de la barre de progression.</string>
@@ -426,9 +426,6 @@ Suivant : NEXT</string>
   <string name="player_sheets_sub_misc_card_title">Divers</string>
   <string name="player_sheets_sub_delay_card_title">Décalage des sous-titres</string>
   <string name="player_sheets_sub_delay_card_delay">Décalage</string>
-  <string name="player_sheets_delay_quick_sync_summary">La synchro rapide applique une valeur absolue : appuyer deux fois sur la même puce conserve la même valeur.</string>
-  <string name="player_sheets_delay_offset_seconds">%1$+d s</string>
-  <string name="player_sheets_delay_offset_zero_seconds">0 s</string>
   <string name="player_sheets_sub_delay_card_speed">Vitesse</string>
   <string name="player_sheets_sub_delay_subtitle_voice_heard">Voix entendue</string>
   <string name="player_sheets_sub_delay_subtitle_text_seen">Texte vu</string>
@@ -814,7 +811,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <!-- Folders Preferences                                        -->
   <!-- ═══════════════════════════════════════════════════════════ -->
   <string name="pref_media_library_section">Médiathèque</string>
-  <string name="pref_hidden_folders_section">Dossiers masqués</string>
   <string name="pref_clear_content_desc">Effacer</string>
 
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -845,10 +841,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_config_cache_size">Taille : %1$s</string>
   <string name="pref_thumbnail_cache_summary">Supprimer toutes les miniatures vidéo en cache (elles seront recréées lors de la navigation)</string>
   <string name="pref_thumbnail_cache_size">Taille : %1$s</string>
-  <string name="pref_clear_animated_artwork_cache_title">Vider le cache des pochettes animées</string>
-  <string name="pref_clear_animated_artwork_cache_summary">Supprimer les pochettes animées téléchargées (elles seront retéléchargées lors de leur affichage)</string>
-  <string name="pref_animated_artwork_cache_size">Taille : %1$s</string>
-  <string name="pref_animated_artwork_cache_cleared">Cache des pochettes animées vidé</string>
   <string name="pref_fonts_cache_size">Taille : %1$s · %2$d police(s)</string>
   <string name="pref_failed_to_clear">Échec de l’effacement : %1$s</string>
   <string name="pref_export_failed">Échec de l’exportation : %1$s</string>
@@ -1636,7 +1628,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="secure_folder_move_items_subtitle">Ils disparaîtront de cette liste et de l\'application jusqu\'à leur restauration.</string>
   <string name="secure_folder_moved_success">%1$d fichier(s) déplacé(s) vers le Dossier sécurisé</string>
   <string name="secure_folder_moved_partial">%1$d déplacé(s), %2$d échoué(s)</string>
-  <string name="secure_folder_move_failed">Échec du déplacement des fichiers vers le Dossier sécurisé</string>
   <string name="secure_folder_error_incorrect_pin">Code PIN incorrect</string>
   <string name="secure_folder_error_pins_dont_match">Les codes PIN ne correspondent pas</string>
   <string name="secure_folder_error_answer_question">Veuillez répondre à la question de sécurité</string>
@@ -1873,9 +1864,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="ui_yt_dlp_commit">Commit %1$s</string>
   <string name="ui_version_unavailable">Version indisponible</string>
   <string name="ui_update_channel">Canal de mise à jour</string>
-  <string name="ui_stable_releases">Stable</string>
-  <string name="ui_preview_builds">Aperçu (Nightly)</string>
-  <string name="ui_preview_builds_summary">Les builds d’aperçu sont des versions de test signées publiées à partir des dernières modifications de mpvRx et peuvent être instables.</string>
   <string name="update_whats_new">Nouveautés</string>
   <string name="update_no_release_notes">Aucune note de version fournie.</string>
   <string name="update_ready_to_install">Prêt à installer</string>
@@ -2066,8 +2054,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_appearance_custom_wallpaper_transparency">Transparence</string>
   <string name="pref_folders_add_marker">Ajouter un fichier marqueur</string>
   <string name="pref_folders_add_marker_title">Ajouter un marqueur de dossier masqué</string>
-  <string name="pref_folders_hidden_markers_empty">Aucun fichier marqueur configuré. Les dossiers dont le nom commence par un point restent inclus.</string>
-  <string name="pref_folders_hidden_markers_summary">Les dossiers contenant ces fichiers et leurs sous-dossiers sont inclus. Les dossiers dont le nom commence par un point sont toujours inclus.</string>
   <string name="pref_folders_hidden_markers_title">Fichiers marqueurs</string>
   <string name="pref_folders_include_hidden_summary">Rechercher les vidéos dans les dossiers dont le nom commence par un point et dans ceux contenant les fichiers marqueurs sélectionnés.</string>
   <string name="pref_folders_include_hidden_title">Inclure les dossiers multimédias masqués</string>
@@ -2274,7 +2260,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="snapshot_delete_title">Supprimer la capture ?</string>
   <string name="snapshot_delete_selected_title">Supprimer %1$d captures ?</string>
   <string name="snapshot_delete_message">Cela retire l\'enregistrement de l\'application. L\'image reste dans votre galerie.</string>
-  <string name="snapshot_delete">Supprimer</string>
   <string name="snapshot_remove">Retirer</string>
 
   <string name="snapshot_root">Racine</string>
@@ -2579,20 +2564,13 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="app_icon_create_custom_shortcut">Ajouter une icône personnalisée exacte à l\'écran d\'accueil</string>
   <string name="pref_experimental_badge">Expérimental</string>
   <string name="pref_liquid_glass_experimental_note">Les effets de verre liquide sont expérimentaux et peuvent varier selon l\'appareil.</string>
-  <string name="pref_hidden_scan_per_mode_summary">Choisissez pour chaque mode d\'accueil si les dossiers masqués par un marqueur ou commençant par un point sont analysés. Les désactiver les exclut aussi de la navigation. L\'interrupteur ci-dessus active les médias masqués partout.</string>
-  <string name="pref_hidden_scan_scoped_summary">Chaque vue peut inclure ou ignorer les dossiers commençant par un point ou masqués par un marqueur, uniquement dans les dossiers autorisés sur Android. Les autres dossiers restent inaccessibles.</string>
   <string name="pref_hidden_scan_library">Bibliothèque</string>
   <string name="pref_hidden_scan_tree">Arborescence</string>
   <string name="pref_hidden_scan_folders">Dossiers</string>
-  <string name="pref_hidden_scan_marked">Analyser les dossiers masqués par un marqueur</string>
-  <string name="pref_hidden_scan_marked_summary">Dossiers contenant .nomedia ou un autre marqueur de votre liste</string>
-  <string name="pref_hidden_scan_single_marker_summary">Inclure les dossiers contenant ce marqueur dans cette vue</string>
-  <string name="pref_hidden_scan_dot_summary">Dossiers dont le nom commence par un point, comme .Videos</string>
   <string name="ambient_cinema">Cinéma</string>
   <string name="ambient_echo">Écho</string>
   <string name="ambient_mirror">Miroir</string>
   <string name="ambient_ambilight">Ambilight</string>
-  <string name="ambient_fx_auto_hint">Ce mode est entièrement automatique : les paramètres sont fixés pour un rendu optimal et ne peuvent pas être modifiés.</string>
   <string name="app_icon_bg_crimson">Cramoisi</string>
   <string name="app_icon_bg_rose">Rose</string>
   <string name="app_icon_bg_peach">Pêche</string>
@@ -2618,7 +2596,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="pref_nav_home_title">Accueil / Fichiers</string>
   <string name="pref_nav_home_summary">Parcourir les fichiers et dossiers locaux (toujours disponible)</string>
   <string name="pref_nav_actions_section">Actions de navigation</string>
-  <string name="pref_about_playback_libraries">Bibliothèques de lecture</string>
   <string name="color_picker_field">Sélecteur</string>
   <string name="color_picker_sliders">Curseurs</string>
   <string name="color_picker_field_description">Saturation et luminosité. Utilisez les curseurs pour un réglage précis.</string>
@@ -2628,15 +2605,12 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="app_icon_custom_background">Arrière-plan personnalisé</string>
   <string name="app_icon_custom_background_hint">Choisissez une couleur. Android utilise l\'icône intégrée la plus proche dans le tiroir d\'applications. Votre couleur exacte peut être enregistrée comme icône d\'accueil et utilisée dans les applications récentes.</string>
   <string name="app_icon_custom_logo_hint">Choisissez le logo à superposer sur votre arrière-plan personnalisé.</string>
-  <string name="app_icon_shortcut_preview">Aperçu du raccourci d\'accueil</string>
   <string name="app_icon_custom_requested">Votre création</string>
   <string name="app_icon_custom_native_match">Icône réelle du lanceur</string>
   <string name="app_icon_use_wallpaper_colors">Utiliser plutôt les couleurs du fond d\'écran</string>
-  <string name="app_icon_shortcut_apply">Ajouter ou mettre à jour le raccourci</string>
   <string name="app_icon_shortcut_requested">Demande envoyée. Confirmez dans votre lanceur pour ajouter le raccourci.</string>
   <string name="app_icon_shortcut_updated">Raccourci d\'accueil mis à jour</string>
   <string name="app_icon_shortcut_unsupported">Ce lanceur ne permet pas d\'ajouter des raccourcis à l\'écran d\'accueil.</string>
-  <string name="app_icon_shortcut_failed">Impossible d\'enregistrer le raccourci. Veuillez réessayer.</string>
   <string name="color_picker_wheel">Roue chromatique</string>
   <string name="color_picker_brightness">Luminosité</string>
     <string name="only_for_video_list">Uniquement pour la liste des vidéos</string>
@@ -2799,7 +2773,6 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="jellyfin_more_like_this">Titres similaires</string>
   <string name="jellyfin_watched">Vu</string>
   <string name="jellyfin_search_hint">Rechercher des films, séries et épisodes…</string>
-  <string name="pref_scan_filters">Filtres de scan</string>
   <string name="pref_filter_short_videos">Filtrer les vidéos courtes</string>
   <string name="pref_filter_short_videos_summary">Ignorer les vidéos plus courtes que la durée choisie lors du scan</string>
   <string name="pref_filter_small_files">Filtrer les petits fichiers</string>
@@ -2871,4 +2844,8 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="clip_quick_length">Durée rapide</string>
   <string name="clip_length_seconds">%1$d s</string>
   <string name="clip_crop_reset">Utiliser l\'image entière</string>
+  <string name="pref_layout_center_seekbar_above">Centré · barre au-dessus des actions</string>
+  <string name="pref_layout_center_seekbar_below">Centré · barre sous les actions</string>
+  <string name="pref_layout_playback_above">Lecture et actions au-dessus de la barre</string>
+  <string name="pref_layout_playback_below">Lecture et actions sous la barre</string>
 </resources>

@@ -2,9 +2,7 @@
 <resources>
   <!-- Background animation -->
   <string name="bg_pref_title">背景アニメーション</string>
-  <string name="bg_picker_title">背景アニメーション</string>
   <string name="bg_picker_description">アプリの画面の背後で再生されるアニメーション</string>
-  <string name="bg_close">閉じる</string>
   <string name="bg_circles">サークル</string>
   <string name="bg_rings">リング</string>
   <string name="bg_space">宇宙</string>

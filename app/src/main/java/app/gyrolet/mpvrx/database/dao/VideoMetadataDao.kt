@@ -73,12 +73,6 @@ interface VideoMetadataDao {
   suspend fun getCacheCount(): Int
 
   /**
-   * Delete specific cache entry by path
-   */
-  @Query("DELETE FROM video_metadata_cache WHERE path = :path")
-  suspend fun deleteByPath(path: String)
-
-  /**
    * Delete multiple cache entries by paths
    */
   @Query("DELETE FROM video_metadata_cache WHERE path IN (:paths)")

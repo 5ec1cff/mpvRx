@@ -12,7 +12,6 @@ package app.gyrolet.mpvrx.repository
 import android.util.Log
 import app.gyrolet.mpvrx.data.network.ServerUrlUtils
 import app.gyrolet.mpvrx.domain.seerr.CreateRequestBody
-import app.gyrolet.mpvrx.domain.seerr.Genre
 import app.gyrolet.mpvrx.domain.seerr.JellyseerrRequest
 import app.gyrolet.mpvrx.domain.seerr.JellyseerrSearchResult
 import app.gyrolet.mpvrx.domain.seerr.JellyseerrUser
