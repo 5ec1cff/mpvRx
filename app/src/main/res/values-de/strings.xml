@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">Kapitelmarkierungen auf der Suchleiste anzeigen</string>
   <string name="pref_player_show_chapter_indicators_summary">Kapitel entlang der Suchleiste optisch voneinander trennen.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">Breite des Doppeltipp-Suchbereichs</string>
+  <string name="pref_double_tap_seek_area_width_title">Breite des Tippgestenbereichs</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">Einstellungen exportieren</string>
   <string name="pref_export_settings_summary">Einstellungen in eine XML-Datei exportieren</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">Umgekehrtes Querformat</string>
   <string name="pref_player_orientation_sensor_landscape">Querformat per Sensor</string>
   <string name="pref_player_save_position_on_quit">Position beim Beenden speichern</string>
-  <string name="pref_player_double_tap_seek_duration">Suchdauer bei Doppeltipp</string>
+  <string name="pref_player_double_tap_seek_duration">Sprungdauer beim Tippen</string>
   <string name="pref_player_custom_skip_duration_title">Benutzerdefinierte Sprungdauer</string>
   <string name="pref_player_custom_skip_duration_summary">Dauer für den Vorwärtssprung mit der benutzerdefinierten Sprungtaste</string>
   <string name="pref_player_seeking_title">Suchen</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">Ladekreis anzeigen</string>
   <string name="pref_player_display_show_status_bar">Systemstatusleiste mit Steuerelementen anzeigen</string>
   <string name="pref_gesture">Gesten</string>
-  <string name="pref_gesture_summary">Doppeltipp, Mediensteuerung</string>
-  <string name="pref_gesture_double_tap_title">Doppeltipp</string>
+  <string name="pref_gesture_summary">Einfach-/Doppeltipp, Mediensteuerung</string>
+  <string name="pref_gesture_double_tap_title">Tippgesten</string>
   <string name="pref_gesture_double_tap_none">Keine</string>
   <string name="pref_gesture_double_tap_seek">Suchen</string>
   <string name="pref_gesture_double_tap_play">Wiedergabe/Pause</string>
   <string name="pref_gesture_double_tap_custom">Benutzerdefiniert</string>
   <string name="pref_gesture_double_tap_left_title">Doppeltipp (links)</string>
+  <string name="pref_gesture_single_tap_left_title">Einfaches Tippen (links)</string>
   <string name="pref_gesture_double_tap_center_title">Doppeltipp (Mitte)</string>
   <string name="pref_gesture_single_tap_center_title">Einfaches Tippen (Mitte)</string>
   <string name="pref_gesture_double_tap_right_title">Doppeltipp (rechts)</string>
+  <string name="pref_gesture_single_tap_right_title">Einfaches Tippen (rechts)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Einfaches Tippen für linke Geste verwenden</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Einfaches Tippen für mittlere Geste verwenden</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Für Gesten in der Mitte (z. B. Wiedergabe/Pause) einmal statt doppelt tippen.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Einfaches Tippen für rechte Geste verwenden</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Im mittleren Bereich (30% der Bildschirmhöhe) einmal statt zweimal tippen. Die oberen und unteren 35% zeigen oder verbergen die Wiedergabesteuerung.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Untertitel durch Ziehen verschieben</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Halte die Mitte gedrückt und ziehe nach oben oder unten, um die primären Untertitel zu verschieben. Halte direkt einen Untertitel gedrückt, um diese Spur einzeln zu verschieben. Normale Wischgesten öffnen weiterhin die Wiedergabeliste.</string>
   <string name="pref_gesture_double_tap_custom_info">Diesen Gesten können in input.conf mit den folgenden Tastencodes benutzerdefinierte Aktionen zugewiesen werden:
@@ -484,7 +488,7 @@ Weiter: NEXT</string>
   <string name="pref_player_display_reduce_player_animation">Player-Animationen reduzieren</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">Zeit der Player-Steuerung ausblenden</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Wellenanimation bei Doppeltipp-Suche anzeigen</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Wellenanimation beim Springen durch Tippen anzeigen</string>
   <string name="show_time_on_double_tap_to_seek">Suchzeit anzeigen</string>
   <string name="player_sheets_frame_navigation_title">Frame-Navigation</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Untertitel in Aufnahme einbeziehen</string>

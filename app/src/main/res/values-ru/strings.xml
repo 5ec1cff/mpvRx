@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">Показывать индикаторы глав на шкале перемотки</string>
   <string name="pref_player_show_chapter_indicators_summary">Визуально разделять главы вдоль шкалы перемотки.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">Ширина области перемотки двойным касанием</string>
+  <string name="pref_double_tap_seek_area_width_title">Ширина области жестов касанием</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">Экспорт настроек</string>
   <string name="pref_export_settings_summary">Экспортировать настройки в файл XML</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">Обратная альбомная</string>
   <string name="pref_player_orientation_sensor_landscape">Альбомная по датчику</string>
   <string name="pref_player_save_position_on_quit">Сохранять позицию при выходе</string>
-  <string name="pref_player_double_tap_seek_duration">Длительность перемотки двойным касанием</string>
+  <string name="pref_player_double_tap_seek_duration">Длительность перемотки касанием</string>
   <string name="pref_player_custom_skip_duration_title">Пользовательская длительность пропуска</string>
   <string name="pref_player_custom_skip_duration_summary">Длительность перемотки вперёд пользовательской кнопкой пропуска</string>
   <string name="pref_player_seeking_title">Перемотка</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">Показывать индикатор загрузки</string>
   <string name="pref_player_display_show_status_bar">Показывать системную строку состояния вместе с элементами управления</string>
   <string name="pref_gesture">Жесты</string>
-  <string name="pref_gesture_summary">Двойное касание, управление мультимедиа</string>
-  <string name="pref_gesture_double_tap_title">Двойное касание</string>
+  <string name="pref_gesture_summary">Одиночное/двойное касание, управление мультимедиа</string>
+  <string name="pref_gesture_double_tap_title">Жесты касанием</string>
   <string name="pref_gesture_double_tap_none">Нет</string>
   <string name="pref_gesture_double_tap_seek">Перемотка</string>
   <string name="pref_gesture_double_tap_play">Воспроизведение/Пауза</string>
   <string name="pref_gesture_double_tap_custom">Пользовательское</string>
   <string name="pref_gesture_double_tap_left_title">Двойное касание (слева)</string>
+  <string name="pref_gesture_single_tap_left_title">Одиночное касание (слева)</string>
   <string name="pref_gesture_double_tap_center_title">Двойное касание (по центру)</string>
   <string name="pref_gesture_single_tap_center_title">Одиночное касание (по центру)</string>
   <string name="pref_gesture_double_tap_right_title">Двойное касание (справа)</string>
+  <string name="pref_gesture_single_tap_right_title">Одиночное касание (справа)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Использовать одиночное касание для левого жеста</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Использовать одиночное касание для центрального жеста</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Использовать одно касание по центру для жестов (например, воспроизведение/пауза) вместо двойного.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Использовать одиночное касание для правого жеста</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Одно касание вместо двух в средней области высотой 30% экрана. Верхние и нижние 35% показывают или скрывают элементы управления плеером.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Перемещение субтитров перетаскиванием</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Удерживайте палец в центре и перетаскивайте вверх или вниз для перемещения основных субтитров. Удерживайте палец прямо на субтитрах, чтобы переместить эту дорожку отдельно. Обычные свайпы по-прежнему открывают плейлист.</string>
   <string name="pref_gesture_double_tap_custom_info">Пользовательские действия можно назначить этим жестам в input.conf с помощью следующих кодов клавиш:
@@ -484,7 +488,7 @@
   <string name="pref_player_display_reduce_player_animation">Уменьшить анимацию проигрывателя</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">Скрывать время элементов управления проигрывателем</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Показывать волну при перемотке двойным касанием</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Показывать волну при перемотке касанием</string>
   <string name="show_time_on_double_tap_to_seek">Показывать время перемотки</string>
   <string name="player_sheets_frame_navigation_title">Навигация по кадрам</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Включать субтитры в снимок</string>

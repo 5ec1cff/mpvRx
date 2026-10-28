@@ -713,7 +713,7 @@ object SearchablePreferences {
         SearchablePreference(
           titleRes = R.string.pref_gesture,
           summaryRes = R.string.pref_gesture_summary,
-          keywords = listOf("gesture", "double tap", "swipe", "media controls", "touch"),
+          keywords = listOf("gesture", "single tap", "double tap", "swipe", "media controls", "touch"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -721,7 +721,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_player_double_tap_seek_duration,
-          keywords = listOf("seek", "duration", "double tap", "time", "seconds"),
+          keywords = listOf("seek", "duration", "single tap", "double tap", "time", "seconds"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -730,7 +730,7 @@ object SearchablePreferences {
         SearchablePreference(
           titleRes = R.string.pref_double_tap_seek_area_width_title,
           summaryRes = R.string.pref_double_tap_seek_area_width_summary,
-          keywords = listOf("area", "width", "double tap", "seek", "region", "percent"),
+          keywords = listOf("area", "width", "single tap", "double tap", "seek", "region", "percent"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -738,7 +738,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_double_tap_left_title,
-          keywords = listOf("double tap", "left", "seek", "backward", "rewind"),
+          keywords = listOf("single tap", "double tap", "left", "seek", "backward", "rewind"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -746,7 +746,7 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_double_tap_center_title,
-          keywords = listOf("double tap", "center", "play", "pause", "action"),
+          keywords = listOf("single tap", "double tap", "center", "play", "pause", "action"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -754,7 +754,16 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_double_tap_right_title,
-          keywords = listOf("double tap", "right", "seek", "forward", "advance"),
+          keywords = listOf("single tap", "double tap", "right", "seek", "forward", "advance"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_gesture_use_single_tap_for_left_title,
+          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          keywords = listOf("single", "tap", "left", "seek", "rewind", "controls", "zone"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -762,8 +771,17 @@ object SearchablePreferences {
       add(
         SearchablePreference(
           titleRes = R.string.pref_gesture_use_single_tap_for_center_title,
-          summaryRes = R.string.pref_gesture_use_single_tap_for_center_summary,
-          keywords = listOf("single", "tap", "center", "play", "pause"),
+          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          keywords = listOf("single", "tap", "center", "play", "pause", "controls", "zone"),
+          category = "Gestures",
+          screen = GesturePreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_gesture_use_single_tap_for_right_title,
+          summaryRes = R.string.pref_gesture_use_single_tap_summary,
+          keywords = listOf("single", "tap", "right", "seek", "forward", "controls", "zone"),
           category = "Gestures",
           screen = GesturePreferencesScreen,
         ),
@@ -1974,7 +1992,9 @@ object SearchablePreferences {
         screen = GesturePreferencesScreen,
         anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_gesture_show_seekbar_horizontal_title, listOf("seekbar", "horizontal", "swipe", "seek")),
+        SearchEntrySpec(R.string.pref_gesture_single_tap_left_title, listOf("single", "tap", "left", "action"), R.string.pref_gesture_double_tap_left_title),
         SearchEntrySpec(R.string.pref_gesture_single_tap_center_title, listOf("single", "tap", "center", "action"), R.string.pref_gesture_double_tap_center_title),
+        SearchEntrySpec(R.string.pref_gesture_single_tap_right_title, listOf("single", "tap", "right", "action"), R.string.pref_gesture_double_tap_right_title),
         SearchEntrySpec(R.string.pref_custom_seek_label, listOf("custom", "seek", "seconds", "double tap"), R.string.pref_player_double_tap_seek_duration),
       )
       addSearchEntries(

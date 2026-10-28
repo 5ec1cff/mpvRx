@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">シークバーにチャプター表示を追加</string>
   <string name="pref_player_show_chapter_indicators_summary">シークバー上でチャプターを視覚的に区切ります。</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">ダブルタップシーク領域の幅</string>
+  <string name="pref_double_tap_seek_area_width_title">タップジェスチャー領域の幅</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">設定をエクスポート</string>
   <string name="pref_export_settings_summary">設定をXMLファイルにエクスポートします</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">逆横向き</string>
   <string name="pref_player_orientation_sensor_landscape">センサー横向き</string>
   <string name="pref_player_save_position_on_quit">終了時に位置を保存</string>
-  <string name="pref_player_double_tap_seek_duration">ダブルタップシーク時間</string>
+  <string name="pref_player_double_tap_seek_duration">タップシーク時間</string>
   <string name="pref_player_custom_skip_duration_title">カスタムスキップ時間</string>
   <string name="pref_player_custom_skip_duration_summary">カスタムスキップボタンで進める時間</string>
   <string name="pref_player_seeking_title">シーク</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">読み込み中の円を表示</string>
   <string name="pref_player_display_show_status_bar">操作中にシステムステータスバーを表示</string>
   <string name="pref_gesture">ジェスチャー</string>
-  <string name="pref_gesture_summary">ダブルタップ、メディア操作</string>
-  <string name="pref_gesture_double_tap_title">ダブルタップ</string>
+  <string name="pref_gesture_summary">シングル/ダブルタップ、メディア操作</string>
+  <string name="pref_gesture_double_tap_title">タップジェスチャー</string>
   <string name="pref_gesture_double_tap_none">なし</string>
   <string name="pref_gesture_double_tap_seek">シーク</string>
   <string name="pref_gesture_double_tap_play">再生/一時停止</string>
   <string name="pref_gesture_double_tap_custom">カスタム</string>
   <string name="pref_gesture_double_tap_left_title">ダブルタップ（左）</string>
+  <string name="pref_gesture_single_tap_left_title">シングルタップ（左）</string>
   <string name="pref_gesture_double_tap_center_title">ダブルタップ（中央）</string>
   <string name="pref_gesture_single_tap_center_title">シングルタップ（中央）</string>
   <string name="pref_gesture_double_tap_right_title">ダブルタップ（右）</string>
+  <string name="pref_gesture_single_tap_right_title">シングルタップ（右）</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">左側ジェスチャーにシングルタップを使用</string>
   <string name="pref_gesture_use_single_tap_for_center_title">中央ジェスチャーにシングルタップを使用</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">中央のジェスチャー（再生/一時停止など）にダブルタップではなくシングルタップを使用します。</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">右側ジェスチャーにシングルタップを使用</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">画面の高さの中央30%では、2回の代わりに1回タップします。上部と下部それぞれ35%ではプレーヤーの操作ボタンを表示・非表示にします。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">ドラッグで字幕を移動</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">中央を長押しして上下にドラッグすると主字幕を移動できます。字幕を直接長押しすると、そのトラックを個別に移動できます。通常のスワイプでは引き続きプレイリストが開きます。</string>
   <string name="pref_gesture_double_tap_custom_info">input.confで次のキーコードを使用して、これらのジェスチャーにカスタム操作を割り当てられます：
@@ -484,7 +488,7 @@
   <string name="pref_player_display_reduce_player_animation">プレーヤーのアニメーションを減らす</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">プレーヤー操作の時刻を非表示</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">ダブルタップシーク時に波紋を表示</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">タップシーク時に波紋を表示</string>
   <string name="show_time_on_double_tap_to_seek">シーク時間を表示</string>
   <string name="player_sheets_frame_navigation_title">フレーム移動</string>
   <string name="player_sheets_frame_navigation_include_subtitles">スナップショットに字幕を含める</string>

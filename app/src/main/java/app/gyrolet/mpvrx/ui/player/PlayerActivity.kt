@@ -7068,12 +7068,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         if (isNoSheetOpen) {
           when (keyCode) {
             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-              viewModel.handleRightDoubleTap()
+              viewModel.handleRightTap()
               return true
             }
 
             KeyEvent.KEYCODE_DPAD_LEFT -> {
-              viewModel.handleLeftDoubleTap()
+              viewModel.handleLeftTap()
               return true
             }
           }
@@ -7130,12 +7130,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_MEDIA_REWIND -> {
-        viewModel.handleLeftDoubleTap()
+        viewModel.handleLeftTap()
         return true
       }
 
       KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-        viewModel.handleRightDoubleTap()
+        viewModel.handleRightTap()
         return true
       }
 

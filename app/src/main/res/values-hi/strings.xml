@@ -157,7 +157,7 @@
   <string name="pref_player_show_buffered_range_summary">सीक बार पर प्लेहेड से आगे का ऑनलाइन बफर दिखाएं।</string>
   <string name="pref_player_show_chapter_indicators_title">सीक बार पर चैप्टर इंडिकेटर दिखाएं</string>
   <string name="pref_player_show_chapter_indicators_summary">सीक बार पर चैप्टरों को अलग-अलग रंगों में दिखाएं।</string>
-  <string name="pref_double_tap_seek_area_width_title">डबल टैप सीक एरिया की चौड़ाई</string>
+  <string name="pref_double_tap_seek_area_width_title">टैप जेस्चर क्षेत्र की चौड़ाई</string>
   <string name="pref_export_settings_title">सेटिंग्स एक्सपोर्ट करें</string>
   <string name="pref_export_settings_summary">सेटिंग्स को XML फाइल में एक्सपोर्ट करें</string>
   <string name="pref_import_settings_title">सेटिंग्स इम्पोर्ट करें</string>
@@ -190,7 +190,7 @@
   <string name="pref_player_orientation_reverse_landscape">रिवर्स लैंडस्केप</string>
   <string name="pref_player_orientation_sensor_landscape">सेंसर लैंडस्केप</string>
   <string name="pref_player_save_position_on_quit">बंद करते समय पोजीशन सेव करें</string>
-  <string name="pref_player_double_tap_seek_duration">डबल टैप सीक ड्यूरेशन</string>
+  <string name="pref_player_double_tap_seek_duration">टैप सीक अवधि</string>
   <string name="pref_player_custom_skip_duration_title">कस्टम स्किप ड्यूरेशन</string>
   <string name="pref_player_custom_skip_duration_summary">कस्टम स्किप बटन पर आगे स्किप करने की अवधि</string>
   <string name="pref_player_seeking_title">सीकिंग</string>
@@ -216,18 +216,22 @@
   <string name="pref_player_controls_show_loading_circle">लोडिंग सर्कल दिखाएं</string>
   <string name="pref_player_display_show_status_bar">कंट्रोल्स के साथ सिस्टम स्टेटस बार दिखाएं</string>
   <string name="pref_gesture">जेस्चर</string>
-  <string name="pref_gesture_summary">डबल टैप, मीडिया कंट्रोल्स</string>
-  <string name="pref_gesture_double_tap_title">डबल टैप</string>
+  <string name="pref_gesture_summary">सिंगल/डबल टैप, मीडिया कंट्रोल्स</string>
+  <string name="pref_gesture_double_tap_title">टैप जेस्चर</string>
   <string name="pref_gesture_double_tap_none">कोई नहीं</string>
   <string name="pref_gesture_double_tap_seek">सीक</string>
   <string name="pref_gesture_double_tap_play">प्ले/पॉज</string>
   <string name="pref_gesture_double_tap_custom">कस्टम</string>
   <string name="pref_gesture_double_tap_left_title">डबल टैप (बाएं)</string>
+  <string name="pref_gesture_single_tap_left_title">सिंगल टैप (बाएं)</string>
   <string name="pref_gesture_double_tap_center_title">डबल टैप (बीच में)</string>
   <string name="pref_gesture_single_tap_center_title">सिंगल टैप (बीच में)</string>
   <string name="pref_gesture_double_tap_right_title">डबल टैप (दाएं)</string>
+  <string name="pref_gesture_single_tap_right_title">सिंगल टैप (दाएं)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">बाएं के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
   <string name="pref_gesture_use_single_tap_for_center_title">बीच के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">बीच में जेस्चर (जैसे प्ले/पॉज) के लिए डबल टैप की बजाय सिंगल टैप इस्तेमाल करें।</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">दाएं के जेस्चर के लिए सिंगल टैप इस्तेमाल करें</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">स्क्रीन की ऊंचाई के बीच वाले 30% हिस्से में दो की जगह एक टैप करें। ऊपर और नीचे के 35% हिस्से प्लेयर कंट्रोल दिखाते या छिपाते हैं।</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">खींचकर उपशीर्षक खिसकाएँ</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">मुख्य उपशीर्षक को खिसकाने के लिए बीच में दबाकर रखें, फिर ऊपर या नीचे खींचें। किसी भी उपशीर्षक को सीधे दबाकर रखने पर उसका ट्रैक अलग से खिसकाया जा सकता है। सामान्य स्वाइप से प्लेलिस्ट पहले की तरह खुलती है।</string>
   <string name="pref_gesture_double_tap_custom_info">आप input.conf में इन की-कोड्स का इस्तेमाल करके इन जेस्चरों पर कस्टम एक्शन बांध सकते हैं:\n\nबाएं: MBTN_LEFT_DBL\nबीच: MBTN_MID_DBL\nदाएं: MBTN_RIGHT_DBL</string>
@@ -471,7 +475,7 @@
   <string name="swap_the_volume_and_brightness_slider">वॉल्यूम और ब्राइटनेस स्लाइडर बदलें</string>
   <string name="pref_player_display_reduce_player_animation">प्लेयर एनिमेशन कम करें</string>
   <string name="pref_player_display_hide_player_control_time">प्लेयर कंट्रोल टाइम छुपाएं</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">डबल टैप सीक पर रिपल दिखाएं</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">टैप सीक पर रिपल दिखाएं</string>
   <string name="show_time_on_double_tap_to_seek">सीक टाइम दिखाएं</string>
   <string name="player_sheets_frame_navigation_title">फ्रेम नेविगेशन</string>
   <string name="player_sheets_frame_navigation_include_subtitles">स्नैपशॉट में सबटाइटल शामिल करें</string>

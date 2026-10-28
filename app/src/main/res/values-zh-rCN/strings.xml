@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">在进度条上显示章节标记</string>
   <string name="pref_player_show_chapter_indicators_summary">沿进度条直观区分各个章节。</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">双击快进区域宽度</string>
+  <string name="pref_double_tap_seek_area_width_title">点击手势区域宽度</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">导出设置</string>
   <string name="pref_export_settings_summary">将设置导出到 XML 文件</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">反向横屏</string>
   <string name="pref_player_orientation_sensor_landscape">传感器横屏</string>
   <string name="pref_player_save_position_on_quit">退出时保存位置</string>
-  <string name="pref_player_double_tap_seek_duration">双击快进时长</string>
+  <string name="pref_player_double_tap_seek_duration">点击快进时长</string>
   <string name="pref_player_custom_skip_duration_title">自定义跳过时长</string>
   <string name="pref_player_custom_skip_duration_summary">自定义跳过按钮向前跳过的时长</string>
   <string name="pref_player_seeking_title">定位播放</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">显示加载圆圈</string>
   <string name="pref_player_display_show_status_bar">显示带控制项的系统状态栏</string>
   <string name="pref_gesture">手势</string>
-  <string name="pref_gesture_summary">双击、媒体控制</string>
-  <string name="pref_gesture_double_tap_title">双击</string>
+  <string name="pref_gesture_summary">单击/双击、媒体控制</string>
+  <string name="pref_gesture_double_tap_title">点击手势</string>
   <string name="pref_gesture_double_tap_none">无</string>
   <string name="pref_gesture_double_tap_seek">定位播放</string>
   <string name="pref_gesture_double_tap_play">播放/暂停</string>
   <string name="pref_gesture_double_tap_custom">自定义</string>
   <string name="pref_gesture_double_tap_left_title">双击（左侧）</string>
+  <string name="pref_gesture_single_tap_left_title">单击（左侧）</string>
   <string name="pref_gesture_double_tap_center_title">双击（中间）</string>
   <string name="pref_gesture_single_tap_center_title">单击（中间）</string>
   <string name="pref_gesture_double_tap_right_title">双击（右侧）</string>
+  <string name="pref_gesture_single_tap_right_title">单击（右侧）</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">左侧手势使用单击</string>
   <string name="pref_gesture_use_single_tap_for_center_title">中间手势使用单击</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">中间区域的手势（如播放/暂停）使用单击，而不是双击。</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">右侧手势使用单击</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">在屏幕高度中间30%的区域内，用单击代替双击。顶部和底部各35%的区域用于显示或隐藏播放器控件。</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">拖动以移动字幕</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">长按屏幕中央后上下拖动，可移动主字幕。直接长按任意字幕后拖动，可单独移动该字幕轨道。普通滑动仍会打开播放列表。</string>
   <string name="pref_gesture_double_tap_custom_info">可在 input.conf 中使用以下按键代码为这些手势绑定自定义操作：
@@ -484,7 +488,7 @@
   <string name="pref_player_display_reduce_player_animation">减少播放器动画</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">隐藏播放器控制时间</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">双击定位播放时显示波纹</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">点击定位播放时显示波纹</string>
   <string name="show_time_on_double_tap_to_seek">显示定位时间</string>
   <string name="player_sheets_frame_navigation_title">逐帧导航</string>
   <string name="player_sheets_frame_navigation_include_subtitles">截图中包含字幕</string>

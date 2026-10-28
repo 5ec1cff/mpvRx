@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">إظهار مؤشرات الفصول على شريط التقديم</string>
   <string name="pref_player_show_chapter_indicators_summary">فصل الفصول بصريًا على امتداد شريط التقديم.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">عرض منطقة التقديم بالنقر المزدوج</string>
+  <string name="pref_double_tap_seek_area_width_title">عرض منطقة إيماءات النقر</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">تصدير الإعدادات</string>
   <string name="pref_export_settings_summary">تصدير الإعدادات إلى ملف XML</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">أفقي معكوس</string>
   <string name="pref_player_orientation_sensor_landscape">أفقي حسب المستشعر</string>
   <string name="pref_player_save_position_on_quit">حفظ الموضع عند الخروج</string>
-  <string name="pref_player_double_tap_seek_duration">مدة التقديم بالنقر المزدوج</string>
+  <string name="pref_player_double_tap_seek_duration">مدة التقديم بالنقر</string>
   <string name="pref_player_custom_skip_duration_title">مدة تخطٍ مخصصة</string>
   <string name="pref_player_custom_skip_duration_summary">المدة المطلوب تخطيها للأمام بزر التخطي المخصص</string>
   <string name="pref_player_seeking_title">التقديم</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">إظهار دائرة التحميل</string>
   <string name="pref_player_display_show_status_bar">إظهار شريط حالة النظام مع عناصر التحكم</string>
   <string name="pref_gesture">الإيماءات</string>
-  <string name="pref_gesture_summary">نقر مزدوج، عناصر تحكم الوسائط</string>
-  <string name="pref_gesture_double_tap_title">نقر مزدوج</string>
+  <string name="pref_gesture_summary">نقر فردي ومزدوج، عناصر تحكم الوسائط</string>
+  <string name="pref_gesture_double_tap_title">إيماءات النقر</string>
   <string name="pref_gesture_double_tap_none">بلا</string>
   <string name="pref_gesture_double_tap_seek">تقديم</string>
   <string name="pref_gesture_double_tap_play">تشغيل/إيقاف مؤقت</string>
   <string name="pref_gesture_double_tap_custom">مخصص</string>
   <string name="pref_gesture_double_tap_left_title">نقر مزدوج (يسار)</string>
+  <string name="pref_gesture_single_tap_left_title">نقرة واحدة (يسار)</string>
   <string name="pref_gesture_double_tap_center_title">نقر مزدوج (وسط)</string>
   <string name="pref_gesture_single_tap_center_title">نقرة واحدة (وسط)</string>
   <string name="pref_gesture_double_tap_right_title">نقر مزدوج (يمين)</string>
+  <string name="pref_gesture_single_tap_right_title">نقرة واحدة (يمين)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">استخدام نقرة واحدة لإيماءة اليسار</string>
   <string name="pref_gesture_use_single_tap_for_center_title">استخدام نقرة واحدة لإيماءة الوسط</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">استخدام نقرة واحدة في الوسط للإيماءات (مثل التشغيل/الإيقاف المؤقت) بدلًا من النقر المزدوج.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">استخدام نقرة واحدة لإيماءة اليمين</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">استخدم نقرة واحدة بدلًا من نقرتين في المنطقة الوسطى التي تشغل 30% من ارتفاع الشاشة. أعلى وأسفل الشاشة، بنسبة 35% لكل منهما، لإظهار عناصر تحكم المشغّل أو إخفائها.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">السحب لتحريك الترجمة</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">اضغط مطولاً في المنتصف ثم اسحب لأعلى أو لأسفل لتحريك الترجمة الأساسية. اضغط مطولاً على أي ترجمة لتحريك مسارها بشكل مستقل. تظل السحبات العادية تفتح قائمة التشغيل.</string>
   <string name="pref_gesture_double_tap_custom_info">يمكنك ربط إجراءات مخصصة بهذه الإيماءات في input.conf باستخدام رموز المفاتيح التالية:
@@ -484,7 +488,7 @@
   <string name="pref_player_display_reduce_player_animation">تقليل حركة المشغّل</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">إخفاء وقت عناصر تحكم المشغّل</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">إظهار تموج عند التقديم بالنقر المزدوج</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">إظهار تموج عند التقديم بالنقر</string>
   <string name="show_time_on_double_tap_to_seek">إظهار وقت التقديم</string>
   <string name="player_sheets_frame_navigation_title">التنقل بين الإطارات</string>
   <string name="player_sheets_frame_navigation_include_subtitles">تضمين الترجمة في لقطة الشاشة</string>

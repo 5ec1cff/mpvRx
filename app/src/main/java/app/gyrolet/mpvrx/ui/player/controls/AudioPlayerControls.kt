@@ -466,9 +466,9 @@ private fun Modifier.audioPlaybackGestures(viewModel: PlayerViewModel, onTap: ()
         onLongPress = { hold() },
         onDoubleTap = { position ->
           when {
-            position.x < size.width / 3f -> viewModel.handleLeftDoubleTap()
-            position.x > size.width * 2f / 3f -> viewModel.handleRightDoubleTap()
-            else -> viewModel.handleCenterDoubleTap()
+            position.x < size.width / 3f -> viewModel.handleLeftTap()
+            position.x > size.width * 2f / 3f -> viewModel.handleRightTap()
+            else -> viewModel.handleCenterTap()
           }
         },
       )

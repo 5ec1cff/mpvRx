@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">Afficher les indicateurs de chapitres sur la barre de progression</string>
   <string name="pref_player_show_chapter_indicators_summary">Séparer visuellement les chapitres le long de la barre de progression.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">Largeur de la zone de recherche par double appui</string>
+  <string name="pref_double_tap_seek_area_width_title">Largeur de la zone des gestes par appui</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">Exporter les paramètres</string>
   <string name="pref_export_settings_summary">Exporter les paramètres vers un fichier XML</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">Paysage inversé</string>
   <string name="pref_player_orientation_sensor_landscape">Paysage par capteur</string>
   <string name="pref_player_save_position_on_quit">Enregistrer la position en quittant</string>
-  <string name="pref_player_double_tap_seek_duration">Durée de recherche par double appui</string>
+  <string name="pref_player_double_tap_seek_duration">Durée du saut par appui</string>
   <string name="pref_player_custom_skip_duration_title">Durée de saut personnalisée</string>
   <string name="pref_player_custom_skip_duration_summary">Durée du saut vers l’avant avec le bouton de saut personnalisé</string>
   <string name="pref_player_seeking_title">Recherche</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">Afficher le cercle de chargement</string>
   <string name="pref_player_display_show_status_bar">Afficher la barre d’état système avec les commandes</string>
   <string name="pref_gesture">Gestes</string>
-  <string name="pref_gesture_summary">Double appui, commandes multimédias</string>
-  <string name="pref_gesture_double_tap_title">Double appui</string>
+  <string name="pref_gesture_summary">Appui simple/double, commandes multimédias</string>
+  <string name="pref_gesture_double_tap_title">Gestes par appui</string>
   <string name="pref_gesture_double_tap_none">Aucun</string>
   <string name="pref_gesture_double_tap_seek">Rechercher</string>
   <string name="pref_gesture_double_tap_play">Lecture/Pause</string>
   <string name="pref_gesture_double_tap_custom">Personnalisé</string>
   <string name="pref_gesture_double_tap_left_title">Double appui (gauche)</string>
+  <string name="pref_gesture_single_tap_left_title">Appui simple (gauche)</string>
   <string name="pref_gesture_double_tap_center_title">Double appui (centre)</string>
   <string name="pref_gesture_single_tap_center_title">Appui simple (centre)</string>
   <string name="pref_gesture_double_tap_right_title">Double appui (droite)</string>
+  <string name="pref_gesture_single_tap_right_title">Appui simple (droite)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Utiliser un appui simple pour le geste gauche</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Utiliser un appui simple pour le geste central</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Utiliser un seul appui au centre pour les gestes (comme lecture/pause) au lieu d’un double appui.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Utiliser un appui simple pour le geste droit</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Un seul appui au lieu de deux dans les 30% centraux de la hauteur de l’écran. Les 35% du haut et du bas affichent ou masquent les commandes du lecteur.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Faire glisser pour déplacer les sous-titres</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Appuyez longuement au centre, puis faites glisser vers le haut ou le bas pour déplacer les sous-titres principaux. Appuyez longuement sur un sous-titre pour déplacer cette piste séparément. Les balayages ordinaires ouvrent toujours la liste de lecture.</string>
   <string name="pref_gesture_double_tap_custom_info">Vous pouvez associer des actions personnalisées à ces gestes dans input.conf avec les codes de touche suivants :
@@ -484,7 +488,7 @@ Suivant : NEXT</string>
   <string name="pref_player_display_reduce_player_animation">Réduire les animations du lecteur</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">Masquer l’heure des commandes du lecteur</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Afficher une onde lors de la recherche par double appui</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Afficher une onde lors du saut par appui</string>
   <string name="show_time_on_double_tap_to_seek">Afficher le temps de recherche</string>
   <string name="player_sheets_frame_navigation_title">Navigation image par image</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Inclure les sous-titres dans la capture</string>

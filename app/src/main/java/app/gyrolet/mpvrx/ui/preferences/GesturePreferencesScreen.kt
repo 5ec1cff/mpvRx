@@ -63,7 +63,9 @@ object GesturePreferencesScreen : Screen {
     val playerPreferences = koinInject<PlayerPreferences>()
     val resources = LocalResources.current
     val backstack = LocalBackStack.current
+    val useSingleTapForLeft by preferences.useSingleTapForLeft.collectAsState()
     val useSingleTapForCenter by preferences.useSingleTapForCenter.collectAsState()
+    val useSingleTapForRight by preferences.useSingleTapForRight.collectAsState()
 
     var showCustomSeekDialog by remember { mutableStateOf(false) }
     var customSeekValue by remember { mutableStateOf("") }
@@ -298,7 +300,7 @@ object GesturePreferencesScreen : Screen {
             }
           }
 
-          // ── Double Tap ─────────────────────────────────────────────────
+          // ── Tap Gestures ───────────────────────────────────────────────
           item {
             PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_gesture_double_tap_title))
           }
@@ -417,7 +419,13 @@ object GesturePreferencesScreen : Screen {
                 onValueChange = { preferences.leftSingleActionGesture.set(it) },
                 values = SingleActionGesture.entries,
                 valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
-                title = { Text(text = stringResource(R.string.pref_gesture_double_tap_left_title)) },
+                title = {
+                  Text(
+                    stringResource(
+                      if (useSingleTapForLeft) R.string.pref_gesture_single_tap_left_title else R.string.pref_gesture_double_tap_left_title,
+                    ),
+                  )
+                },
                 summary = {
                   Text(
                     text = stringResource(leftDoubleTap.titleRes),
@@ -469,7 +477,13 @@ object GesturePreferencesScreen : Screen {
                 onValueChange = { preferences.rightSingleActionGesture.set(it) },
                 values = SingleActionGesture.entries,
                 valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
-                title = { Text(text = stringResource(R.string.pref_gesture_double_tap_right_title)) },
+                title = {
+                  Text(
+                    stringResource(
+                      if (useSingleTapForRight) R.string.pref_gesture_single_tap_right_title else R.string.pref_gesture_double_tap_right_title,
+                    ),
+                  )
+                },
                 summary = {
                   Text(
                     text = stringResource(rightDoubleTap.titleRes),
@@ -481,7 +495,21 @@ object GesturePreferencesScreen : Screen {
 
               PreferenceDivider()
 
-              val useSingleTapForCenter by preferences.useSingleTapForCenter.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_use_single_tap_for_left_title),
+                value = useSingleTapForLeft,
+                onValueChange = preferences.useSingleTapForLeft::set,
+                title = { Text(stringResource(R.string.pref_gesture_use_single_tap_for_left_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_gesture_use_single_tap_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_use_single_tap_for_center_title),
                 value = useSingleTapForCenter,
@@ -493,7 +521,22 @@ object GesturePreferencesScreen : Screen {
                 },
                 summary = {
                   Text(
-                    text = stringResource(id = R.string.pref_gesture_use_single_tap_for_center_summary),
+                    text = stringResource(id = R.string.pref_gesture_use_single_tap_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_gesture_use_single_tap_for_right_title),
+                value = useSingleTapForRight,
+                onValueChange = preferences.useSingleTapForRight::set,
+                title = { Text(stringResource(R.string.pref_gesture_use_single_tap_for_right_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_gesture_use_single_tap_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },

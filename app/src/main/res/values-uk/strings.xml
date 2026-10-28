@@ -190,7 +190,7 @@
   <string name="pref_player_show_buffered_range_summary">Відображати завантажений буфер перед поточною позицією на смузі перемотування.</string>
   <string name="pref_player_show_chapter_indicators_title">Показувати позначки розділів на смузі перемотування</string>
   <string name="pref_player_show_chapter_indicators_summary">Візуально розділяти розділи вздовж смуги перемотування.</string>
-  <string name="pref_double_tap_seek_area_width_title">Ширина зони подвійного дотику для перемотування</string>
+  <string name="pref_double_tap_seek_area_width_title">Ширина області жестів дотиком</string>
   <string name="pref_export_settings_title">Експорт налаштувань</string>
   <string name="pref_export_settings_summary">Експортувати налаштування у файл XML</string>
   <string name="pref_import_settings_title">Імпорт налаштувань</string>
@@ -239,7 +239,7 @@
   <string name="player_restart_action">Перезапустити</string>
   <string name="pref_resume_indicator_overlay_title">Індикатор відновлення відтворення</string>
   <string name="pref_resume_indicator_overlay_summary">Показувати підказки відновлення або початку відтворення. У режимі запиту плашка доступна завжди</string>
-  <string name="pref_player_double_tap_seek_duration">Тривалість перемотування подвійним дотиком</string>
+  <string name="pref_player_double_tap_seek_duration">Тривалість перемотування дотиком</string>
   <string name="pref_player_custom_skip_duration_title">Власна тривалість пропуску</string>
   <string name="pref_player_custom_skip_duration_summary">Тривалість пропуску вперед для окремої кнопки</string>
   <string name="pref_player_seeking_title">Перемотування</string>
@@ -263,18 +263,22 @@
   <string name="pref_player_controls_show_loading_circle">Показувати анімацію завантаження</string>
   <string name="pref_player_display_show_status_bar">Показувати системний рядок стану разом з елементами керування</string>
   <string name="pref_gesture">Жести</string>
-  <string name="pref_gesture_summary">Подвійний дотик, керування мультимедіа</string>
-  <string name="pref_gesture_double_tap_title">Подвійний дотик</string>
+  <string name="pref_gesture_summary">Одинарний/подвійний дотик, керування мультимедіа</string>
+  <string name="pref_gesture_double_tap_title">Жести дотиком</string>
   <string name="pref_gesture_double_tap_none">Немає</string>
   <string name="pref_gesture_double_tap_seek">Перемотування</string>
   <string name="pref_gesture_double_tap_play">Відтворення/Пауза</string>
   <string name="pref_gesture_double_tap_custom">Власна дія</string>
   <string name="pref_gesture_double_tap_left_title">Подвійний дотик (ліворуч)</string>
+  <string name="pref_gesture_single_tap_left_title">Одинарний дотик (ліворуч)</string>
   <string name="pref_gesture_double_tap_center_title">Подвійний дотик (по центру)</string>
   <string name="pref_gesture_single_tap_center_title">Одинарний дотик (по центру)</string>
   <string name="pref_gesture_double_tap_right_title">Подвійний дотик (праворуч)</string>
+  <string name="pref_gesture_single_tap_right_title">Одинарний дотик (праворуч)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Одинарний дотик для лівого жесту</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Одинарний дотик для центрального жесту</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Використовувати одинарний дотик по центру для жестів (наприклад, відтворення/пауза) замість подвійного.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Одинарний дотик для правого жесту</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Один дотик замість двох у середній області заввишки 30% екрана. Верхні та нижні 35% показують або приховують елементи керування програвачем.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Переміщення субтитрів перетягуванням</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Утримуйте палець у центрі та перетягуйте вгору або вниз, щоб перемістити основні субтитри. Утримуйте палець безпосередньо на субтитрах, щоб перемістити цю доріжку окремо. Звичайні свайпи й надалі відкривають список відтворення.</string>
   <string name="pref_gesture_double_tap_custom_info">Ви можете призначити власні дії для цих жестів у input.conf за допомогою таких кодів клавіш:
@@ -562,7 +566,7 @@
   <string name="swap_the_volume_and_brightness_slider">Поміняти місцями повзунки гучності та яскравості</string>
   <string name="pref_player_display_reduce_player_animation">Зменшити анімацію плеєра</string>
   <string name="pref_player_display_hide_player_control_time">Час приховування елементів керування</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Показувати хвилі під час подвійного дотику для перемотування</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Показувати хвилі під час перемотування дотиком</string>
   <string name="show_time_on_double_tap_to_seek">Показувати час перемотування</string>
   <string name="player_sheets_frame_navigation_title">Покадрова навігація</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Включати субтитри у знімок кадру</string>

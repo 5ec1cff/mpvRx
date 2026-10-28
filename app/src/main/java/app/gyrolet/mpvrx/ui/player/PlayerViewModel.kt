@@ -6371,7 +6371,7 @@ fun restartFromBeginning() {
 
   // ==================== Gesture Handling ====================
 
-  fun handleLeftDoubleTap() {
+  fun handleLeftTap() {
     when (gesturePreferences.leftSingleActionGesture.get()) {
       SingleActionGesture.Seek -> leftSeek()
       SingleActionGesture.PlayPause -> pauseUnpause()
@@ -6383,7 +6383,7 @@ fun restartFromBeginning() {
     }
   }
 
-  fun handleCenterDoubleTap() {
+  fun handleCenterTap() {
     when (gesturePreferences.centerSingleActionGesture.get()) {
       SingleActionGesture.PlayPause -> pauseUnpause()
       SingleActionGesture.Custom ->
@@ -6394,18 +6394,7 @@ fun restartFromBeginning() {
     }
   }
 
-  fun handleCenterSingleTap() {
-    when (gesturePreferences.centerSingleActionGesture.get()) {
-      SingleActionGesture.PlayPause -> pauseUnpause()
-      SingleActionGesture.Custom ->
-        viewModelScope.launch(Dispatchers.IO) {
-          PlaybackSession.command("keypress", CustomKeyCodes.DoubleTapCenter.keyCode)
-        }
-      SingleActionGesture.Seek, SingleActionGesture.None -> {}
-    }
-  }
-
-  fun handleRightDoubleTap() {
+  fun handleRightTap() {
     when (gesturePreferences.rightSingleActionGesture.get()) {
       SingleActionGesture.Seek -> rightSeek()
       SingleActionGesture.PlayPause -> pauseUnpause()

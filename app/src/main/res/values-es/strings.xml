@@ -162,7 +162,7 @@
   <string name="pref_player_show_chapter_indicators_title">Mostrar indicadores de capítulos en la barra de búsqueda</string>
   <string name="pref_player_show_chapter_indicators_summary">Separar visualmente los capítulos a lo largo de la barra de búsqueda.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">Ancho del área de búsqueda con doble toque</string>
+  <string name="pref_double_tap_seek_area_width_title">Ancho del área de gestos de toque</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">Exportar ajustes</string>
   <string name="pref_export_settings_summary">Exportar los ajustes a un archivo XML</string>
@@ -196,7 +196,7 @@
   <string name="pref_player_orientation_reverse_landscape">Horizontal invertida</string>
   <string name="pref_player_orientation_sensor_landscape">Horizontal por sensor</string>
   <string name="pref_player_save_position_on_quit">Guardar posición al salir</string>
-  <string name="pref_player_double_tap_seek_duration">Duración de búsqueda con doble toque</string>
+  <string name="pref_player_double_tap_seek_duration">Duración del salto por toque</string>
   <string name="pref_player_custom_skip_duration_title">Duración de salto personalizada</string>
   <string name="pref_player_custom_skip_duration_summary">Duración del avance con el botón de salto personalizado</string>
   <string name="pref_player_seeking_title">Búsqueda</string>
@@ -222,18 +222,22 @@
   <string name="pref_player_controls_show_loading_circle">Mostrar círculo de carga</string>
   <string name="pref_player_display_show_status_bar">Mostrar barra de estado del sistema con los controles</string>
   <string name="pref_gesture">Gestos</string>
-  <string name="pref_gesture_summary">Doble toque, controles multimedia</string>
-  <string name="pref_gesture_double_tap_title">Doble toque</string>
+  <string name="pref_gesture_summary">Toque simple/doble, controles multimedia</string>
+  <string name="pref_gesture_double_tap_title">Gestos de toque</string>
   <string name="pref_gesture_double_tap_none">Ninguno</string>
   <string name="pref_gesture_double_tap_seek">Buscar</string>
   <string name="pref_gesture_double_tap_play">Reproducir/Pausar</string>
   <string name="pref_gesture_double_tap_custom">Personalizado</string>
   <string name="pref_gesture_double_tap_left_title">Doble toque (izquierda)</string>
+  <string name="pref_gesture_single_tap_left_title">Un toque (izquierda)</string>
   <string name="pref_gesture_double_tap_center_title">Doble toque (centro)</string>
   <string name="pref_gesture_single_tap_center_title">Un toque (centro)</string>
   <string name="pref_gesture_double_tap_right_title">Doble toque (derecha)</string>
+  <string name="pref_gesture_single_tap_right_title">Un toque (derecha)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Usar un toque para el gesto izquierdo</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Usar un toque para el gesto central</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Usar un solo toque en el centro para los gestos (como reproducir/pausar) en lugar de un doble toque.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Usar un toque para el gesto derecho</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Usa un toque en vez de dos en el 30% central de la altura de la pantalla. El 35% superior y el 35% inferior muestran u ocultan los controles del reproductor.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Arrastrar para mover subtítulos</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Mantén pulsado el centro y arrastra arriba o abajo para mover los subtítulos principales. Mantén pulsado un subtítulo para mover esa pista por separado. Los deslizamientos normales siguen abriendo la lista de reproducción.</string>
   <string name="pref_gesture_double_tap_custom_info">Puedes asignar acciones personalizadas a estos gestos en input.conf mediante los siguientes códigos de tecla:
@@ -484,7 +488,7 @@ Siguiente: NEXT</string>
   <string name="pref_player_display_reduce_player_animation">Reducir animaciones del reproductor</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">Ocultar la hora de los controles del reproductor</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Mostrar onda al buscar con doble toque</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Mostrar onda al saltar con un toque</string>
   <string name="show_time_on_double_tap_to_seek">Mostrar tiempo de búsqueda</string>
   <string name="player_sheets_frame_navigation_title">Navegación por fotogramas</string>
   <string name="player_sheets_frame_navigation_include_subtitles">Incluir subtítulos en la captura</string>

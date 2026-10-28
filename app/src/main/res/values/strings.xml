@@ -221,7 +221,7 @@
   <string name="pref_player_show_chapter_indicators_title">Show chapter indicators on seek bar</string>
   <string name="pref_player_show_chapter_indicators_summary">Separate chapters visually along the seek bar.</string>
   <!-- Gesture Preferences Hardcoded -->
-  <string name="pref_double_tap_seek_area_width_title">Double Tap Seek Area Width</string>
+  <string name="pref_double_tap_seek_area_width_title">Tap gesture area width</string>
   <!-- Advanced Preferences Hardcoded -->
   <string name="pref_export_settings_title">Export Settings</string>
   <string name="pref_export_settings_summary">Export settings to an XML file</string>
@@ -274,7 +274,7 @@
   <string name="player_restart_action">Restart</string>
   <string name="pref_resume_indicator_overlay_title">Resume playback indicator</string>
   <string name="pref_resume_indicator_overlay_summary">Show resume/start-position feedback pills. Ask mode always shows its actionable resume pill</string>
-  <string name="pref_player_double_tap_seek_duration">Double tap seek duration</string>
+  <string name="pref_player_double_tap_seek_duration">Tap seek duration</string>
   <string name="pref_player_custom_skip_duration_title">Custom skip duration</string>
   <string name="pref_player_custom_skip_duration_summary">Duration to skip forward on custom skip button</string>
   <string name="pref_player_seeking_title">Seeking</string>
@@ -300,18 +300,22 @@
   <string name="pref_player_controls_show_loading_circle">Show loading circle</string>
   <string name="pref_player_display_show_status_bar">Show system status bar with controls</string>
   <string name="pref_gesture">Gestures</string>
-  <string name="pref_gesture_summary">Double tap, media controls</string>
-  <string name="pref_gesture_double_tap_title">Double tap</string>
+  <string name="pref_gesture_summary">Single/double tap, media controls</string>
+  <string name="pref_gesture_double_tap_title">Tap gestures</string>
   <string name="pref_gesture_double_tap_none">None</string>
   <string name="pref_gesture_double_tap_seek">Seek</string>
   <string name="pref_gesture_double_tap_play">Play/Pause</string>
   <string name="pref_gesture_double_tap_custom">Custom</string>
   <string name="pref_gesture_double_tap_left_title">Double tap (left)</string>
+  <string name="pref_gesture_single_tap_left_title">Single tap (left)</string>
   <string name="pref_gesture_double_tap_center_title">Double tap (center)</string>
   <string name="pref_gesture_single_tap_center_title">Single tap (center)</string>
   <string name="pref_gesture_double_tap_right_title">Double tap (right)</string>
+  <string name="pref_gesture_single_tap_right_title">Single tap (right)</string>
+  <string name="pref_gesture_use_single_tap_for_left_title">Use single tap for left gesture</string>
   <string name="pref_gesture_use_single_tap_for_center_title">Use single tap for center gesture</string>
-  <string name="pref_gesture_use_single_tap_for_center_summary">Use a single tap in the center for gestures (like play/pause) instead of a double tap.</string>
+  <string name="pref_gesture_use_single_tap_for_right_title">Use single tap for right gesture</string>
+  <string name="pref_gesture_use_single_tap_summary" formatted="false">Use one tap instead of two in the middle 30% of screen height. The top and bottom 35% each show or hide player controls.</string>
   <string name="pref_gesture_center_vertical_subtitle_position_title">Hold and drag subtitles</string>
   <string name="pref_gesture_center_vertical_subtitle_position_summary">Hold the center, then drag up or down to move primary subtitles. Hold directly on either subtitle to move that track independently. Normal swipes still open the playlist.</string>
   <string name="pref_gesture_double_tap_custom_info">You can bind custom actions to these gestures in input.conf using the following key codes:\n\nLeft: MBTN_LEFT_DBL\nCenter: MBTN_MID_DBL\nRight: MBTN_RIGHT_DBL</string>
@@ -602,7 +606,7 @@
   <string name="pref_player_display_reduce_player_animation">Reduce player animation</string>
   <!-- Animation settings -->
   <string name="pref_player_display_hide_player_control_time">Hide player control time</string>
-  <string name="show_splash_ovals_on_double_tap_to_seek">Show ripple when double tap seeking</string>
+  <string name="show_splash_ovals_on_double_tap_to_seek">Show ripple on tap seeks</string>
   <string name="show_time_on_double_tap_to_seek">Show seek time</string>
   <string name="player_sheets_frame_navigation_title">Frame Navigation</string>
   <string name="player_sheets_frame_navigation_snapshot_saved" translatable="false">Saved to Pictures/mpvSnaps</string>
