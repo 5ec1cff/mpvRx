@@ -117,6 +117,7 @@ object PlayerControlsPreferencesScreen : Screen {
       }
 
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         SettingsTopAppBar(
           title = stringResource(id = if (television) R.string.pref_section_display_controls else R.string.pref_layout_title),

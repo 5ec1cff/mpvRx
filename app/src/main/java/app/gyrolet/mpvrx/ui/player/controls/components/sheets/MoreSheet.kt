@@ -14,6 +14,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import android.content.res.Configuration
 import android.text.format.DateUtils
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.AppAlertDialog
 import androidx.compose.ui.window.DialogProperties
@@ -70,6 +72,7 @@ fun MoreSheet(
   onEnterFiltersPanel: () -> Unit,
   onEnterLuaScriptsPanel: () -> Unit,
   onEnterEqualizerSheet: (() -> Unit)? = null,
+  onEnterSettingsPanel: (() -> Unit)? = null,
   anime4KUiState: Anime4KUiState,
   onAnime4KModeSelected: (Anime4KManager.Mode) -> Unit,
   filtersEnabled: Boolean = true,
@@ -104,8 +107,15 @@ fun MoreSheet(
         Text(
           text = stringResource(R.string.player_sheets_more_title),
           style = MaterialTheme.typography.titleLarge,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier = Modifier.widthIn(max = 140.dp).padding(end = 8.dp),
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+          modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState(), reverseScrolling = true),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.End,
+        ) {
           var isSleepTimerDialogShown by remember { mutableStateOf(false) }
           TextButton(onClick = { isSleepTimerDialogShown = true }) {
             Row(
@@ -201,6 +211,20 @@ fun MoreSheet(
                       LocalContentColor.current
                     },
                 )
+              }
+            }
+          }
+          if (onEnterSettingsPanel != null) {
+            TextButton(onClick = onEnterSettingsPanel) {
+              Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.extraSmall),
+              ) {
+                Icon(
+                  imageVector = Icons.RoundedFilled.Settings,
+                  contentDescription = stringResource(R.string.player_settings_open),
+                )
+                if (showActionLabels) Text(stringResource(R.string.ui_settings))
               }
             }
           }

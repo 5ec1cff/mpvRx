@@ -93,20 +93,7 @@ fun VideoSettingsDebandCard(
               enabled = modeEnabled,
               onCheckedChange = { _ ->
                 decoderPreferences.debanding.set(it)
-                when (it) {
-                  Debanding.None -> {
-                    PlaybackSession.setOptionString("deband", "no")
-                    PlaybackSession.command("vf", "remove", "@deband")
-                  }
-                  Debanding.CPU -> {
-                    PlaybackSession.setOptionString("deband", "no")
-                    PlaybackSession.command("vf", "add", "@deband:gradfun=radius=12")
-                  }
-                  Debanding.GPU -> {
-                    PlaybackSession.setOptionString("deband", "yes")
-                    PlaybackSession.command("vf", "remove", "@deband")
-                  }
-                }
+                PlaybackSession.applyDebanding(it)
               },
             ) {
               when (it) {
@@ -124,8 +111,7 @@ fun VideoSettingsDebandCard(
             enabled = debandOptions.none(configOwnedOptions::contains),
             onClick = {
               decoderPreferences.debanding.set(Debanding.None)
-              PlaybackSession.setOptionString("deband", "no")
-              PlaybackSession.command("vf", "remove", "@deband")
+              PlaybackSession.applyDebanding(Debanding.None)
               DebandSettings.entries.forEach {
                 PlaybackSession.setPropertyInt(it.mpvProperty, it.preference(decoderPreferences).deleteAndGet())
               }

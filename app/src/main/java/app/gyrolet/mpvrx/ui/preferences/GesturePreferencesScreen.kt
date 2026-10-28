@@ -69,6 +69,7 @@ object GesturePreferencesScreen : Screen {
     var customSeekValue by remember { mutableStateOf("") }
 
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         SettingsTopAppBar(
           title = stringResource(R.string.pref_gesture),

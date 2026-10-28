@@ -67,6 +67,7 @@ object PersistentStatusBarPreferencesScreen : Screen {
     val embeddedInPlayer = LocalPlayerSettingsPanel.current
 
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         SettingsTopAppBar(
           title = stringResource(R.string.pref_persistent_status_title),

@@ -93,6 +93,7 @@ object LiquidGlassPreferencesScreen : Screen {
     }
 
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         SettingsTopAppBar(
           title = stringResource(R.string.pref_appearance_category_liquid_glass),

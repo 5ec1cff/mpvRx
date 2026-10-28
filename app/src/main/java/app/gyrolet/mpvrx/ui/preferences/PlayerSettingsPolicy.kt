@@ -18,8 +18,6 @@ import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 /** The normal settings screens remain unrestricted. Only the in-player host supplies this context. */
 internal val LocalPlayerSettingsPanel = staticCompositionLocalOf { false }
 
-/** Existing native adjustment cards already apply changes and enforce mpv.conf ownership themselves. */
-internal val LocalLivePlayerSettingsContent = staticCompositionLocalOf { false }
 internal val LocalPlayerSettingsConfigOptions = staticCompositionLocalOf<Set<String>> { emptySet() }
 
 internal data class PlayerSettingKey(@StringRes val title: Int) : Modifier.Element
@@ -42,6 +40,9 @@ private val livePlayerSettings = setOf(
   R.string.pref_auto_pip_home_only_title,
   R.string.pref_enable_video_mini_player_title,
   R.string.pref_player_autoplay_after_screen_unlock_title,
+  R.string.pref_player_orientation,
+  R.string.pref_player_keep_screen_on_when_paused_title,
+  R.string.pref_player_external_display_projection_title,
   R.string.show_splash_ovals_on_double_tap_to_seek,
   R.string.show_time_on_double_tap_to_seek,
   R.string.pref_player_show_buffered_range_title,
@@ -58,7 +59,6 @@ private val livePlayerSettings = setOf(
   R.string.pref_custom_outro_keywords_enabled,
   R.string.pref_custom_outro_keywords_title,
   R.string.pref_player_controls_drawer_title,
-  R.string.pref_player_settings_drawer_title,
   R.string.pref_player_display_show_status_bar,
   R.string.pref_nav_bar_title,
   R.string.pref_player_safe_area_window_title,
@@ -71,6 +71,7 @@ private val livePlayerSettings = setOf(
   R.string.ui_filename_template,
   R.string.ui_jpeg_webp_quality,
   R.string.ui_png_compression,
+  R.string.ui_webp_lossless,
   R.string.pref_volume_overlay_title,
   R.string.pref_brightness_overlay_title,
   R.string.pref_hold_speed_overlay_pref_title,
@@ -113,6 +114,11 @@ private val liveSubtitleSettings = setOf(
   R.string.pref_subx_api_key_title,
 )
 
+private val liveDecoderSettings = setOf(
+  R.string.pref_decoder_try_hw_dec_title,
+  R.string.pref_decoder_debanding_title,
+)
+
 private val settingNativeOptions = mapOf(
   R.string.pref_audio_pitch_correction_title to setOf("audio-pitch-correction"),
   R.string.pref_audio_volume_normalization_title to setOf("af"),
@@ -125,6 +131,10 @@ private val settingNativeOptions = mapOf(
   ),
   R.string.player_sheets_sub_scale_by_window to setOf("sub-scale-by-window", "sub-use-margins"),
   R.string.pref_subtitles_secondary_pinch_zoom to setOf("sub-scale", "secondary-sub-scale"),
+  R.string.pref_decoder_try_hw_dec_title to setOf("hwdec", "hwdec-codecs"),
+  R.string.pref_decoder_debanding_title to setOf(
+    "vf", "deband", "deband-iterations", "deband-threshold", "deband-range", "deband-grain",
+  ),
 )
 
 internal fun isLivePlayerSetting(screen: app.gyrolet.mpvrx.presentation.Screen?, @StringRes key: Int?): Boolean =
@@ -135,6 +145,7 @@ internal fun isLivePlayerSetting(screen: app.gyrolet.mpvrx.presentation.Screen?,
     PlayerPreferencesScreen -> key in livePlayerSettings
     AudioPreferencesScreen -> key in liveAudioSettings
     SubtitlesPreferencesScreen -> key in liveSubtitleSettings
+    DecoderPreferencesScreen -> key in liveDecoderSettings
     LiquidGlassPreferencesScreen ->
       key !in setOf(R.string.pref_appearance_liquid_glass_title, R.string.pref_liquid_glass_in_hdr_title)
     else -> false
@@ -142,7 +153,7 @@ internal fun isLivePlayerSetting(screen: app.gyrolet.mpvrx.presentation.Screen?,
 
 @Composable
 internal fun playerSettingAvailability(modifier: Modifier): PlayerSettingAvailability {
-  if (!LocalPlayerSettingsPanel.current || LocalLivePlayerSettingsContent.current) return PlayerSettingAvailability()
+  if (!LocalPlayerSettingsPanel.current) return PlayerSettingAvailability()
   val key = modifier.foldIn<Int?>(null) { found, element -> (element as? PlayerSettingKey)?.title ?: found }
   val screen = LocalCurrentScreen.current
   if (!isLivePlayerSetting(screen, key)) return PlayerSettingAvailability(visible = false)

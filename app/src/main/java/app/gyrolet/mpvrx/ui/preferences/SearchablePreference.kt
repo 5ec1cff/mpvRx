@@ -74,16 +74,6 @@ private fun MutableList<SearchablePreference>.addSearchEntries(
 object SearchablePreferences {
   private val staticPreferences: List<SearchablePreference> =
     buildList {
-      add(
-        SearchablePreference(
-          titleRes = R.string.pref_player_settings_drawer_title,
-          summaryRes = R.string.pref_player_settings_drawer_summary,
-          keywords = listOf("left", "drawer", "panel", "live", "settings"),
-          category = "Player",
-          screen = PlayerPreferencesScreen,
-          anchorItemIndex = 5,
-        ),
-      )
       // Appearance preferences
       add(
         SearchablePreference(

@@ -94,7 +94,6 @@ class PlayerPreferences(
 
   val allowGesturesInPanels = preferenceStore.getBoolean("allow_gestures_in_panels")
   val showControlsDrawer = preferenceStore.getBoolean("show_controls_drawer", true)
-  val showSettingsDrawer = preferenceStore.getBoolean("show_settings_drawer", true)
   // This HUD is drawn over video, independently of the Android system status bar.
   val persistentStatusEnabled = preferenceStore.getBoolean("persistent_status_enabled", false)
   val persistentStatusPosition = preferenceStore.getEnum("persistent_status_position", PersistentStatusPosition.Top)

@@ -205,8 +205,12 @@ fun LiquidToggle(
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress.coerceIn(0f, 1f)
                         val selection = dampedDragAnimation.value.coerceIn(0f, 1f)
-                        val film = lerp(unselectedFilm, selectedFilm, selection)
-                            .copy(alpha = 0.58f - 0.16f * progress)
+                        val film = if (currentSelected.value()) {
+                            lerp(unselectedFilm, selectedFilm, selection)
+                                .copy(alpha = 0.58f - 0.16f * progress)
+                        } else {
+                            Color.White
+                        }
                         drawCapsuleTint(film)
                     }
                 )

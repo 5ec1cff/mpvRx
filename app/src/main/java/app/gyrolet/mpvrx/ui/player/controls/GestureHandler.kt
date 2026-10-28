@@ -126,7 +126,6 @@ fun GestureHandler(
   viewModel: PlayerViewModel,
   modifier: Modifier = Modifier,
   externalPanelShown: Boolean = false,
-  blockGesturesInExternalPanel: Boolean = false,
   onDismissExternalPanel: () -> Unit = {},
   onLockedTouchSideChanged: (isLeft: Boolean) -> Unit = {},
   onSeekRipple: (SeekRippleRequest) -> Unit = {},
@@ -171,7 +170,8 @@ fun GestureHandler(
   val panelShown by viewModel.panelShown.collectAsState()
   val anyPanelShown = panelShown != Panels.None || externalPanelShown
   val allowPanelGesturesPreference by playerPreferences.allowGesturesInPanels.collectAsState()
-  val allowGesturesInPanels = allowPanelGesturesPreference && !blockGesturesInExternalPanel
+  val settingsPanelShown = panelShown == Panels.PlayerSettings
+  val allowGesturesInPanels = allowPanelGesturesPreference && !settingsPanelShown
   val paused by PlaybackSession.propBoolean["pause"].collectAsState()
   val duration by PlaybackSession.propInt["duration"].collectAsState()
   val position by PlaybackSession.propInt["time-pos"].collectAsState()
@@ -285,7 +285,7 @@ fun GestureHandler(
     AndroidViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
   }
 
-  LaunchedEffect(mediaGeneration, areControlsLocked, doubleTapSeekAreaWidth, externalPanelShown) {
+  LaunchedEffect(mediaGeneration, areControlsLocked, doubleTapSeekAreaWidth, externalPanelShown, panelShown) {
     tapCount = 0
     lastTapRegion = null
     pendingSingleTapRegion = null
@@ -359,10 +359,10 @@ fun GestureHandler(
           isVerticalGestureActive,
           mediaGeneration,
           externalPanelShown,
-          blockGesturesInExternalPanel,
+          settingsPanelShown,
         ) {
           // Isolated double-tap detection that doesn't interfere with other gestures
-          if (isVerticalGestureActive || (externalPanelShown && blockGesturesInExternalPanel)) return@pointerInput
+          if (isVerticalGestureActive || settingsPanelShown) return@pointerInput
           awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
             beginGesture(down.id.value, down.uptimeMillis)

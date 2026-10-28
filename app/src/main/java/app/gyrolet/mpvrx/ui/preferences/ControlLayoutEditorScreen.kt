@@ -50,7 +50,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
@@ -153,13 +152,13 @@ data class ControlLayoutEditorScreen(
     }
 
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         if (embeddedInPlayer) {
           androidx.compose.foundation.layout.Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
           ) {
-            Text(title, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             app.gyrolet.mpvrx.presentation.components.AppDialogTextButton(onClick = { showResetDialog = true }) {
               Text(stringResource(R.string.pref_layout_reset_default))
             }

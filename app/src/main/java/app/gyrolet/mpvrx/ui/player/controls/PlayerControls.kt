@@ -423,7 +423,6 @@ fun PlayerControls(
   val navigationBarRequested by playerPreferences.showSystemNavigationBar.collectAsState()
   val showSystemNavigationBar = navigationBarRequested || WindowInsets.areNavigationBarsVisible
   val showControlsDrawer by playerPreferences.showControlsDrawer.collectAsState()
-  val showSettingsDrawer by playerPreferences.showSettingsDrawer.collectAsState()
   var seekRippleRequest by remember { mutableStateOf<SeekRippleRequest?>(null) }
   val controlsShown by viewModel.controlsShown.collectAsState()
   val controlsInteractionEpoch by viewModel.controlsInteractionEpoch.collectAsState()
@@ -666,38 +665,21 @@ fun PlayerControls(
     }
 
   var showUnlockOnLeft by remember { mutableStateOf(true) }
-  var activeDrawer by remember { mutableStateOf(PlayerDrawer.None) }
-  val isPlayerDrawerShown = activeDrawer == PlayerDrawer.Controls
-  val isSettingsDrawerShown = activeDrawer == PlayerDrawer.Settings
-  LaunchedEffect(showControlsDrawer, showSettingsDrawer, areControlsLocked) {
-    if (areControlsLocked ||
-      (activeDrawer == PlayerDrawer.Controls && !showControlsDrawer) ||
-      (activeDrawer == PlayerDrawer.Settings && !showSettingsDrawer)
-    ) {
-      val wasOpen = activeDrawer != PlayerDrawer.None
-      activeDrawer = PlayerDrawer.None
+  var isPlayerDrawerShown by remember { mutableStateOf(false) }
+  LaunchedEffect(showControlsDrawer, areControlsLocked) {
+    if (areControlsLocked || !showControlsDrawer) {
+      val wasOpen = isPlayerDrawerShown
+      isPlayerDrawerShown = false
       if (wasOpen && !areControlsLocked) viewModel.showControls()
     }
   }
   val setPlayerDrawerShown: (Boolean) -> Unit = { visible ->
     if (visible && showControlsDrawer && !areControlsLocked) {
-      activeDrawer = PlayerDrawer.Controls
+      isPlayerDrawerShown = true
       viewModel.dismissAdjustmentOverlays()
       viewModel.hideControls()
     } else if (!visible && isPlayerDrawerShown) {
-      activeDrawer = PlayerDrawer.None
-      if (viewModel.sheetShown.value == Sheets.None && viewModel.panelShown.value == Panels.None) {
-        viewModel.showControls()
-      }
-    }
-  }
-  val setSettingsDrawerShown: (Boolean) -> Unit = { visible ->
-    if (visible && showSettingsDrawer && !areControlsLocked) {
-      activeDrawer = PlayerDrawer.Settings
-      viewModel.dismissAdjustmentOverlays()
-      viewModel.hideControls()
-    } else if (!visible && isSettingsDrawerShown) {
-      activeDrawer = PlayerDrawer.None
+      isPlayerDrawerShown = false
       if (viewModel.sheetShown.value == Sheets.None && viewModel.panelShown.value == Panels.None) {
         viewModel.showControls()
       }
@@ -722,14 +704,14 @@ fun PlayerControls(
     resetControlsTimestamp,
     areControlsLocked,
     isAudioOnly,
-    activeDrawer,
+    isPlayerDrawerShown,
   ) {
     if (!isTelevision &&
       !isAudioOnly &&
       controlsShown &&
       isPlayingForAutoHide &&
       !isSeeking &&
-      activeDrawer == PlayerDrawer.None
+      !isPlayerDrawerShown
     ) {
       // Use 2 second delay when controls are locked, otherwise use user preference
       val delayTime = if (areControlsLocked) 2000L else playerTimeToDisappear.toLong()
@@ -954,11 +936,8 @@ fun PlayerControls(
 
   GestureHandler(
     viewModel = viewModel,
-    externalPanelShown = activeDrawer != PlayerDrawer.None,
-    blockGesturesInExternalPanel = isSettingsDrawerShown,
-    onDismissExternalPanel = {
-      if (isSettingsDrawerShown) setSettingsDrawerShown(false) else setPlayerDrawerShown(false)
-    },
+    externalPanelShown = isPlayerDrawerShown,
+    onDismissExternalPanel = { setPlayerDrawerShown(false) },
     onLockedTouchSideChanged = { isLeft ->
       showUnlockOnLeft = isLeft
       resetControlsTimestamp = System.currentTimeMillis()
@@ -2559,7 +2538,7 @@ fun PlayerControls(
 
     val panel by viewModel.panelShown.collectAsState()
     LaunchedEffect(sheetShown, panel) {
-      if (sheetShown != Sheets.None || panel != Panels.None) activeDrawer = PlayerDrawer.None
+      if (sheetShown != Sheets.None || panel != Panels.None) isPlayerDrawerShown = false
     }
     PlayerPanels(
       panelShown = panel,
@@ -2568,7 +2547,7 @@ fun PlayerControls(
     )
 
 
-val activePlayerDrawerButtons =
+    val activePlayerDrawerButtons =
       remember(
         isSpeedNonOne,
         currentZoom,
@@ -2608,7 +2587,6 @@ val activePlayerDrawerButtons =
           activeButtons = activePlayerDrawerButtons,
           controlsVisible =
             controlsShown &&
-              !isSettingsDrawerShown &&
               !areControlsLocked &&
               !areSlidersShown &&
               sheetShown == Sheets.None &&
@@ -2640,21 +2618,10 @@ val activePlayerDrawerButtons =
         )
       }
     }
-    if (showSettingsDrawer) {
-      PlayerSettingsDrawer(
-        controlsVisible = controlsShown && !areControlsLocked && !areSlidersShown &&
-          !isPlayerDrawerShown && sheetShown == Sheets.None && panel == Panels.None,
-        panelVisible = isSettingsDrawerShown,
-        onPanelVisibilityChanged = setSettingsDrawerShown,
-        viewModel = viewModel,
-      )
-    }
       }
     }
   }
 }
-
-private enum class PlayerDrawer { None, Controls, Settings }
 
 private const val MEMORY_STATS_SAMPLE_INTERVAL_MS = 5_000L
 

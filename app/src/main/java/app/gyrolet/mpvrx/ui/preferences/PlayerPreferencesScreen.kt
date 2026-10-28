@@ -91,6 +91,7 @@ object PlayerPreferencesScreen : Screen {
     var templateDraft by remember { mutableStateOf("") }
     var showVideoMiniPlayerDependencyDialog by remember { mutableStateOf(false) }
     Scaffold(
+      contentWindowInsets = settingsContentWindowInsets(),
       topBar = {
         SettingsTopAppBar(
           title = stringResource(id = R.string.pref_player),
@@ -844,17 +845,6 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                 PreferenceDivider()
 
                 val showSystemStatusBar by preferences.showSystemStatusBar.collectAsState()
-                val showSettingsDrawer by preferences.showSettingsDrawer.collectAsState()
-                SwitchPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_player_settings_drawer_title),
-                  value = showSettingsDrawer,
-                  onValueChange = preferences.showSettingsDrawer::set,
-                  title = { Text(stringResource(R.string.pref_player_settings_drawer_title)) },
-                  summary = { Text(stringResource(R.string.pref_player_settings_drawer_summary)) },
-                )
-
-                PreferenceDivider()
-
                 SwitchPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_player_display_show_status_bar),
                   value = showSystemStatusBar,
@@ -1050,6 +1040,7 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
 
                 val webpLossless by preferences.screenshotWebpLossless.collectAsState()
                 SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.ui_webp_lossless),
                   value = webpLossless,
                   onValueChange = preferences.screenshotWebpLossless::set,
                   title = {

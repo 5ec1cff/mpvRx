@@ -1373,6 +1373,13 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     }
   }
 
+  /** Shared runtime path for the real Decoder preferences page and the existing debanding controls. */
+  internal fun applyDebanding(mode: Debanding) = withReadyCore(Unit) {
+    setOptionString("deband", if (mode == Debanding.GPU) "yes" else "no")
+    removeVideoFilter("deband")
+    if (mode == Debanding.CPU) command("vf", "add", "@deband:gradfun=radius=12")
+  }
+
   fun observeProperty(
     property: String,
     format: Int,

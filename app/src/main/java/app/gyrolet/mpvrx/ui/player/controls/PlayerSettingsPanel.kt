@@ -3,12 +3,6 @@ package app.gyrolet.mpvrx.ui.player.controls
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,21 +12,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemGestures
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,9 +34,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -71,20 +58,13 @@ import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.SubtitleSettingsColorsCard
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.SubtitleSettingsTypographyCard
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.SubtitlesMiscellaneousCard
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.VideoSettingsDebandCard
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.VideoSettingsFilterPresetsCard
-import app.gyrolet.mpvrx.ui.player.controls.components.panels.VideoSettingsFiltersCard
 import app.gyrolet.mpvrx.ui.preferences.AudioPreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.ControlLayoutEditorScreen
 import app.gyrolet.mpvrx.ui.preferences.ControlRegion
+import app.gyrolet.mpvrx.ui.preferences.DecoderPreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.GesturePreferencesScreen
 import app.gyrolet.mpvrx.ui.preferences.LiquidGlassPreferencesScreen
-import app.gyrolet.mpvrx.ui.preferences.LocalLivePlayerSettingsContent
 import app.gyrolet.mpvrx.ui.preferences.LocalPlayerSettingsPanel
 import app.gyrolet.mpvrx.ui.preferences.LocalPlayerSettingsConfigOptions
 import app.gyrolet.mpvrx.ui.preferences.PersistentStatusBarPreferencesScreen
@@ -98,7 +78,6 @@ import app.gyrolet.mpvrx.ui.preferences.searchTargetKey
 import app.gyrolet.mpvrx.ui.preferences.searchCategoryTitleRes
 import app.gyrolet.mpvrx.ui.preferences.isLivePlayerSetting
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
-import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -119,45 +98,38 @@ private data class SettingsCategory(
   @StringRes val title: Int,
   val icon: AppIcon,
   val screen: Screen,
-  @StringRes val target: Int? = null,
 )
 
 private fun playerSettingsCategories() = listOf(
   SettingsCategory(R.string.pref_player, Icons.RoundedFilled.Settings, PlayerPreferencesScreen),
-  SettingsCategory(R.string.pref_layout_title, Icons.RoundedFilled.GridView, PlayerControlsPreferencesScreen),
-  SettingsCategory(R.string.player_sheets_video_settings_title, Icons.RoundedFilled.Tune, PlayerLiveSettings.Picture),
-  SettingsCategory(
-    R.string.pref_audio, Icons.RoundedFilled.Audiotrack, AudioPreferencesScreen,
-    R.string.pref_audio_pitch_correction_title,
-  ),
-  SettingsCategory(
-    R.string.player_settings_subtitle_appearance, Icons.RoundedFilled.Subtitles, PlayerLiveSettings.SubtitleStyle,
-  ),
+  SettingsCategory(R.string.pref_audio, Icons.RoundedFilled.Audiotrack, AudioPreferencesScreen),
   SettingsCategory(R.string.pref_subtitles, Icons.RoundedFilled.Subtitles, SubtitlesPreferencesScreen),
-  SettingsCategory(R.string.pref_gesture, Icons.RoundedFilled.Gesture, GesturePreferencesScreen),
-  SettingsCategory(
-    R.string.pref_persistent_status_title, Icons.RoundedFilled.AccessTime, PersistentStatusBarPreferencesScreen,
-  ),
+  SettingsCategory(R.string.pref_decoder, Icons.RoundedFilled.DeveloperBoard, DecoderPreferencesScreen),
   SettingsCategory(R.string.pref_appearance_liquid_glass_title, Icons.RoundedFilled.Tune, LiquidGlassPreferencesScreen),
+  SettingsCategory(R.string.pref_gesture, Icons.RoundedFilled.Gesture, GesturePreferencesScreen),
+  SettingsCategory(R.string.pref_layout_title, Icons.RoundedFilled.GridView, PlayerControlsPreferencesScreen),
 )
 
-/** Both native adjustment pages reuse the exact controls and config guards of the existing panels. */
+private fun playerSettingsScreens(categories: List<SettingsCategory>): Set<Screen> = buildSet {
+  categories.forEach { add(it.screen) }
+  add(PersistentStatusBarPreferencesScreen)
+  ControlRegion.entries.forEach { add(ControlLayoutEditorScreen(it)) }
+}
+
+/** Restore-only keys for older saved drawer navigation; removed by the supported-screen filter. */
 @Serializable
 private enum class PlayerLiveSettings : Screen {
   Picture, SubtitleStyle;
 
   @Composable
-  override fun Content() = Unit // Rendered by the host with the active player's ViewModel.
+  override fun Content() = Unit
 }
 
 @Composable
-internal fun PlayerSettingsDrawer(
-  controlsVisible: Boolean,
-  panelVisible: Boolean,
-  onPanelVisibilityChanged: (Boolean) -> Unit,
-  viewModel: PlayerViewModel,
+internal fun PlayerSettingsPanel(
+  active: Boolean,
+  onDismissRequest: () -> Unit,
 ) {
-  val reducedMotion = AppMotion.playerReducedMotion()
   @Suppress("UNCHECKED_CAST")
   val backStack = rememberNavBackStack(PlayerSettingsHome) as NavBackStack<Screen>
   val savedContent = rememberSaveableStateHolder()
@@ -166,10 +138,11 @@ internal fun PlayerSettingsDrawer(
     playerSettingsCategories().filter { it.screen != LiquidGlassPreferencesScreen || glassActive }
   }
   LaunchedEffect(categories) {
-    val supportedScreens = categories.map { it.screen }.toSet()
+    val supportedScreens = playerSettingsScreens(categories)
     Snapshot.withMutableSnapshot {
       backStack.removeAll {
-        it != PlayerSettingsHome && it !is ControlLayoutEditorScreen && it !in supportedScreens
+        it is PlayerLiveSettings ||
+          (it != PlayerSettingsHome && it !in supportedScreens)
       }
       if (backStack.isEmpty()) backStack.add(PlayerSettingsHome)
     }
@@ -180,7 +153,7 @@ internal fun PlayerSettingsDrawer(
   var query by rememberSaveable { mutableStateOf("") }
   val close: () -> Unit = {
     keyboard?.hide()
-    onPanelVisibilityChanged(false)
+    onDismissRequest()
   }
   val back: () -> Unit = {
     if (searchMode || query.isNotBlank()) {
@@ -193,101 +166,76 @@ internal fun PlayerSettingsDrawer(
       close()
     }
   }
-  BackHandler(enabled = panelVisible, onBack = back)
+  BackHandler(enabled = active, onBack = back)
+  LaunchedEffect(active) {
+    if (!active) keyboard?.hide()
+  }
 
   Box(Modifier.fillMaxSize().imePadding()) {
-    AnimatedVisibility(
-      visible = controlsVisible && !panelVisible,
-      modifier = Modifier.align(AbsoluteAlignment.CenterLeft)
-        .windowInsetsPadding(WindowInsets.safeDrawing)
-        .windowInsetsPadding(WindowInsets.systemGestures.only(WindowInsetsSides.Horizontal)),
-      enter = fadeIn(tween(100)),
-      exit = fadeOut(tween(80)),
-    ) {
-      PlayerControlEdgeHandle(
-        enabled = controlsVisible,
-        onOpen = { onPanelVisibilityChanged(true) },
-        openFromLeft = true,
-        label = stringResource(R.string.player_settings_open),
-      )
-    }
-    AnimatedVisibility(
-      visible = panelVisible,
-      enter = if (reducedMotion) {
-        fadeIn(tween(90))
-      } else {
-        fadeIn(tween(140)) + slideInHorizontally(tween(220)) { -it / 3 }
-      },
-      exit = if (reducedMotion) {
-        fadeOut(tween(70))
-      } else {
-        fadeOut(tween(100)) + slideOutHorizontally(tween(180)) { -it / 3 }
-      },
-    ) {
-      Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().clickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = null,
-          onClick = close,
-        ))
-        savedContent.SaveableStateProvider("player-settings-panel") {
-          DraggablePanel(
-            modifier = Modifier.semantics { paneTitle = resources.getString(R.string.player_settings_title) },
-            alignment = AbsoluteAlignment.CenterLeft,
-            scrollContent = false,
-            portraitHeightFraction = 0.94f,
-            maxPanelWidth = 520.dp,
-            allowVerticalDrag = true,
-            shape = MaterialTheme.shapes.extraLargeIncreased,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
-            tonalElevation = 2.dp,
-            shadowElevation = 10.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-            header = {
-              val current = backStack.lastOrNull()
-              val title = if (searchMode || current == PlayerSettingsHome) {
-                resources.getString(R.string.player_settings_title)
-              } else {
-                categories.firstOrNull { it.screen == current }?.let { resources.getString(it.title) }
-                  ?: resources.getString(R.string.pref_layout_title)
-              }
-              SettingsPanelHeader(
-                title = title,
-                canGoBack = searchMode || query.isNotBlank() || backStack.size > 1,
-                onBack = back,
-                onSearch = { searchMode = true },
-                onClose = close,
-              )
-            },
+    Box(Modifier.fillMaxSize().clickable(
+      interactionSource = remember { MutableInteractionSource() },
+      indication = null,
+      onClick = close,
+    ))
+    savedContent.SaveableStateProvider("player-settings-panel") {
+      DraggablePanel(
+        modifier = Modifier.semantics { paneTitle = resources.getString(R.string.player_settings_title) },
+        scrollContent = false,
+        portraitHeightFraction = 0.94f,
+        maxPanelWidth = 520.dp,
+        shape = MaterialTheme.shapes.extraLargeIncreased,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
+        tonalElevation = 2.dp,
+        shadowElevation = 10.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        header = {
+          val current = backStack.lastOrNull()
+          val title = when {
+            searchMode || current == PlayerSettingsHome -> resources.getString(R.string.player_settings_title)
+            current == PersistentStatusBarPreferencesScreen -> resources.getString(R.string.pref_persistent_status_title)
+            current is ControlLayoutEditorScreen -> resources.getString(current.region.titleRes)
+            else -> categories.firstOrNull { it.screen == current }?.let { resources.getString(it.title) }
+              ?: resources.getString(R.string.player_settings_title)
+          }
+          SettingsPanelHeader(
+            title = title,
+            canGoBack = searchMode || query.isNotBlank() || backStack.size > 1,
+            onBack = back,
+            onSearch = { searchMode = true },
+            onClose = close,
+          )
+        },
+      ) {
+        val colors = MaterialTheme.colorScheme
+        MaterialTheme(colorScheme = colors.copy(background = Color.Transparent)) {
+          CompositionLocalProvider(
+            LocalBackStack provides backStack,
+            LocalPlayerSettingsPanel provides true,
+            LocalPlayerSettingsConfigOptions provides currentMpvConfigOverrideOptions(),
           ) {
-            val colors = MaterialTheme.colorScheme
-            MaterialTheme(colorScheme = colors.copy(background = Color.Transparent)) {
-              CompositionLocalProvider(
-                LocalBackStack provides backStack,
-                LocalPlayerSettingsPanel provides true,
-                LocalPlayerSettingsConfigOptions provides currentMpvConfigOverrideOptions(),
-              ) {
-                Box(Modifier.fillMaxSize()) {
-                  ScreenNavDisplay(backStack = backStack, onBack = back) { screen ->
-                    when (screen) {
-                      PlayerSettingsHome -> SettingsPanelHome(categories, query, { query = it }, backStack) {
-                        query = ""
-                        keyboard?.hide()
-                      }
-                      is PlayerLiveSettings -> LiveSettingsContent(screen, viewModel)
-                      else -> screen.Content()
-                    }
+            Box(
+              Modifier.fillMaxSize()
+                .padding(horizontal = 4.dp)
+                .padding(bottom = 12.dp)
+                .clipToBounds(),
+            ) {
+              ScreenNavDisplay(backStack = backStack, onBack = back) { screen ->
+                when (screen) {
+                  PlayerSettingsHome -> SettingsPanelHome(categories, query, { query = it }, backStack) {
+                    query = ""
+                    keyboard?.hide()
                   }
-                  // Keep the current page mounted beneath search, preserving its scroll position
-                  // and any expanded sections when search is dismissed without choosing a result.
-                  if (searchMode) {
-                    Surface(Modifier.fillMaxSize(), color = colors.surfaceContainer) {
-                      SettingsPanelHome(categories, query, { query = it }, backStack, requestSearchFocus = true) {
-                        searchMode = false
-                        query = ""
-                        keyboard?.hide()
-                      }
-                    }
+                  else -> screen.Content()
+                }
+              }
+              // Keep the current page mounted beneath search, preserving its scroll position
+              // and any expanded sections when search is dismissed without choosing a result.
+              if (searchMode) {
+                Surface(Modifier.fillMaxSize(), color = colors.surfaceContainer) {
+                  SettingsPanelHome(categories, query, { query = it }, backStack, requestSearchFocus = true) {
+                    searchMode = false
+                    query = ""
+                    keyboard?.hide()
                   }
                 }
               }
@@ -339,27 +287,20 @@ private fun SettingsPanelHome(
   val store = koinInject<PreferenceStore>()
   val favoritesPreference = remember(store) { store.getStringSet("player_settings_favorites", emptySet()) }
   val favorites by favoritesPreference.collectAsState()
-  val screens = remember(categories) {
-    (categories.map { it.screen } + ControlRegion.entries.map { ControlLayoutEditorScreen(it) }).toSet()
-  }
+  val screens = remember(categories) { playerSettingsScreens(categories) }
   val categoryEntries = remember(categories) {
     categories.map {
       SearchablePreference(
         titleRes = it.title,
         category = "Player",
         screen = it.screen,
-        targetRes = it.target,
-        keywords = when (it.screen) {
-          PlayerLiveSettings.Picture -> listOf(
-            "brightness", "contrast", "saturation", "gamma", "hue", "sharpness", "deband", "filters", "presets",
-          )
-          PlayerLiveSettings.SubtitleStyle -> listOf(
-            "subtitles", "font", "size", "color", "outline", "shadow", "bold", "italic", "position", "scale",
-          )
-          else -> emptyList()
-        },
       )
-    }
+    } + SearchablePreference(
+      titleRes = R.string.pref_persistent_status_title,
+      category = "Player",
+      screen = PersistentStatusBarPreferencesScreen,
+      keywords = listOf("hud", "status", "clock", "battery"),
+    )
   }
   val entries = remember(screens) {
     (SearchablePreferences.forScreens(screens).filter {
@@ -377,8 +318,7 @@ private fun SettingsPanelHome(
       val text = entry.titleRes?.let { resources.getString(it) }.orEmpty() + " " + entry.keywords.joinToString(" ")
       query.isNotBlank() && terms.all { text.contains(it, ignoreCase = true) }
     }
-    (matchingCategories.filter { it.screen is PlayerLiveSettings } + matches + matchingCategories)
-      .distinctBy { it.favoriteKey() }
+    (matches + matchingCategories).distinctBy { it.favoriteKey() }
   }
   fun showScreen(screen: Screen) {
     // Search can revisit a page already in this drawer's history. Reuse that entry instead of
@@ -453,11 +393,6 @@ private fun SettingsPanelHome(
         itemsIndexed(categories) { index, category ->
           Surface(
             onClick = {
-              category.target?.let { target ->
-                SettingsSearchNavigation.open(
-                  SearchablePreference(titleRes = target, category = "Player", screen = category.screen),
-                )
-              }
               showScreen(category.screen)
               onNavigate()
             },
@@ -522,29 +457,6 @@ private fun SettingsResultRow(
       IconButton(onClick = onFavorite, modifier = Modifier.semantics { stateDescription = pinLabel }) {
         Icon(if (favorite) Icons.RoundedFilled.Favorite else Icons.RoundedFilled.FavoriteBorder, pinLabel,
           tint = if (favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-      }
-    }
-  }
-}
-
-@Composable
-private fun LiveSettingsContent(screen: PlayerLiveSettings, viewModel: PlayerViewModel) {
-  CompositionLocalProvider(LocalLivePlayerSettingsContent provides true) {
-    Column(
-      Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-      verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-      when (screen) {
-        PlayerLiveSettings.Picture -> {
-          VideoSettingsFilterPresetsCard()
-          VideoSettingsFiltersCard()
-          VideoSettingsDebandCard()
-        }
-        PlayerLiveSettings.SubtitleStyle -> {
-          SubtitleSettingsTypographyCard(viewModel)
-          SubtitleSettingsColorsCard(viewModel)
-          SubtitlesMiscellaneousCard()
-        }
       }
     }
   }

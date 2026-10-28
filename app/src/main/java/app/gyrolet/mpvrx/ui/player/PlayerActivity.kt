@@ -956,6 +956,18 @@ class PlayerActivity :
     }
 
     lifecycleScope.launch {
+      playerPreferences.orientation.changes().drop(1).collect {
+        if (!isKnownAudioLaunch(intent) && !viewModel.isAudioOnly.value) setOrientation()
+      }
+    }
+
+    lifecycleScope.launch {
+      playerPreferences.keepScreenOnWhenPaused.changes().drop(1).collect {
+        updateKeepScreenOn()
+      }
+    }
+
+    lifecycleScope.launch {
       viewModel.chapters
         .map { chapters -> chapters.map { ChapterNode(time = it.start, title = it.name) } }
         .distinctUntilChanged()

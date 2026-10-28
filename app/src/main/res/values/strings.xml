@@ -820,8 +820,6 @@
   <string name="pref_section_display_controls">Display &amp; Controls</string>
   <string name="pref_player_controls_drawer_title">Controls drawer</string>
   <string name="pref_player_controls_drawer_summary">Display edge handle to drag open the controls panel</string>
-  <string name="pref_player_settings_drawer_title">Settings drawer</string>
-  <string name="pref_player_settings_drawer_summary">Swipe the left handle to adjust player settings while watching</string>
   <string name="player_settings_title">Player settings</string>
   <string name="player_settings_open">Open player settings</string>
   <string name="player_settings_close">Close player settings</string>
@@ -832,7 +830,6 @@
   <string name="player_settings_live_hint">Settings available during this video. Restart-only and next-video options are in the main Settings.</string>
   <string name="player_settings_favorites">Favorites</string>
   <string name="player_settings_categories">All player settings</string>
-  <string name="player_settings_subtitle_appearance">Subtitle appearance</string>
   <string name="player_settings_pin_hint">Use the heart beside a search result to keep it in Favorites.</string>
   <string name="player_settings_pin">Add to Favorites</string>
   <string name="player_settings_unpin">Remove from Favorites</string>

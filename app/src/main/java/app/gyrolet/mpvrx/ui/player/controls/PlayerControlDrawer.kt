@@ -182,8 +182,6 @@ internal fun PlayerControlEdgeHandle(
   enabled: Boolean,
   onOpen: () -> Unit,
   modifier: Modifier = Modifier,
-  openFromLeft: Boolean = false,
-  label: String? = null,
 ) {
   val density = LocalDensity.current
   val haptic = rememberAppHaptics()
@@ -208,7 +206,7 @@ internal fun PlayerControlEdgeHandle(
       modifier
         .width(EdgeTouchWidth)
         .fillMaxHeight(EdgeTouchHeightFraction)
-        .pointerInput(enabled, thresholdPx, maxPullPx, openFromLeft) {
+        .pointerInput(enabled, thresholdPx, maxPullPx) {
           if (!enabled) return@pointerInput
           var thresholdReached = false
           detectHorizontalDragGestures(
@@ -223,7 +221,7 @@ internal fun PlayerControlEdgeHandle(
               pullDistancePx = 0f
             },
             onHorizontalDrag = { change, dragAmount ->
-              val directedDelta = if (openFromLeft) dragAmount else -dragAmount
+              val directedDelta = -dragAmount
               if (directedDelta > 0f || pullDistancePx > 0f) {
                 change.consume()
                 val resistance =
@@ -250,18 +248,18 @@ internal fun PlayerControlEdgeHandle(
           indication = null,
           onClick = onOpen,
         ),
-    contentAlignment = if (openFromLeft) AbsoluteAlignment.CenterLeft else AbsoluteAlignment.CenterRight,
+    contentAlignment = AbsoluteAlignment.CenterRight,
   ) {
     Icon(
-      imageVector = if (openFromLeft) Icons.RoundedFilled.Settings else Icons.RoundedFilled.ChevronLeft,
-      contentDescription = label ?: stringResource(R.string.player_sheets_more_title),
+      imageVector = Icons.RoundedFilled.ChevronLeft,
+      contentDescription = stringResource(R.string.player_sheets_more_title),
       tint = controlColor,
       modifier =
         Modifier
-          .padding(start = if (openFromLeft) 4.dp else 0.dp, end = if (openFromLeft) 0.dp else 4.dp)
+          .padding(end = 4.dp)
           .size(28.dp)
           .graphicsLayer {
-            translationX = (if (openFromLeft) animatedPull else -animatedPull) * 0.72f
+            translationX = -animatedPull * 0.72f
             scaleX = 1f + pullProgress * 0.16f
             scaleY = 1f + pullProgress * 0.16f
           },

@@ -86,13 +86,10 @@ fun DraggablePanel(
   scrollContent: Boolean = true,
   portraitHeightFraction: Float = 0.62f,
   maxPanelWidth: Dp = 420.dp,
-  allowVerticalDrag: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   var offsetX by rememberSaveable { mutableFloatStateOf(0f) }
-  var offsetY by rememberSaveable { mutableFloatStateOf(0f) }
   var panelWidth by remember { mutableIntStateOf(0) }
-  var panelHeightPx by remember { mutableIntStateOf(0) }
   val liquidGlassEnabled = liquidGlassActive()
 
   val panelAlignment = alignment
@@ -112,12 +109,7 @@ fun DraggablePanel(
       ).x
     val minOffset = -initialLeft.toFloat()
     val maxOffset = (freeSpace - initialLeft).toFloat()
-    val freeVerticalSpace = (constraints.maxHeight - panelHeightPx).coerceAtLeast(0)
-    val minVerticalOffset = -freeVerticalSpace / 2f
-    val maxVerticalOffset = freeVerticalSpace / 2f
-
-    val panelHeight =
-      if (isPortrait || allowVerticalDrag) maxHeight * portraitHeightFraction.coerceIn(0.4f, 1f) else maxHeight
+    val panelHeight = if (isPortrait) maxHeight * portraitHeightFraction.coerceIn(0.4f, 1f) else maxHeight
 
     val colors = panelCardsColors()
     val backdrop = LocalKyantPlayerBackdrop.current
@@ -131,12 +123,11 @@ fun DraggablePanel(
           .absoluteOffset {
             IntOffset(
               offsetX.coerceIn(minOffset, maxOffset).roundToInt(),
-              if (allowVerticalDrag) offsetY.coerceIn(minVerticalOffset, maxVerticalOffset).roundToInt() else 0,
+              0,
             )
           }
           .onSizeChanged {
             panelWidth = it.width
-            panelHeightPx = it.height
           }
           .widthIn(max = maxPanelWidth)
           .height(panelHeight)
@@ -165,16 +156,11 @@ fun DraggablePanel(
             Modifier
               .fillMaxWidth()
               .heightIn(min = 48.dp)
-              .pointerInput(maxOffset, minOffset, minVerticalOffset, maxVerticalOffset, allowVerticalDrag) {
+              .pointerInput(maxOffset, minOffset) {
                 detectDragGestures { change, dragAmount ->
                   change.consume()
                   val newOffset = offsetX.coerceIn(minOffset, maxOffset) + dragAmount.x
                   offsetX = newOffset.coerceIn(minOffset, maxOffset)
-                  if (allowVerticalDrag) {
-                    offsetY =
-                      (offsetY.coerceIn(minVerticalOffset, maxVerticalOffset) + dragAmount.y)
-                        .coerceIn(minVerticalOffset, maxVerticalOffset)
-                  }
                 }
               },
           contentAlignment = Alignment.Center,
