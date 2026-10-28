@@ -139,7 +139,6 @@ import app.gyrolet.mpvrx.preferences.AudioPreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.PlaybackControlsPosition
-import app.gyrolet.mpvrx.preferences.SeekbarPlacement
 import app.gyrolet.mpvrx.preferences.allPlayerButtons
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.preferences.preference.deleteAndGet
@@ -1099,13 +1098,13 @@ fun PlayerControls(
           val playbackPosition =
             if (isPortrait) portraitPlaybackControlsPosition else landscapePlaybackControlsPosition
           val playbackNearSeekbar = playbackPosition != PlaybackControlsPosition.Center
-          val playbackBelowSeekbar = playbackPosition == PlaybackControlsPosition.BelowSeekbar
-          val playbackAboveSeekbar = playbackPosition == PlaybackControlsPosition.AboveSeekbar
-          val seekbarAboveButtons =
-            (if (isPortrait) portraitSeekbarPlacement else landscapeSeekbarPlacement) ==
-              SeekbarPlacement.AboveButtons
-          // Landscape puts the layout buttons beside play/pause instead of in a row of their own.
-          val buttonsBesidePlayback = playbackNearSeekbar && !isPortrait
+          val bottomLayout =
+            resolveBottomControlsLayout(
+              isPortrait = isPortrait,
+              seekbarPlacement = if (isPortrait) portraitSeekbarPlacement else landscapeSeekbarPlacement,
+              playbackPosition = playbackPosition,
+            )
+          val buttonsBesidePlayback = bottomLayout.buttonsBesidePlayback
           val playbackButtonGap = if (hideBackground) spacing.small else spacing.large
           val sharedPlaybackRowCenterX = createGuidelineFromStart(0.5f)
           val sharedRowSideInset =
@@ -1117,30 +1116,7 @@ fun PlayerControls(
             } else {
               0.dp
             }
-          // Bottom-to-top bands. The two seekbar placements mirror one another; landscape
-          // layout buttons share the playback band on either side of play/pause.
-          val bottomStack =
-            buildList {
-              when {
-                buttonsBesidePlayback -> {
-                  if (playbackBelowSeekbar) add(BottomSlot.Buttons)
-                  add(BottomSlot.Seekbar)
-                  if (playbackAboveSeekbar) add(BottomSlot.Buttons)
-                }
-                seekbarAboveButtons -> {
-                  add(BottomSlot.Buttons)
-                  if (playbackBelowSeekbar) add(BottomSlot.Playback)
-                  add(BottomSlot.Seekbar)
-                  if (playbackAboveSeekbar) add(BottomSlot.Playback)
-                }
-                else -> {
-                  if (playbackBelowSeekbar) add(BottomSlot.Playback)
-                  add(BottomSlot.Seekbar)
-                  if (playbackAboveSeekbar) add(BottomSlot.Playback)
-                  add(BottomSlot.Buttons)
-                }
-              }
-            }
+          val bottomStack = bottomLayout.bottomToTop
 
           fun measured(
             px: Int,
@@ -3047,8 +3023,6 @@ private fun OutlinedText(
     )
   }
 }
-
-private enum class BottomSlot { Buttons, Playback, Seekbar }
 
 private const val UNMEASURED_HEIGHT = -1
 

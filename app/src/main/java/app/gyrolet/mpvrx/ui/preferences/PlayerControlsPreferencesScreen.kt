@@ -59,7 +59,9 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.controls.BottomSlot
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarStyleLivePreview
+import app.gyrolet.mpvrx.ui.player.controls.resolveBottomControlsLayout
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference
 import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
@@ -179,6 +181,7 @@ object PlayerControlsPreferencesScreen : Screen {
                   }
                 }
                 BottomLayoutPreferences(
+                  isPortrait = false,
                   seekbarPlacement = appearancePrefs.landscapeSeekbarPlacement,
                   seekbarTitleRes = R.string.ui_landscape_seekbar_position,
                   playbackPosition = appearancePrefs.landscapePlaybackControlsPosition,
@@ -205,6 +208,7 @@ object PlayerControlsPreferencesScreen : Screen {
                   }
                 }
                 BottomLayoutPreferences(
+                  isPortrait = true,
                   seekbarPlacement = appearancePrefs.portraitSeekbarPlacement,
                   seekbarTitleRes = R.string.ui_portrait_seekbar_position,
                   playbackPosition = appearancePrefs.portraitPlaybackControlsPosition,
@@ -492,6 +496,7 @@ object PlayerControlsPreferencesScreen : Screen {
 
   @Composable
   private fun BottomLayoutPreferences(
+    isPortrait: Boolean,
     seekbarPlacement: Preference<SeekbarPlacement>,
     @StringRes seekbarTitleRes: Int,
     playbackPosition: Preference<PlaybackControlsPosition>,
@@ -499,6 +504,7 @@ object PlayerControlsPreferencesScreen : Screen {
   ) {
     val placement by seekbarPlacement.collectAsState()
     val position by playbackPosition.collectAsState()
+    val layout = resolveBottomControlsLayout(isPortrait, placement, position)
     ExpressivePreferenceItem(standalone = true) {
       ListPreference(
         modifier = Modifier.settingsSearchTarget(seekbarTitleRes),
@@ -520,6 +526,43 @@ object PlayerControlsPreferencesScreen : Screen {
         title = { Text(stringResource(playbackTitleRes)) },
         summary = { Text(position.displayName) },
       )
+    }
+    ExpressivePreferenceItem(standalone = true) {
+      Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+      ) {
+        Text(
+          text = stringResource(R.string.pref_layout_arrangement),
+          style = MaterialTheme.typography.titleSmall,
+        )
+        if (position == PlaybackControlsPosition.Center) {
+          Text(
+            text = stringResource(R.string.pref_layout_playback_centered),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+        val rows = layout.bottomToTop.asReversed().map { slot ->
+          stringResource(
+            when (slot) {
+              BottomSlot.Buttons ->
+                if (layout.buttonsBesidePlayback) {
+                  R.string.pref_layout_shared_buttons_row
+                } else {
+                  R.string.pref_layout_buttons_row
+                }
+              BottomSlot.Playback -> R.string.pref_layout_playback_row
+              BottomSlot.Seekbar -> R.string.pref_layout_seekbar_row
+            },
+          )
+        }
+        Text(
+          text = stringResource(R.string.pref_layout_top_to_bottom, rows.joinToString(" → ")),
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
     }
   }
 

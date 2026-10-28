@@ -1805,6 +1805,13 @@
   <string name="ui_landscape_playback_buttons">Landscape playback buttons</string>
   <string name="ui_portrait_seekbar_position">Portrait seekbar position</string>
   <string name="ui_landscape_seekbar_position">Landscape seekbar position</string>
+  <string name="pref_layout_arrangement">Arrangement</string>
+  <string name="pref_layout_playback_centered">Play/pause and previous/next: center of screen</string>
+  <string name="pref_layout_buttons_row">Layout buttons</string>
+  <string name="pref_layout_playback_row">Play/pause and previous/next</string>
+  <string name="pref_layout_shared_buttons_row">Layout buttons beside play/pause and previous/next</string>
+  <string name="pref_layout_seekbar_row">Seekbar</string>
+  <string name="pref_layout_top_to_bottom">Top to bottom: %1$s</string>
   <string name="pref_player_buttons_opacity">Player button background opacity</string>
   <string name="ui_time_network_clock">Time + Network clock</string>
   <string name="ui_show_media_info_in_chooser">Show Media Info in chooser</string>
