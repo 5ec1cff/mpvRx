@@ -5,9 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -53,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -182,17 +178,6 @@ internal fun PlayerSettingsDrawer(
   val keyboard = LocalSoftwareKeyboardController.current
   var searchMode by rememberSaveable { mutableStateOf(false) }
   var query by rememberSaveable { mutableStateOf("") }
-  var expanded by rememberSaveable { mutableStateOf(false) }
-  val panelWidth by animateDpAsState(
-    targetValue = if (expanded) 520.dp else 420.dp,
-    animationSpec = if (reducedMotion) snap() else AppMotion.Spatial.StandardDp,
-    label = "playerSettingsWidth",
-  )
-  val panelHeightFraction by animateFloatAsState(
-    targetValue = if (expanded) 0.94f else 0.78f,
-    animationSpec = if (reducedMotion) snap() else AppMotion.Spatial.Standard,
-    label = "playerSettingsHeight",
-  )
   val close: () -> Unit = {
     keyboard?.hide()
     onPanelVisibilityChanged(false)
@@ -250,11 +235,14 @@ internal fun PlayerSettingsDrawer(
             modifier = Modifier.semantics { paneTitle = resources.getString(R.string.player_settings_title) },
             alignment = AbsoluteAlignment.CenterLeft,
             scrollContent = false,
-            portraitHeightFraction = panelHeightFraction,
-            maxPanelWidth = panelWidth,
+            portraitHeightFraction = 0.94f,
+            maxPanelWidth = 520.dp,
             allowVerticalDrag = true,
-            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.96f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
+            tonalElevation = 2.dp,
+            shadowElevation = 10.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
             header = {
               val current = backStack.lastOrNull()
               val title = if (searchMode || current == PlayerSettingsHome) {
@@ -266,10 +254,8 @@ internal fun PlayerSettingsDrawer(
               SettingsPanelHeader(
                 title = title,
                 canGoBack = searchMode || query.isNotBlank() || backStack.size > 1,
-                expanded = expanded,
                 onBack = back,
                 onSearch = { searchMode = true },
-                onExpand = { expanded = !expanded },
                 onClose = close,
               )
             },
@@ -317,18 +303,10 @@ internal fun PlayerSettingsDrawer(
 private fun SettingsPanelHeader(
   title: String,
   canGoBack: Boolean,
-  expanded: Boolean,
   onBack: () -> Unit,
   onSearch: () -> Unit,
-  onExpand: () -> Unit,
   onClose: () -> Unit,
 ) {
-  val reducedMotion = AppMotion.playerReducedMotion()
-  val expandRotation by animateFloatAsState(
-    targetValue = if (expanded) 0f else 180f,
-    animationSpec = if (reducedMotion) snap() else tween(180),
-    label = "playerSettingsExpandIcon",
-  )
   Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
     if (canGoBack) {
       IconButton(onClick = onBack) { Icon(Icons.RoundedFilled.ArrowBack, stringResource(R.string.back)) }
@@ -340,13 +318,6 @@ private fun SettingsPanelHeader(
       maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
     IconButton(onClick = onSearch) { Icon(Icons.RoundedFilled.Search, stringResource(R.string.settings_search_title)) }
-    IconButton(onClick = onExpand) {
-      Icon(
-        Icons.RoundedFilled.ExpandMore,
-        stringResource(if (expanded) R.string.player_settings_compact else R.string.player_settings_expand),
-        Modifier.rotate(expandRotation),
-      )
-    }
     IconButton(onClick = onClose) { Icon(Icons.RoundedFilled.Close, stringResource(R.string.player_settings_close)) }
   }
 }
@@ -463,10 +434,6 @@ private fun SettingsPanelHome(
           )
         }
       } else {
-        item {
-          Text(stringResource(R.string.player_settings_live_hint), Modifier.padding(8.dp),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
         val pinned = entries.filter { it.favoriteKey() in favorites }
         if (pinned.isNotEmpty()) {
           item {

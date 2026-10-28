@@ -224,36 +224,22 @@ data class ControlLayoutEditorScreen(
             modifier = gridModifier,
           ) {
             item(key = "layout-preset", span = { GridItemSpan(maxLineSpan) }) {
-              Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                  stringResource(R.string.player_layout_preview_hint),
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+              androidx.compose.material3.Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+              ) {
+                AppListPreference(
+                  modifier = Modifier.settingsSearchTarget(seekbarTitle).settingsSearchTarget(playbackTitle),
+                  value = preset,
+                  onValueChange = {
+                    seekbarPreference.set(it.seekbarPlacement)
+                    playbackPreference.set(it.playbackPosition)
+                  },
+                  values = VideoControlsLayoutPreset.entries,
+                  valueToText = { AnnotatedString(stringResource(it.titleRes)) },
+                  title = { Text(stringResource(R.string.player_layout_preset_title)) },
+                  summary = { Text(stringResource(preset.titleRes)) },
                 )
-                androidx.compose.material3.Surface(
-                  shape = MaterialTheme.shapes.large,
-                  color = MaterialTheme.colorScheme.surfaceContainerLow,
-                ) {
-                  AppListPreference(
-                    modifier = Modifier.settingsSearchTarget(seekbarTitle).settingsSearchTarget(playbackTitle),
-                    value = preset,
-                    onValueChange = {
-                      seekbarPreference.set(it.seekbarPlacement)
-                      playbackPreference.set(it.playbackPosition)
-                    },
-                    values = VideoControlsLayoutPreset.entries,
-                    valueToText = { AnnotatedString(stringResource(it.titleRes)) },
-                    title = { Text(stringResource(R.string.player_layout_preset_title)) },
-                    summary = { Text(stringResource(preset.titleRes)) },
-                  )
-                }
-                if (!region.isPortrait) {
-                  Text(
-                    stringResource(R.string.player_layout_shared_landscape_hint),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                  )
-                }
               }
             }
             // --- 1. Header & Active Selected Zone ---
