@@ -1793,6 +1793,7 @@ fun PlayerControls(
                 icon = Icons.RoundedFilled.LockOpen,
                 onClick = viewModel::unlockControls,
                 title = stringResource(R.string.ui_unlock_controls),
+                color = if (hideBackground) controlColor else playerButtonContentColor(),
                 modifier = Modifier.size(48.dp),
               )
             }
